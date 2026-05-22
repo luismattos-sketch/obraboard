@@ -1,4 +1,15 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
+import {
+  cadastroBaseEvento,
+  carregarCadastroBase,
+  obterDadosObra,
+  obterObraAtiva,
+  obterTurnoAtivoNome,
+  type TurnoCadastrado,
+} from "../../lib/cadastro-base";
 
 const atividadesExecutadas = [
   {
@@ -39,12 +50,80 @@ const restricoes = [
 ];
 
 export default function RdoPage() {
+  const [logoUrl, setLogoUrl] = useState("");
+  const [obra, setObra] = useState("Sem obra selecionada");
+  const [turnosCadastrados, setTurnosCadastrados] = useState<
+    TurnoCadastrado[]
+  >([]);
+  const [turno, setTurno] = useState("Dia");
+
+  useEffect(() => {
+    function carregarContextoObra() {
+      const cadastro = carregarCadastroBase();
+      const obraAtiva = obterObraAtiva(cadastro);
+      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const turnoAtivo = obterTurnoAtivoNome(
+        cadastro,
+        obraAtiva?.id ?? null,
+        dadosObra.turnos
+      );
+
+      setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
+      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setTurnosCadastrados(dadosObra.turnos);
+
+      if (turnoAtivo) {
+        setTurno(turnoAtivo);
+      }
+    }
+
+    queueMicrotask(carregarContextoObra);
+    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
+    window.addEventListener("storage", carregarContextoObra);
+
+    return () => {
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
+      window.removeEventListener("storage", carregarContextoObra);
+    };
+  }, []);
+
   return (
     <DesktopLayout
       titulo="RDO"
       subtitulo="Relatório Diário de Obra"
     >
-      <div className="flex justify-center">
+      <div className="space-y-4">
+        <section className="mx-auto w-[794px] rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+            Obra ativa: {obra}
+          </div>
+          <label className="block max-w-sm">
+            <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
+              Turno
+            </span>
+            <select
+              value={turno}
+              onChange={(e) => setTurno(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 p-3"
+            >
+              {turnosCadastrados.length === 0 ? (
+                <>
+                  <option value="Dia">Turno Dia</option>
+                  <option value="Noite">Turno Noite</option>
+                </>
+              ) : (
+                turnosCadastrados.map((item) => (
+                  <option key={item.id} value={item.nome}>
+                    {item.nome || "Turno sem nome"} ·{" "}
+                    {formatarHoras(item.horasTrabalho)}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        </section>
+
+        <div className="flex justify-center">
         <div className="min-h-[1123px] w-[794px] bg-white p-10 shadow-xl">
           <header className="mb-8 border-b border-slate-300 pb-5">
             <div className="flex items-start justify-between">
@@ -58,16 +137,25 @@ export default function RdoPage() {
                 </p>
               </div>
 
-              <div className="flex h-20 w-36 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-slate-400">
-                LOGO EMPRESA
-              </div>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt="Logo da empresa"
+                  className="max-h-20 max-w-36 object-contain"
+                />
+              ) : (
+                <div className="flex h-20 w-36 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-slate-400">
+                  LOGO EMPRESA
+                </div>
+              )}
             </div>
           </header>
 
           <section className="mb-8 grid grid-cols-2 gap-4">
-            <InfoCard label="Obra" value="Laminação L1" />
+            <InfoCard label="Obra" value={obra} />
             <InfoCard label="Data" value="16/05/2026" />
-            <InfoCard label="Turno" value="Dia" />
+            <InfoCard label="Turno" value={turno} />
             <InfoCard label="Início do turno" value="07:00" />
             <InfoCard label="Responsável pela execução" value="João - Encarregado Mecânico" />
             <InfoCard label="Status" value="Turno encerrado" />
@@ -315,6 +403,7 @@ export default function RdoPage() {
             </div>
           </footer>
         </div>
+        </div>
       </div>
     </DesktopLayout>
   );
@@ -352,4 +441,11 @@ function KpiCard({
       </p>
     </div>
   );
+}
+
+function formatarHoras(horas: number) {
+  return `${horas.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
+  })} h`;
 }

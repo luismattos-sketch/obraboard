@@ -2,31 +2,86 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import type { Atividade, AtualizacaoAtividade, StatusAtividade } from "../../lib/types";
+import {
+  cadastroBaseEvento,
+  carregarCadastroBase,
+  obterDadosObra,
+  obterObraAtiva,
+  obterTurnoAtivoNome,
+  type FuncaoPrevistaCadastrada,
+  type TurnoCadastrado,
+} from "../../lib/cadastro-base";
 
 export default function CampoPage() {
-  const [atividades, setAtividades] = useState<any[]>([]);
+  const [atividades, setAtividades] = useState<Atividade[]>([]);
+  const [obraId, setObraId] = useState<number | null>(null);
+  const [obra, setObra] = useState("Sem obra selecionada");
+  const [turnosCadastrados, setTurnosCadastrados] = useState<
+    TurnoCadastrado[]
+  >([]);
+  const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
+    useState<FuncaoPrevistaCadastrada[]>([]);
+  const [turno, setTurno] = useState("Dia");
   const [funcao, setFuncao] = useState("");
   const [quantidade, setQuantidade] = useState("");
 
-  async function carregarAtividades() {
+  async function carregarAtividades(obraAtualId = obraId) {
+    if (!obraAtualId) {
+      setAtividades([]);
+      return;
+    }
+
     const { data } = await supabase
       .from("atividades")
       .select("*")
+      .eq("obra_id", obraAtualId)
       .order("id", { ascending: true });
 
-    setAtividades(data || []);
+    setAtividades((data || []) as Atividade[]);
   }
 
   useEffect(() => {
-    carregarAtividades();
+    function carregarContextoObra() {
+      const cadastro = carregarCadastroBase();
+      const obraAtiva = obterObraAtiva(cadastro);
+      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const turnoAtivo = obterTurnoAtivoNome(
+        cadastro,
+        obraAtiva?.id ?? null,
+        dadosObra.turnos
+      );
+
+      setObraId(obraAtiva?.id ?? null);
+      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setTurnosCadastrados(dadosObra.turnos);
+      setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
+
+      if (turnoAtivo) {
+        setTurno(turnoAtivo);
+      }
+
+      void carregarAtividades(obraAtiva?.id ?? null);
+    }
+
+    queueMicrotask(carregarContextoObra);
+    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
+    window.addEventListener("storage", carregarContextoObra);
+
+    return () => {
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
+      window.removeEventListener("storage", carregarContextoObra);
+    };
+    // carregarAtividades recebe o id atual explicitamente neste efeito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function atualizarAtividade(
     id: number,
-    status: string,
+    status: StatusAtividade,
     realizado?: number
   ) {
-    const atualizacao: any = {
+    const atualizacao: AtualizacaoAtividade = {
       status,
     };
 
@@ -59,7 +114,7 @@ export default function CampoPage() {
       {
         funcao,
         quantidade: Number(quantidade),
-        turno: "Dia",
+        turno,
         data_turno: "2026-05-16",
       },
     ]);
@@ -79,13 +134,35 @@ export default function CampoPage() {
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
       <header className="mb-4 rounded-xl bg-slate-900 p-4 text-white">
-        <p className="text-xs text-slate-300">Obra: Laminação L1</p>
+        <p className="text-xs font-semibold text-teal-200">
+          Obra ativa: {obra}
+        </p>
+        <p className="text-xs text-slate-300">Obra: {obra}</p>
 
         <h1 className="text-2xl font-bold">Minhas Atividades</h1>
 
         <p className="text-sm text-slate-300">
           João · Encarregado Mecânico · Turno Dia
         </p>
+        <select
+          value={turno}
+          onChange={(e) => setTurno(e.target.value)}
+          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
+        >
+          {turnosCadastrados.length === 0 ? (
+            <>
+              <option value="Dia">Turno Dia</option>
+              <option value="Noite">Turno Noite</option>
+            </>
+          ) : (
+            turnosCadastrados.map((item) => (
+              <option key={item.id} value={item.nome}>
+                {item.nome || "Turno sem nome"} ·{" "}
+                {formatarHoras(item.horasTrabalho)}
+              </option>
+            ))
+          )}
+        </select>
       </header>
 
       <div className="mb-4 grid grid-cols-3 gap-3">
@@ -135,12 +212,29 @@ export default function CampoPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <input
+          <select
             value={funcao}
-            onChange={(e) => setFuncao(e.target.value)}
+            onChange={(e) => {
+              const nome = e.target.value;
+              const funcaoBase = funcoesPrevistasCadastradas.find(
+                (item) => item.nome === nome
+              );
+
+              setFuncao(nome);
+
+              if (funcaoBase) {
+                setQuantidade(String(funcaoBase.quantidade));
+              }
+            }}
             className="rounded-lg border border-slate-300 p-3 text-sm"
-            placeholder="Função"
-          />
+          >
+            <option value="">Função</option>
+            {funcoesPrevistasCadastradas.map((item) => (
+              <option key={item.id} value={item.nome}>
+                {item.nome}
+              </option>
+            ))}
+          </select>
 
           <input
             value={quantidade}
@@ -329,4 +423,11 @@ function ResumoCard({
       <p className={`text-2xl font-bold ${destaque}`}>{valor}</p>
     </div>
   );
+}
+
+function formatarHoras(horas: number) {
+  return `${horas.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
+  })} h`;
 }

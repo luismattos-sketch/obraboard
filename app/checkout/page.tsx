@@ -1,4 +1,15 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
+import {
+  cadastroBaseEvento,
+  carregarCadastroBase,
+  obterDadosObra,
+  obterObraAtiva,
+  obterTurnoAtivoNome,
+  type TurnoCadastrado,
+} from "../../lib/cadastro-base";
 
 const atividadesCheckout = [
   {
@@ -59,12 +70,77 @@ const restricoesCheckout = [
 ];
 
 export default function CheckoutPage() {
+  const [obra, setObra] = useState("Sem obra selecionada");
+  const [turnosCadastrados, setTurnosCadastrados] = useState<
+    TurnoCadastrado[]
+  >([]);
+  const [turno, setTurno] = useState("Dia");
+
+  useEffect(() => {
+    function carregarContextoObra() {
+      const cadastro = carregarCadastroBase();
+      const obraAtiva = obterObraAtiva(cadastro);
+      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const turnoAtivo = obterTurnoAtivoNome(
+        cadastro,
+        obraAtiva?.id ?? null,
+        dadosObra.turnos
+      );
+
+      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setTurnosCadastrados(dadosObra.turnos);
+
+      if (turnoAtivo) {
+        setTurno(turnoAtivo);
+      }
+    }
+
+    queueMicrotask(carregarContextoObra);
+    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
+    window.addEventListener("storage", carregarContextoObra);
+
+    return () => {
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
+      window.removeEventListener("storage", carregarContextoObra);
+    };
+  }, []);
+
   return (
     <DesktopLayout
       titulo="Check-out do Turno"
-      subtitulo="Obra: Laminação L1 · Turno Dia · Início: 16/05/2026 07:00"
+      subtitulo={`Obra: ${obra} - Turno ${turno}`}
     >
       <div className="space-y-4">
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+            Obra ativa: {obra}
+          </div>
+          <label className="block max-w-sm">
+            <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
+              Turno
+            </span>
+            <select
+              value={turno}
+              onChange={(e) => setTurno(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 p-3"
+            >
+              {turnosCadastrados.length === 0 ? (
+                <>
+                  <option value="Dia">Turno Dia</option>
+                  <option value="Noite">Turno Noite</option>
+                </>
+              ) : (
+                turnosCadastrados.map((item) => (
+                  <option key={item.id} value={item.nome}>
+                    {item.nome || "Turno sem nome"} ·{" "}
+                    {formatarHoras(item.horasTrabalho)}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        </section>
+
         <div className="grid grid-cols-5 gap-3">
           <ResumoCard titulo="Planejadas" valor="18" />
           <ResumoCard titulo="Finalizadas" valor="12" destaque="text-green-600" />
@@ -326,4 +402,11 @@ function ResumoCard({
       <h3 className={`text-4xl font-bold ${destaque}`}>{valor}</h3>
     </div>
   );
+}
+
+function formatarHoras(horas: number) {
+  return `${horas.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
+  })} h`;
 }

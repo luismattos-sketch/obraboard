@@ -1,13 +1,36 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../components/DesktopLayout";
 import { supabase } from "../lib/supabase";
+import type { Atividade } from "../lib/types";
+import {
+  cadastroBaseEvento,
+  carregarCadastroBase,
+  obterDadosObra,
+  obterObraAtiva,
+  type FuncaoPrevistaCadastrada,
+} from "../lib/cadastro-base";
 
-export default async function Home() {
-  const { data: atividadesBanco } = await supabase
-    .from("atividades")
-    .select("*")
-    .order("id", { ascending: true });
+export default function Home() {
+  const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
+  const [obraAtivaNome, setObraAtivaNome] = useState("Sem obra selecionada");
+  const [funcoesPrevistas, setFuncoesPrevistas] = useState<
+    FuncaoPrevistaCadastrada[]
+  >([]);
 
-  const atividades = atividadesBanco ?? [];
+  const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const atividades = useMemo(
+    () =>
+      dataTurnoAtual
+        ? atividadesBanco.filter((item) => item.data_turno === dataTurnoAtual)
+        : atividadesBanco,
+    [atividadesBanco, dataTurnoAtual]
+  );
+  const turnoAtual = atividades.find((item) => item.turno)?.turno ?? "-";
+  const dataTurnoFormatada = dataTurnoAtual
+    ? formatarDataTurno(dataTurnoAtual)
+    : "Turno sem data";
 
   const executando = atividades.filter(
     (a) => a.status === "Execução"
@@ -24,11 +47,50 @@ export default async function Home() {
   const parciais = atividades.filter(
     (a) => a.status === "Parcial"
   ).length;
+  const restricoesCriticas = atividades.filter(
+    (a) => a.status === "Restrição"
+  );
+
+  useEffect(() => {
+    async function carregarAtividades(obraId: number | null) {
+      if (!obraId) {
+        setAtividadesBanco([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("atividades")
+        .select("*")
+        .eq("obra_id", obraId)
+        .order("id", { ascending: true });
+
+      setAtividadesBanco((data || []) as Atividade[]);
+    }
+
+    function carregarContexto() {
+      const cadastro = carregarCadastroBase();
+      const obraAtiva = obterObraAtiva(cadastro);
+      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+
+      setObraAtivaNome(obraAtiva?.nome || "Sem obra selecionada");
+      setFuncoesPrevistas(dadosObra.funcoesPrevistas);
+      void carregarAtividades(obraAtiva?.id ?? null);
+    }
+
+    carregarContexto();
+    window.addEventListener(cadastroBaseEvento, carregarContexto);
+    window.addEventListener("storage", carregarContexto);
+
+    return () => {
+      window.removeEventListener(cadastroBaseEvento, carregarContexto);
+      window.removeEventListener("storage", carregarContexto);
+    };
+  }, []);
 
   return (
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
-      subtitulo="Obra: Laminação L1 · Turno Dia · Início: 16/05/2026 07:00"
+      subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual} - Inicio: ${dataTurnoFormatada}`}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-5 gap-3">
@@ -74,30 +136,22 @@ export default async function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-4 gap-3 p-4">
-                <RecursoCard
-                  nome="Mecânico"
-                  previsto={4}
-                  real={3}
-                />
-
-                <RecursoCard
-                  nome="Soldador"
-                  previsto={2}
-                  real={2}
-                />
-
-                <RecursoCard
-                  nome="Eletricista"
-                  previsto={3}
-                  real={4}
-                />
-
-                <RecursoCard
-                  nome="Ajudante"
-                  previsto={6}
-                  real={5}
-                />
+              <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-4">
+                {funcoesPrevistas.length === 0 ? (
+                  <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+                    Nenhum recurso previsto cadastrado para a obra ativa.
+                  </p>
+                ) : (
+                  funcoesPrevistas.map((funcao) => (
+                    <RecursoCard
+                      key={funcao.id}
+                      nome={funcao.nome}
+                      previsto={funcao.quantidade}
+                      real={0}
+                      hhDisponivel={funcao.quantidade * (funcao.cargaHoraria || 0)}
+                    />
+                  ))
+                )}
               </div>
             </section>
 
@@ -201,21 +255,22 @@ export default async function Home() {
               </p>
 
               <div className="space-y-3">
-                <RestricaoCard
-                  codigo="R1"
-                  titulo="Falta martelete para demolição"
-                  responsavel="Rafael"
-                  prazo="Hoje 14h"
-                  criticidade="Alta"
-                />
-
-                <RestricaoCard
-                  codigo="R2"
-                  titulo="Aguardando ponte rolante"
-                  responsavel="Operação"
-                  prazo="Hoje 16h"
-                  criticidade="Média"
-                />
+                {restricoesCriticas.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-slate-300 p-4 text-sm font-semibold text-slate-500">
+                    Nenhuma restricao critica registrada no turno atual.
+                  </p>
+                ) : (
+                  restricoesCriticas.map((item) => (
+                    <RestricaoCard
+                      key={item.id}
+                      codigo={`R${item.id}`}
+                      titulo={item.atividade}
+                      responsavel={item.responsavel}
+                      prazo={dataTurnoFormatada}
+                      criticidade={item.prioridade === "A" ? "Alta" : "Media"}
+                    />
+                  ))
+                )}
               </div>
             </section>
 
@@ -225,10 +280,9 @@ export default async function Home() {
               </h3>
 
               <p className="text-sm leading-7 text-slate-600">
-                Área parcialmente liberada.
-                Necessário acompanhar restrição
-                da ponte rolante antes do checkout.
-                Priorizar liberação da frente civil.
+                {atividades.length === 0
+                  ? "Nenhuma atividade registrada para o turno atual."
+                  : `${atividades.length} atividades carregadas do Supabase para acompanhamento do turno.`}
               </p>
             </section>
           </div>
@@ -236,6 +290,34 @@ export default async function Home() {
       </div>
     </DesktopLayout>
   );
+}
+
+function obterDataTurnoAtual(
+  atividades: Array<{ data_turno?: string | null }>
+) {
+  const datas = atividades
+    .map((item) => item.data_turno)
+    .filter((data): data is string => Boolean(data))
+    .sort();
+
+  return datas.at(-1) ?? null;
+}
+
+function formatarDataTurno(dataTurno: string) {
+  const [ano, mes, dia] = dataTurno.split("-");
+
+  if (!ano || !mes || !dia) {
+    return dataTurno;
+  }
+
+  return `${dia}/${mes}/${ano}`;
+}
+
+function formatarHoras(horas: number) {
+  return `${horas.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
+  })} h`;
 }
 
 function KpiCard({
@@ -300,14 +382,14 @@ function RecursoCard({
   nome,
   previsto,
   real,
+  hhDisponivel,
 }: {
   nome: string;
   previsto: number;
   real: number;
+  hhDisponivel: number;
 }) {
-  const percentual = Math.round(
-    (real / previsto) * 100
-  );
+  const percentual = previsto > 0 ? Math.round((real / previsto) * 100) : 0;
 
   return (
     <div className="rounded-xl border border-slate-200 p-3">
@@ -335,7 +417,10 @@ function RecursoCard({
       </div>
 
       <p className="text-xs text-slate-500">
-        Prev {previsto} · Real {real}
+        Prev {previsto} - Real {real}
+      </p>
+      <p className="mt-1 text-xs font-semibold text-teal-700">
+        HH disponivel: {formatarHoras(hhDisponivel)}
       </p>
     </div>
   );
