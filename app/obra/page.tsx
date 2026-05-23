@@ -12,7 +12,6 @@ import {
   obterObraAtivaId,
   removerDadosObra,
   salvarCadastroBase,
-  salvarTurnoAtivo,
   type CriticidadeObra,
   type DisciplinaCadastrada,
   type FuncaoPrevistaCadastrada,
@@ -111,6 +110,11 @@ export default function CadastroObraPage() {
   const classeBotaoPrimario = bloqueiaFormularioObra
     ? "cursor-not-allowed bg-slate-300 text-slate-500"
     : "bg-teal-600 text-white hover:bg-teal-700";
+  const bloqueiaTurnos = bloqueiaFormularioObra && turnoEditandoId === null;
+  const classeCampoTurno = bloqueiaTurnos ? classeCampoBloqueavel : "";
+  const classeBotaoTurno = obraAtivaId && !bloqueiaTurnos
+    ? "bg-teal-600 text-white hover:bg-teal-700"
+    : "cursor-not-allowed bg-slate-300 text-slate-500";
 
   const horasTurnoAtual = calcularHorasTrabalho(
     turnoHoraInicio,
@@ -298,7 +302,7 @@ export default function CadastroObraPage() {
         };
 
     const cadastroAtual = carregarCadastroBase();
-    const obraAtivaAposSalvar = editando ? obra.id : null;
+    const obraAtivaAposSalvar = obra.id;
 
     salvarCadastroBase(
       definirDadosObra(
@@ -319,7 +323,9 @@ export default function CadastroObraPage() {
       setDisciplinas([]);
       setFuncoesPrevistas([]);
       setTurnos([]);
-      limparObra();
+      preencherFormularioObra(obra);
+      setObraVisualizandoId(obra.id);
+      setObraEditandoId(null);
     } else {
       setObraVisualizandoId(obra.id);
       setObraEditandoId(null);
@@ -342,7 +348,7 @@ export default function CadastroObraPage() {
     setFuncoesPrevistas([]);
     setTurnos([]);
     salvarCadastroBase({ ...cadastroAtual, obraAtivaId: null });
-    queueMicrotask(notificarCadastroBaseAtualizado);
+    setMensagem("Formulario pronto para nova obra.");
   }
 
   function editarObra(obra: ObraCadastrada) {
@@ -358,7 +364,6 @@ export default function CadastroObraPage() {
     setObraEditandoId(obra.id);
     setObraVisualizandoId(null);
     salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obra.id });
-    queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
   function editarObraSelecionada() {
@@ -375,7 +380,6 @@ export default function CadastroObraPage() {
     }
 
     salvarCadastroBase({ ...carregarCadastroBase(), obraAtivaId });
-    queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
   function excluirObra(id: number) {
@@ -452,7 +456,7 @@ export default function CadastroObraPage() {
   }
 
   function salvarTurno() {
-    if (bloqueiaFormularioObra) {
+    if (!obraAtivaId) {
       return;
     }
 
@@ -465,14 +469,36 @@ export default function CadastroObraPage() {
       horasTrabalho: horasTurnoAtual,
     };
 
-    setTurnos((atuais) =>
-      turnoEditandoId
-        ? atuais.map((item) => (item.id === turnoEditandoId ? turno : item))
-        : [...atuais, turno]
+    const novosTurnos = turnoEditandoId
+      ? turnos.map((item) => (item.id === turnoEditandoId ? turno : item))
+      : [...turnos, turno];
+    const cadastroAtual = carregarCadastroBase();
+
+    salvarCadastroBase(
+      definirDadosObra(
+        {
+          ...cadastroAtual,
+          obraAtivaId,
+          turnoAtivoPorObra: {
+            ...cadastroAtual.turnoAtivoPorObra,
+            [String(obraAtivaId)]: turno.nome,
+          },
+        },
+        obraAtivaId,
+        {
+          usuarios,
+          disciplinas,
+          funcoesPrevistas,
+          turnos: novosTurnos,
+        }
+      )
     );
-    salvarTurnoAtivo(obraAtivaId, turno.nome);
+
+    setTurnos(novosTurnos);
     limparTurno();
+    setObraVisualizandoId(obraAtivaId);
     setMensagem(turnoEditandoId ? "Turno atualizado." : "Turno cadastrado.");
+    queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
   function limparTurno() {
@@ -484,26 +510,59 @@ export default function CadastroObraPage() {
   }
 
   function editarTurno(turno: TurnoCadastrado) {
-    tornarObraAtualAtivaParaEdicao();
+    if (!obraAtivaId) {
+      return;
+    }
+
     setObraVisualizandoId(null);
     setTurnoNome(turno.nome);
     setTurnoHoraInicio(turno.horaInicio);
     setTurnoHoraFim(turno.horaFim);
     setTurnoDescontaRefeicao(turno.descontaRefeicao);
     setTurnoEditandoId(turno.id);
-    salvarTurnoAtivo(obraAtivaId, turno.nome);
   }
 
   function excluirTurno(id: number) {
-    if (bloqueiaFormularioObra) {
+    if (!obraAtivaId) {
       return;
     }
 
-    setTurnos((atuais) => atuais.filter((item) => item.id !== id));
+    const novosTurnos = turnos.filter((item) => item.id !== id);
+    const cadastroAtual = carregarCadastroBase();
+    const turnoAtivoAtual = cadastroAtual.turnoAtivoPorObra[String(obraAtivaId)];
+    const turnoExcluido = turnos.find((item) => item.id === id);
+    const proximoTurnoAtivo =
+      turnoAtivoAtual === turnoExcluido?.nome
+        ? novosTurnos[0]?.nome ?? ""
+        : turnoAtivoAtual ?? "";
+
+    salvarCadastroBase(
+      definirDadosObra(
+        {
+          ...cadastroAtual,
+          obraAtivaId,
+          turnoAtivoPorObra: {
+            ...cadastroAtual.turnoAtivoPorObra,
+            [String(obraAtivaId)]: proximoTurnoAtivo,
+          },
+        },
+        obraAtivaId,
+        {
+          usuarios,
+          disciplinas,
+          funcoesPrevistas,
+          turnos: novosTurnos,
+        }
+      )
+    );
+
+    setTurnos(novosTurnos);
+    setObraVisualizandoId(obraAtivaId);
     if (turnoEditandoId === id) {
       limparTurno();
     }
-    setMensagem("Turno excluído.");
+    setMensagem("Turno excluÃ­do.");
+    queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
   function alterarNivelAcesso(id: number, nivelAcesso: NivelAcesso) {
@@ -1112,8 +1171,8 @@ export default function CadastroObraPage() {
               <input
                 value={turnoNome}
                 onChange={(e) => setTurnoNome(e.target.value)}
-                disabled={bloqueiaFormularioObra}
-                className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoBloqueavel}`}
+                disabled={!obraAtivaId || bloqueiaTurnos}
+                className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoTurno}`}
                 placeholder="Ex.: Dia"
               />
             </CampoRotulado>
@@ -1123,8 +1182,8 @@ export default function CadastroObraPage() {
                 value={turnoHoraInicio}
                 onChange={(e) => setTurnoHoraInicio(e.target.value)}
                 type="time"
-                disabled={bloqueiaFormularioObra}
-                className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoBloqueavel}`}
+                disabled={!obraAtivaId || bloqueiaTurnos}
+                className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoTurno}`}
               />
             </CampoRotulado>
 
@@ -1133,8 +1192,8 @@ export default function CadastroObraPage() {
                 value={turnoHoraFim}
                 onChange={(e) => setTurnoHoraFim(e.target.value)}
                 type="time"
-                disabled={bloqueiaFormularioObra}
-                className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoBloqueavel}`}
+                disabled={!obraAtivaId || bloqueiaTurnos}
+                className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoTurno}`}
               />
             </CampoRotulado>
 
@@ -1143,7 +1202,7 @@ export default function CadastroObraPage() {
                 checked={turnoDescontaRefeicao}
                 onChange={(e) => setTurnoDescontaRefeicao(e.target.checked)}
                 type="checkbox"
-                disabled={bloqueiaFormularioObra}
+                disabled={!obraAtivaId || bloqueiaTurnos}
                 className="mb-0.5 h-4 w-4"
               />
               Descontar refeição
@@ -1159,8 +1218,8 @@ export default function CadastroObraPage() {
               <button
                 type="button"
                 onClick={salvarTurno}
-                disabled={bloqueiaFormularioObra}
-                className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition ${classeBotaoPrimario}`}
+                disabled={!obraAtivaId || bloqueiaTurnos}
+                className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition ${classeBotaoTurno}`}
               >
                 {turnoEditandoId ? "Salvar alterações" : "Adicionar"}
               </button>
@@ -1425,6 +1484,7 @@ export default function CadastroObraPage() {
                         <AcoesLinha
                           onEditar={() => editarFuncaoPrevista(funcao)}
                           onExcluir={() => excluirFuncaoPrevista(funcao.id)}
+                          desabilitado={bloqueiaFormularioObra}
                         />
                       </td>
                     </tr>
@@ -1657,7 +1717,12 @@ function AcoesLinha({
       <button
         type="button"
         onClick={onEditar}
-        className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+        disabled={desabilitado}
+        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${
+          desabilitado
+            ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+            : "border-slate-300 text-slate-600 hover:bg-slate-100"
+        }`}
       >
         Editar
       </button>

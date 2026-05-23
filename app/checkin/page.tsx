@@ -149,13 +149,56 @@ export default function CheckinPage() {
     return mapa;
   }, [recursosDisponiveis]);
 
-  const horasDisponiveisTurno = useMemo(() => {
-    const turnoSelecionado = turnosCadastrados.find(
-      (item) => item.nome === turno
-    );
+  const hhDisponivelTurno = useMemo(
+    () =>
+      recursosDisponiveis.reduce(
+        (total, item) =>
+          total + Number(item.quantidade || 0) * Number(item.cargaHoraria || 0),
+        0
+      ),
+    [recursosDisponiveis]
+  );
 
-    return turnoSelecionado?.horasTrabalho ?? 0;
-  }, [turno, turnosCadastrados]);
+  const hhAtividadeEmEdicao = useMemo(() => {
+    if (!atividadeEditandoId) {
+      return 0;
+    }
+
+    const atividade = atividades.find((item) => item.id === atividadeEditandoId);
+    const equipe = somarRecursosAtividade(atividadeEditandoId);
+
+    return Number(atividade?.tempo_previsto_horas || 0) * equipe;
+    // somarRecursosAtividade depende do mapa atualizado em memoria.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atividadeEditandoId, atividades, recursosPorAtividade]);
+
+  const hhNovoAtividade = useMemo(
+    () =>
+      Number(tempoPrevistoHoras || 0) *
+      recursosAtividade.reduce(
+        (total, item) => total + Number(item.quantidade_prevista || 0),
+        0
+      ),
+    [recursosAtividade, tempoPrevistoHoras]
+  );
+
+  const hhCadastradoTurno = useMemo(() => {
+    return atividades
+      .filter(
+        (item) =>
+          item.obra_id === obraId &&
+          item.data_turno === dataTurno &&
+          item.turno === turno
+      )
+      .reduce(
+        (total, item) =>
+          total +
+          Number(item.tempo_previsto_horas || 0) * somarRecursosAtividade(item.id),
+        0
+      );
+    // somarRecursosAtividade depende do mapa atualizado em memoria.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atividades, dataTurno, obraId, recursosPorAtividade, turno]);
 
   const totais = useMemo(() => {
     const planejadas = atividadesTurno.filter(
@@ -178,17 +221,12 @@ export default function CheckinPage() {
         ),
       0
     );
-    const horasPrevistas = atividadesTurno.reduce(
-      (total, item) => total + Number(item.tempo_previsto_horas || 0),
-      0
-    );
 
     return {
       planejadas,
       prioridadeA,
       totalPrevisto,
       equipePrevista,
-      horasPrevistas,
     };
   }, [atividadesTurno, recursosPorAtividade]);
 
@@ -359,19 +397,21 @@ export default function CheckinPage() {
       return;
     }
 
-    const horasJaPrevistas = somarHorasTurno(turno);
+    const hhCadastradoAtual = hhCadastradoTurno - hhAtividadeEmEdicao;
+    const hhRestante =
+      hhDisponivelTurno > 0
+        ? Math.max(hhDisponivelTurno - hhCadastradoAtual, 0)
+        : hhNovoAtividade;
     const horasRestantes =
-      horasDisponiveisTurno > 0
-        ? Math.max(horasDisponiveisTurno - horasJaPrevistas, 0)
-        : tempo;
+      hhNovoAtividade > 0 ? Math.min(tempo, (hhRestante / hhNovoAtividade) * tempo) : tempo;
 
-    if (horasDisponiveisTurno > 0 && horasJaPrevistas + tempo > horasDisponiveisTurno) {
+    if (hhDisponivelTurno > 0 && hhCadastradoAtual + hhNovoAtividade > hhDisponivelTurno) {
       const aceitouProgramar = window.confirm(
-        "As horas previstas ultrapassam o tempo disponivel do turno. Deseja programar as horas excedentes para os turnos seguintes?"
+        "O HH cadastrado ultrapassa o HH disponivel do turno. Deseja programar o excedente para os turnos seguintes?"
       );
 
       if (!aceitouProgramar) {
-        setErro("A quantidade de horas excede o tempo disponivel no turno.");
+        setErro("O HH cadastrado excede o HH disponivel no turno.");
         return;
       }
 
@@ -626,18 +666,6 @@ export default function CheckinPage() {
     );
   }
 
-  function somarHorasTurno(turnoAlvo: string) {
-    return atividades
-      .filter(
-        (item) =>
-          item.obra_id === obraId &&
-          item.data_turno === dataTurno &&
-          item.turno === turnoAlvo &&
-          item.id !== atividadeEditandoId
-      )
-      .reduce((total, item) => total + Number(item.tempo_previsto_horas || 0), 0);
-  }
-
   function obterProximoTurno(turnoAtual: string) {
     if (turnosCadastrados.length < 2) {
       return null;
@@ -766,6 +794,23 @@ export default function CheckinPage() {
       return;
     }
 
+    const tempo = Number(edicao.tempoPrevistoHoras);
+    const quantidade = Number(edicao.previsto);
+
+    if (tempo <= 0 || quantidade <= 0) {
+      setErro("Previsao e tempo previsto devem ser maiores que zero.");
+      return;
+    }
+
+    if (
+      hhDisponivelTurno > 0 &&
+      hhCadastradoTurno - hhAtividadeEmEdicao + hhNovoAtividade >
+        hhDisponivelTurno
+    ) {
+      setErro("O HH cadastrado excede o HH disponivel no turno.");
+      return;
+    }
+
     setSalvando(true);
 
     const { data, error } = await supabase
@@ -776,9 +821,9 @@ export default function CheckinPage() {
         atividade: edicao.atividade,
         local: edicao.local,
         responsavel: edicao.responsavel,
-        previsto: Number(edicao.previsto),
+        previsto: quantidade,
         unidade: edicao.unidade,
-        tempo_previsto_horas: Number(edicao.tempoPrevistoHoras),
+        tempo_previsto_horas: tempo,
       })
       .eq("id", id)
       .select("id");
@@ -915,9 +960,9 @@ export default function CheckinPage() {
                 valor={planejador || "-"}
               />
               <ResumoCompacto
-                label="Horas"
-                valor={`${formatarHoras(totais.horasPrevistas)} / ${formatarHoras(
-                  horasDisponiveisTurno
+                label="HH"
+                valor={`${formatarHoras(hhCadastradoTurno)} / ${formatarHoras(
+                  hhDisponivelTurno
                 )}`}
               />
             </div>
@@ -986,13 +1031,13 @@ export default function CheckinPage() {
             destaque="text-teal-600"
           />
           <ResumoCard
-            titulo="Horas previstas"
-            valor={`${formatarHoras(totais.horasPrevistas)} / ${formatarHoras(
-              horasDisponiveisTurno
+            titulo="HH cadastrado"
+            valor={`${formatarHoras(hhCadastradoTurno)} / ${formatarHoras(
+              hhDisponivelTurno
             )}`}
             destaque={
-              horasDisponiveisTurno > 0 &&
-              totais.horasPrevistas > horasDisponiveisTurno
+              hhDisponivelTurno > 0 &&
+              hhCadastradoTurno > hhDisponivelTurno
                 ? "text-red-500"
                 : "text-teal-600"
             }

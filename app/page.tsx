@@ -9,47 +9,107 @@ import {
   carregarCadastroBase,
   obterDadosObra,
   obterObraAtiva,
+  obterTurnoAtivoNome,
   type FuncaoPrevistaCadastrada,
 } from "../lib/cadastro-base";
 
+type MaoObraReal = {
+  id: number;
+  atividade_id?: number | null;
+  funcao: string | null;
+  quantidade: number | null;
+  turno: string | null;
+  data_turno: string | null;
+};
+
+type RestricaoAtividade = {
+  texto: string;
+  status: "aberta" | "resolvida" | "parada";
+};
+
+const maoObraLocalStorageKey = "obraboard:mao-obra-local";
+const restricaoStorageKey = "obraboard:campo-restricoes";
+
 export default function Home() {
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
+  const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraAtivaNome, setObraAtivaNome] = useState("Sem obra selecionada");
+  const [turnoAtivo, setTurnoAtivo] = useState("");
+  const [turnoInicio, setTurnoInicio] = useState("");
+  const [agora, setAgora] = useState(() => new Date());
+  const [restricoesCampo, setRestricoesCampo] = useState<
+    Record<number, RestricaoAtividade>
+  >(() => carregarObjetoLocal(restricaoStorageKey));
   const [funcoesPrevistas, setFuncoesPrevistas] = useState<
     FuncaoPrevistaCadastrada[]
   >([]);
 
   const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
-  const atividades = useMemo(
+  const atividadesDaData = useMemo(
     () =>
       dataTurnoAtual
         ? atividadesBanco.filter((item) => item.data_turno === dataTurnoAtual)
         : atividadesBanco,
     [atividadesBanco, dataTurnoAtual]
   );
-  const turnoAtual = atividades.find((item) => item.turno)?.turno ?? "-";
+  const turnoAtual =
+    turnoAtivo || atividadesDaData.find((item) => item.turno)?.turno || "-";
+  const atividades = useMemo(
+    () =>
+      turnoAtual === "-"
+        ? atividadesDaData
+        : atividadesDaData.filter((item) => item.turno === turnoAtual),
+    [atividadesDaData, turnoAtual]
+  );
+  const recursosReaisPorFuncao = useMemo(() => {
+    const mapa = new Map<string, number>();
+    const atividadesIds = new Set(atividades.map((item) => item.id));
+
+    maoObraReal
+      .filter(
+        (item) =>
+          item.atividade_id
+            ? atividadesIds.has(item.atividade_id)
+            : (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
+              (turnoAtual === "-" || item.turno === turnoAtual)
+      )
+      .forEach((item) => {
+        const funcao = item.funcao || "";
+
+        if (funcao) {
+          mapa.set(funcao, (mapa.get(funcao) ?? 0) + Number(item.quantidade || 0));
+        }
+      });
+
+    return mapa;
+  }, [atividades, dataTurnoAtual, maoObraReal, turnoAtual]);
+
   const dataTurnoFormatada = dataTurnoAtual
     ? formatarDataTurno(dataTurnoAtual)
     : "Turno sem data";
-
-  const executando = atividades.filter(
-    (a) => a.status === "Execução"
-  ).length;
-
-  const restricoes = atividades.filter(
-    (a) => a.status === "Restrição"
-  ).length;
-
-  const finalizadas = atividades.filter(
-    (a) => a.status === "Finalizada"
-  ).length;
-
-  const parciais = atividades.filter(
-    (a) => a.status === "Parcial"
-  ).length;
+  const relogioTurno = formatarRelogioTurno(agora, dataTurnoAtual, turnoInicio);
+  const executando = contarStatus(atividades, "Execução");
+  const restricoes = contarStatus(atividades, "Restrição");
+  const finalizadas = contarStatus(atividades, "Finalizada");
+  const parciais = contarStatus(atividades, "Parcial");
   const restricoesCriticas = atividades.filter(
-    (a) => a.status === "Restrição"
+    (item) => item.status === "Restrição"
   );
+
+  const restricoesPainel = useMemo(
+    () =>
+      restricoesCriticas.map((item) => ({
+        atividade: item,
+        restricao: restricoesCampo[item.id],
+      })),
+    [restricoesCampo, restricoesCriticas]
+  );
+
+  useEffect(() => {
+    const intervalo = window.setInterval(() => setAgora(new Date()), 30000);
+
+    return () => window.clearInterval(intervalo);
+  }, []);
 
   useEffect(() => {
     async function carregarAtividades(obraId: number | null) {
@@ -67,21 +127,47 @@ export default function Home() {
       setAtividadesBanco((data || []) as Atividade[]);
     }
 
+    async function carregarMaoObraReal() {
+      const { data } = await supabase
+        .from("mao_obra")
+        .select("*")
+        .order("id", { ascending: true });
+
+      setMaoObraReal([
+        ...((data || []) as MaoObraReal[]),
+        ...carregarListaLocal<MaoObraReal>(maoObraLocalStorageKey),
+      ]);
+    }
+
     function carregarContexto() {
       const cadastro = carregarCadastroBase();
       const obraAtiva = obterObraAtiva(cadastro);
       const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const turnoAtivoNome = obterTurnoAtivoNome(
+        cadastro,
+        obraAtiva?.id ?? null,
+        dadosObra.turnos
+      );
 
       setObraAtivaNome(obraAtiva?.nome || "Sem obra selecionada");
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
+      setTurnoAtivo(turnoAtivoNome);
+      setTurnoInicio(
+        dadosObra.turnos.find((item) => item.nome === turnoAtivoNome)
+          ?.horaInicio || ""
+      );
       void carregarAtividades(obraAtiva?.id ?? null);
+      void carregarMaoObraReal();
+      setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
     }
 
     carregarContexto();
+    const intervaloAtualizacao = window.setInterval(carregarContexto, 60000);
     window.addEventListener(cadastroBaseEvento, carregarContexto);
     window.addEventListener("storage", carregarContexto);
 
     return () => {
+      window.clearInterval(intervaloAtualizacao);
       window.removeEventListener(cadastroBaseEvento, carregarContexto);
       window.removeEventListener("storage", carregarContexto);
     };
@@ -91,31 +177,22 @@ export default function Home() {
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
       subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual} - Inicio: ${dataTurnoFormatada}`}
+      status={relogioTurno}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-5 gap-3">
+          <KpiCard titulo="Atividades" valor={String(atividades.length)} />
+          <KpiCard titulo="Execucao" valor={String(executando)} />
           <KpiCard
-            titulo="Atividades"
-            valor={String(atividades.length)}
-          />
-
-          <KpiCard
-            titulo="Execução"
-            valor={String(executando)}
-          />
-
-          <KpiCard
-            titulo="Restrições"
+            titulo="Restricoes"
             valor={String(restricoes)}
             destaque="text-red-500"
           />
-
           <KpiCard
             titulo="Parciais"
             valor={String(parciais)}
             destaque="text-yellow-500"
           />
-
           <KpiCard
             titulo="Validadas"
             valor={String(finalizadas)}
@@ -126,28 +203,18 @@ export default function Home() {
         <div className="grid grid-cols-[1fr_320px] gap-4">
           <div className="space-y-4">
             <section className="rounded-2xl bg-white shadow-sm">
-              <div className="border-b p-4">
-                <h3 className="text-lg font-bold">
-                  Recursos
-                </h3>
-
-                <p className="text-sm text-slate-500">
-                  Previsto x real
-                </p>
-              </div>
+              <CabecalhoSecao titulo="Recursos" texto="Previsto x real" />
 
               <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-4">
                 {funcoesPrevistas.length === 0 ? (
-                  <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
-                    Nenhum recurso previsto cadastrado para a obra ativa.
-                  </p>
+                  <EstadoVazio texto="Nenhum recurso previsto cadastrado para a obra ativa." />
                 ) : (
                   funcoesPrevistas.map((funcao) => (
                     <RecursoCard
                       key={funcao.id}
                       nome={funcao.nome}
                       previsto={funcao.quantidade}
-                      real={0}
+                      real={recursosReaisPorFuncao.get(funcao.nome) ?? 0}
                       hhDisponivel={funcao.quantidade * (funcao.cargaHoraria || 0)}
                     />
                   ))
@@ -156,118 +223,79 @@ export default function Home() {
             </section>
 
             <section className="rounded-2xl bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b p-4">
-                <div>
-                  <h3 className="text-lg font-bold">
-                    Gestão operacional
-                  </h3>
+              <CabecalhoSecao
+                titulo="Gestao operacional"
+                texto="Frentes, tarefas e oportunidades"
+              />
 
-                  <p className="text-sm text-slate-500">
-                    Frentes, tarefas e oportunidades
-                  </p>
+              {atividades.length === 0 ? (
+                <div className="p-4">
+                  <EstadoVazio texto="Nenhuma atividade carregada para a obra, data e turno atuais." />
                 </div>
-
-                <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">
-                  Atualizar
-                </button>
-              </div>
-
-              <table className="w-full">
-                <thead className="bg-slate-50 text-sm">
-                  <tr>
-                    <th className="p-3 text-left">Pri</th>
-                    <th className="p-3 text-left">Disc</th>
-                    <th className="p-3 text-left">
-                      Atividade
-                    </th>
-                    <th className="p-3 text-left">
-                      Local
-                    </th>
-                    <th className="p-3 text-left">
-                      Resp
-                    </th>
-                    <th className="p-3 text-center">
-                      Prev
-                    </th>
-                    <th className="p-3 text-center">
-                      Real
-                    </th>
-                    <th className="p-3 text-center">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {atividades.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-t text-sm hover:bg-slate-50"
-                    >
-                      <td className="p-3 font-bold text-red-500">
-                        {item.prioridade}
-                      </td>
-
-                      <td className="p-3 font-semibold">
-                        {item.disciplina}
-                      </td>
-
-                      <td className="p-3 font-medium">
-                        {item.atividade}
-                      </td>
-
-                      <td className="p-3">
-                        {item.local}
-                      </td>
-
-                      <td className="p-3">
-                        {item.responsavel}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.previsto}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        {item.realizado}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        <StatusBadge
-                          status={item.status}
-                        />
-                      </td>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-slate-50 text-sm">
+                    <tr>
+                      <th className="p-3 text-left">Pri</th>
+                      <th className="p-3 text-left">Disc</th>
+                      <th className="p-3 text-left">Atividade</th>
+                      <th className="p-3 text-left">Local</th>
+                      <th className="p-3 text-left">Resp</th>
+                      <th className="p-3 text-center">Prev</th>
+                      <th className="p-3 text-center">Real</th>
+                      <th className="p-3 text-center">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  <tbody>
+                    {atividades.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-t text-sm hover:bg-slate-50"
+                      >
+                        <td className="p-3 font-bold text-red-500">
+                          {item.prioridade}
+                        </td>
+                        <td className="p-3 font-semibold">{item.disciplina}</td>
+                        <td className="p-3 font-medium">{item.atividade}</td>
+                        <td className="p-3">{item.local}</td>
+                        <td className="p-3">{item.responsavel}</td>
+                        <td className="p-3 text-center">{item.previsto}</td>
+                        <td className="p-3 text-center">{item.realizado ?? 0}</td>
+                        <td className="p-3 text-center">
+                          <StatusBadge status={item.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </section>
           </div>
 
           <div className="space-y-4">
             <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm">
               <h3 className="text-xl font-bold text-red-600">
-                Atenção do turno
+                Atencao do turno
               </h3>
-
               <p className="mb-4 text-sm text-slate-500">
-                Restrições críticas
+                Restricoes criticas
               </p>
 
               <div className="space-y-3">
-                {restricoesCriticas.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-slate-300 p-4 text-sm font-semibold text-slate-500">
-                    Nenhuma restricao critica registrada no turno atual.
-                  </p>
+                {restricoesPainel.length === 0 ? (
+                  <EstadoVazio texto="Nenhuma restricao critica registrada no turno atual." />
                 ) : (
-                  restricoesCriticas.map((item) => (
+                  restricoesPainel.map(({ atividade, restricao }) => (
                     <RestricaoCard
-                      key={item.id}
-                      codigo={`R${item.id}`}
-                      titulo={item.atividade}
-                      responsavel={item.responsavel}
+                      key={atividade.id}
+                      codigo={`R${atividade.id}`}
+                      titulo={atividade.atividade}
+                      responsavel={atividade.responsavel}
+                      observacao={restricao?.texto || "Sem observacao registrada."}
                       prazo={dataTurnoFormatada}
-                      criticidade={item.prioridade === "A" ? "Alta" : "Media"}
+                      criticidade={atividade.prioridade === "A" ? "Alta" : "Media"}
+                      status={restricao?.status || "aberta"}
                     />
                   ))
                 )}
@@ -275,14 +303,11 @@ export default function Home() {
             </section>
 
             <section className="rounded-2xl bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-xl font-bold">
-                Observações
-              </h3>
-
+              <h3 className="mb-3 text-xl font-bold">Observacoes</h3>
               <p className="text-sm leading-7 text-slate-600">
                 {atividades.length === 0
                   ? "Nenhuma atividade registrada para o turno atual."
-                  : `${atividades.length} atividades carregadas do Supabase para acompanhamento do turno.`}
+                  : `${atividades.length} atividades carregadas para acompanhamento do turno.`}
               </p>
             </section>
           </div>
@@ -290,6 +315,10 @@ export default function Home() {
       </div>
     </DesktopLayout>
   );
+}
+
+function contarStatus(atividades: Atividade[], status: string) {
+  return atividades.filter((item) => item.status === status).length;
 }
 
 function obterDataTurnoAtual(
@@ -313,11 +342,80 @@ function formatarDataTurno(dataTurno: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
+function formatarRelogioTurno(
+  agora: Date,
+  dataTurno: string | null,
+  horaInicio: string
+) {
+  const horaAtual = agora.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (!dataTurno || !horaInicio) {
+    return `Hora ${horaAtual} - Decorrido --`;
+  }
+
+  const inicioTurno = new Date(`${dataTurno}T${horaInicio}`);
+  const minutos = Math.max(
+    0,
+    Math.floor((agora.getTime() - inicioTurno.getTime()) / 60000)
+  );
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+
+  return `Hora ${horaAtual} - Decorrido ${horas}h ${String(
+    minutosRestantes
+  ).padStart(2, "0")}min`;
+}
+
 function formatarHoras(horas: number) {
   return `${horas.toLocaleString("pt-BR", {
     maximumFractionDigits: 2,
     minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
   })} h`;
+}
+
+function carregarListaLocal<T>(chave: string): T[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const valor = JSON.parse(window.localStorage.getItem(chave) || "[]");
+    return Array.isArray(valor) ? (valor as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function carregarObjetoLocal<T>(chave: string): T {
+  if (typeof window === "undefined") {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(window.localStorage.getItem(chave) || "{}") as T;
+  } catch {
+    return {} as T;
+  }
+}
+
+function CabecalhoSecao({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <div className="border-b p-4">
+      <h3 className="text-lg font-bold">{titulo}</h3>
+      <p className="text-sm text-slate-500">{texto}</p>
+    </div>
+  );
+}
+
+function EstadoVazio({ texto }: { texto: string }) {
+  return (
+    <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+      {texto}
+    </p>
+  );
 }
 
 function KpiCard({
@@ -331,48 +429,24 @@ function KpiCard({
 }) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <p className="text-sm text-slate-500">
-        {titulo}
-      </p>
-
-      <h3 className={`text-4xl font-bold ${destaque}`}>
-        {valor}
-      </h3>
+      <p className="text-sm text-slate-500">{titulo}</p>
+      <h3 className={`text-4xl font-bold ${destaque}`}>{valor}</h3>
     </div>
   );
 }
 
-function StatusBadge({
-  status,
-}: {
-  status: string;
-}) {
-  if (status === "Finalizada") {
-    return (
-      <span className="rounded-md bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
-        Finalizada
-      </span>
-    );
-  }
-
-  if (status === "Restrição") {
-    return (
-      <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
-        Restrição
-      </span>
-    );
-  }
-
-  if (status === "Parcial") {
-    return (
-      <span className="rounded-md bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700">
-        Parcial
-      </span>
-    );
-  }
+function StatusBadge({ status }: { status: string }) {
+  const classe =
+    status === "Finalizada"
+      ? "bg-green-100 text-green-700"
+      : status === "Restrição"
+      ? "bg-red-100 text-red-700"
+      : status === "Parcial"
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-blue-100 text-blue-700";
 
   return (
-    <span className="rounded-md bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">
+    <span className={`rounded-md px-2 py-1 text-xs font-semibold ${classe}`}>
       {status}
     </span>
   );
@@ -395,10 +469,7 @@ function RecursoCard({
     <div className="rounded-xl border border-slate-200 p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="font-bold">{nome}</h4>
-
-        <span className="text-sm font-bold">
-          {percentual}%
-        </span>
+        <span className="text-sm font-bold">{percentual}%</span>
       </div>
 
       <div className="mb-2 h-2 overflow-hidden rounded-full bg-slate-200">
@@ -410,9 +481,7 @@ function RecursoCard({
               ? "bg-yellow-500"
               : "bg-red-500"
           }`}
-          style={{
-            width: `${Math.min(percentual, 100)}%`,
-          }}
+          style={{ width: `${Math.min(percentual, 100)}%` }}
         />
       </div>
 
@@ -430,14 +499,18 @@ function RestricaoCard({
   codigo,
   titulo,
   responsavel,
+  observacao,
   prazo,
   criticidade,
+  status,
 }: {
   codigo: string;
   titulo: string;
   responsavel: string;
+  observacao: string;
   prazo: string;
   criticidade: string;
+  status: string;
 }) {
   return (
     <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -445,35 +518,26 @@ function RestricaoCard({
         <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-bold text-red-600">
           {codigo}
         </span>
-
         <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-red-500">
           {criticidade}
         </span>
       </div>
-
-      <h4 className="mb-3 text-lg font-bold">
-        {titulo}
-      </h4>
-
+      <h4 className="mb-3 text-lg font-bold">{titulo}</h4>
+      <p className="mb-3 rounded-lg bg-white p-2 text-sm font-semibold text-red-700">
+        {observacao}
+      </p>
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-lg bg-white p-2">
-          <p className="text-xs text-slate-500">
-            Responsável
-          </p>
-
-          <p className="font-semibold">
-            {responsavel}
-          </p>
+          <p className="text-xs text-slate-500">Responsavel</p>
+          <p className="font-semibold">{responsavel}</p>
         </div>
-
         <div className="rounded-lg bg-white p-2">
-          <p className="text-xs text-slate-500">
-            Prazo
-          </p>
-
-          <p className="font-semibold">
-            {prazo}
-          </p>
+          <p className="text-xs text-slate-500">Status</p>
+          <p className="font-semibold">{status}</p>
+        </div>
+        <div className="rounded-lg bg-white p-2">
+          <p className="text-xs text-slate-500">Data</p>
+          <p className="font-semibold">{prazo}</p>
         </div>
       </div>
     </div>

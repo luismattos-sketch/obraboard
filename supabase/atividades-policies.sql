@@ -8,6 +8,16 @@ add column if not exists obra_id bigint,
 add column if not exists tempo_previsto_horas numeric default 0,
 add column if not exists origem_atividade_id bigint references public.atividades(id) on delete set null;
 
+alter table public.mao_obra
+add column if not exists atividade_id bigint references public.atividades(id) on delete set null,
+add column if not exists obra_id bigint;
+
+create index if not exists mao_obra_atividade_id_idx
+on public.mao_obra (atividade_id);
+
+create index if not exists mao_obra_obra_turno_idx
+on public.mao_obra (obra_id, data_turno, turno);
+
 create index if not exists atividades_obra_turno_idx
 on public.atividades (obra_id, data_turno, turno);
 
@@ -24,6 +34,7 @@ on public.atividade_recursos (atividade_id);
 
 alter table public.atividades enable row level security;
 alter table public.atividade_recursos enable row level security;
+alter table public.mao_obra enable row level security;
 
 drop policy if exists "Permitir leitura publica de atividades" on public.atividades;
 drop policy if exists "Permitir criacao publica de atividades" on public.atividades;
@@ -33,6 +44,10 @@ drop policy if exists "Permitir leitura publica de recursos de atividades" on pu
 drop policy if exists "Permitir criacao publica de recursos de atividades" on public.atividade_recursos;
 drop policy if exists "Permitir edicao publica de recursos de atividades" on public.atividade_recursos;
 drop policy if exists "Permitir exclusao publica de recursos de atividades" on public.atividade_recursos;
+drop policy if exists "Permitir leitura publica de mao de obra" on public.mao_obra;
+drop policy if exists "Permitir criacao publica de mao de obra" on public.mao_obra;
+drop policy if exists "Permitir edicao publica de mao de obra" on public.mao_obra;
+drop policy if exists "Permitir exclusao publica de mao de obra" on public.mao_obra;
 
 create policy "Permitir leitura publica de atividades"
 on public.atividades
@@ -80,6 +95,31 @@ with check (true);
 
 create policy "Permitir exclusao publica de recursos de atividades"
 on public.atividade_recursos
+for delete
+to anon
+using (true);
+
+create policy "Permitir leitura publica de mao de obra"
+on public.mao_obra
+for select
+to anon
+using (true);
+
+create policy "Permitir criacao publica de mao de obra"
+on public.mao_obra
+for insert
+to anon
+with check (true);
+
+create policy "Permitir edicao publica de mao de obra"
+on public.mao_obra
+for update
+to anon
+using (true)
+with check (true);
+
+create policy "Permitir exclusao publica de mao de obra"
+on public.mao_obra
 for delete
 to anon
 using (true);

@@ -1,82 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
+import { supabase } from "../../lib/supabase";
+import type { Atividade } from "../../lib/types";
 import {
   cadastroBaseEvento,
   carregarCadastroBase,
   obterDadosObra,
   obterObraAtiva,
   obterTurnoAtivoNome,
+  salvarTurnoAtivo,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 
-const atividadesCheckout = [
-  {
-    id: "A3",
-    pri: "A",
-    disc: "CIV",
-    atividade: "Concretagem base",
-    local: "Pátio",
-    resp: "Marcos",
-    progresso: 20,
-    status: "Restrição",
-    farol: "🔴",
-    acao: "Reprogramar",
-  },
-  {
-    id: "A1",
-    pri: "A",
-    disc: "MEC",
-    atividade: "Montagem estrutura laminador",
-    local: "L1",
-    resp: "João",
-    progresso: 40,
-    status: "Parcial",
-    farol: "🟡",
-    acao: "Ajustar",
-  },
-  {
-    id: "A2",
-    pri: "B",
-    disc: "ELE",
-    atividade: "Passagem de cabos",
-    local: "Área 2",
-    resp: "Carlos",
-    progresso: 100,
-    status: "Finalizada",
-    farol: "🟢",
-    acao: "Validar",
-  },
-];
-
-const restricoesCheckout = [
-  {
-    id: "R1",
-    atividade: "Concretagem base",
-    descricao: "Falta martelete para demolição",
-    responsavelAtual: "Marcos",
-    impacto: "Alto",
-    status: "Aberta",
-  },
-  {
-    id: "R2",
-    atividade: "Montagem estrutura laminador",
-    descricao: "Aguardando liberação da ponte rolante",
-    responsavelAtual: "João",
-    impacto: "Médio",
-    status: "Tratativa",
-  },
-];
-
 export default function CheckoutPage() {
+  const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
   const [turnosCadastrados, setTurnosCadastrados] = useState<
     TurnoCadastrado[]
   >([]);
-  const [turno, setTurno] = useState("Dia");
+  const [turno, setTurno] = useState("");
+  const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
+  const [carregando, setCarregando] = useState(true);
+
+  const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const atividades = useMemo(
+    () =>
+      atividadesBanco.filter(
+        (item) =>
+          (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
+          (!turno || item.turno === turno)
+      ),
+    [atividadesBanco, dataTurnoAtual, turno]
+  );
+  const restricoes = atividades.filter((item) => item.status === "Restrição");
+  const finalizadas = contarStatus(atividades, "Finalizada");
+  const parciais = contarStatus(atividades, "Parcial");
+  const planejadas = contarStatus(atividades, "Planejada");
+  const ppc =
+    atividades.length > 0 ? Math.round((finalizadas / atividades.length) * 100) : 0;
 
   useEffect(() => {
+    async function carregarAtividades(obraAtualId: number | null) {
+      if (!obraAtualId) {
+        setAtividadesBanco([]);
+        setCarregando(false);
+        return;
+      }
+
+      setCarregando(true);
+
+      const { data } = await supabase
+        .from("atividades")
+        .select("*")
+        .eq("obra_id", obraAtualId)
+        .order("id", { ascending: true });
+
+      setAtividadesBanco((data || []) as Atividade[]);
+      setCarregando(false);
+    }
+
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
       const obraAtiva = obterObraAtiva(cadastro);
@@ -87,12 +71,11 @@ export default function CheckoutPage() {
         dadosObra.turnos
       );
 
+      setObraId(obraAtiva?.id ?? null);
       setObra(obraAtiva?.nome ?? "Sem obra selecionada");
       setTurnosCadastrados(dadosObra.turnos);
-
-      if (turnoAtivo) {
-        setTurno(turnoAtivo);
-      }
+      setTurno(turnoAtivo);
+      void carregarAtividades(obraAtiva?.id ?? null);
     }
 
     queueMicrotask(carregarContextoObra);
@@ -105,34 +88,39 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  function alterarTurno(novoTurno: string) {
+    setTurno(novoTurno);
+    salvarTurnoAtivo(obraId, novoTurno);
+  }
+
   return (
     <DesktopLayout
       titulo="Check-out do Turno"
-      subtitulo={`Obra: ${obra} - Turno ${turno}`}
+      subtitulo={`Obra: ${obra} - Turno ${turno || "-"} - Data: ${
+        dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"
+      }`}
     >
       <div className="space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
             Obra ativa: {obra}
           </div>
+
           <label className="block max-w-sm">
             <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
               Turno
             </span>
             <select
               value={turno}
-              onChange={(e) => setTurno(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 p-3"
+              onChange={(e) => alterarTurno(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white p-3"
             >
               {turnosCadastrados.length === 0 ? (
-                <>
-                  <option value="Dia">Turno Dia</option>
-                  <option value="Noite">Turno Noite</option>
-                </>
+                <option value="">Cadastre turnos na obra</option>
               ) : (
                 turnosCadastrados.map((item) => (
                   <option key={item.id} value={item.nome}>
-                    {item.nome || "Turno sem nome"} ·{" "}
+                    {item.nome || "Turno sem nome"} -{" "}
                     {formatarHoras(item.horasTrabalho)}
                   </option>
                 ))
@@ -142,240 +130,181 @@ export default function CheckoutPage() {
         </section>
 
         <div className="grid grid-cols-5 gap-3">
-          <ResumoCard titulo="Planejadas" valor="18" />
-          <ResumoCard titulo="Finalizadas" valor="12" destaque="text-green-600" />
-          <ResumoCard titulo="Parciais" valor="5" destaque="text-yellow-500" />
-          <ResumoCard titulo="Restrições" valor="3" destaque="text-red-500" />
-          <ResumoCard titulo="PPC" valor="72%" destaque="text-blue-600" />
+          <ResumoCard titulo="Planejadas" valor={String(planejadas)} />
+          <ResumoCard
+            titulo="Finalizadas"
+            valor={String(finalizadas)}
+            destaque="text-green-600"
+          />
+          <ResumoCard
+            titulo="Parciais"
+            valor={String(parciais)}
+            destaque="text-yellow-500"
+          />
+          <ResumoCard
+            titulo="Restricoes"
+            valor={String(restricoes.length)}
+            destaque="text-red-500"
+          />
+          <ResumoCard titulo="PPC" valor={`${ppc}%`} destaque="text-blue-600" />
         </div>
 
         <section className="rounded-2xl bg-white shadow-sm">
-          <div className="border-b p-4">
-            <h3 className="text-lg font-bold">Validação das atividades</h3>
-            <p className="text-sm text-slate-500">
-              Ordem sugerida: restrições, parciais e finalizadas
-            </p>
-          </div>
+          <CabecalhoSecao
+            titulo="Validacao das atividades"
+            texto="Atividades carregadas da obra ativa para o turno selecionado"
+          />
 
-          <table className="w-full">
-            <thead className="bg-slate-50 text-sm">
-              <tr>
-                <th className="p-3 text-left">Pri</th>
-                <th className="p-3 text-left">Disc</th>
-                <th className="p-3 text-left">Atividade</th>
-                <th className="p-3 text-left">Local</th>
-                <th className="p-3 text-left">Resp</th>
-                <th className="p-3 text-left">Avanço</th>
-                <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-center">Farol</th>
-                <th className="p-3 text-center">Decisão</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {atividadesCheckout.map((item) => (
-                <tr key={item.id} className="border-t text-sm hover:bg-slate-50">
-                  <td className="p-3">
-                    <span
-                      className={`rounded-md px-2 py-1 text-xs font-bold ${
-                        item.pri === "A"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {item.pri}
-                    </span>
-                  </td>
-
-                  <td className="p-3 font-semibold">{item.disc}</td>
-                  <td className="p-3 font-medium">{item.atividade}</td>
-                  <td className="p-3">{item.local}</td>
-                  <td className="p-3">{item.resp}</td>
-
-                  <td className="p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className={`h-full ${
-                            item.progresso >= 100
-                              ? "bg-green-500"
-                              : item.progresso >= 50
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          }`}
-                          style={{ width: `${item.progresso}%` }}
-                        />
-                      </div>
-
-                      <span className="w-10 text-xs font-bold">
-                        {item.progresso}%
-                      </span>
-                    </div>
-                  </td>
-
-                  <td className="p-3 text-center">
-                    <span
-                      className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                        item.status === "Finalizada"
-                          ? "bg-green-100 text-green-700"
-                          : item.status === "Restrição"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-
-                  <td className="p-3 text-center text-lg">{item.farol}</td>
-
-                  <td className="p-3 text-center">
-                    <button
-                      className={`rounded-lg px-3 py-2 text-xs font-bold text-white ${
-                        item.acao === "Validar"
-                          ? "bg-green-600"
-                          : item.acao === "Reprogramar"
-                          ? "bg-red-600"
-                          : "bg-yellow-500"
-                      }`}
-                    >
-                      {item.acao}
-                    </button>
-                  </td>
+          {carregando ? (
+            <div className="p-4">
+              <EstadoVazio texto="Carregando atividades..." />
+            </div>
+          ) : atividades.length === 0 ? (
+            <div className="p-4">
+              <EstadoVazio texto="Nenhuma atividade para fechar nesta obra e turno." />
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-slate-50 text-sm">
+                <tr>
+                  <th className="p-3 text-left">Pri</th>
+                  <th className="p-3 text-left">Disc</th>
+                  <th className="p-3 text-left">Atividade</th>
+                  <th className="p-3 text-left">Local</th>
+                  <th className="p-3 text-left">Resp</th>
+                  <th className="p-3 text-left">Avanco</th>
+                  <th className="p-3 text-center">Status</th>
+                  <th className="p-3 text-center">Farol</th>
+                  <th className="p-3 text-center">Decisao</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {atividades.map((item) => {
+                  const progresso = calcularProgresso(item);
+                  const farol = obterFarol(item.status, progresso);
+                  const acao = obterAcaoCheckout(item.status, progresso);
+
+                  return (
+                    <tr
+                      key={item.id}
+                      className="border-t text-sm hover:bg-slate-50"
+                    >
+                      <td className="p-3">
+                        <span
+                          className={`rounded-md px-2 py-1 text-xs font-bold ${
+                            item.prioridade === "A"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {item.prioridade}
+                        </span>
+                      </td>
+
+                      <td className="p-3 font-semibold">{item.disciplina}</td>
+                      <td className="p-3 font-medium">{item.atividade}</td>
+                      <td className="p-3">{item.local}</td>
+                      <td className="p-3">{item.responsavel}</td>
+
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className={`h-full ${
+                                progresso >= 100
+                                  ? "bg-green-500"
+                                  : progresso >= 50
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                              }`}
+                              style={{ width: `${progresso}%` }}
+                            />
+                          </div>
+                          <span className="w-10 text-xs font-bold">
+                            {progresso}%
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="p-3 text-center">
+                        <StatusBadge status={item.status} />
+                      </td>
+                      <td className="p-3 text-center text-lg">{farol}</td>
+                      <td className="p-3 text-center">
+                        <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">
+                          {acao}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </section>
 
         <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-red-600">
-              Tratativa de Restrições
-            </h3>
-            <p className="text-sm text-slate-500">
-              Registrar decisão, responsável, prazo e status para cada restrição
-            </p>
-          </div>
+          <CabecalhoSecao
+            titulo="Tratativa de Restricoes"
+            texto="Pendencias reais do turno atual"
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            {restricoesCheckout.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-xl border border-red-200 bg-red-50 p-4"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-bold text-red-700">
-                    {item.id}
-                  </span>
-
-                  <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-700">
-                    Impacto {item.impacto}
-                  </span>
-                </div>
-
-                <h4 className="font-bold text-slate-900">
-                  {item.descricao}
-                </h4>
-
-                <p className="mt-1 text-sm text-slate-600">
-                  Atividade:{" "}
-                  <span className="font-semibold text-red-600">
-                    {item.atividade}
-                  </span>
-                </p>
-
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-600">
-                      Ação definida
-                    </label>
-                    <select className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">
-                      <option>Selecionar ação</option>
-                      <option>Comprar material</option>
-                      <option>Remanejar recurso</option>
-                      <option>Acionar operação</option>
-                      <option>Solicitar fornecedor</option>
-                      <option>Reprogramar atividade</option>
-                    </select>
+          {restricoes.length === 0 ? (
+            <div className="pt-4">
+              <EstadoVazio texto="Nenhuma restricao registrada para este turno." />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              {restricoes.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-red-200 bg-red-50 p-4"
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-bold text-red-700">
+                      R{item.id}
+                    </span>
+                    <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-700">
+                      Impacto {item.prioridade === "A" ? "Alto" : "Medio"}
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-600">
-                      Responsável pela solução
-                    </label>
-                    <input
-                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
-                      placeholder={item.responsavelAtual}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-600">
-                      Prazo
-                    </label>
-                    <input
-                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
-                      placeholder="Ex.: Hoje 16h"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-600">
-                      Status
-                    </label>
-                    <select className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">
-                      <option>{item.status}</option>
-                      <option>Aberta</option>
-                      <option>Em tratativa</option>
-                      <option>Resolvida</option>
-                      <option>Reprogramada</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <label className="mb-1 block text-xs font-semibold text-slate-600">
-                    Observação da tratativa
-                  </label>
+                  <h4 className="font-bold text-slate-900">{item.atividade}</h4>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Responsavel atual:{" "}
+                    <span className="font-semibold text-red-600">
+                      {item.responsavel}
+                    </span>
+                  </p>
                   <textarea
-                    className="min-h-[70px] w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+                    className="mt-3 min-h-[76px] w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
                     placeholder="Descreva a tratativa definida no checkout..."
                   />
                 </div>
-
-                <div className="mt-3 flex justify-end">
-                  <button className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white">
-                    Salvar tratativa
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <div className="grid grid-cols-2 gap-4">
           <section className="rounded-2xl bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-lg font-bold">Resumo do fechamento</h3>
-
             <textarea
               className="min-h-[130px] w-full rounded-xl border border-slate-300 p-4 text-sm"
-              placeholder="Registrar resumo do checkout, decisões, pendências e pontos para o próximo turno..."
+              placeholder="Registrar resumo do checkout, decisoes, pendencias e pontos para o proximo turno..."
             />
           </section>
 
           <section className="rounded-2xl bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-lg font-bold">Ações finais</h3>
-
+            <h3 className="mb-3 text-lg font-bold">Acoes finais</h3>
             <div className="space-y-3">
               <button className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold">
-                Reprogramar pendências para próximo turno
+                Reprogramar pendencias para proximo turno
               </button>
-
               <button className="w-full rounded-xl bg-teal-600 px-4 py-3 text-left font-bold text-white">
                 Gerar RDO
               </button>
-
               <button className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white">
                 Encerrar turno
               </button>
@@ -384,6 +313,90 @@ export default function CheckoutPage() {
         </div>
       </div>
     </DesktopLayout>
+  );
+}
+
+function contarStatus(atividades: Atividade[], status: string) {
+  return atividades.filter((item) => item.status === status).length;
+}
+
+function obterDataTurnoAtual(
+  atividades: Array<{ data_turno?: string | null }>
+) {
+  const datas = atividades
+    .map((item) => item.data_turno)
+    .filter((data): data is string => Boolean(data))
+    .sort();
+
+  return datas.at(-1) ?? null;
+}
+
+function formatarDataTurno(dataTurno: string) {
+  const [ano, mes, dia] = dataTurno.split("-");
+
+  if (!ano || !mes || !dia) {
+    return dataTurno;
+  }
+
+  return `${dia}/${mes}/${ano}`;
+}
+
+function calcularProgresso(item: Atividade) {
+  if (item.progresso !== null && item.progresso !== undefined) {
+    return Math.min(100, Math.max(0, Number(item.progresso || 0)));
+  }
+
+  const previsto = Number(item.previsto || 0);
+  const realizado = Number(item.realizado || 0);
+
+  return previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 0;
+}
+
+function obterFarol(status: string, progresso: number) {
+  if (status === "Finalizada" || progresso >= 100) {
+    return "OK";
+  }
+
+  if (status === "Restrição") {
+    return "AL";
+  }
+
+  return "AT";
+}
+
+function obterAcaoCheckout(status: string, progresso: number) {
+  if (status === "Finalizada" || progresso >= 100) {
+    return "Validar";
+  }
+
+  if (status === "Restrição") {
+    return "Reprogramar";
+  }
+
+  return "Ajustar";
+}
+
+function formatarHoras(horas: number) {
+  return `${horas.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
+  })} h`;
+}
+
+function CabecalhoSecao({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <div className="border-b p-4">
+      <h3 className="text-lg font-bold">{titulo}</h3>
+      <p className="text-sm text-slate-500">{texto}</p>
+    </div>
+  );
+}
+
+function EstadoVazio({ texto }: { texto: string }) {
+  return (
+    <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+      {texto}
+    </p>
   );
 }
 
@@ -404,9 +417,19 @@ function ResumoCard({
   );
 }
 
-function formatarHoras(horas: number) {
-  return `${horas.toLocaleString("pt-BR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
-  })} h`;
+function StatusBadge({ status }: { status: string }) {
+  const classe =
+    status === "Finalizada"
+      ? "bg-green-100 text-green-700"
+      : status === "Restrição"
+      ? "bg-red-100 text-red-700"
+      : status === "Parcial"
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-blue-100 text-blue-700";
+
+  return (
+    <span className={`rounded-md px-2 py-1 text-xs font-semibold ${classe}`}>
+      {status}
+    </span>
+  );
 }
