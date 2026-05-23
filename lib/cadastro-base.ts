@@ -72,6 +72,8 @@ export type CadastroBase = {
 export const cadastroBaseStorageKey = "obraboard:cadastro-base";
 export const cadastroBaseEvento = "obraboard:cadastro-base-atualizado";
 const cadastroBaseRemotoId = "default";
+const cadastroBaseFallbackTurno = "__cadastro_base__";
+const cadastroBaseFallbackDisciplina = "__sistema__";
 
 export const cadastroDadosObraInicial: CadastroDadosObra = {
   usuarios: [],
@@ -154,6 +156,18 @@ export async function sincronizarCadastroBaseRemoto() {
 
   if (error) {
     console.warn("Cadastro remoto indisponivel, usando cache local.", error);
+    const cadastroFallback = await carregarCadastroBaseFallback();
+
+    if (!cadastroTemConteudo(cadastroLocal) && cadastroTemConteudo(cadastroFallback)) {
+      salvarCadastroBaseLocal(cadastroFallback);
+      notificarCadastroBaseAtualizado();
+      return cadastroFallback;
+    }
+
+    if (cadastroTemConteudo(cadastroLocal)) {
+      await salvarCadastroBaseFallback(cadastroLocal);
+    }
+
     return cadastroLocal;
   }
 
@@ -335,7 +349,70 @@ async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
 
   if (error) {
     console.warn("Nao foi possivel sincronizar cadastro no Supabase.", error);
+    await salvarCadastroBaseFallback(cadastro);
   }
+}
+
+async function carregarCadastroBaseFallback() {
+  const { data, error } = await supabase
+    .from("atividades")
+    .select("id, atividade")
+    .eq("turno", cadastroBaseFallbackTurno)
+    .eq("disciplina", cadastroBaseFallbackDisciplina)
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.atividade) {
+    return cadastroBaseInicial;
+  }
+
+  try {
+    return normalizarCadastroBase(JSON.parse(data.atividade));
+  } catch {
+    return cadastroBaseInicial;
+  }
+}
+
+async function salvarCadastroBaseFallback(cadastro: CadastroBase) {
+  const cadastroSemLogo = {
+    ...cadastro,
+    logoUrl: "",
+    obras: cadastro.obras.map((obra) => ({ ...obra, logoUrl: "" })),
+  };
+  const atividade = JSON.stringify(cadastroSemLogo);
+  const payload = {
+    obra_id: null,
+    prioridade: "C",
+    disciplina: cadastroBaseFallbackDisciplina,
+    atividade,
+    local: "cadastro_base",
+    responsavel: "sistema",
+    previsto: 0,
+    realizado: 0,
+    unidade: "un",
+    tempo_previsto_horas: 0,
+    status: "Planejada",
+    progresso: 0,
+    turno: cadastroBaseFallbackTurno,
+    data_turno: "2000-01-01",
+  };
+
+  const { data } = await supabase
+    .from("atividades")
+    .select("id")
+    .eq("turno", cadastroBaseFallbackTurno)
+    .eq("disciplina", cadastroBaseFallbackDisciplina)
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data?.id) {
+    await supabase.from("atividades").update(payload).eq("id", data.id);
+    return;
+  }
+
+  await supabase.from("atividades").insert([payload]);
 }
 
 function cadastroTemConteudo(cadastro: CadastroBase) {
