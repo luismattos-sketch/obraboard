@@ -7,7 +7,7 @@ import type {
   Atividade,
   AtividadeRecurso,
   PrioridadeAtividade,
-  RecursoPrevisto,
+  RecursoDisponivelTurno,
 } from "../../lib/types";
 import {
   cadastroBaseEvento,
@@ -63,10 +63,36 @@ const unidades = [
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 let sequenciaRecursoFormulario = 0;
+const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
 
 function criarIdTemporario() {
   sequenciaRecursoFormulario += 1;
   return sequenciaRecursoFormulario;
+}
+
+function carregarRecursosDisponiveisLocais() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    return JSON.parse(
+      window.localStorage.getItem(recursosDisponiveisStorageKey) || "[]"
+    ) as RecursoDisponivelTurno[];
+  } catch {
+    return [];
+  }
+}
+
+function salvarRecursosDisponiveisLocais(recursos: RecursoDisponivelTurno[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    recursosDisponiveisStorageKey,
+    JSON.stringify(recursos)
+  );
 }
 
 export default function CheckinPage() {
@@ -103,10 +129,13 @@ export default function CheckinPage() {
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
     useState<FuncaoPrevistaCadastrada[]>([]);
   const [recursosDisponiveis, setRecursosDisponiveis] = useState<
-    RecursoPrevisto[]
+    RecursoDisponivelTurno[]
   >([]);
   const [funcaoRecurso, setFuncaoRecurso] = useState("");
   const [quantidadeRecurso, setQuantidadeRecurso] = useState("");
+  const [funcaoDisponivel, setFuncaoDisponivel] = useState("");
+  const [quantidadeDisponivel, setQuantidadeDisponivel] = useState("");
+  const [cargaHorariaDisponivel, setCargaHorariaDisponivel] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [atividadeEditandoId, setAtividadeEditandoId] = useState<number | null>(
@@ -298,6 +327,50 @@ export default function CheckinPage() {
     setRecursosPorAtividade(agrupado);
   }
 
+  async function carregarRecursosDisponiveis(
+    obraAtualId = obraId,
+    dataAtual = dataTurno,
+    turnoAtual = turno
+  ) {
+    if (!obraAtualId || !dataAtual || !turnoAtual) {
+      setRecursosDisponiveis([]);
+      return;
+    }
+
+    const locais = carregarRecursosDisponiveisLocais().filter(
+      (item) =>
+        item.obra_id === obraAtualId &&
+        item.data_turno === dataAtual &&
+        item.turno === turnoAtual
+    );
+
+    const { data, error } = await supabase
+      .from("recursos_disponiveis")
+      .select("*")
+      .eq("obra_id", obraAtualId)
+      .eq("data_turno", dataAtual)
+      .eq("turno", turnoAtual)
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.warn("Tabela recursos_disponiveis indisponivel, usando localStorage.", error);
+      setRecursosDisponiveis(locais);
+      return;
+    }
+
+    const banco = (data || []).map((item: Record<string, unknown>) => ({
+      id: Number(item.id),
+      obra_id: Number(item.obra_id),
+      data_turno: String(item.data_turno),
+      turno: String(item.turno),
+      funcao: String(item.funcao),
+      quantidade: Number(item.quantidade || 0),
+      cargaHoraria: Number(item.carga_horaria || 0),
+    }));
+
+    setRecursosDisponiveis([...banco, ...locais]);
+  }
+
   useEffect(() => {
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
@@ -308,20 +381,12 @@ export default function CheckinPage() {
         obraAtiva?.id ?? null,
         dadosObra.turnos
       );
-      const recursosDaObra = dadosObra.funcoesPrevistas.map((funcao) => ({
-        id: funcao.id,
-        funcao: funcao.nome,
-        quantidade: funcao.quantidade,
-        cargaHoraria: funcao.cargaHoraria || 0,
-      }));
-
       setObraId(obraAtiva?.id ?? null);
       setObra(obraAtiva?.nome ?? "Sem obra selecionada");
       setTurnosCadastrados(dadosObra.turnos);
       setDisciplinasCadastradas(dadosObra.disciplinas);
       setUsuariosCadastrados(dadosObra.usuarios);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
-      setRecursosDisponiveis(recursosDaObra);
 
       if (turnoAtivo) {
         setTurno(turnoAtivo);
@@ -343,6 +408,12 @@ export default function CheckinPage() {
     // carregarAtividades recebe o id atual explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    void carregarRecursosDisponiveis(obraId, dataTurno, turno);
+    // carregarRecursosDisponiveis recebe os parametros explicitamente neste efeito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obraId, dataTurno, turno]);
 
   async function adicionarAtividade() {
     setMensagem("");
@@ -727,6 +798,85 @@ export default function CheckinPage() {
     setRecursosAtividade((atuais) => atuais.filter((item) => item.id !== id));
   }
 
+  async function adicionarRecursoDisponivel() {
+    setMensagem("");
+    setErro("");
+
+    if (!obraId || !dataTurno || !turno) {
+      setErro("Selecione obra, data e turno antes de cadastrar recursos.");
+      return;
+    }
+
+    if (!funcaoDisponivel || !quantidadeDisponivel || !cargaHorariaDisponivel) {
+      setErro("Informe funcao, quantidade e horas por pessoa do recurso disponivel.");
+      return;
+    }
+
+    const quantidade = Number(quantidadeDisponivel);
+    const cargaHoraria = Number(cargaHorariaDisponivel);
+
+    if (quantidade <= 0 || cargaHoraria <= 0) {
+      setErro("Quantidade e horas por pessoa devem ser maiores que zero.");
+      return;
+    }
+
+    const payload = {
+      obra_id: obraId,
+      data_turno: dataTurno,
+      turno,
+      funcao: funcaoDisponivel,
+      quantidade,
+      carga_horaria: cargaHoraria,
+    };
+
+    const { error } = await supabase.from("recursos_disponiveis").insert([payload]);
+
+    if (error) {
+      console.warn("Salvando recurso disponivel no localStorage.", error);
+      const locais = carregarRecursosDisponiveisLocais();
+      locais.push({
+        id: -Date.now(),
+        obra_id: obraId,
+        data_turno: dataTurno,
+        turno,
+        funcao: funcaoDisponivel,
+        quantidade,
+        cargaHoraria,
+      });
+      salvarRecursosDisponiveisLocais(locais);
+    }
+
+    setFuncaoDisponivel("");
+    setQuantidadeDisponivel("");
+    setCargaHorariaDisponivel("");
+    setMensagem("Recurso disponivel cadastrado no turno.");
+    await carregarRecursosDisponiveis(obraId, dataTurno, turno);
+  }
+
+  async function removerRecursoDisponivel(recurso: RecursoDisponivelTurno) {
+    setMensagem("");
+    setErro("");
+
+    if (recurso.id > 0) {
+      const { error } = await supabase
+        .from("recursos_disponiveis")
+        .delete()
+        .eq("id", recurso.id);
+
+      if (error) {
+        setErro("Erro ao remover recurso disponivel.");
+        return;
+      }
+    } else {
+      salvarRecursosDisponiveisLocais(
+        carregarRecursosDisponiveisLocais().filter((item) => item.id !== recurso.id)
+      );
+    }
+
+    setMensagem("Recurso disponivel removido.");
+    await carregarRecursosDisponiveis(obraId, dataTurno, turno);
+  }
+
   function iniciarEdicao(item: Atividade) {
     setMensagem("");
     setErro("");
@@ -892,7 +1042,7 @@ export default function CheckinPage() {
     await carregarAtividades(obraId);
     setAtividadeEditandoId(null);
     setAtividadeExcluindoId(null);
-    setMensagem("Atividade excluida.");
+    setMensagem("Atividade excluída.");
     setSalvando(false);
   }
 
@@ -952,18 +1102,12 @@ export default function CheckinPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-3 gap-3 text-sm">
               <ResumoCompacto label="Data" valor={formatarData(dataTurno)} />
               <ResumoCompacto label="Turno" valor={turno || "-"} />
               <ResumoCompacto
                 label="Planejador"
                 valor={planejador || "-"}
-              />
-              <ResumoCompacto
-                label="HH"
-                valor={`${formatarHoras(hhCadastradoTurno)} / ${formatarHoras(
-                  hhDisponivelTurno
-                )}`}
               />
             </div>
           </div>
@@ -1258,16 +1402,58 @@ export default function CheckinPage() {
 
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <div className="mb-4">
-              <h2 className="text-lg font-bold">Recursos disponíveis</h2>
+              <h2 className="text-lg font-bold">Recursos disponiveis</h2>
               <p className="text-sm text-slate-500">
-                Limite cadastrado para a obra ativa.
+                Quantitativo do turno selecionado, usado como origem do HH.
               </p>
+            </div>
+
+            <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              <select
+                value={funcaoDisponivel}
+                onChange={(e) => setFuncaoDisponivel(e.target.value)}
+                className="min-w-0 rounded-lg border border-slate-300 bg-white p-3 text-sm"
+              >
+                <option value="">Função</option>
+                {funcoesPrevistasCadastradas.map((item) => (
+                  <option key={item.id} value={item.nome}>
+                    {item.nome}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                value={quantidadeDisponivel}
+                onChange={(e) => setQuantidadeDisponivel(e.target.value)}
+                type="number"
+                min="0"
+                className="min-w-0 rounded-lg border border-slate-300 bg-white p-3 text-sm"
+                placeholder="Qtd"
+              />
+
+              <input
+                value={cargaHorariaDisponivel}
+                onChange={(e) => setCargaHorariaDisponivel(e.target.value)}
+                type="number"
+                min="0"
+                step="0.5"
+                className="min-w-0 rounded-lg border border-slate-300 bg-white p-3 text-sm"
+                placeholder="Horas/pess."
+              />
+
+              <button
+                type="button"
+                onClick={adicionarRecursoDisponivel}
+                className="min-w-0 rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
+              >
+                Adicionar
+              </button>
             </div>
 
             <div className="space-y-2">
               {recursosDisponiveis.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
-                  Nenhum recurso disponível cadastrado na obra.
+                  Nenhum recurso disponivel cadastrado no check-in deste turno.
                 </p>
               ) : (
                 recursosDisponiveis.map((item) => (
@@ -1281,10 +1467,18 @@ export default function CheckinPage() {
                         {item.quantidade}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs font-semibold text-teal-700">
-                      HH disponível:{" "}
-                      {formatarHoras(item.quantidade * item.cargaHoraria)}
-                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-teal-700">
+                        HH disponivel: {formatarHoras(item.quantidade * item.cargaHoraria)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removerRecursoDisponivel(item)}
+                        className="text-xs font-bold text-red-600"
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

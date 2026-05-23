@@ -78,9 +78,6 @@ export default function CadastroObraPage() {
   >(null);
 
   const [funcaoPrevistaNome, setFuncaoPrevistaNome] = useState("");
-  const [funcaoPrevistaQuantidade, setFuncaoPrevistaQuantidade] = useState("");
-  const [funcaoPrevistaCargaHoraria, setFuncaoPrevistaCargaHoraria] =
-    useState("");
   const [funcoesPrevistas, setFuncoesPrevistas] = useState<
     FuncaoPrevistaCadastrada[]
   >([]);
@@ -121,11 +118,6 @@ export default function CadastroObraPage() {
     turnoHoraFim,
     turnoDescontaRefeicao
   );
-  const hhDisponivelFuncaoAtual = calcularHhDisponivel(
-    Number(funcaoPrevistaQuantidade || 0),
-    Number(funcaoPrevistaCargaHoraria || 0)
-  );
-
   const resumo = useMemo(() => {
     const prazoDias = calcularPrazoDias(inicio, termino);
     const orcamentoNumero = Number(orcamento || 0);
@@ -561,7 +553,7 @@ export default function CadastroObraPage() {
     if (turnoEditandoId === id) {
       limparTurno();
     }
-    setMensagem("Turno excluÃ­do.");
+    setMensagem("Turno excluído.");
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
@@ -635,8 +627,8 @@ export default function CadastroObraPage() {
     const funcao: FuncaoPrevistaCadastrada = {
       id: funcaoEditandoId ?? gerarIdTemporario(),
       nome: funcaoPrevistaNome,
-      quantidade: Number(funcaoPrevistaQuantidade || 0),
-      cargaHoraria: Number(funcaoPrevistaCargaHoraria || 0),
+      quantidade: 0,
+      cargaHoraria: 0,
     };
 
     setFuncoesPrevistas((atuais) =>
@@ -654,8 +646,6 @@ export default function CadastroObraPage() {
 
   function limparFuncaoPrevista() {
     setFuncaoPrevistaNome("");
-    setFuncaoPrevistaQuantidade("");
-    setFuncaoPrevistaCargaHoraria("");
     setFuncaoEditandoId(null);
   }
 
@@ -663,8 +653,6 @@ export default function CadastroObraPage() {
     tornarObraAtualAtivaParaEdicao();
     setObraVisualizandoId(null);
     setFuncaoPrevistaNome(funcao.nome);
-    setFuncaoPrevistaQuantidade(String(funcao.quantidade));
-    setFuncaoPrevistaCargaHoraria(String(funcao.cargaHoraria || ""));
     setFuncaoEditandoId(funcao.id);
   }
 
@@ -1375,11 +1363,11 @@ export default function CadastroObraPage() {
             )}
           </section>
 
-          <section className="rounded-2xl bg-white p-5 shadow-sm">
+                    <section className="rounded-2xl bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <SecaoTitulo
-                titulo="Funções previstas"
-                descricao="Monte a base de funções e quantidades padrão da obra."
+                titulo="Funções disponíveis"
+                descricao="Cadastre apenas os cargos usados no planejamento da obra."
               />
 
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
@@ -1387,7 +1375,7 @@ export default function CadastroObraPage() {
               </span>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(150px,0.9fr)_76px_118px_82px_112px] xl:grid-cols-[minmax(150px,0.9fr)_76px_118px_82px_112px]">
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(180px,1fr)_112px]">
               <input
                 value={funcaoPrevistaNome}
                 onChange={(e) => setFuncaoPrevistaNome(e.target.value)}
@@ -1395,31 +1383,6 @@ export default function CadastroObraPage() {
                 className={`rounded-lg border border-slate-300 p-3 ${classeCampoBloqueavel}`}
                 placeholder="Ex.: Mecânico"
               />
-
-              <input
-                value={funcaoPrevistaQuantidade}
-                onChange={(e) => setFuncaoPrevistaQuantidade(e.target.value)}
-                type="number"
-                min="0"
-                disabled={bloqueiaFormularioObra}
-                className={`rounded-lg border border-slate-300 p-3 ${classeCampoBloqueavel}`}
-                placeholder="Qtd"
-              />
-
-              <input
-                value={funcaoPrevistaCargaHoraria}
-                onChange={(e) => setFuncaoPrevistaCargaHoraria(e.target.value)}
-                type="number"
-                min="0"
-                step="0.5"
-                disabled={bloqueiaFormularioObra}
-                className={`rounded-lg border border-slate-300 p-3 ${classeCampoBloqueavel}`}
-                placeholder="Horas/pessoa"
-              />
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center text-sm font-bold text-slate-700">
-                {formatarHoras(hhDisponivelFuncaoAtual)}
-              </div>
 
               <button
                 type="button"
@@ -1443,16 +1406,13 @@ export default function CadastroObraPage() {
 
             {funcoesPrevistas.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm font-semibold text-slate-500">
-                Nenhuma função prevista cadastrada ainda.
+                Nenhuma função cadastrada ainda.
               </div>
             ) : (
               <table className="w-full">
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="p-3 text-left">Função</th>
-                    <th className="p-3 text-center">Quantidade prevista</th>
-                    <th className="p-3 text-center">Carga horaria</th>
-                    <th className="p-3 text-center">HH disponivel</th>
                     <th className="p-3 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -1465,20 +1425,6 @@ export default function CadastroObraPage() {
                     >
                       <td className="p-3 font-semibold">
                         {valorOuTraco(funcao.nome)}
-                      </td>
-                      <td className="p-3 text-center font-bold">
-                        {funcao.quantidade}
-                      </td>
-                      <td className="p-3 text-center">
-                        {formatarHoras(funcao.cargaHoraria || 0)}
-                      </td>
-                      <td className="p-3 text-center font-bold text-teal-700">
-                        {formatarHoras(
-                          calcularHhDisponivel(
-                            funcao.quantidade,
-                            funcao.cargaHoraria || 0
-                          )
-                        )}
                       </td>
                       <td className="p-3 text-right">
                         <AcoesLinha

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import DesktopLayout from "../../components/DesktopLayout";
 import { supabase } from "../../lib/supabase";
 import type { Atividade } from "../../lib/types";
@@ -15,6 +16,7 @@ import {
 } from "../../lib/cadastro-base";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
   const [turnosCadastrados, setTurnosCadastrados] = useState<
@@ -23,6 +25,15 @@ export default function CheckoutPage() {
   const [turno, setTurno] = useState("");
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
+  const [atividadeEditandoId, setAtividadeEditandoId] = useState<number | null>(null);
+  const [edicao, setEdicao] = useState({
+    previsto: "",
+    realizado: "",
+    tempoPrevistoHoras: "",
+    responsavel: "",
+  });
 
   const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
   const atividades = useMemo(
@@ -93,6 +104,115 @@ export default function CheckoutPage() {
     salvarTurnoAtivo(obraId, novoTurno);
   }
 
+  async function recarregarAtividades() {
+    if (!obraId) {
+      return;
+    }
+
+    const { data } = await supabase
+      .from("atividades")
+      .select("*")
+      .eq("obra_id", obraId)
+      .order("id", { ascending: true });
+
+    setAtividadesBanco((data || []) as Atividade[]);
+  }
+
+  function iniciarEdicao(item: Atividade) {
+    setMensagem("");
+    setErro("");
+    setAtividadeEditandoId(item.id);
+    setEdicao({
+      previsto: String(item.previsto || ""),
+      realizado: String(item.realizado || ""),
+      tempoPrevistoHoras: String(item.tempo_previsto_horas || ""),
+      responsavel: item.responsavel || "",
+    });
+  }
+
+  async function salvarEdicao(item: Atividade) {
+    setMensagem("");
+    setErro("");
+
+    const previsto = Number(edicao.previsto || 0);
+    const realizado = Number(edicao.realizado || 0);
+    const progresso =
+      previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 0;
+
+    const { error } = await supabase
+      .from("atividades")
+      .update({
+        previsto,
+        realizado,
+        progresso,
+        responsavel: edicao.responsavel,
+        tempo_previsto_horas: Number(edicao.tempoPrevistoHoras || 0),
+      })
+      .eq("id", item.id)
+      .eq("obra_id", obraId);
+
+    if (error) {
+      console.error(error);
+      setErro("Erro ao salvar ajuste do planejado.");
+      return;
+    }
+
+    setAtividadeEditandoId(null);
+    setMensagem("Planejado ajustado.");
+    await recarregarAtividades();
+  }
+
+  async function validarAtividade(item: Atividade) {
+    setMensagem("");
+    setErro("");
+
+    const realizado = Number(item.realizado || item.previsto || 0);
+    const previsto = Number(item.previsto || 0);
+    const progresso =
+      previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 100;
+
+    const { error } = await supabase
+      .from("atividades")
+      .update({
+        realizado,
+        progresso: Math.max(progresso, 100),
+        status: "Finalizada",
+      })
+      .eq("id", item.id)
+      .eq("obra_id", obraId);
+
+    if (error) {
+      console.error(error);
+      setErro("Erro ao validar atividade.");
+      return;
+    }
+
+    setMensagem("Atividade validada.");
+    await recarregarAtividades();
+  }
+
+  function reprogramarPendencias() {
+    const pendentes = atividades.filter((item) => item.status !== "Finalizada").length;
+
+    window.localStorage.setItem(
+      `obraboard:checkout-reprogramacao:${obraId}:${dataTurnoAtual}:${turno}`,
+      JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, pendentes })
+    );
+    setMensagem(`${pendentes} pendencias sinalizadas para reprogramacao.`);
+  }
+
+  function encerrarTurno() {
+    window.localStorage.setItem(
+      `obraboard:checkout-fechamento:${obraId}:${dataTurnoAtual}:${turno}`,
+      JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, encerradoEm: new Date().toISOString() })
+    );
+    setMensagem("Turno encerrado para a obra/frente selecionada.");
+  }
+
+  function gerarRdo() {
+    router.push("/rdo");
+  }
+
   return (
     <DesktopLayout
       titulo="Check-out do Turno"
@@ -105,6 +225,18 @@ export default function CheckoutPage() {
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
             Obra ativa: {obra}
           </div>
+
+          {mensagem && (
+            <div className="mb-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+              {mensagem}
+            </div>
+          )}
+
+          {erro && (
+            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {erro}
+            </div>
+          )}
 
           <label className="block max-w-sm">
             <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
@@ -151,7 +283,7 @@ export default function CheckoutPage() {
 
         <section className="rounded-2xl bg-white shadow-sm">
           <CabecalhoSecao
-            titulo="Validacao das atividades"
+            titulo="Validação das atividades"
             texto="Atividades carregadas da obra ativa para o turno selecionado"
           />
 
@@ -183,7 +315,7 @@ export default function CheckoutPage() {
                 {atividades.map((item) => {
                   const progresso = calcularProgresso(item);
                   const farol = obterFarol(item.status, progresso);
-                  const acao = obterAcaoCheckout(item.status, progresso);
+                  const editando = atividadeEditandoId === item.id;
 
                   return (
                     <tr
@@ -205,7 +337,22 @@ export default function CheckoutPage() {
                       <td className="p-3 font-semibold">{item.disciplina}</td>
                       <td className="p-3 font-medium">{item.atividade}</td>
                       <td className="p-3">{item.local}</td>
-                      <td className="p-3">{item.responsavel}</td>
+                      <td className="p-3">
+                        {editando ? (
+                          <input
+                            value={edicao.responsavel}
+                            onChange={(e) =>
+                              setEdicao((atual) => ({
+                                ...atual,
+                                responsavel: e.target.value,
+                              }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 p-2 text-sm"
+                          />
+                        ) : (
+                          item.responsavel
+                        )}
+                      </td>
 
                       <td className="p-3">
                         <div className="flex items-center gap-3">
@@ -231,10 +378,86 @@ export default function CheckoutPage() {
                         <StatusBadge status={item.status} />
                       </td>
                       <td className="p-3 text-center text-lg">{farol}</td>
-                      <td className="p-3 text-center">
-                        <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">
-                          {acao}
-                        </span>
+                      <td className="p-3">
+                        {editando ? (
+                          <div className="grid gap-2">
+                            <div className="grid grid-cols-3 gap-2">
+                              <input
+                                value={edicao.previsto}
+                                onChange={(e) =>
+                                  setEdicao((atual) => ({
+                                    ...atual,
+                                    previsto: e.target.value,
+                                  }))
+                                }
+                                type="number"
+                                min="0"
+                                className="rounded-lg border border-slate-300 p-2 text-xs"
+                                placeholder="Prev."
+                              />
+                              <input
+                                value={edicao.realizado}
+                                onChange={(e) =>
+                                  setEdicao((atual) => ({
+                                    ...atual,
+                                    realizado: e.target.value,
+                                  }))
+                                }
+                                type="number"
+                                min="0"
+                                className="rounded-lg border border-slate-300 p-2 text-xs"
+                                placeholder="Real"
+                              />
+                              <input
+                                value={edicao.tempoPrevistoHoras}
+                                onChange={(e) =>
+                                  setEdicao((atual) => ({
+                                    ...atual,
+                                    tempoPrevistoHoras: e.target.value,
+                                  }))
+                                }
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                className="rounded-lg border border-slate-300 p-2 text-xs"
+                                placeholder="HH"
+                              />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setAtividadeEditandoId(null)}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => salvarEdicao(item)}
+                                className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white"
+                              >
+                                Salvar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => iniciarEdicao(item)}
+                              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => validarAtividade(item)}
+                              className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white"
+                            >
+                              Validar
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -266,13 +489,13 @@ export default function CheckoutPage() {
                       R{item.id}
                     </span>
                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-700">
-                      Impacto {item.prioridade === "A" ? "Alto" : "Medio"}
+                      Impacto {item.prioridade === "A" ? "Alto" : "Médio"}
                     </span>
                   </div>
 
                   <h4 className="font-bold text-slate-900">{item.atividade}</h4>
                   <p className="mt-1 text-sm text-slate-600">
-                    Responsavel atual:{" "}
+                    Responsável atual:{" "}
                     <span className="font-semibold text-red-600">
                       {item.responsavel}
                     </span>
@@ -297,16 +520,28 @@ export default function CheckoutPage() {
           </section>
 
           <section className="rounded-2xl bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-lg font-bold">Acoes finais</h3>
+            <h3 className="mb-3 text-lg font-bold">Ações finais</h3>
             <div className="space-y-3">
-              <button className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold">
+              <button
+                type="button"
+                onClick={reprogramarPendencias}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold"
+              >
                 Reprogramar pendencias para proximo turno
               </button>
-              <button className="w-full rounded-xl bg-teal-600 px-4 py-3 text-left font-bold text-white">
-                Gerar RDO
-              </button>
-              <button className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white">
+              <button
+                type="button"
+                onClick={encerrarTurno}
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white"
+              >
                 Encerrar turno
+              </button>
+              <button
+                type="button"
+                onClick={gerarRdo}
+                className="w-full rounded-xl bg-teal-600 px-4 py-3 text-left font-bold text-white"
+              >
+                Gerar RDO
               </button>
             </div>
           </section>
@@ -362,18 +597,6 @@ function obterFarol(status: string, progresso: number) {
   }
 
   return "AT";
-}
-
-function obterAcaoCheckout(status: string, progresso: number) {
-  if (status === "Finalizada" || progresso >= 100) {
-    return "Validar";
-  }
-
-  if (status === "Restrição") {
-    return "Reprogramar";
-  }
-
-  return "Ajustar";
 }
 
 function formatarHoras(horas: number) {

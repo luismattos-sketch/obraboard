@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../components/DesktopLayout";
 import { supabase } from "../lib/supabase";
-import type { Atividade } from "../lib/types";
+import type { Atividade, RecursoDisponivelTurno } from "../lib/types";
 import {
   cadastroBaseEvento,
   carregarCadastroBase,
@@ -15,6 +15,7 @@ import {
 
 type MaoObraReal = {
   id: number;
+  obra_id?: number | null;
   atividade_id?: number | null;
   funcao: string | null;
   quantidade: number | null;
@@ -29,11 +30,13 @@ type RestricaoAtividade = {
 
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
 const restricaoStorageKey = "obraboard:campo-restricoes";
+const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
 
 export default function Home() {
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraAtivaNome, setObraAtivaNome] = useState("Sem obra selecionada");
+  const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivo, setTurnoAtivo] = useState("");
   const [turnoInicio, setTurnoInicio] = useState("");
   const [agora, setAgora] = useState(() => new Date());
@@ -42,6 +45,9 @@ export default function Home() {
   >(() => carregarObjetoLocal(restricaoStorageKey));
   const [funcoesPrevistas, setFuncoesPrevistas] = useState<
     FuncaoPrevistaCadastrada[]
+  >([]);
+  const [recursosDisponiveis, setRecursosDisponiveis] = useState<
+    RecursoDisponivelTurno[]
   >([]);
 
   const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
@@ -83,6 +89,27 @@ export default function Home() {
 
     return mapa;
   }, [atividades, dataTurnoAtual, maoObraReal, turnoAtual]);
+  const recursosPrevistosPorFuncao = useMemo(() => {
+    const mapa = new Map<string, { quantidade: number; hh: number }>();
+
+    recursosDisponiveis.forEach((item) => {
+      const atual = mapa.get(item.funcao) ?? { quantidade: 0, hh: 0 };
+      atual.quantidade += Number(item.quantidade || 0);
+      atual.hh += Number(item.quantidade || 0) * Number(item.cargaHoraria || 0);
+      mapa.set(item.funcao, atual);
+    });
+
+    return mapa;
+  }, [recursosDisponiveis]);
+  const funcoesRecursos = useMemo(() => {
+    const nomes = new Set([
+      ...funcoesPrevistas.map((item) => item.nome),
+      ...Array.from(recursosPrevistosPorFuncao.keys()),
+      ...Array.from(recursosReaisPorFuncao.keys()),
+    ]);
+
+    return Array.from(nomes).filter(Boolean);
+  }, [funcoesPrevistas, recursosPrevistosPorFuncao, recursosReaisPorFuncao]);
 
   const dataTurnoFormatada = dataTurnoAtual
     ? formatarDataTurno(dataTurnoAtual)
@@ -150,6 +177,7 @@ export default function Home() {
       );
 
       setObraAtivaNome(obraAtiva?.nome || "Sem obra selecionada");
+      setObraAtivaId(obraAtiva?.id ?? null);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnoAtivo(turnoAtivoNome);
       setTurnoInicio(
@@ -172,6 +200,52 @@ export default function Home() {
       window.removeEventListener("storage", carregarContexto);
     };
   }, []);
+
+  useEffect(() => {
+    void carregarRecursosPainel();
+
+    async function carregarRecursosPainel() {
+      if (!obraAtivaId || !dataTurnoAtual || !turnoAtual || turnoAtual === "-") {
+        setRecursosDisponiveis([]);
+        return;
+      }
+
+      const locais = carregarListaLocal<RecursoDisponivelTurno>(
+        recursosDisponiveisStorageKey
+      ).filter(
+        (item) =>
+          item.obra_id === obraAtivaId &&
+          item.data_turno === dataTurnoAtual &&
+          item.turno === turnoAtual
+      );
+
+      const { data, error } = await supabase
+        .from("recursos_disponiveis")
+        .select("*")
+        .eq("obra_id", obraAtivaId)
+        .eq("data_turno", dataTurnoAtual)
+        .eq("turno", turnoAtual)
+        .order("id", { ascending: true });
+
+      if (error) {
+        setRecursosDisponiveis(locais);
+        return;
+      }
+
+      setRecursosDisponiveis([
+        ...((data || []) as Array<Record<string, unknown>>).map((item) => ({
+          id: Number(item.id),
+          obra_id: Number(item.obra_id),
+          data_turno: String(item.data_turno),
+          turno: String(item.turno),
+          funcao: String(item.funcao),
+          quantidade: Number(item.quantidade || 0),
+          cargaHoraria: Number(item.carga_horaria || 0),
+        })),
+        ...locais,
+      ]);
+    }
+  }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
 
   return (
     <DesktopLayout
@@ -206,25 +280,29 @@ export default function Home() {
               <CabecalhoSecao titulo="Recursos" texto="Previsto x real" />
 
               <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-4">
-                {funcoesPrevistas.length === 0 ? (
+                {funcoesRecursos.length === 0 ? (
                   <EstadoVazio texto="Nenhum recurso previsto cadastrado para a obra ativa." />
                 ) : (
-                  funcoesPrevistas.map((funcao) => (
-                    <RecursoCard
-                      key={funcao.id}
-                      nome={funcao.nome}
-                      previsto={funcao.quantidade}
-                      real={recursosReaisPorFuncao.get(funcao.nome) ?? 0}
-                      hhDisponivel={funcao.quantidade * (funcao.cargaHoraria || 0)}
-                    />
-                  ))
+                  funcoesRecursos.map((funcao) => {
+                    const previsto = recursosPrevistosPorFuncao.get(funcao);
+
+                    return (
+                      <RecursoCard
+                        key={funcao}
+                        nome={funcao}
+                        previsto={previsto?.quantidade ?? 0}
+                        real={recursosReaisPorFuncao.get(funcao) ?? 0}
+                        hhDisponivel={previsto?.hh ?? 0}
+                      />
+                    );
+                  })
                 )}
               </div>
             </section>
 
             <section className="rounded-2xl bg-white shadow-sm">
               <CabecalhoSecao
-                titulo="Gestao operacional"
+                titulo="Gestão operacional"
                 texto="Frentes, tarefas e oportunidades"
               />
 
@@ -528,7 +606,7 @@ function RestricaoCard({
       </p>
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-lg bg-white p-2">
-          <p className="text-xs text-slate-500">Responsavel</p>
+          <p className="text-xs text-slate-500">Responsável</p>
           <p className="font-semibold">{responsavel}</p>
         </div>
         <div className="rounded-lg bg-white p-2">

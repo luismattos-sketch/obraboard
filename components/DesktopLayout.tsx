@@ -115,6 +115,10 @@ export default function DesktopLayout({
                   ))}
                 </select>
               </label>
+
+              <div className="mt-3">
+                <MenuLink href="/campo" label="Campo" icon="CP" />
+              </div>
             </div>
 
             <div className="mt-6 flex min-h-16 items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-900/60 p-3">

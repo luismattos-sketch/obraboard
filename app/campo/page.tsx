@@ -9,7 +9,10 @@ import {
   obterDadosObra,
   obterObraAtiva,
   obterTurnoAtivoNome,
+  salvarObraAtivaId,
+  salvarTurnoAtivo,
   type FuncaoPrevistaCadastrada,
+  type ObraCadastrada,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 
@@ -42,6 +45,7 @@ export default function CampoPage() {
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
+  const [obrasCadastradas, setObrasCadastradas] = useState<ObraCadastrada[]>([]);
   const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
     useState<FuncaoPrevistaCadastrada[]>([]);
@@ -130,6 +134,7 @@ export default function CampoPage() {
         dadosObra.turnos
       );
 
+      setObrasCadastradas(cadastro.obras);
       setObraId(obraAtiva?.id ?? null);
       setObra(obraAtiva?.nome ?? "Sem obra selecionada");
       setTurnosCadastrados(dadosObra.turnos);
@@ -154,6 +159,15 @@ export default function CampoPage() {
     // carregarAtividades recebe o id atual explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function alterarObraSelecionada(valor: string) {
+    salvarObraAtivaId(valor ? Number(valor) : null);
+  }
+
+  function alterarTurnoSelecionado(novoTurno: string) {
+    setTurno(novoTurno);
+    salvarTurnoAtivo(obraId, novoTurno);
+  }
 
   async function atualizarAtividade(
     id: number,
@@ -343,24 +357,51 @@ export default function CampoPage() {
         <h1 className="text-2xl font-bold">Minhas Atividades</h1>
         <p className="text-sm text-slate-300">Campo · Turno {turno || "-"}</p>
 
-        <select
-          value={turno}
-          onChange={(e) => setTurno(e.target.value)}
-          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
-        >
-          {turnosCadastrados.length === 0 ? (
-            <>
-              <option value="Dia">Turno Dia</option>
-              <option value="Noite">Turno Noite</option>
-            </>
-          ) : (
-            turnosCadastrados.map((item) => (
-              <option key={item.id} value={item.nome}>
-                {item.nome || "Turno sem nome"} · {formatarHoras(item.horasTrabalho)}
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
+              Obra
+            </span>
+            <select
+              value={obraId ?? ""}
+              onChange={(e) => alterarObraSelecionada(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
+            >
+              <option value="">
+                {obrasCadastradas.length === 0 ? "Cadastre uma obra" : "Selecionar obra"}
               </option>
-            ))
-          )}
-        </select>
+              {obrasCadastradas.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome || item.codigo || "Obra sem nome"}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
+              Turno
+            </span>
+            <select
+              value={turno}
+              onChange={(e) => alterarTurnoSelecionado(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
+            >
+              {turnosCadastrados.length === 0 ? (
+                <>
+                  <option value="Dia">Turno Dia</option>
+                  <option value="Noite">Turno Noite</option>
+                </>
+              ) : (
+                turnosCadastrados.map((item) => (
+                  <option key={item.id} value={item.nome}>
+                    {item.nome || "Turno sem nome"} - {formatarHoras(item.horasTrabalho)}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        </div>
       </header>
 
       <div className="mb-4 grid grid-cols-4 gap-3">

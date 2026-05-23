@@ -37,6 +37,12 @@ export type RecursoPrevisto = {
   cargaHoraria: number;
 };
 
+export type RecursoDisponivelTurno = RecursoPrevisto & {
+  obra_id?: number | null;
+  data_turno: string;
+  turno: string;
+};
+
 export type AtividadeRecurso = {
   id: number;
   atividade_id: number;
