@@ -9,6 +9,7 @@ import {
   obterObraAtiva,
   obterObraAtivaId,
   salvarObraAtivaId,
+  sincronizarCadastroBaseRemoto,
   type ObraCadastrada,
 } from "../lib/cadastro-base";
 
@@ -54,7 +55,10 @@ export default function DesktopLayout({
       setObraAtivaId(ativoId);
     }
 
-    queueMicrotask(carregarContexto);
+    queueMicrotask(() => {
+      carregarContexto();
+      void sincronizarCadastroBaseRemoto();
+    });
     window.addEventListener(cadastroBaseEvento, carregarContexto);
     window.addEventListener("storage", carregarContexto);
 

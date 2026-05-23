@@ -40,6 +40,12 @@ create table if not exists public.recursos_disponiveis (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.cadastro_base (
+  id text primary key,
+  dados jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists atividade_recursos_atividade_id_idx
 on public.atividade_recursos (atividade_id);
 
@@ -49,6 +55,7 @@ on public.recursos_disponiveis (obra_id, data_turno, turno);
 alter table public.atividades enable row level security;
 alter table public.atividade_recursos enable row level security;
 alter table public.recursos_disponiveis enable row level security;
+alter table public.cadastro_base enable row level security;
 alter table public.mao_obra enable row level security;
 
 drop policy if exists "Permitir leitura publica de atividades" on public.atividades;
@@ -63,6 +70,9 @@ drop policy if exists "Permitir leitura publica de recursos disponiveis" on publ
 drop policy if exists "Permitir criacao publica de recursos disponiveis" on public.recursos_disponiveis;
 drop policy if exists "Permitir edicao publica de recursos disponiveis" on public.recursos_disponiveis;
 drop policy if exists "Permitir exclusao publica de recursos disponiveis" on public.recursos_disponiveis;
+drop policy if exists "Permitir leitura publica de cadastro base" on public.cadastro_base;
+drop policy if exists "Permitir criacao publica de cadastro base" on public.cadastro_base;
+drop policy if exists "Permitir edicao publica de cadastro base" on public.cadastro_base;
 drop policy if exists "Permitir leitura publica de mao de obra" on public.mao_obra;
 drop policy if exists "Permitir criacao publica de mao de obra" on public.mao_obra;
 drop policy if exists "Permitir edicao publica de mao de obra" on public.mao_obra;
@@ -142,6 +152,25 @@ on public.recursos_disponiveis
 for delete
 to anon
 using (true);
+
+create policy "Permitir leitura publica de cadastro base"
+on public.cadastro_base
+for select
+to anon
+using (true);
+
+create policy "Permitir criacao publica de cadastro base"
+on public.cadastro_base
+for insert
+to anon
+with check (true);
+
+create policy "Permitir edicao publica de cadastro base"
+on public.cadastro_base
+for update
+to anon
+using (true)
+with check (true);
 
 create policy "Permitir leitura publica de mao de obra"
 on public.mao_obra

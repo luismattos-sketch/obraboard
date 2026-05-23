@@ -11,6 +11,7 @@ import {
   obterTurnoAtivoNome,
   salvarObraAtivaId,
   salvarTurnoAtivo,
+  sincronizarCadastroBaseRemoto,
   type FuncaoPrevistaCadastrada,
   type ObraCadastrada,
   type TurnoCadastrado,
@@ -148,7 +149,10 @@ export default function CampoPage() {
       void carregarMaoObraReal();
     }
 
-    queueMicrotask(carregarContextoObra);
+    queueMicrotask(() => {
+      carregarContextoObra();
+      void sincronizarCadastroBaseRemoto();
+    });
     window.addEventListener(cadastroBaseEvento, carregarContextoObra);
     window.addEventListener("storage", carregarContextoObra);
 

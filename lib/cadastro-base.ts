@@ -1,3 +1,5 @@
+import { supabase } from "./supabase";
+
 export type SituacaoObra = "Planejamento" | "Mobilizacao" | "Execucao" | "Pausada";
 export type CriticidadeObra = "Baixa" | "Media" | "Alta";
 export type NivelAcesso = "Planejador" | "Usuario" | "Visitante";
@@ -69,6 +71,7 @@ export type CadastroBase = {
 
 export const cadastroBaseStorageKey = "obraboard:cadastro-base";
 export const cadastroBaseEvento = "obraboard:cadastro-base-atualizado";
+const cadastroBaseRemotoId = "default";
 
 export const cadastroDadosObraInicial: CadastroDadosObra = {
   usuarios: [],
@@ -124,16 +127,60 @@ export function salvarCadastroBase(cadastro: CadastroBase) {
 
   try {
     window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastro));
+    void salvarCadastroBaseRemoto(cadastro);
   } catch {
     try {
-      window.localStorage.setItem(
-        cadastroBaseStorageKey,
-        JSON.stringify({ ...cadastro, logoUrl: "" })
-      );
+      const cadastroSemLogo = { ...cadastro, logoUrl: "" };
+      window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastroSemLogo));
+      void salvarCadastroBaseRemoto(cadastroSemLogo);
     } catch {
       // Mantem a tela funcionando mesmo se o armazenamento local estiver cheio.
     }
   }
+}
+
+export async function sincronizarCadastroBaseRemoto() {
+  if (typeof window === "undefined") {
+    return cadastroBaseInicial;
+  }
+
+  const cadastroLocal = carregarCadastroBase();
+
+  const { data, error } = await supabase
+    .from("cadastro_base")
+    .select("dados")
+    .eq("id", cadastroBaseRemotoId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Cadastro remoto indisponivel, usando cache local.", error);
+    return cadastroLocal;
+  }
+
+  if (!data?.dados) {
+    if (cadastroTemConteudo(cadastroLocal)) {
+      await salvarCadastroBaseRemoto(cadastroLocal);
+    }
+
+    return cadastroLocal;
+  }
+
+  const cadastroRemoto = normalizarCadastroBase(data.dados as Partial<CadastroBase>);
+
+  if (!cadastroTemConteudo(cadastroLocal) && cadastroTemConteudo(cadastroRemoto)) {
+    salvarCadastroBaseLocal(cadastroRemoto);
+    notificarCadastroBaseAtualizado();
+    return cadastroRemoto;
+  }
+
+  if (cadastroTemConteudo(cadastroLocal) && !cadastroTemConteudo(cadastroRemoto)) {
+    await salvarCadastroBaseRemoto(cadastroLocal);
+    return cadastroLocal;
+  }
+
+  salvarCadastroBaseLocal(cadastroRemoto);
+  notificarCadastroBaseAtualizado();
+  return cadastroRemoto;
 }
 
 export function criarCadastroBaseVazio(): CadastroBase {
@@ -266,6 +313,40 @@ export function notificarCadastroBaseAtualizado() {
   }
 
   window.dispatchEvent(new Event(cadastroBaseEvento));
+}
+
+function salvarCadastroBaseLocal(cadastro: CadastroBase) {
+  try {
+    window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastro));
+  } catch {
+    window.localStorage.setItem(
+      cadastroBaseStorageKey,
+      JSON.stringify({ ...cadastro, logoUrl: "" })
+    );
+  }
+}
+
+async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
+  const { error } = await supabase.from("cadastro_base").upsert({
+    id: cadastroBaseRemotoId,
+    dados: cadastro,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    console.warn("Nao foi possivel sincronizar cadastro no Supabase.", error);
+  }
+}
+
+function cadastroTemConteudo(cadastro: CadastroBase) {
+  return (
+    cadastro.obras.length > 0 ||
+    Object.keys(cadastro.dadosPorObra).length > 0 ||
+    cadastro.usuarios.length > 0 ||
+    cadastro.disciplinas.length > 0 ||
+    cadastro.funcoesPrevistas.length > 0 ||
+    cadastro.turnos.length > 0
+  );
 }
 
 function normalizarCadastroBase(cadastro: Partial<CadastroBase>): CadastroBase {
