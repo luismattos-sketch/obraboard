@@ -31,6 +31,7 @@ const situacoes: SituacaoObra[] = [
 
 const criticidades: CriticidadeObra[] = ["Baixa", "Media", "Alta"];
 const niveisAcesso: NivelAcesso[] = ["Planejador", "Usuario", "Visitante"];
+type ModoObra = "criando" | "editando" | "visualizando";
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 let sequenciaIdTemporario = 0;
@@ -91,14 +92,15 @@ export default function CadastroObraPage() {
   const [turnoEditandoId, setTurnoEditandoId] = useState<number | null>(null);
 
   const [mensagem, setMensagem] = useState("");
+  const [modoObra, setModoObra] = useState<ModoObra>("criando");
   const obraSelecionada = useMemo(
     () => obras.find((obra) => obra.id === obraAtivaId) ?? null,
     [obraAtivaId, obras]
   );
-  const bloqueiaFormularioObra = obraVisualizandoId !== null;
+  const bloqueiaFormularioObra = modoObra === "visualizando";
   const statusCadastro = bloqueiaFormularioObra
     ? "Cadastrado"
-    : obraEditandoId
+    : modoObra === "editando"
     ? "Em edição"
     : "Cadastro em preparo";
   const classeCampoBloqueavel = bloqueiaFormularioObra
@@ -107,9 +109,11 @@ export default function CadastroObraPage() {
   const classeBotaoPrimario = bloqueiaFormularioObra
     ? "cursor-not-allowed bg-slate-300 text-slate-500"
     : "bg-teal-600 text-white hover:bg-teal-700";
-  const bloqueiaTurnos = bloqueiaFormularioObra && turnoEditandoId === null;
+  const obraEmTrabalhoId = obraEditandoId ?? obraAtivaId;
+  const podeEditarDadosObra = Boolean(obraEmTrabalhoId) && !bloqueiaFormularioObra;
+  const bloqueiaTurnos = !podeEditarDadosObra;
   const classeCampoTurno = bloqueiaTurnos ? classeCampoBloqueavel : "";
-  const classeBotaoTurno = obraAtivaId && !bloqueiaTurnos
+  const classeBotaoTurno = podeEditarDadosObra && !bloqueiaTurnos
     ? "bg-teal-600 text-white hover:bg-teal-700"
     : "cursor-not-allowed bg-slate-300 text-slate-500";
 
@@ -181,8 +185,10 @@ export default function CadastroObraPage() {
         preencherFormularioObra(obraAtiva);
         setObraVisualizandoId(obraAtiva.id);
         setObraEditandoId(null);
+        setModoObra("visualizando");
       } else {
         limparObra();
+        setModoObra("criando");
       }
 
       setUsuarios(dadosObra.usuarios);
@@ -207,6 +213,12 @@ export default function CadastroObraPage() {
       return;
     }
 
+    const obraDestinoId = obraEmTrabalhoId;
+
+    if (!obraDestinoId || modoObra === "criando") {
+      return;
+    }
+
     const cadastroAtual = carregarCadastroBase();
 
     salvarCadastroBase(
@@ -215,9 +227,9 @@ export default function CadastroObraPage() {
           ...cadastroAtual,
           logoUrl,
           obras,
-          obraAtivaId,
+          obraAtivaId: obraDestinoId,
         },
-        obraAtivaId,
+        obraDestinoId,
         {
           usuarios,
           disciplinas,
@@ -231,7 +243,9 @@ export default function CadastroObraPage() {
     disciplinas,
     funcoesPrevistas,
     logoUrl,
+    modoObra,
     obraAtivaId,
+    obraEmTrabalhoId,
     obras,
     turnos,
     usuarios,
@@ -259,9 +273,10 @@ export default function CadastroObraPage() {
       return;
     }
 
-    const editando = obraEditandoId !== null;
+    const editando = modoObra === "editando" && obraEditandoId !== null;
+    const obraId = obraEditandoId ?? obraAtivaId ?? gerarIdTemporario();
     const obra: ObraCadastrada = {
-      id: obraEditandoId ?? gerarIdTemporario(),
+      id: obraId,
       logoUrl,
       nome,
       codigo,
@@ -276,22 +291,17 @@ export default function CadastroObraPage() {
       observacoes,
     };
 
-    const novasObras = editando
-      ? obras.map((item) => (item.id === obraEditandoId ? obra : item))
-      : [obra, ...obras];
-    const dadosDaObra = editando
-      ? {
-          usuarios,
-          disciplinas,
-          funcoesPrevistas,
-          turnos,
-        }
-      : {
-          usuarios: [],
-          disciplinas: [],
-          funcoesPrevistas: [],
-          turnos: [],
-        };
+    const obraJaExiste = obras.some((item) => item.id === obra.id);
+    const novasObras =
+      editando || obraJaExiste
+        ? obras.map((item) => (item.id === obra.id ? obra : item))
+        : [obra, ...obras];
+    const dadosDaObra = {
+      usuarios,
+      disciplinas,
+      funcoesPrevistas,
+      turnos,
+    };
 
     const cadastroAtual = carregarCadastroBase();
     const obraAtivaAposSalvar = obra.id;
@@ -300,7 +310,7 @@ export default function CadastroObraPage() {
       definirDadosObra(
         {
           ...cadastroAtual,
-          logoUrl: editando ? logoUrl : cadastroAtual.logoUrl,
+          logoUrl,
           obras: novasObras,
           obraAtivaId: obraAtivaAposSalvar,
         },
@@ -310,36 +320,30 @@ export default function CadastroObraPage() {
     );
     setObras(novasObras);
     setObraAtivaId(obraAtivaAposSalvar);
-    if (!editando) {
-      setUsuarios([]);
-      setDisciplinas([]);
-      setFuncoesPrevistas([]);
-      setTurnos([]);
-      preencherFormularioObra(obra);
-      setObraVisualizandoId(obra.id);
-      setObraEditandoId(null);
-    } else {
-      setObraVisualizandoId(obra.id);
-      setObraEditandoId(null);
-    }
+    preencherFormularioObra(obra);
+    setObraVisualizandoId(obra.id);
+    setObraEditandoId(null);
+    setModoObra("visualizando");
     setMensagem(editando ? "Obra atualizada." : "Obra cadastrada.");
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
   function cadastrarNovaObra() {
-    const cadastroAtual = carregarCadastroBase();
+    const novoId = gerarIdTemporario();
 
     limparObra();
     limparUsuario();
     limparTurno();
     limparDisciplina();
     limparFuncaoPrevista();
-    setObraAtivaId(null);
+    setObraAtivaId(novoId);
+    setObraEditandoId(novoId);
+    setObraVisualizandoId(null);
+    setModoObra("criando");
     setUsuarios([]);
     setDisciplinas([]);
     setFuncoesPrevistas([]);
     setTurnos([]);
-    salvarCadastroBase({ ...cadastroAtual, obraAtivaId: null });
     setMensagem("Formulario pronto para nova obra.");
   }
 
@@ -355,6 +359,7 @@ export default function CadastroObraPage() {
     setTurnos(dadosObra.turnos);
     setObraEditandoId(obra.id);
     setObraVisualizandoId(null);
+    setModoObra("editando");
     salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obra.id });
   }
 
@@ -366,12 +371,64 @@ export default function CadastroObraPage() {
     editarObra(obraSelecionada);
   }
 
-  function tornarObraAtualAtivaParaEdicao() {
-    if (!obraAtivaId) {
+  function cancelarEdicaoObra() {
+    const cadastroAtual = carregarCadastroBase();
+    const idParaRestaurar =
+      modoObra === "editando"
+        ? obraEditandoId ?? obraAtivaId
+        : obterObraAtivaId(cadastroAtual);
+    const obraParaRestaurar =
+      cadastroAtual.obras.find((obra) => obra.id === idParaRestaurar) ??
+      cadastroAtual.obras[0] ??
+      null;
+
+    limparUsuario();
+    limparTurno();
+    limparDisciplina();
+    limparFuncaoPrevista();
+
+    if (!obraParaRestaurar) {
+      limparObra();
+      setObraAtivaId(null);
+      setUsuarios([]);
+      setDisciplinas([]);
+      setFuncoesPrevistas([]);
+      setTurnos([]);
+      setModoObra("criando");
+      setMensagem("Edição cancelada.");
       return;
     }
 
-    salvarCadastroBase({ ...carregarCadastroBase(), obraAtivaId });
+    const dadosObra = obterDadosObra(cadastroAtual, obraParaRestaurar.id);
+
+    preencherFormularioObra(obraParaRestaurar);
+    setObraAtivaId(obraParaRestaurar.id);
+    setObraEditandoId(null);
+    setObraVisualizandoId(obraParaRestaurar.id);
+    setModoObra("visualizando");
+    setUsuarios(dadosObra.usuarios);
+    setDisciplinas(dadosObra.disciplinas);
+    setFuncoesPrevistas(dadosObra.funcoesPrevistas);
+    setTurnos(dadosObra.turnos);
+    salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obraParaRestaurar.id });
+    setMensagem("Edição cancelada.");
+  }
+
+  function tornarObraAtualAtivaParaEdicao() {
+    const id = obraEmTrabalhoId;
+
+    if (!id) {
+      return;
+    }
+
+    setObraAtivaId(id);
+    setObraEditandoId(id);
+    setObraVisualizandoId(null);
+    setModoObra(obras.some((obra) => obra.id === id) ? "editando" : "criando");
+
+    if (obras.some((obra) => obra.id === id)) {
+      salvarCadastroBase({ ...carregarCadastroBase(), obraAtivaId: id });
+    }
   }
 
   function excluirObra(id: number) {
@@ -448,7 +505,9 @@ export default function CadastroObraPage() {
   }
 
   function salvarTurno() {
-    if (!obraAtivaId) {
+    const obraDestinoId = obraEmTrabalhoId;
+
+    if (!obraDestinoId || bloqueiaTurnos) {
       return;
     }
 
@@ -470,13 +529,13 @@ export default function CadastroObraPage() {
       definirDadosObra(
         {
           ...cadastroAtual,
-          obraAtivaId,
+          obraAtivaId: obraDestinoId,
           turnoAtivoPorObra: {
             ...cadastroAtual.turnoAtivoPorObra,
-            [String(obraAtivaId)]: turno.nome,
+            [String(obraDestinoId)]: turno.nome,
           },
         },
-        obraAtivaId,
+        obraDestinoId,
         {
           usuarios,
           disciplinas,
@@ -488,7 +547,7 @@ export default function CadastroObraPage() {
 
     setTurnos(novosTurnos);
     limparTurno();
-    setObraVisualizandoId(obraAtivaId);
+    setObraAtivaId(obraDestinoId);
     setMensagem(turnoEditandoId ? "Turno atualizado." : "Turno cadastrado.");
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
@@ -502,11 +561,11 @@ export default function CadastroObraPage() {
   }
 
   function editarTurno(turno: TurnoCadastrado) {
-    if (!obraAtivaId) {
+    if (!obraEmTrabalhoId) {
       return;
     }
 
-    setObraVisualizandoId(null);
+    tornarObraAtualAtivaParaEdicao();
     setTurnoNome(turno.nome);
     setTurnoHoraInicio(turno.horaInicio);
     setTurnoHoraFim(turno.horaFim);
@@ -515,13 +574,15 @@ export default function CadastroObraPage() {
   }
 
   function excluirTurno(id: number) {
-    if (!obraAtivaId) {
+    const obraDestinoId = obraEmTrabalhoId;
+
+    if (!obraDestinoId || bloqueiaTurnos) {
       return;
     }
 
     const novosTurnos = turnos.filter((item) => item.id !== id);
     const cadastroAtual = carregarCadastroBase();
-    const turnoAtivoAtual = cadastroAtual.turnoAtivoPorObra[String(obraAtivaId)];
+    const turnoAtivoAtual = cadastroAtual.turnoAtivoPorObra[String(obraDestinoId)];
     const turnoExcluido = turnos.find((item) => item.id === id);
     const proximoTurnoAtivo =
       turnoAtivoAtual === turnoExcluido?.nome
@@ -532,13 +593,13 @@ export default function CadastroObraPage() {
       definirDadosObra(
         {
           ...cadastroAtual,
-          obraAtivaId,
+          obraAtivaId: obraDestinoId,
           turnoAtivoPorObra: {
             ...cadastroAtual.turnoAtivoPorObra,
-            [String(obraAtivaId)]: proximoTurnoAtivo,
+            [String(obraDestinoId)]: proximoTurnoAtivo,
           },
         },
-        obraAtivaId,
+        obraDestinoId,
         {
           usuarios,
           disciplinas,
@@ -549,7 +610,7 @@ export default function CadastroObraPage() {
     );
 
     setTurnos(novosTurnos);
-    setObraVisualizandoId(obraAtivaId);
+    setObraAtivaId(obraDestinoId);
     if (turnoEditandoId === id) {
       limparTurno();
     }
@@ -702,8 +763,10 @@ export default function CadastroObraPage() {
                   preencherFormularioObra(obraSelecionada);
                   setObraVisualizandoId(obraSelecionada.id);
                   setObraEditandoId(null);
+                  setModoObra("visualizando");
                 } else {
                   limparObra();
+                  setModoObra("criando");
                 }
                 setUsuarios(dadosObra.usuarios);
                 setDisciplinas(dadosObra.disciplinas);
@@ -932,7 +995,7 @@ export default function CadastroObraPage() {
               {obraEditandoId && (
                 <button
                   type="button"
-                  onClick={limparObra}
+                  onClick={cancelarEdicaoObra}
                   className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
                 >
                   Cancelar edição
@@ -1206,7 +1269,7 @@ export default function CadastroObraPage() {
               <button
                 type="button"
                 onClick={salvarTurno}
-                disabled={!obraAtivaId || bloqueiaTurnos}
+                disabled={!podeEditarDadosObra || bloqueiaTurnos}
                 className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition ${classeBotaoTurno}`}
               >
                 {turnoEditandoId ? "Salvar alterações" : "Adicionar"}

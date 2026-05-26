@@ -12,6 +12,11 @@ import {
   obterTurnoAtivoNome,
   type FuncaoPrevistaCadastrada,
 } from "../lib/cadastro-base";
+import {
+  listarRestricoesHistorico,
+  restricaoStorageKey,
+  type RestricaoHistorico,
+} from "../lib/operacao";
 
 type MaoObraReal = {
   id: number;
@@ -29,7 +34,6 @@ type RestricaoAtividade = {
 };
 
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
-const restricaoStorageKey = "obraboard:campo-restricoes";
 const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
 
 export default function Home() {
@@ -43,6 +47,7 @@ export default function Home() {
   const [restricoesCampo, setRestricoesCampo] = useState<
     Record<number, RestricaoAtividade>
   >(() => carregarObjetoLocal(restricaoStorageKey));
+  const [historicoRestricoes, setHistoricoRestricoes] = useState<RestricaoHistorico[]>([]);
   const [funcoesPrevistas, setFuncoesPrevistas] = useState<
     FuncaoPrevistaCadastrada[]
   >([]);
@@ -119,18 +124,34 @@ export default function Home() {
   const restricoes = contarStatus(atividades, "Restrição");
   const finalizadas = contarStatus(atividades, "Finalizada");
   const parciais = contarStatus(atividades, "Parcial");
-  const restricoesCriticas = atividades.filter(
-    (item) => item.status === "Restrição"
-  );
+  const restricoesPainel = useMemo(() => {
+    const idsHistorico = new Set(historicoRestricoes.map((item) => item.atividadeId));
+    const restricoesAtivas = atividades
+      .filter(
+        (item) =>
+          item.status.toLowerCase().startsWith("restri") &&
+          !idsHistorico.has(item.id)
+      )
+      .map((item) => ({
+        codigo: `R${item.id}`,
+        titulo: item.atividade,
+        responsavel: item.responsavel,
+        observacao: restricoesCampo[item.id]?.texto || "Sem observacao registrada.",
+        criticidade: item.prioridade === "A" ? "Alta" : "Media",
+        status: restricoesCampo[item.id]?.status || "aberta",
+      }));
 
-  const restricoesPainel = useMemo(
-    () =>
-      restricoesCriticas.map((item) => ({
-        atividade: item,
-        restricao: restricoesCampo[item.id],
-      })),
-    [restricoesCampo, restricoesCriticas]
-  );
+    const historico = historicoRestricoes.map((item) => ({
+      codigo: `R${item.atividadeId}`,
+      titulo: item.atividade,
+      responsavel: item.responsavel,
+      observacao: item.texto || "Sem observacao registrada.",
+      criticidade: item.status === "aberta" ? "Alta" : "Encerrada",
+      status: item.status === "aberta" ? "aberta" : "Encerrada",
+    }));
+
+    return [...restricoesAtivas, ...historico];
+  }, [atividades, historicoRestricoes, restricoesCampo]);
 
   useEffect(() => {
     const intervalo = window.setInterval(() => setAgora(new Date()), 30000);
@@ -187,6 +208,13 @@ export default function Home() {
       void carregarAtividades(obraAtiva?.id ?? null);
       void carregarMaoObraReal();
       setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
+      setHistoricoRestricoes(
+        listarRestricoesHistorico(
+          obraAtiva?.id ?? null,
+          dataTurnoAtual,
+          turnoAtivoNome
+        )
+      );
     }
 
     carregarContexto();
@@ -364,16 +392,16 @@ export default function Home() {
                 {restricoesPainel.length === 0 ? (
                   <EstadoVazio texto="Nenhuma restricao critica registrada no turno atual." />
                 ) : (
-                  restricoesPainel.map(({ atividade, restricao }) => (
+                  restricoesPainel.map((restricao) => (
                     <RestricaoCard
-                      key={atividade.id}
-                      codigo={`R${atividade.id}`}
-                      titulo={atividade.atividade}
-                      responsavel={atividade.responsavel}
-                      observacao={restricao?.texto || "Sem observacao registrada."}
+                      key={`${restricao.codigo}-${restricao.status}-${restricao.observacao}`}
+                      codigo={restricao.codigo}
+                      titulo={restricao.titulo}
+                      responsavel={restricao.responsavel}
+                      observacao={restricao.observacao}
                       prazo={dataTurnoFormatada}
-                      criticidade={atividade.prioridade === "A" ? "Alta" : "Media"}
-                      status={restricao?.status || "aberta"}
+                      criticidade={restricao.criticidade}
+                      status={restricao.status}
                     />
                   ))
                 )}

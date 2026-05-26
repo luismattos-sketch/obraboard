@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DesktopLayout from "../../components/DesktopLayout";
 import { supabase } from "../../lib/supabase";
-import type { Atividade } from "../../lib/types";
+import type { Atividade, AtividadeRecurso } from "../../lib/types";
 import {
   cadastroBaseEvento,
   carregarCadastroBase,
@@ -14,6 +14,19 @@ import {
   salvarTurnoAtivo,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
+import {
+  calcularAvancoReal,
+  calcularPpc,
+  chaveTurno,
+  checkoutFechamentosStorageKey,
+  checkoutValidacoesStorageKey,
+  definirStatusPorAvanco,
+  listarRestricoesHistorico,
+  obterFarolOperacional,
+  registrarRestricaoHistorico,
+  salvarObjetoLocal,
+  carregarObjetoLocal,
+} from "../../lib/operacao";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -28,6 +41,15 @@ export default function CheckoutPage() {
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
   const [atividadeEditandoId, setAtividadeEditandoId] = useState<number | null>(null);
+  const [recursosPorAtividade, setRecursosPorAtividade] = useState<
+    Record<number, AtividadeRecurso[]>
+  >({});
+  const [validacoes, setValidacoes] = useState<Record<string, true>>(() =>
+    carregarObjetoLocal(checkoutValidacoesStorageKey, {})
+  );
+  const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>(() =>
+    carregarObjetoLocal(checkoutFechamentosStorageKey, {})
+  );
   const [edicao, setEdicao] = useState({
     previsto: "",
     realizado: "",
@@ -46,11 +68,11 @@ export default function CheckoutPage() {
     [atividadesBanco, dataTurnoAtual, turno]
   );
   const restricoes = atividades.filter((item) => item.status === "Restrição");
-  const finalizadas = contarStatus(atividades, "Finalizada");
+  const finalizadas = atividades.filter((item) => calcularAvancoReal(item.previsto, item.realizado) >= 100).length;
   const parciais = contarStatus(atividades, "Parcial");
   const planejadas = contarStatus(atividades, "Planejada");
-  const ppc =
-    atividades.length > 0 ? Math.round((finalizadas / atividades.length) * 100) : 0;
+  const ppc = calcularPpc(atividades);
+  const turnoEncerrado = Boolean(fechamentos[chaveTurno(obraId, dataTurnoAtual, turno)]);
 
   useEffect(() => {
     async function carregarAtividades(obraAtualId: number | null) {
@@ -68,7 +90,9 @@ export default function CheckoutPage() {
         .eq("obra_id", obraAtualId)
         .order("id", { ascending: true });
 
-      setAtividadesBanco((data || []) as Atividade[]);
+      const carregadas = (data || []) as Atividade[];
+      setAtividadesBanco(carregadas);
+      await carregarRecursosAtividades(carregadas);
       setCarregando(false);
     }
 
@@ -115,12 +139,53 @@ export default function CheckoutPage() {
       .eq("obra_id", obraId)
       .order("id", { ascending: true });
 
-    setAtividadesBanco((data || []) as Atividade[]);
+    const carregadas = (data || []) as Atividade[];
+    setAtividadesBanco(carregadas);
+    await carregarRecursosAtividades(carregadas);
+  }
+
+  async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
+    const ids = atividadesCarregadas.map((item) => item.id);
+
+    if (ids.length === 0) {
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("atividade_recursos")
+      .select("*")
+      .in("atividade_id", ids);
+
+    if (error) {
+      console.warn("Recursos planejados indisponiveis no checkout.", error);
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    setRecursosPorAtividade(
+      ((data || []) as AtividadeRecurso[]).reduce<Record<number, AtividadeRecurso[]>>(
+        (mapa, recurso) => {
+          mapa[recurso.atividade_id] = [
+            ...(mapa[recurso.atividade_id] ?? []),
+            recurso,
+          ];
+          return mapa;
+        },
+        {}
+      )
+    );
   }
 
   function iniciarEdicao(item: Atividade) {
     setMensagem("");
     setErro("");
+    setValidacoes((atuais) => {
+      const novos = { ...atuais };
+      delete novos[String(item.id)];
+      salvarObjetoLocal(checkoutValidacoesStorageKey, novos);
+      return novos;
+    });
     setAtividadeEditandoId(item.id);
     setEdicao({
       previsto: String(item.previsto || ""),
@@ -137,7 +202,8 @@ export default function CheckoutPage() {
     const previsto = Number(edicao.previsto || 0);
     const realizado = Number(edicao.realizado || 0);
     const progresso =
-      previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 0;
+      calcularAvancoReal(previsto, realizado);
+    const status = definirStatusPorAvanco(previsto, realizado);
 
     const { error } = await supabase
       .from("atividades")
@@ -145,6 +211,7 @@ export default function CheckoutPage() {
         previsto,
         realizado,
         progresso,
+        status,
         responsavel: edicao.responsavel,
         tempo_previsto_horas: Number(edicao.tempoPrevistoHoras || 0),
       })
@@ -166,17 +233,17 @@ export default function CheckoutPage() {
     setMensagem("");
     setErro("");
 
-    const realizado = Number(item.realizado || item.previsto || 0);
+    const realizado = Number(item.realizado || 0);
     const previsto = Number(item.previsto || 0);
-    const progresso =
-      previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 100;
+    const progresso = calcularAvancoReal(previsto, realizado);
+    const status = definirStatusPorAvanco(previsto, realizado);
 
     const { error } = await supabase
       .from("atividades")
       .update({
         realizado,
-        progresso: Math.max(progresso, 100),
-        status: "Finalizada",
+        progresso,
+        status,
       })
       .eq("id", item.id)
       .eq("obra_id", obraId);
@@ -187,25 +254,127 @@ export default function CheckoutPage() {
       return;
     }
 
+    const novasValidacoes = { ...validacoes, [String(item.id)]: true as const };
+    setValidacoes(novasValidacoes);
+    salvarObjetoLocal(checkoutValidacoesStorageKey, novasValidacoes);
     setMensagem("Atividade validada.");
     await recarregarAtividades();
   }
 
-  function reprogramarPendencias() {
-    const pendentes = atividades.filter((item) => item.status !== "Finalizada").length;
+  async function reprogramarPendencias() {
+    setMensagem("");
+    setErro("");
+
+    if (!obraId || !dataTurnoAtual || !turno) {
+      setErro("Selecione obra, data e turno antes de reprogramar.");
+      return;
+    }
+
+    const proximoTurno = obterProximoTurno(turno, turnosCadastrados);
+
+    if (!proximoTurno) {
+      setErro("Nao existe proximo turno cadastrado.");
+      return;
+    }
+
+    const pendentes = atividades.filter(
+      (item) => calcularAvancoReal(item.previsto, item.realizado) < 100
+    );
+    let criadas = 0;
+
+    for (const item of pendentes) {
+      const restante = Math.max(Number(item.previsto || 0) - Number(item.realizado || 0), 0);
+
+      if (restante <= 0) {
+        continue;
+      }
+
+      const { data: existente } = await supabase
+        .from("atividades")
+        .select("id")
+        .eq("obra_id", obraId)
+        .eq("origem_atividade_id", item.id)
+        .eq("turno", proximoTurno.nome)
+        .eq("data_turno", dataTurnoAtual)
+        .maybeSingle();
+
+      if (existente?.id) {
+        continue;
+      }
+
+      const { data: nova, error } = await supabase
+        .from("atividades")
+        .insert([
+          {
+            obra_id: obraId,
+            prioridade: item.prioridade,
+            disciplina: item.disciplina,
+            atividade: `${item.atividade} (reprogramada)`,
+            local: item.local,
+            responsavel: item.responsavel,
+            previsto: restante,
+            realizado: 0,
+            unidade: item.unidade,
+            tempo_previsto_horas: item.tempo_previsto_horas,
+            status: "Planejada",
+            progresso: 0,
+            turno: proximoTurno.nome,
+            data_turno: dataTurnoAtual,
+            origem_atividade_id: item.id,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (error || !nova?.id) {
+        console.error(error);
+        setErro("Erro ao reprogramar pendencias.");
+        return;
+      }
+
+      const recursos = recursosPorAtividade[item.id] ?? [];
+      if (recursos.length > 0) {
+        await supabase.from("atividade_recursos").insert(
+          recursos.map((recurso) => ({
+            atividade_id: nova.id,
+            funcao: recurso.funcao,
+            quantidade_prevista: recurso.quantidade_prevista,
+          }))
+        );
+      }
+
+      listarRestricoesHistorico(obraId, dataTurnoAtual, turno)
+        .filter(
+          (restricao) =>
+            restricao.atividadeId === item.id &&
+            ["aberta", "reprogramada"].includes(restricao.status)
+        )
+        .forEach((restricao) =>
+          registrarRestricaoHistorico(
+            { ...item, id: nova.id, turno: proximoTurno.nome },
+            restricao.texto,
+            "reprogramada"
+          )
+        );
+      criadas += 1;
+    }
 
     window.localStorage.setItem(
       `obraboard:checkout-reprogramacao:${obraId}:${dataTurnoAtual}:${turno}`,
-      JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, pendentes })
+      JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, pendentes: pendentes.length })
     );
-    setMensagem(`${pendentes} pendencias sinalizadas para reprogramacao.`);
+    setMensagem(`${criadas} pendencias reprogramadas para ${proximoTurno.nome}.`);
+    await recarregarAtividades();
   }
 
   function encerrarTurno() {
-    window.localStorage.setItem(
-      `obraboard:checkout-fechamento:${obraId}:${dataTurnoAtual}:${turno}`,
-      JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, encerradoEm: new Date().toISOString() })
-    );
+    const chave = chaveTurno(obraId, dataTurnoAtual, turno);
+    const novosFechamentos = {
+      ...fechamentos,
+      [chave]: { encerradoEm: new Date().toISOString() },
+    };
+    setFechamentos(novosFechamentos);
+    salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
     setMensagem("Turno encerrado para a obra/frente selecionada.");
   }
 
@@ -223,7 +392,7 @@ export default function CheckoutPage() {
       <div className="space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Obra ativa: {obra}
+            Obra ativa: {obra} · {turnoEncerrado ? "Turno encerrado" : "Turno em andamento"}
           </div>
 
           {mensagem && (
@@ -314,8 +483,9 @@ export default function CheckoutPage() {
               <tbody>
                 {atividades.map((item) => {
                   const progresso = calcularProgresso(item);
-                  const farol = obterFarol(item.status, progresso);
+                  const farol = obterFarolOperacional(item.status, progresso);
                   const editando = atividadeEditandoId === item.id;
+                  const validada = Boolean(validacoes[String(item.id)]);
 
                   return (
                     <tr
@@ -377,7 +547,7 @@ export default function CheckoutPage() {
                       <td className="p-3 text-center">
                         <StatusBadge status={item.status} />
                       </td>
-                      <td className="p-3 text-center text-lg">{farol}</td>
+                      <td className="p-3 text-center text-xs font-bold">{farol}</td>
                       <td className="p-3">
                         {editando ? (
                           <div className="grid gap-2">
@@ -445,6 +615,7 @@ export default function CheckoutPage() {
                             <button
                               type="button"
                               onClick={() => iniciarEdicao(item)}
+                              disabled={turnoEncerrado}
                               className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700"
                             >
                               Editar
@@ -452,9 +623,10 @@ export default function CheckoutPage() {
                             <button
                               type="button"
                               onClick={() => validarAtividade(item)}
-                              className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white"
+                              disabled={validada || turnoEncerrado}
+                              className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                             >
-                              Validar
+                              {validada ? "Validado" : "Validar"}
                             </button>
                           </div>
                         )}
@@ -525,16 +697,10 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={reprogramarPendencias}
+                disabled={turnoEncerrado}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold"
               >
                 Reprogramar pendencias para proximo turno
-              </button>
-              <button
-                type="button"
-                onClick={encerrarTurno}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white"
-              >
-                Encerrar turno
               </button>
               <button
                 type="button"
@@ -542,6 +708,14 @@ export default function CheckoutPage() {
                 className="w-full rounded-xl bg-teal-600 px-4 py-3 text-left font-bold text-white"
               >
                 Gerar RDO
+              </button>
+              <button
+                type="button"
+                onClick={encerrarTurno}
+                disabled={turnoEncerrado}
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {turnoEncerrado ? "Turno encerrado" : "Encerrar turno"}
               </button>
             </div>
           </section>
@@ -577,26 +751,19 @@ function formatarDataTurno(dataTurno: string) {
 }
 
 function calcularProgresso(item: Atividade) {
-  if (item.progresso !== null && item.progresso !== undefined) {
-    return Math.min(100, Math.max(0, Number(item.progresso || 0)));
-  }
-
-  const previsto = Number(item.previsto || 0);
-  const realizado = Number(item.realizado || 0);
-
-  return previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 0;
+  return calcularAvancoReal(item.previsto, item.realizado);
 }
 
-function obterFarol(status: string, progresso: number) {
-  if (status === "Finalizada" || progresso >= 100) {
-    return "OK";
+function obterProximoTurno(turnoAtual: string, turnos: TurnoCadastrado[]) {
+  if (turnos.length < 2) {
+    return null;
   }
 
-  if (status === "Restrição") {
-    return "AL";
-  }
+  const indiceAtual = turnos.findIndex((item) => item.nome === turnoAtual);
+  const proximoIndice =
+    indiceAtual >= 0 ? (indiceAtual + 1) % turnos.length : 0;
 
-  return "AT";
+  return turnos[proximoIndice] ?? null;
 }
 
 function formatarHoras(horas: number) {

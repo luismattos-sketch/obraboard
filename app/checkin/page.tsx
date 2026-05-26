@@ -21,6 +21,11 @@ import {
   type TurnoCadastrado,
   type UsuarioCadastrado,
 } from "../../lib/cadastro-base";
+import {
+  chaveTurno,
+  checkoutFechamentosStorageKey,
+  carregarObjetoLocal,
+} from "../../lib/operacao";
 
 type RecursoFormulario = {
   id: number;
@@ -156,6 +161,11 @@ export default function CheckinPage() {
   });
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>(
+    () => carregarObjetoLocal(checkoutFechamentosStorageKey, {})
+  );
+
+  const turnoEncerrado = Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
 
   const atividadesTurno = useMemo(
     () =>
@@ -395,6 +405,7 @@ export default function CheckinPage() {
       }
 
       void carregarAtividades(obraAtiva?.id ?? null);
+      setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
     }
 
     queueMicrotask(carregarContextoObra);
@@ -1388,10 +1399,12 @@ export default function CheckinPage() {
               <button
                 type="button"
                 onClick={adicionarAtividade}
-                disabled={salvando}
+                disabled={salvando || turnoEncerrado}
                 className="rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                {salvando
+                {turnoEncerrado
+                  ? "Turno encerrado"
+                  : salvando
                   ? "Salvando..."
                   : atividadeEditandoId
                   ? "Salvar atividade"
@@ -1444,7 +1457,8 @@ export default function CheckinPage() {
               <button
                 type="button"
                 onClick={adicionarRecursoDisponivel}
-                className="min-w-0 rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
+                disabled={turnoEncerrado}
+                className="min-w-0 rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 Adicionar
               </button>
@@ -1474,7 +1488,8 @@ export default function CheckinPage() {
                       <button
                         type="button"
                         onClick={() => removerRecursoDisponivel(item)}
-                        className="text-xs font-bold text-red-600"
+                        disabled={turnoEncerrado}
+                        className="text-xs font-bold text-red-600 disabled:text-slate-400"
                       >
                         Remover
                       </button>
@@ -1748,7 +1763,8 @@ export default function CheckinPage() {
                               <button
                                 type="button"
                                 onClick={() => iniciarEdicao(item)}
-                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                disabled={turnoEncerrado}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:text-slate-400"
                               >
                                 Editar
                               </button>
@@ -1756,7 +1772,8 @@ export default function CheckinPage() {
                               <button
                                 type="button"
                                 onClick={() => pedirExclusao(item.id)}
-                                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100"
+                                disabled={turnoEncerrado}
+                                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 disabled:text-slate-400"
                               >
                                 Excluir
                               </button>
@@ -1800,9 +1817,10 @@ export default function CheckinPage() {
             <button
               type="button"
               onClick={publicarTurno}
-              className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200"
+              disabled={turnoEncerrado}
+              className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              Publicar turno
+              {turnoEncerrado ? "Turno encerrado" : "Publicar turno"}
             </button>
           </div>
         </section>

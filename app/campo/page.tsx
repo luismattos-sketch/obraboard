@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import type { Atividade, AtualizacaoAtividade, StatusAtividade } from "../../lib/types";
+import type {
+  Atividade,
+  AtividadeRecurso,
+  AtualizacaoAtividade,
+  StatusAtividade,
+} from "../../lib/types";
 import {
   cadastroBaseEvento,
   carregarCadastroBase,
@@ -15,7 +20,14 @@ import {
   type FuncaoPrevistaCadastrada,
   type ObraCadastrada,
   type TurnoCadastrado,
+  type UsuarioCadastrado,
 } from "../../lib/cadastro-base";
+import {
+  calcularAvancoReal,
+  definirStatusPorAvanco,
+  registrarRestricaoHistorico,
+  restricaoStorageKey,
+} from "../../lib/operacao";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
 
@@ -38,7 +50,6 @@ type MaoObraReal = {
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 const controleStorageKey = "obraboard:campo-controles";
-const restricaoStorageKey = "obraboard:campo-restricoes";
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
 
 export default function CampoPage() {
@@ -50,6 +61,10 @@ export default function CampoPage() {
   const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
     useState<FuncaoPrevistaCadastrada[]>([]);
+  const [usuariosCadastrados, setUsuariosCadastrados] = useState<UsuarioCadastrado[]>([]);
+  const [recursosPorAtividade, setRecursosPorAtividade] = useState<
+    Record<number, AtividadeRecurso[]>
+  >({});
   const [turno, setTurno] = useState("Dia");
   const [filtro, setFiltro] = useState<FiltroStatus>("Todas");
   const [atividadeMaoObraId, setAtividadeMaoObraId] = useState<number | null>(null);
@@ -63,6 +78,9 @@ export default function CampoPage() {
   );
   const [restricaoEditandoId, setRestricaoEditandoId] = useState<number | null>(null);
   const [restricaoTexto, setRestricaoTexto] = useState("");
+  const [responsaveisAtividade, setResponsaveisAtividade] = useState<Record<number, string>>({});
+  const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
+  const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
   const [agora, setAgora] = useState(Date.now());
 
   const atividadesTurno = useMemo(
@@ -109,7 +127,53 @@ export default function CampoPage() {
       .eq("obra_id", obraAtualId)
       .order("id", { ascending: true });
 
-    setAtividades((data || []) as Atividade[]);
+    const carregadas = (data || []) as Atividade[];
+    setAtividades(carregadas);
+    setRealizadoAtividade((atuais) => {
+      const proximos = { ...atuais };
+
+      carregadas.forEach((atividade) => {
+        if (proximos[atividade.id] === undefined) {
+          proximos[atividade.id] = String(atividade.realizado ?? 0);
+        }
+      });
+
+      return proximos;
+    });
+    await carregarRecursosAtividades(carregadas);
+  }
+
+  async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
+    const ids = atividadesCarregadas.map((item) => item.id);
+
+    if (ids.length === 0) {
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("atividade_recursos")
+      .select("*")
+      .in("atividade_id", ids);
+
+    if (error) {
+      console.warn("Recursos planejados indisponiveis no campo.", error);
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    setRecursosPorAtividade(
+      ((data || []) as AtividadeRecurso[]).reduce<Record<number, AtividadeRecurso[]>>(
+        (mapa, recurso) => {
+          mapa[recurso.atividade_id] = [
+            ...(mapa[recurso.atividade_id] ?? []),
+            recurso,
+          ];
+          return mapa;
+        },
+        {}
+      )
+    );
   }
 
   async function carregarMaoObraReal() {
@@ -140,6 +204,7 @@ export default function CampoPage() {
       setObra(obraAtiva?.nome ?? "Sem obra selecionada");
       setTurnosCadastrados(dadosObra.turnos);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
+      setUsuariosCadastrados(dadosObra.usuarios);
 
       if (turnoAtivo) {
         setTurno(turnoAtivo);
@@ -176,7 +241,8 @@ export default function CampoPage() {
   async function atualizarAtividade(
     id: number,
     status: StatusAtividade,
-    realizado?: number
+    realizado?: number,
+    responsavel?: string
   ) {
     const atividadeAtual = atividades.find((atividade) => atividade.id === id);
     const previsto = Number(atividadeAtual?.previsto || 0);
@@ -191,12 +257,15 @@ export default function CampoPage() {
     if (quantidadeRealizada !== undefined) {
       atualizacao.realizado = quantidadeRealizada;
       atualizacao.progresso = percentual;
+      atualizacao.status = definirStatusPorAvanco(previsto, quantidadeRealizada);
 
-      if (percentual === 100) {
-        atualizacao.status = "Finalizada";
-      } else if (status === "Finalizada" && percentual !== undefined && percentual < 100) {
-        atualizacao.status = "Parcial";
+      if (status === "Restrição") {
+        atualizacao.status = "Restrição";
       }
+    }
+
+    if (responsavel !== undefined) {
+      atualizacao.responsavel = responsavel;
     }
 
     const { error } = await supabase.from("atividades").update(atualizacao).eq("id", id);
@@ -235,8 +304,36 @@ export default function CampoPage() {
   }
 
   async function finalizarAtividade(atividade: Atividade) {
+    const responsavelSelecionado =
+      responsaveisAtividade[atividade.id] || atividade.responsavel;
+
+    if (!responsavelSelecionado) {
+      alert("Selecione o responsavel antes de finalizar.");
+      return;
+    }
+
     pausarCronometro(atividade.id);
-    await atualizarAtividade(atividade.id, "Finalizada", atividade.previsto);
+    await atualizarAtividade(
+      atividade.id,
+      "Finalizada",
+      Number(realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0),
+      responsavelSelecionado
+    );
+    setAtividadesEditaveis((atuais) => {
+      const novos = { ...atuais };
+      delete novos[atividade.id];
+      return novos;
+    });
+  }
+
+  async function editarAtividadeFinalizada(atividade: Atividade) {
+    setAtividadesEditaveis((atuais) => ({ ...atuais, [atividade.id]: true }));
+    await atualizarAtividade(
+      atividade.id,
+      definirStatusPorAvanco(atividade.previsto, atividade.realizado),
+      Number(atividade.realizado || 0),
+      responsaveisAtividade[atividade.id] || atividade.responsavel
+    );
   }
 
   function pausarCronometro(id: number) {
@@ -277,6 +374,10 @@ export default function CampoPage() {
         status: "aberta",
       },
     }));
+    const atividade = atividades.find((item) => item.id === id);
+    if (atividade) {
+      registrarRestricaoHistorico(atividade, restricaoTexto.trim(), "aberta");
+    }
     setRestricaoEditandoId(null);
     setRestricaoTexto("");
   }
@@ -289,6 +390,14 @@ export default function CampoPage() {
         status: "resolvida",
       },
     }));
+    const atividade = atividades.find((item) => item.id === id);
+    if (atividade) {
+      registrarRestricaoHistorico(
+        atividade,
+        atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
+        "resolvida"
+      );
+    }
     setRestricaoEditandoId(null);
     setRestricaoTexto("");
     await atualizarAtividade(id, "Parcial");
@@ -302,6 +411,14 @@ export default function CampoPage() {
         status: "parada",
       },
     }));
+    const atividade = atividades.find((item) => item.id === id);
+    if (atividade) {
+      registrarRestricaoHistorico(
+        atividade,
+        atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
+        "parada"
+      );
+    }
     setRestricaoEditandoId(null);
     setRestricaoTexto("");
   }
@@ -515,14 +632,20 @@ export default function CampoPage() {
         ) : (
           atividadesFiltradas.map((atividade) => {
             const previsto = atividade.previsto || 0;
-            const realizado = atividade.realizado || 0;
-            const percentual =
-              previsto > 0 ? Math.round((realizado / previsto) * 100) : 0;
+            const realizado = Number(
+              realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0
+            );
+            const percentual = calcularAvancoReal(previsto, realizado);
             const tempo = obterTempoDecorrido(controles[atividade.id], agora);
             const recursosAtividade = maoObraReal.filter(
               (item) => item.atividade_id === atividade.id
             );
+            const recursosPlanejados = recursosPorAtividade[atividade.id] ?? [];
             const restricao = restricoes[atividade.id];
+            const bloqueadaFinalizada =
+              atividade.status === "Finalizada" && !atividadesEditaveis[atividade.id];
+            const responsavelSelecionado =
+              responsaveisAtividade[atividade.id] ?? atividade.responsavel ?? "";
 
             return (
               <div key={atividade.id} className="rounded-xl bg-white p-4 shadow-sm">
@@ -549,7 +672,36 @@ export default function CampoPage() {
                       {atividade.atividade}
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">Local: {atividade.local}</p>
-                    <p className="mt-1 text-sm text-slate-500">Resp: {atividade.responsavel}</p>
+                    <label className="mt-2 block max-w-xs text-sm text-slate-500">
+                      <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
+                        Responsável
+                      </span>
+                      <select
+                        value={responsavelSelecionado}
+                        onChange={(e) =>
+                          setResponsaveisAtividade((atuais) => ({
+                            ...atuais,
+                            [atividade.id]: e.target.value,
+                          }))
+                        }
+                        disabled={bloqueadaFinalizada}
+                        className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm font-semibold text-slate-700 disabled:bg-slate-100"
+                      >
+                        <option value="">Selecione</option>
+                        {atividade.responsavel && (
+                          <option value={atividade.responsavel}>
+                            {atividade.responsavel}
+                          </option>
+                        )}
+                        {usuariosCadastrados
+                          .filter((usuario) => usuario.nome !== atividade.responsavel)
+                          .map((usuario) => (
+                            <option key={usuario.id} value={usuario.nome}>
+                              {usuario.nome}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
                   </div>
 
                   <div className="text-right">
@@ -590,17 +742,41 @@ export default function CampoPage() {
                     <p className="text-slate-500">Realizado</p>
                     <input
                       type="number"
-                      defaultValue={realizado}
+                      value={realizadoAtividade[atividade.id] ?? String(realizado)}
+                      onChange={(e) =>
+                        setRealizadoAtividade((atuais) => ({
+                          ...atuais,
+                          [atividade.id]: e.target.value,
+                        }))
+                      }
+                      disabled={bloqueadaFinalizada}
                       className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-lg font-bold"
                       onBlur={(e) =>
                         atualizarAtividade(
                           atividade.id,
                           atividade.status,
-                          Number(e.target.value)
+                          Number(e.target.value),
+                          responsavelSelecionado
                         )
                       }
                     />
                   </div>
+                </div>
+
+                <div className="mb-4 rounded-lg bg-teal-50 p-3 text-sm">
+                  <p className="font-bold text-teal-800">Equipe planejada</p>
+                  {recursosPlanejados.length === 0 ? (
+                    <p className="mt-1 text-teal-700">Nenhuma equipe planejada vinculada.</p>
+                  ) : (
+                    <p className="mt-1 text-teal-700">
+                      {recursosPlanejados
+                        .map(
+                          (item) =>
+                            `${item.funcao}: ${Number(item.quantidade_prevista || 0)}`
+                        )
+                        .join(" | ")}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-4 rounded-lg bg-slate-50 p-3 text-sm">
@@ -670,32 +846,41 @@ export default function CampoPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                {bloqueadaFinalizada ? (
                   <button
-                    onClick={() => iniciarAtividade(atividade.id)}
-                    className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+                    onClick={() => editarAtividadeFinalizada(atividade)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Iniciar
+                    Editar
                   </button>
-                  <button
-                    onClick={() => pausarAtividade(atividade.id, "Parcial")}
-                    className="rounded-lg bg-yellow-500 px-3 py-3 text-sm font-bold text-white transition hover:bg-yellow-600"
-                  >
-                    Parcial
-                  </button>
-                  <button
-                    onClick={() => abrirRestricao(atividade)}
-                    className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700"
-                  >
-                    Restrição
-                  </button>
-                  <button
-                    onClick={() => finalizarAtividade(atividade)}
-                    className="rounded-lg bg-green-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-green-700"
-                  >
-                    Finalizar
-                  </button>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => iniciarAtividade(atividade.id)}
+                      className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+                    >
+                      Iniciar
+                    </button>
+                    <button
+                      onClick={() => pausarAtividade(atividade.id, "Parcial")}
+                      className="rounded-lg bg-yellow-500 px-3 py-3 text-sm font-bold text-white transition hover:bg-yellow-600"
+                    >
+                      Parcial
+                    </button>
+                    <button
+                      onClick={() => abrirRestricao(atividade)}
+                      className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+                    >
+                      Restri??o
+                    </button>
+                    <button
+                      onClick={() => finalizarAtividade(atividade)}
+                      className="rounded-lg bg-green-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-green-700"
+                    >
+                      Finalizar
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })
@@ -781,6 +966,10 @@ function salvarListaLocal(chave: string, valor: unknown[]) {
   }
 
   window.localStorage.setItem(chave, JSON.stringify(valor));
+}
+
+function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: string) {
+  return textoEditando.trim() || textoSalvo || "Sem descrição";
 }
 
 function ResumoCard({

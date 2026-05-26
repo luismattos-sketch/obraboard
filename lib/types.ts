@@ -27,7 +27,7 @@ export type Atividade = {
 };
 
 export type AtualizacaoAtividade = Partial<
-  Pick<Atividade, "status" | "realizado" | "progresso">
+  Pick<Atividade, "status" | "realizado" | "progresso" | "responsavel">
 >;
 
 export type RecursoPrevisto = {
