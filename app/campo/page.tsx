@@ -219,13 +219,24 @@ export default function CampoPage() {
   useEffect(() => {
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
+      const parametros = new URLSearchParams(window.location.search);
+      const obraParam = parametros.get("obraId");
+      const turnoParam = parametros.get("turno");
+      const obraQr = obraParam
+        ? cadastro.obras.find((item) => item.id === Number(obraParam)) ?? null
+        : null;
+      const obraAtiva = obraQr ?? obterObraAtiva(cadastro);
       const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
       const turnoAtivo = obterTurnoAtivoNome(
         cadastro,
         obraAtiva?.id ?? null,
         dadosObra.turnos
       );
+      const turnoQr =
+        turnoParam && dadosObra.turnos.some((item) => item.nome === turnoParam)
+          ? turnoParam
+          : "";
+      const turnoSelecionado = turnoQr || turnoAtivo;
 
       setObrasCadastradas(cadastro.obras);
       setObraId(obraAtiva?.id ?? null);
@@ -234,8 +245,20 @@ export default function CampoPage() {
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
       setUsuariosCadastrados(dadosObra.usuarios);
 
-      if (turnoAtivo) {
-        setTurno(turnoAtivo);
+      if (turnoSelecionado) {
+        setTurno(turnoSelecionado);
+      }
+
+      if (obraQr && cadastro.obraAtivaId !== obraQr.id) {
+        salvarObraAtivaId(obraQr.id);
+      }
+
+      if (
+        obraAtiva?.id &&
+        turnoQr &&
+        cadastro.turnoAtivoPorObra[String(obraAtiva.id)] !== turnoQr
+      ) {
+        salvarTurnoAtivo(obraAtiva.id, turnoQr);
       }
 
       void carregarAtividades(obraAtiva?.id ?? null);
