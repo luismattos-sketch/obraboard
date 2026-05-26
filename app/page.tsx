@@ -121,15 +121,15 @@ export default function Home() {
     ? formatarDataTurno(dataTurnoAtual)
     : "Turno sem data";
   const relogioTurno = formatarRelogioTurno(agora, dataTurnoAtual, turnoInicio);
-  const campoTurnoUrl =
-    origemApp && obraAtivaId && turnoAtual !== "-"
-      ? `${origemApp}/campo?obraId=${obraAtivaId}&turno=${encodeURIComponent(
-          turnoAtual
-        )}`
+  const campoObraAtivaUrl =
+    origemApp && obraAtivaId
+      ? `${origemApp}/campo?obraId=${obraAtivaId}${
+          turnoAtual !== "-" ? `&turno=${encodeURIComponent(turnoAtual)}` : ""
+        }`
       : "";
-  const qrCodeUrl = campoTurnoUrl
+  const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(
-        campoTurnoUrl
+        campoObraAtivaUrl
       )}`
     : "";
   const executando = contarStatus(atividades, "Execução");
@@ -394,27 +394,28 @@ export default function Home() {
 
           <div className="space-y-4">
             <section className="rounded-2xl bg-white p-4 shadow-sm">
-              <h3 className="text-xl font-bold">Campo do turno</h3>
+              <h3 className="text-xl font-bold">Campo da obra ativa</h3>
               <p className="mb-4 text-sm text-slate-500">
-                Acesso direto para a obra e turno selecionados.
+                Acesso direto para {obraAtivaNome}
+                {turnoAtual !== "-" ? ` - Turno ${turnoAtual}` : ""}.
               </p>
 
               {qrCodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
                   <img
                     src={qrCodeUrl}
-                    alt="QR Code para abrir a tela Campo deste turno"
+                    alt="QR Code para abrir a tela Campo da obra ativa"
                     className="h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"
                   />
                   <a
-                    href={campoTurnoUrl}
+                    href={campoObraAtivaUrl}
                     className="w-full rounded-xl bg-teal-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-teal-700"
                   >
                     Abrir Campo
                   </a>
                 </div>
               ) : (
-                <EstadoVazio texto="Selecione uma obra e um turno para gerar o QR Code." />
+                <EstadoVazio texto="Selecione uma obra ativa para gerar o QR Code." />
               )}
             </section>
 
