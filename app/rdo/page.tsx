@@ -12,6 +12,7 @@ import {
   obterTurnoAtivoNome,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
+import { calcularAvancoReal, calcularPpc } from "../../lib/operacao";
 
 type MaoObraReal = {
   id: number;
@@ -56,9 +57,11 @@ export default function RdoPage() {
     [atividadesBanco, dataTurnoAtual, obraId, turno]
   );
   const idsAtividades = useMemo(() => new Set(atividades.map((item) => item.id)), [atividades]);
-  const finalizadas = contarStatus(atividades, "Finalizada");
+  const finalizadas = atividades.filter(
+    (item) => calcularAvancoReal(item.previsto, item.realizado) >= 100
+  ).length;
   const restricoes = atividades.filter((item) => item.status === "Restrição");
-  const ppc = atividades.length > 0 ? Math.round((finalizadas / atividades.length) * 100) : 0;
+  const ppc = calcularPpc(atividades);
 
   const recursosMobilizados = useMemo(() => {
     const mapa = new Map<string, { previsto: number; real: number }>();
@@ -414,14 +417,7 @@ function obterDataTurnoAtual(atividades: Array<{ data_turno?: string | null }>) 
 }
 
 function calcularProgresso(item: Atividade) {
-  if (item.progresso !== null && item.progresso !== undefined) {
-    return Math.min(100, Math.max(0, Number(item.progresso || 0)));
-  }
-
-  const previsto = Number(item.previsto || 0);
-  const realizado = Number(item.realizado || 0);
-
-  return previsto > 0 ? Math.min(100, Math.round((realizado / previsto) * 100)) : 0;
+  return calcularAvancoReal(item.previsto, item.realizado);
 }
 
 function formatarDataTurno(dataTurno: string) {
