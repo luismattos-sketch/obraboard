@@ -66,6 +66,7 @@ export default function CampoPage() {
     Record<number, AtividadeRecurso[]>
   >({});
   const [turno, setTurno] = useState("Dia");
+  const [responsavelFiltro, setResponsavelFiltro] = useState("");
   const [filtro, setFiltro] = useState<FiltroStatus>("Todas");
   const [atividadeMaoObraId, setAtividadeMaoObraId] = useState<number | null>(null);
   const [funcao, setFuncao] = useState("");
@@ -83,9 +84,31 @@ export default function CampoPage() {
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
   const [agora, setAgora] = useState(Date.now());
 
+  const responsaveisDisponiveis = useMemo(() => {
+    const nomes = new Set<string>();
+
+    usuariosCadastrados.forEach((usuario) => {
+      if (usuario.nome) {
+        nomes.add(usuario.nome);
+      }
+    });
+    atividades.forEach((atividade) => {
+      if (atividade.responsavel) {
+        nomes.add(atividade.responsavel);
+      }
+    });
+
+    return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [atividades, usuariosCadastrados]);
+
   const atividadesTurno = useMemo(
-    () => atividades.filter((item) => !turno || item.turno === turno),
-    [atividades, turno]
+    () =>
+      atividades.filter(
+        (item) =>
+          (!turno || item.turno === turno) &&
+          (!responsavelFiltro || item.responsavel === responsavelFiltro)
+      ),
+    [atividades, responsavelFiltro, turno]
   );
 
   const atividadesFiltradas = useMemo(() => {
@@ -133,7 +156,12 @@ export default function CampoPage() {
       const proximos = { ...atuais };
 
       carregadas.forEach((atividade) => {
-        if (proximos[atividade.id] === undefined) {
+        const valorAtual = proximos[atividade.id];
+
+        if (
+          valorAtual === undefined ||
+          Number(valorAtual || 0) === Number(atividade.previsto || 0)
+        ) {
           proximos[atividade.id] = String(atividade.realizado ?? 0);
         }
       });
@@ -306,17 +334,20 @@ export default function CampoPage() {
   async function finalizarAtividade(atividade: Atividade) {
     const responsavelSelecionado =
       responsaveisAtividade[atividade.id] || atividade.responsavel;
+    const realizadoInformado = obterRealizadoInformado(
+      atividade.id,
+      realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0
+    );
 
-    if (!responsavelSelecionado) {
-      alert("Selecione o responsavel antes de finalizar.");
-      return;
-    }
-
+    setRealizadoAtividade((atuais) => ({
+      ...atuais,
+      [atividade.id]: String(realizadoInformado),
+    }));
     pausarCronometro(atividade.id);
     await atualizarAtividade(
       atividade.id,
       "Finalizada",
-      Number(realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0),
+      realizadoInformado,
       responsavelSelecionado
     );
     setAtividadesEditaveis((atuais) => {
@@ -328,6 +359,10 @@ export default function CampoPage() {
 
   async function editarAtividadeFinalizada(atividade: Atividade) {
     setAtividadesEditaveis((atuais) => ({ ...atuais, [atividade.id]: true }));
+    setRealizadoAtividade((atuais) => ({
+      ...atuais,
+      [atividade.id]: String(atividade.realizado ?? 0),
+    }));
     await atualizarAtividade(
       atividade.id,
       definirStatusPorAvanco(atividade.previsto, atividade.realizado),
@@ -478,7 +513,7 @@ export default function CampoPage() {
         <h1 className="text-2xl font-bold">Minhas Atividades</h1>
         <p className="text-sm text-slate-300">Campo · Turno {turno || "-"}</p>
 
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
           <label className="block">
             <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
               Obra
@@ -520,6 +555,24 @@ export default function CampoPage() {
                   </option>
                 ))
               )}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
+              Responsável
+            </span>
+            <select
+              value={responsavelFiltro}
+              onChange={(e) => setResponsavelFiltro(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
+            >
+              <option value="">Todos os responsáveis</option>
+              {responsaveisDisponiveis.map((responsavel) => (
+                <option key={responsavel} value={responsavel}>
+                  {responsavel}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -672,36 +725,9 @@ export default function CampoPage() {
                       {atividade.atividade}
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">Local: {atividade.local}</p>
-                    <label className="mt-2 block max-w-xs text-sm text-slate-500">
-                      <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
-                        Responsável
-                      </span>
-                      <select
-                        value={responsavelSelecionado}
-                        onChange={(e) =>
-                          setResponsaveisAtividade((atuais) => ({
-                            ...atuais,
-                            [atividade.id]: e.target.value,
-                          }))
-                        }
-                        disabled={bloqueadaFinalizada}
-                        className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm font-semibold text-slate-700 disabled:bg-slate-100"
-                      >
-                        <option value="">Selecione</option>
-                        {atividade.responsavel && (
-                          <option value={atividade.responsavel}>
-                            {atividade.responsavel}
-                          </option>
-                        )}
-                        {usuariosCadastrados
-                          .filter((usuario) => usuario.nome !== atividade.responsavel)
-                          .map((usuario) => (
-                            <option key={usuario.id} value={usuario.nome}>
-                              {usuario.nome}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Resp: {atividade.responsavel || "-"}
+                    </p>
                   </div>
 
                   <div className="text-right">
@@ -741,12 +767,13 @@ export default function CampoPage() {
                   <div className="rounded-lg bg-slate-50 p-3">
                     <p className="text-slate-500">Realizado</p>
                     <input
+                      data-realizado-atividade-id={atividade.id}
                       type="number"
                       value={realizadoAtividade[atividade.id] ?? String(realizado)}
-                      onChange={(e) =>
+                      onInput={(e) =>
                         setRealizadoAtividade((atuais) => ({
                           ...atuais,
-                          [atividade.id]: e.target.value,
+                          [atividade.id]: e.currentTarget.value,
                         }))
                       }
                       disabled={bloqueadaFinalizada}
@@ -871,7 +898,7 @@ export default function CampoPage() {
                       onClick={() => abrirRestricao(atividade)}
                       className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700"
                     >
-                      Restri??o
+                      Restrição
                     </button>
                     <button
                       onClick={() => finalizarAtividade(atividade)}
@@ -970,6 +997,20 @@ function salvarListaLocal(chave: string, valor: unknown[]) {
 
 function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: string) {
   return textoEditando.trim() || textoSalvo || "Sem descrição";
+}
+
+function obterRealizadoInformado(atividadeId: number, fallback: string | number | null) {
+  if (typeof document === "undefined") {
+    return Number(fallback || 0);
+  }
+
+  const campo = document.querySelector<HTMLInputElement>(
+    `input[data-realizado-atividade-id="${atividadeId}"]`
+  );
+  const valor = campo?.value ?? String(fallback ?? 0);
+  const numero = Number(valor || 0);
+
+  return Number.isFinite(numero) ? Math.max(0, numero) : 0;
 }
 
 function ResumoCard({
