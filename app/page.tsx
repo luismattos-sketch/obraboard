@@ -131,15 +131,10 @@ export default function Home() {
     dataTurnoAtual,
     turnoAtivoDados
   );
-  const campoObraAtivaUrl =
-    origemApp && obraAtivaId
-      ? `${origemApp}/campo?obraId=${obraAtivaId}${
-          turnoAtual !== "-" ? `&turno=${encodeURIComponent(turnoAtual)}` : ""
-        }`
-      : "";
+  const campoObraAtivaUrl = origemApp ? `${origemApp}/campo` : "";
   const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&v=${encodeURIComponent(
-        `${obraAtivaId}-${turnoAtual}`
+        campoObraAtivaUrl
       )}&data=${encodeURIComponent(
         campoObraAtivaUrl
       )}`
