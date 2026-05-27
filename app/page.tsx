@@ -450,6 +450,7 @@ export default function Home() {
               {qrCodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
                   <img
+                    key={campoObraAtivaUrl}
                     src={qrCodeUrl}
                     alt="QR Code para abrir a tela Campo da obra ativa"
                     className="h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"

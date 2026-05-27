@@ -217,30 +217,39 @@ export default function CampoPage() {
   }
 
   useEffect(() => {
-    function carregarContextoObra() {
-      const cadastro = carregarCadastroBase();
+    async function carregarContextoObra(sincronizarRemoto = false) {
+      const cadastro = sincronizarRemoto
+        ? await sincronizarCadastroBaseRemoto()
+        : carregarCadastroBase();
       const parametros = new URLSearchParams(window.location.search);
       const obraParam = parametros.get("obraId");
       const turnoParam = parametros.get("turno");
+      const obraParamId = obraParam ? Number(obraParam) : null;
       const obraQr = obraParam
-        ? cadastro.obras.find((item) => item.id === Number(obraParam)) ?? null
+        ? cadastro.obras.find((item) => item.id === obraParamId) ?? null
         : null;
-      const obraAtiva = obraQr ?? obterObraAtiva(cadastro);
-      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const obraAtivaCadastro = obraQr ?? obterObraAtiva(cadastro);
+      const obraIdResolvida = obraQr?.id ?? obraParamId ?? obraAtivaCadastro?.id ?? null;
+      const dadosObra = obterDadosObra(cadastro, obraIdResolvida);
       const turnoAtivo = obterTurnoAtivoNome(
         cadastro,
-        obraAtiva?.id ?? null,
+        obraIdResolvida,
         dadosObra.turnos
       );
       const turnoQr =
-        turnoParam && dadosObra.turnos.some((item) => item.nome === turnoParam)
+        turnoParam &&
+        (dadosObra.turnos.length === 0 ||
+          dadosObra.turnos.some((item) => item.nome === turnoParam))
           ? turnoParam
           : "";
       const turnoSelecionado = turnoQr || turnoAtivo;
 
       setObrasCadastradas(cadastro.obras);
-      setObraId(obraAtiva?.id ?? null);
-      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setObraId(obraIdResolvida);
+      setObra(
+        obraAtivaCadastro?.nome ??
+          (obraIdResolvida ? "Obra selecionada pelo QR Code" : "Sem obra selecionada")
+      );
       setTurnosCadastrados(dadosObra.turnos);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
       setUsuariosCadastrados(dadosObra.usuarios);
@@ -249,32 +258,34 @@ export default function CampoPage() {
         setTurno(turnoSelecionado);
       }
 
-      if (obraQr && cadastro.obraAtivaId !== obraQr.id) {
-        salvarObraAtivaId(obraQr.id);
+      if (obraQr && cadastro.obraAtivaId !== obraIdResolvida) {
+        salvarObraAtivaId(obraIdResolvida);
       }
 
       if (
-        obraAtiva?.id &&
+        obraIdResolvida &&
         turnoQr &&
-        cadastro.turnoAtivoPorObra[String(obraAtiva.id)] !== turnoQr
+        cadastro.turnoAtivoPorObra[String(obraIdResolvida)] !== turnoQr
       ) {
-        salvarTurnoAtivo(obraAtiva.id, turnoQr);
+        salvarTurnoAtivo(obraIdResolvida, turnoQr);
       }
 
-      void carregarAtividades(obraAtiva?.id ?? null);
+      void carregarAtividades(obraIdResolvida);
       void carregarMaoObraReal();
     }
 
     queueMicrotask(() => {
-      carregarContextoObra();
-      void sincronizarCadastroBaseRemoto();
+      void carregarContextoObra(true);
     });
-    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
-    window.addEventListener("storage", carregarContextoObra);
+    const carregarContextoLocal = () => {
+      void carregarContextoObra(false);
+    };
+    window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
+    window.addEventListener("storage", carregarContextoLocal);
 
     return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
-      window.removeEventListener("storage", carregarContextoObra);
+      window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
+      window.removeEventListener("storage", carregarContextoLocal);
     };
     // carregarAtividades recebe o id atual explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
