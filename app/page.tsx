@@ -133,11 +133,9 @@ export default function Home() {
   );
   const campoObraAtivaUrl = origemApp ? `${origemApp}/campo` : "";
   const qrCodeUrl = campoObraAtivaUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&v=${encodeURIComponent(
+    ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
         campoObraAtivaUrl
-      )}&data=${encodeURIComponent(
-        campoObraAtivaUrl
-      )}`
+      )}&size=180x180&margin=8`
     : "";
   const executando = contarStatus(atividades, "Execução");
   const restricoes = contarStatus(atividades, "Restrição");
@@ -446,12 +444,14 @@ export default function Home() {
 
               {qrCodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
-                  <img
-                    key={campoObraAtivaUrl}
-                    src={qrCodeUrl}
-                    alt="QR Code para abrir a tela Campo da obra ativa"
-                    className="h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"
-                  />
+                  <a href={campoObraAtivaUrl} aria-label="Abrir tela Campo">
+                    <img
+                      key={campoObraAtivaUrl}
+                      src={qrCodeUrl}
+                      alt="QR Code para abrir a tela Campo"
+                      className="h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"
+                    />
+                  </a>
                   <a
                     href={campoObraAtivaUrl}
                     className="w-full rounded-xl bg-teal-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-teal-700"
