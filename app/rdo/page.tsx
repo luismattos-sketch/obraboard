@@ -12,7 +12,14 @@ import {
   obterTurnoAtivoNome,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
-import { calcularAvancoReal, calcularPpc } from "../../lib/operacao";
+import {
+  calcularAvancoReal,
+  calcularPpc,
+  chaveTurno,
+  checkoutFechamentosStorageKey,
+  listarRestricoesHistorico,
+  type RestricaoHistorico,
+} from "../../lib/operacao";
 
 type MaoObraReal = {
   id: number;
@@ -30,6 +37,15 @@ type RestricaoCampo = {
   registradaEm: string;
 };
 
+type RestricaoResumo = {
+  id: string;
+  codigo: string;
+  atividade: string;
+  texto: string;
+  responsavel: string;
+  status: string;
+};
+
 const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
 const restricaoStorageKey = "obraboard:campo-restricoes";
@@ -40,12 +56,15 @@ export default function RdoPage() {
   const [obra, setObra] = useState("Sem obra selecionada");
   const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [turno, setTurno] = useState("");
+  const [dataTurnoSelecionada, setDataTurnoSelecionada] = useState("");
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
   const [recursosDisponiveis, setRecursosDisponiveis] = useState<RecursoDisponivelTurno[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [restricoesCampo, setRestricoesCampo] = useState<Record<number, RestricaoCampo>>({});
+  const [restricoesHistorico, setRestricoesHistorico] = useState<RestricaoHistorico[]>([]);
 
-  const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoMaisRecente = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoAtual = dataTurnoSelecionada || dataTurnoMaisRecente;
   const atividades = useMemo(
     () =>
       atividadesBanco.filter(
@@ -62,6 +81,82 @@ export default function RdoPage() {
   ).length;
   const restricoes = atividades.filter((item) => item.status === "Restrição");
   const ppc = calcularPpc(atividades);
+  const restricoesDoRdo = useMemo(() => {
+    const historico = restricoesHistorico
+      .filter(
+        (item) =>
+          (!dataTurnoAtual || item.dataTurno === dataTurnoAtual) &&
+          (!turno || item.turno === turno)
+      )
+      .map<RestricaoResumo>((item) => ({
+        id: item.id,
+        codigo: `R${item.atividadeId}`,
+        atividade: item.atividade,
+        texto: item.texto || "Sem observação registrada.",
+        responsavel: item.responsavel,
+        status: item.status,
+      }));
+    const chavesHistorico = new Set(
+      historico.map((item) => `${item.codigo}:${item.texto}:${item.status}`)
+    );
+    const ativas = restricoes
+      .map<RestricaoResumo>((item) => ({
+        id: `ativa-${item.id}`,
+        codigo: `R${item.id}`,
+        atividade: item.atividade,
+        texto: restricoesCampo[item.id]?.texto || "Sem observação registrada.",
+        responsavel: item.responsavel,
+        status: restricoesCampo[item.id]?.status || "aberta",
+      }))
+      .filter((item) => !chavesHistorico.has(`${item.codigo}:${item.texto}:${item.status}`));
+
+    return [...historico, ...ativas];
+  }, [dataTurnoAtual, restricoes, restricoesCampo, restricoesHistorico, turno]);
+
+  const historicoRdos = useMemo(() => {
+    const grupos = new Map<string, Atividade[]>();
+
+    atividadesBanco
+      .filter((item) => item.obra_id === obraId && item.data_turno && item.turno)
+      .forEach((item) => {
+        const chaveGrupo = `${item.data_turno}:${item.turno}`;
+        grupos.set(chaveGrupo, [...(grupos.get(chaveGrupo) ?? []), item]);
+      });
+
+    return Array.from(grupos.entries())
+      .map(([chaveGrupo, itens]) => {
+        const [dataTurno, turnoGrupo] = chaveGrupo.split(":");
+        const restricoesGrupo = restricoesHistorico.filter(
+          (item) => item.dataTurno === dataTurno && item.turno === turnoGrupo
+        );
+        const restricoesAtivasGrupo = itens.filter(
+          (item) => item.status === "Restrição"
+        ).length;
+        const equipe = calcularEquipeReal(
+          maoObraReal,
+          new Set(itens.map((item) => item.id)),
+          obraId,
+          dataTurno,
+          turnoGrupo
+        );
+
+        return {
+          chave: chaveGrupo,
+          dataTurno,
+          turno: turnoGrupo,
+          status: checkoutEncerrado(obraId, dataTurno, turnoGrupo)
+            ? "Turno encerrado"
+            : "Em acompanhamento",
+          avanco: calcularPpc(itens),
+          equipe,
+          atividades: itens.length,
+          restricoes: Math.max(restricoesGrupo.length, restricoesAtivasGrupo),
+        };
+      })
+      .sort((a, b) =>
+        `${b.dataTurno}-${b.turno}`.localeCompare(`${a.dataTurno}-${a.turno}`)
+      );
+  }, [atividadesBanco, maoObraReal, obraId, restricoesHistorico]);
 
   const recursosMobilizados = useMemo(() => {
     const mapa = new Map<string, { previsto: number; real: number }>();
@@ -95,36 +190,6 @@ export default function RdoPage() {
       desvio: valores.real - valores.previsto,
     }));
   }, [dataTurnoAtual, idsAtividades, maoObraReal, obraId, recursosDisponiveis, turno]);
-
-  useEffect(() => {
-    function carregarContextoObra() {
-      const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
-      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
-      const turnoAtivo = obterTurnoAtivoNome(cadastro, obraAtiva?.id ?? null, dadosObra.turnos);
-
-      setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
-      setObraId(obraAtiva?.id ?? null);
-      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
-      setTurnosCadastrados(dadosObra.turnos);
-      setTurno(turnoAtivo || dadosObra.turnos[0]?.nome || "");
-      setRestricoesCampo(carregarObjetoLocal<Record<number, RestricaoCampo>>(restricaoStorageKey, {}));
-      void carregarDados(obraAtiva?.id ?? null);
-    }
-
-    queueMicrotask(carregarContextoObra);
-    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
-    window.addEventListener("storage", carregarContextoObra);
-
-    return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
-      window.removeEventListener("storage", carregarContextoObra);
-    };
-  }, []);
-
-  useEffect(() => {
-    void carregarRecursosDisponiveis(obraId, dataTurnoAtual, turno);
-  }, [obraId, dataTurnoAtual, turno]);
 
   async function carregarDados(obraAtualId: number | null) {
     if (!obraAtualId) {
@@ -191,10 +256,93 @@ export default function RdoPage() {
     ]);
   }
 
+  useEffect(() => {
+    function carregarContextoObra() {
+      const cadastro = carregarCadastroBase();
+      const parametros = new URLSearchParams(window.location.search);
+      const dataParam = parametros.get("dataTurno") || "";
+      const turnoParam = parametros.get("turno") || "";
+      const obraAtiva = obterObraAtiva(cadastro);
+      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const turnoAtivo = obterTurnoAtivoNome(cadastro, obraAtiva?.id ?? null, dadosObra.turnos);
+
+      setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
+      setObraId(obraAtiva?.id ?? null);
+      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setTurnosCadastrados(dadosObra.turnos);
+      setTurno(
+        turnoParam && dadosObra.turnos.some((item) => item.nome === turnoParam)
+          ? turnoParam
+          : turnoAtivo || dadosObra.turnos[0]?.nome || ""
+      );
+      setDataTurnoSelecionada(dataParam);
+      setRestricoesCampo(carregarObjetoLocal<Record<number, RestricaoCampo>>(restricaoStorageKey, {}));
+      setRestricoesHistorico(listarRestricoesHistorico(obraAtiva?.id ?? null, null, null));
+      void carregarDados(obraAtiva?.id ?? null);
+    }
+
+    queueMicrotask(carregarContextoObra);
+    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
+    window.addEventListener("storage", carregarContextoObra);
+
+    return () => {
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
+      window.removeEventListener("storage", carregarContextoObra);
+    };
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void carregarRecursosDisponiveis(obraId, dataTurnoAtual, turno);
+    });
+  }, [obraId, dataTurnoAtual, turno]);
+
   return (
     <DesktopLayout titulo="RDO" subtitulo="Relatório Diário de Obra">
       <div className="space-y-4">
-        <section className="mx-auto w-[794px] rounded-2xl bg-white p-4 shadow-sm">
+        <section className="rounded-2xl bg-white p-4 shadow-sm print:hidden">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-slate-900">Histórico de RDOs</h2>
+            <p className="text-sm text-slate-500">
+              Resumo dos RDOs da obra/frente selecionada.
+            </p>
+          </div>
+
+          {historicoRdos.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+              Nenhum RDO encontrado para a obra/frente selecionada.
+            </p>
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-2">
+              {historicoRdos.map((item) => (
+                <div key={item.chave} className="rounded-xl border border-slate-200 p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {formatarDataTurno(item.dataTurno)} - Turno {item.turno}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-500">{item.status}</p>
+                    </div>
+                    <a
+                      href={`/rdo?dataTurno=${encodeURIComponent(item.dataTurno)}&turno=${encodeURIComponent(item.turno)}`}
+                      className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-teal-700"
+                    >
+                      Abrir folha
+                    </a>
+                  </div>
+                  <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                    <ResumoHistorico label="Avanço" value={`${item.avanco}%`} />
+                    <ResumoHistorico label="Equipe" value={String(item.equipe)} />
+                    <ResumoHistorico label="Atividades" value={String(item.atividades)} />
+                    <ResumoHistorico label="Restrições" value={String(item.restricoes)} />
+                    <ResumoHistorico label="Turno" value={item.turno} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="mx-auto w-[794px] rounded-2xl bg-white p-4 shadow-sm print:hidden">
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
             Obra ativa: {obra}
           </div>
@@ -218,6 +366,9 @@ export default function RdoPage() {
               )}
             </select>
           </label>
+          <p className="mt-3 text-sm font-semibold text-slate-500">
+            Folha aberta: {dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"} - Turno {turno || "-"}
+          </p>
         </section>
 
         <div className="flex justify-center">
@@ -258,7 +409,7 @@ export default function RdoPage() {
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-700">
                 {atividades.length === 0
                   ? "Nenhuma atividade registrada para a obra/frente, turno e data selecionados."
-                  : `${finalizadas} de ${atividades.length} atividades finalizadas. ${restricoes.length} restricoes registradas no campo.`}
+                  : `${finalizadas} de ${atividades.length} atividades finalizadas. ${restricoesDoRdo.length} restrições registradas no campo.`}
               </div>
             </section>
 
@@ -266,7 +417,7 @@ export default function RdoPage() {
               <KpiCard label="PPC" value={`${ppc}%`} />
               <KpiCard label="Planejadas" value={String(contarStatus(atividades, "Planejada"))} />
               <KpiCard label="Finalizadas" value={String(finalizadas)} />
-              <KpiCard label="Restricoes" value={String(restricoes.length)} />
+              <KpiCard label="Restrições" value={String(restricoesDoRdo.length)} />
             </section>
 
             <section className="mb-8">
@@ -332,37 +483,34 @@ export default function RdoPage() {
             </section>
 
             <section className="mb-10">
-              <h2 className="mb-3 text-lg font-bold">Restricoes e Tratativas</h2>
+              <h2 className="mb-3 text-lg font-bold">Restrições e Tratativas</h2>
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-100">
                     <th className="border border-slate-300 p-2 text-left">ID</th>
                     <th className="border border-slate-300 p-2 text-left">Atividade</th>
-                    <th className="border border-slate-300 p-2 text-left">Restricao</th>
+                    <th className="border border-slate-300 p-2 text-left">Restrição</th>
                     <th className="border border-slate-300 p-2 text-left">Responsável</th>
                     <th className="border border-slate-300 p-2 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {restricoes.length === 0 ? (
+                  {restricoesDoRdo.length === 0 ? (
                     <tr>
                       <td className="border border-slate-300 p-2 text-center text-slate-500" colSpan={5}>
-                        Nenhuma restricao registrada.
+                        Nenhuma restrição registrada.
                       </td>
                     </tr>
                   ) : (
-                    restricoes.map((item) => {
-                      const restricao = restricoesCampo[item.id];
-                      return (
-                        <tr key={item.id}>
-                          <td className="border border-slate-300 p-2">R{item.id}</td>
-                          <td className="border border-slate-300 p-2">{item.atividade}</td>
-                          <td className="border border-slate-300 p-2">{restricao?.texto || "Sem observacao registrada."}</td>
-                          <td className="border border-slate-300 p-2">{item.responsavel}</td>
-                          <td className="border border-slate-300 p-2 text-center">{restricao?.status || "aberta"}</td>
-                        </tr>
-                      );
-                    })
+                    restricoesDoRdo.map((item) => (
+                      <tr key={item.id}>
+                        <td className="border border-slate-300 p-2">{item.codigo}</td>
+                        <td className="border border-slate-300 p-2">{item.atividade}</td>
+                        <td className="border border-slate-300 p-2">{item.texto}</td>
+                        <td className="border border-slate-300 p-2">{item.responsavel}</td>
+                        <td className="border border-slate-300 p-2 text-center">{item.status}</td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -400,7 +548,29 @@ function checkoutEncerrado(obraId: number | null, dataTurno: string | null, turn
     return false;
   }
 
-  return Boolean(window.localStorage.getItem(`obraboard:checkout-fechamento:${obraId}:${dataTurno}:${turno}`));
+  const fechamentos = carregarObjetoLocal<Record<string, { encerradoEm: string }>>(
+    checkoutFechamentosStorageKey,
+    {}
+  );
+  return Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
+}
+
+function calcularEquipeReal(
+  maoObraReal: MaoObraReal[],
+  idsAtividades: Set<number>,
+  obraId: number | null,
+  dataTurno: string | null,
+  turno: string
+) {
+  return maoObraReal
+    .filter((item) =>
+      item.atividade_id && idsAtividades.has(item.atividade_id)
+        ? true
+        : item.obra_id === obraId &&
+          item.data_turno === dataTurno &&
+          item.turno === turno
+    )
+    .reduce((total, item) => total + Number(item.quantidade || 0), 0);
 }
 
 function contarStatus(atividades: Atividade[], status: string) {
@@ -451,6 +621,15 @@ function KpiCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl bg-slate-100 p-4 text-center">
       <p className="text-xs text-slate-500">{label}</p>
       <p className="mt-1 text-3xl font-bold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function ResumoHistorico({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-slate-50 p-2">
+      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
+      <p className="mt-1 font-bold text-slate-900">{value}</p>
     </div>
   );
 }

@@ -192,9 +192,24 @@ export async function sincronizarCadastroBaseRemoto() {
     return cadastroLocal;
   }
 
-  salvarCadastroBaseLocal(cadastroRemoto);
+  const obraAtivaLocalValida =
+    cadastroLocal.obraAtivaId &&
+    cadastroRemoto.obras.some((obra) => obra.id === cadastroLocal.obraAtivaId);
+  const cadastroMesclado = {
+    ...cadastroRemoto,
+    obraAtivaId: obraAtivaLocalValida
+      ? cadastroLocal.obraAtivaId
+      : cadastroRemoto.obraAtivaId,
+    turnoAtivoPorObra: {
+      ...cadastroRemoto.turnoAtivoPorObra,
+      ...cadastroLocal.turnoAtivoPorObra,
+    },
+  };
+
+  salvarCadastroBaseLocal(cadastroMesclado);
   notificarCadastroBaseAtualizado();
-  return cadastroRemoto;
+  void salvarCadastroBaseRemoto(cadastroMesclado);
+  return cadastroMesclado;
 }
 
 export function criarCadastroBaseVazio(): CadastroBase {

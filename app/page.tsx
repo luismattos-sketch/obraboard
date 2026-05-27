@@ -11,10 +11,15 @@ import {
   obterObraAtiva,
   obterTurnoAtivoNome,
   type FuncaoPrevistaCadastrada,
+  type TurnoCadastrado,
 } from "../lib/cadastro-base";
 import {
+  carregarObjetoLocal as carregarOperacaoLocal,
+  checkoutFechamentosStorageKey,
+  chaveTurno,
   listarRestricoesHistorico,
   restricaoStorageKey,
+  salvarObjetoLocal,
   type RestricaoHistorico,
 } from "../lib/operacao";
 
@@ -42,7 +47,7 @@ export default function Home() {
   const [obraAtivaNome, setObraAtivaNome] = useState("Sem obra selecionada");
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivo, setTurnoAtivo] = useState("");
-  const [turnoInicio, setTurnoInicio] = useState("");
+  const [turnoAtivoDados, setTurnoAtivoDados] = useState<TurnoCadastrado | null>(null);
   const [origemApp, setOrigemApp] = useState("");
   const [agora, setAgora] = useState(() => new Date());
   const [restricoesCampo, setRestricoesCampo] = useState<
@@ -120,7 +125,12 @@ export default function Home() {
   const dataTurnoFormatada = dataTurnoAtual
     ? formatarDataTurno(dataTurnoAtual)
     : "Turno sem data";
-  const relogioTurno = formatarRelogioTurno(agora, dataTurnoAtual, turnoInicio);
+  const relogioTurno = formatarRelogioTurno(agora);
+  const indicadorTurno = obterIndicadorTurno(
+    agora,
+    dataTurnoAtual,
+    turnoAtivoDados
+  );
   const campoObraAtivaUrl =
     origemApp && obraAtivaId
       ? `${origemApp}/campo?obraId=${obraAtivaId}${
@@ -137,19 +147,23 @@ export default function Home() {
   const finalizadas = contarStatus(atividades, "Finalizada");
   const parciais = contarStatus(atividades, "Parcial");
   const restricoesPainel = useMemo(() => {
-    const idsHistorico = new Set(historicoRestricoes.map((item) => item.atividadeId));
     const restricoesAtivas = atividades
       .filter(
         (item) =>
           item.status.toLowerCase().startsWith("restri") &&
-          !idsHistorico.has(item.id)
+          !historicoRestricoes.some(
+            (historico) =>
+              historico.atividadeId === item.id &&
+              historico.status === (restricoesCampo[item.id]?.status || "aberta") &&
+              historico.texto === (restricoesCampo[item.id]?.texto || "")
+          )
       )
       .map((item) => ({
         codigo: `R${item.id}`,
         titulo: item.atividade,
         responsavel: item.responsavel,
-        observacao: restricoesCampo[item.id]?.texto || "Sem observacao registrada.",
-        criticidade: item.prioridade === "A" ? "Alta" : "Media",
+        observacao: restricoesCampo[item.id]?.texto || "Sem observação registrada.",
+        criticidade: item.prioridade === "A" ? "Alta" : "Média",
         status: restricoesCampo[item.id]?.status || "aberta",
       }));
 
@@ -157,7 +171,7 @@ export default function Home() {
       codigo: `R${item.atividadeId}`,
       titulo: item.atividade,
       responsavel: item.responsavel,
-      observacao: item.texto || "Sem observacao registrada.",
+      observacao: item.texto || "Sem observação registrada.",
       criticidade: item.status === "aberta" ? "Alta" : "Encerrada",
       status: item.status === "aberta" ? "aberta" : "Encerrada",
     }));
@@ -167,7 +181,7 @@ export default function Home() {
 
   useEffect(() => {
     const intervalo = window.setInterval(() => setAgora(new Date()), 30000);
-    setOrigemApp(window.location.origin);
+    queueMicrotask(() => setOrigemApp(window.location.origin));
 
     return () => window.clearInterval(intervalo);
   }, []);
@@ -214,20 +228,12 @@ export default function Home() {
       setObraAtivaId(obraAtiva?.id ?? null);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnoAtivo(turnoAtivoNome);
-      setTurnoInicio(
-        dadosObra.turnos.find((item) => item.nome === turnoAtivoNome)
-          ?.horaInicio || ""
+      setTurnoAtivoDados(
+        dadosObra.turnos.find((item) => item.nome === turnoAtivoNome) ?? null
       );
       void carregarAtividades(obraAtiva?.id ?? null);
       void carregarMaoObraReal();
       setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
-      setHistoricoRestricoes(
-        listarRestricoesHistorico(
-          obraAtiva?.id ?? null,
-          dataTurnoAtual,
-          turnoAtivoNome
-        )
-      );
     }
 
     carregarContexto();
@@ -288,11 +294,52 @@ export default function Home() {
     }
   }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
 
+  useEffect(() => {
+    queueMicrotask(() =>
+      setHistoricoRestricoes(
+        listarRestricoesHistorico(
+          obraAtivaId,
+          dataTurnoAtual,
+          turnoAtual === "-" ? null : turnoAtual
+        )
+      )
+    );
+  }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
+
+  useEffect(() => {
+    if (
+      indicadorTurno.tom !== "encerrado" ||
+      !obraAtivaId ||
+      !dataTurnoAtual ||
+      turnoAtual === "-"
+    ) {
+      return;
+    }
+
+    const chave = chaveTurno(obraAtivaId, dataTurnoAtual, turnoAtual);
+    const fechamentos = carregarOperacaoLocal<
+      Record<string, { encerradoEm: string; automatico?: boolean }>
+    >(checkoutFechamentosStorageKey, {});
+
+    if (fechamentos[chave]) {
+      return;
+    }
+
+    salvarObjetoLocal(checkoutFechamentosStorageKey, {
+      ...fechamentos,
+      [chave]: { encerradoEm: new Date().toISOString(), automatico: true },
+    });
+    window.dispatchEvent(new Event("storage"));
+  }, [dataTurnoAtual, indicadorTurno.tom, obraAtivaId, turnoAtual]);
+
   return (
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
       subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual} - Inicio: ${dataTurnoFormatada}`}
-      status={relogioTurno}
+      status={indicadorTurno.texto}
+      statusTom={indicadorTurno.tom}
+      infoCentral={relogioTurno}
+      detalheCentral={indicadorTurno.detalhe}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-5 gap-3">
@@ -421,15 +468,15 @@ export default function Home() {
 
             <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm">
               <h3 className="text-xl font-bold text-red-600">
-                Atencao do turno
+                Atenção do Turno
               </h3>
               <p className="mb-4 text-sm text-slate-500">
-                Restricoes criticas
+                Histórico das restrições do turno
               </p>
 
               <div className="space-y-3">
                 {restricoesPainel.length === 0 ? (
-                  <EstadoVazio texto="Nenhuma restricao critica registrada no turno atual." />
+                  <EstadoVazio texto="Nenhuma restrição registrada no turno atual." />
                 ) : (
                   restricoesPainel.map((restricao) => (
                     <RestricaoCard
@@ -487,31 +534,61 @@ function formatarDataTurno(dataTurno: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-function formatarRelogioTurno(
-  agora: Date,
-  dataTurno: string | null,
-  horaInicio: string
-) {
-  const horaAtual = agora.toLocaleTimeString("pt-BR", {
+function formatarRelogioTurno(agora: Date) {
+  return agora.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
 
-  if (!dataTurno || !horaInicio) {
-    return `Hora ${horaAtual} - Decorrido --`;
+function obterIndicadorTurno(
+  agora: Date,
+  dataTurno: string | null,
+  turno: TurnoCadastrado | null
+): {
+  texto: string;
+  detalhe: string;
+  tom: "planejado" | "andamento" | "encerrado";
+} {
+  if (!dataTurno || !turno?.horaInicio || !turno.horaFim) {
+    return { texto: "Turno planejado", detalhe: "Decorrido --", tom: "planejado" };
   }
 
-  const inicioTurno = new Date(`${dataTurno}T${horaInicio}`);
-  const minutos = Math.max(
-    0,
-    Math.floor((agora.getTime() - inicioTurno.getTime()) / 60000)
+  const inicioTurno = criarDataHoraTurno(dataTurno, turno.horaInicio);
+  let fimTurno = criarDataHoraTurno(dataTurno, turno.horaFim);
+
+  if (fimTurno <= inicioTurno) {
+    fimTurno = new Date(fimTurno.getTime() + 24 * 60 * 60000);
+  }
+
+  if (agora < inicioTurno) {
+    return { texto: "Turno planejado", detalhe: "Decorrido 0h 00min", tom: "planejado" };
+  }
+
+  const fimCalculo = agora >= fimTurno ? fimTurno : agora;
+  const minutos = Math.max(0,
+    Math.floor((fimCalculo.getTime() - inicioTurno.getTime()) / 60000)
   );
   const horas = Math.floor(minutos / 60);
   const minutosRestantes = minutos % 60;
+  const detalhe = `Decorrido ${horas}h ${String(minutosRestantes).padStart(
+    2,
+    "0"
+  )}min`;
 
-  return `Hora ${horaAtual} - Decorrido ${horas}h ${String(
-    minutosRestantes
-  ).padStart(2, "0")}min`;
+  if (agora >= fimTurno) {
+    return { texto: "Turno encerrado", detalhe, tom: "encerrado" };
+  }
+
+  return {
+    texto: "Turno em andamento",
+    detalhe,
+    tom: "andamento",
+  };
+}
+
+function criarDataHoraTurno(dataTurno: string, hora: string) {
+  return new Date(`${dataTurno}T${hora}`);
 }
 
 function formatarHoras(horas: number) {

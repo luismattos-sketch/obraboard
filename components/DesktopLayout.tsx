@@ -18,6 +18,9 @@ interface Props {
   titulo: string;
   subtitulo?: string;
   status?: string;
+  statusTom?: "planejado" | "andamento" | "encerrado";
+  infoCentral?: string;
+  detalheCentral?: string;
   logoUrl?: string;
 }
 
@@ -34,12 +37,22 @@ export default function DesktopLayout({
   titulo,
   subtitulo,
   status = "Turno em andamento",
+  statusTom = "andamento",
+  infoCentral,
+  detalheCentral,
   logoUrl,
 }: Props) {
   const [logoSalvo, setLogoSalvo] = useState("");
   const [obras, setObras] = useState<ObraCadastrada[]>([]);
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const logoExibido = logoUrl ?? logoSalvo;
+  const campoHref = obraAtivaId ? `/campo?obraId=${obraAtivaId}` : "/campo";
+  const classeStatus =
+    statusTom === "planejado"
+      ? "bg-blue-100 text-blue-700"
+      : statusTom === "encerrado"
+      ? "bg-slate-200 text-slate-700"
+      : "bg-green-100 text-green-700";
 
   useEffect(() => {
     function carregarContexto() {
@@ -121,7 +134,7 @@ export default function DesktopLayout({
               </label>
 
               <div className="mt-3">
-                <MenuLink href="/campo" label="Campo" icon="CP" />
+                <MenuLink href={campoHref} label="Campo" icon="CP" />
               </div>
             </div>
 
@@ -157,7 +170,7 @@ export default function DesktopLayout({
 
         <section className="min-w-0 flex-1 overflow-auto p-3 lg:p-6">
           <header className="mb-6 rounded-xl bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
               <div>
                 <h2 className="text-3xl font-bold">{titulo}</h2>
 
@@ -166,7 +179,23 @@ export default function DesktopLayout({
                 )}
               </div>
 
-              <div className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+              {(infoCentral || detalheCentral) && (
+                <div className="flex flex-wrap items-center justify-center gap-2 text-center">
+                  {infoCentral && (
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-2xl font-bold tabular-nums text-slate-900">
+                      {infoCentral}
+                    </div>
+                  )}
+
+                  {detalheCentral && (
+                    <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                      {detalheCentral}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className={`justify-self-start rounded-full px-4 py-2 text-sm font-semibold lg:justify-self-end ${classeStatus}`}>
                 {status}
               </div>
             </div>
@@ -189,8 +218,10 @@ function MenuLink({
   icon: string;
 }) {
   const pathname = usePathname();
+  const hrefPathname = href.split("?")[0];
 
-  const ativo = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const ativo =
+    hrefPathname === "/" ? pathname === "/" : pathname.startsWith(hrefPathname);
 
   return (
     <Link
