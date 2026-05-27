@@ -208,6 +208,45 @@ export default function CadastroObraPage() {
     };
   }, []);
 
+  function selecionarObraAtiva(novoId: number | null) {
+    const cadastro = carregarCadastroBase();
+    const obraSelecionada =
+      cadastro.obras.find((obra) => obra.id === novoId) ?? null;
+    const ativoId = obraSelecionada?.id ?? null;
+    const dadosObra = obterDadosObra(cadastro, ativoId);
+
+    limparUsuario();
+    limparTurno();
+    limparDisciplina();
+    limparFuncaoPrevista();
+
+    setObraAtivaId(ativoId);
+    setLogoUrl(obraSelecionada?.logoUrl || cadastro.logoUrl);
+
+    if (obraSelecionada) {
+      preencherFormularioObra(obraSelecionada);
+      setObraVisualizandoId(obraSelecionada.id);
+      setObraEditandoId(null);
+      setModoObra("visualizando");
+      setMensagem(
+        `Obra ativa alterada para ${
+          obraSelecionada.nome || obraSelecionada.codigo || "obra selecionada"
+        }.`
+      );
+    } else {
+      limparObra();
+      setModoObra("criando");
+      setMensagem("Nenhuma obra ativa selecionada.");
+    }
+
+    setUsuarios(dadosObra.usuarios);
+    setDisciplinas(dadosObra.disciplinas);
+    setFuncoesPrevistas(dadosObra.funcoesPrevistas);
+    setTurnos(dadosObra.turnos);
+    salvarCadastroBase({ ...cadastro, obraAtivaId: ativoId });
+    queueMicrotask(notificarCadastroBaseAtualizado);
+  }
+
   useEffect(() => {
     if (!cadastroCarregado) {
       return;
@@ -215,7 +254,7 @@ export default function CadastroObraPage() {
 
     const obraDestinoId = obraEmTrabalhoId;
 
-    if (!obraDestinoId || modoObra === "criando") {
+    if (!obraDestinoId || modoObra !== "editando") {
       return;
     }
 
@@ -752,28 +791,7 @@ export default function CadastroObraPage() {
               value={obraAtivaId ?? ""}
               onChange={(e) => {
                 const novoId = e.target.value ? Number(e.target.value) : null;
-                const cadastro = carregarCadastroBase();
-                const obraSelecionada =
-                  cadastro.obras.find((obra) => obra.id === novoId) ?? null;
-                const dadosObra = obterDadosObra(cadastro, novoId);
-
-                setObraAtivaId(novoId);
-                setLogoUrl(obraSelecionada?.logoUrl || cadastro.logoUrl);
-                if (obraSelecionada) {
-                  preencherFormularioObra(obraSelecionada);
-                  setObraVisualizandoId(obraSelecionada.id);
-                  setObraEditandoId(null);
-                  setModoObra("visualizando");
-                } else {
-                  limparObra();
-                  setModoObra("criando");
-                }
-                setUsuarios(dadosObra.usuarios);
-                setDisciplinas(dadosObra.disciplinas);
-                setFuncoesPrevistas(dadosObra.funcoesPrevistas);
-                setTurnos(dadosObra.turnos);
-                salvarCadastroBase({ ...cadastro, obraAtivaId: novoId });
-                queueMicrotask(notificarCadastroBaseAtualizado);
+                selecionarObraAtiva(novoId);
               }}
               className="w-full rounded-lg border border-slate-300 bg-white p-3"
             >
