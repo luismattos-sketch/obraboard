@@ -337,7 +337,7 @@ export default function Home() {
       detalheCentral={indicadorTurno.detalhe}
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <KpiCard titulo="Atividades" valor={String(atividades.length)} />
           <KpiCard titulo="Execucao" valor={String(executando)} />
           <KpiCard
@@ -357,7 +357,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="grid grid-cols-[1fr_320px] gap-4">
+        <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
           <div className="space-y-4">
             <section className="rounded-2xl bg-white shadow-sm">
               <CabecalhoSecao titulo="Recursos" texto="Previsto x real" />
@@ -394,42 +394,44 @@ export default function Home() {
                   <EstadoVazio texto="Nenhuma atividade carregada para a obra, data e turno atuais." />
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="bg-slate-50 text-sm">
-                    <tr>
-                      <th className="p-3 text-left">Pri</th>
-                      <th className="p-3 text-left">Disc</th>
-                      <th className="p-3 text-left">Atividade</th>
-                      <th className="p-3 text-left">Local</th>
-                      <th className="p-3 text-left">Resp</th>
-                      <th className="p-3 text-center">Prev</th>
-                      <th className="p-3 text-center">Real</th>
-                      <th className="p-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {atividades.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="border-t text-sm hover:bg-slate-50"
-                      >
-                        <td className="p-3 font-bold text-red-500">
-                          {item.prioridade}
-                        </td>
-                        <td className="p-3 font-semibold">{item.disciplina}</td>
-                        <td className="p-3 font-medium">{item.atividade}</td>
-                        <td className="p-3">{item.local}</td>
-                        <td className="p-3">{item.responsavel}</td>
-                        <td className="p-3 text-center">{item.previsto}</td>
-                        <td className="p-3 text-center">{item.realizado ?? 0}</td>
-                        <td className="p-3 text-center">
-                          <StatusBadge status={item.status} />
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="min-w-[760px] w-full">
+                    <thead className="bg-slate-50 text-sm">
+                      <tr>
+                        <th className="p-3 text-left">Pri</th>
+                        <th className="p-3 text-left">Disc</th>
+                        <th className="p-3 text-left">Atividade</th>
+                        <th className="p-3 text-left">Local</th>
+                        <th className="p-3 text-left">Resp</th>
+                        <th className="p-3 text-center">Prev</th>
+                        <th className="p-3 text-center">Real</th>
+                        <th className="p-3 text-center">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+
+                    <tbody>
+                      {atividades.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="border-t text-sm hover:bg-slate-50"
+                        >
+                          <td className="p-3 font-bold text-red-500">
+                            {item.prioridade}
+                          </td>
+                          <td className="p-3 font-semibold">{item.disciplina}</td>
+                          <td className="p-3 font-medium">{item.atividade}</td>
+                          <td className="p-3">{item.local}</td>
+                          <td className="p-3">{item.responsavel}</td>
+                          <td className="p-3 text-center">{item.previsto}</td>
+                          <td className="p-3 text-center">{item.realizado ?? 0}</td>
+                          <td className="p-3 text-center">
+                            <StatusBadge status={item.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </section>
           </div>

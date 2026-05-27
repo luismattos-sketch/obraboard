@@ -53,6 +53,7 @@ export default function DesktopLayout({
       : statusTom === "encerrado"
       ? "bg-slate-200 text-slate-700"
       : "bg-green-100 text-green-700";
+  const itensMobile = [...menuItems, { href: campoHref, label: "Campo", icon: "CP" }];
 
   useEffect(() => {
     function carregarContexto() {
@@ -169,10 +170,65 @@ export default function DesktopLayout({
         </aside>
 
         <section className="min-w-0 flex-1 overflow-auto p-3 lg:p-6">
-          <header className="mb-6 rounded-xl bg-white p-5 shadow-sm">
+          <div className="mb-4 rounded-xl bg-slate-950 p-3 text-white shadow-sm lg:hidden">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h1 className="text-lg font-bold tracking-tight">ObraBoard</h1>
+                <p className="text-xs text-slate-400">Gestao operacional</p>
+              </div>
+
+              {logoExibido ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoExibido}
+                  alt="Logo da empresa"
+                  className="max-h-10 max-w-20 object-contain"
+                />
+              ) : (
+                <div className="flex h-9 w-14 items-center justify-center rounded-lg bg-white/10 text-[10px] font-semibold text-slate-400">
+                  LOGO
+                </div>
+              )}
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-bold uppercase text-slate-500">
+                Obra ativa
+              </span>
+              <select
+                value={obraAtivaId ?? ""}
+                onChange={(e) => alterarObraAtiva(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm font-semibold text-white"
+              >
+                <option value="">
+                  {obras.length === 0 ? "Cadastre uma obra" : "Selecionar obra"}
+                </option>
+
+                {obras.map((obra) => (
+                  <option key={obra.id} value={obra.id}>
+                    {obra.nome || obra.codigo || "Obra sem nome"}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              {itensMobile.map((item) => (
+                <MenuLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  compact
+                />
+              ))}
+            </nav>
+          </div>
+
+          <header className="mb-6 rounded-xl bg-white p-4 shadow-sm lg:p-5">
             <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
               <div>
-                <h2 className="text-3xl font-bold">{titulo}</h2>
+                <h2 className="text-2xl font-bold lg:text-3xl">{titulo}</h2>
 
                 {subtitulo && (
                   <p className="mt-1 text-slate-500">{subtitulo}</p>
@@ -212,10 +268,12 @@ function MenuLink({
   href,
   label,
   icon,
+  compact = false,
 }: {
   href: string;
   label: string;
   icon: string;
+  compact?: boolean;
 }) {
   const pathname = usePathname();
   const hrefPathname = href.split("?")[0];
@@ -226,7 +284,9 @@ function MenuLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+      className={`flex items-center gap-3 rounded-xl text-sm font-semibold transition ${
+        compact ? "shrink-0 px-3 py-2" : "px-4 py-3"
+      } ${
         ativo
           ? "bg-teal-500 text-white shadow-sm"
           : "text-slate-300 hover:bg-slate-800 hover:text-white"

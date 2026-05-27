@@ -421,7 +421,9 @@ export default function CheckinPage() {
   }, []);
 
   useEffect(() => {
-    void carregarRecursosDisponiveis(obraId, dataTurno, turno);
+    queueMicrotask(() => {
+      void carregarRecursosDisponiveis(obraId, dataTurno, turno);
+    });
     // carregarRecursosDisponiveis recebe os parametros explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obraId, dataTurno, turno]);

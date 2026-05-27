@@ -330,7 +330,7 @@ export default function RdoPage() {
                       Abrir folha
                     </a>
                   </div>
-                  <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs md:grid-cols-5">
                     <ResumoHistorico label="Avanço" value={`${item.avanco}%`} />
                     <ResumoHistorico label="Equipe" value={String(item.equipe)} />
                     <ResumoHistorico label="Atividades" value={String(item.atividades)} />
@@ -342,7 +342,7 @@ export default function RdoPage() {
             </div>
           )}
         </section>
-        <section className="mx-auto w-[794px] rounded-2xl bg-white p-4 shadow-sm print:hidden">
+        <section className="mx-auto w-full max-w-[794px] rounded-2xl bg-white p-4 shadow-sm print:hidden">
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
             Obra ativa: {obra}
           </div>
@@ -371,8 +371,8 @@ export default function RdoPage() {
           </p>
         </section>
 
-        <div className="flex justify-center">
-          <div className="min-h-[1123px] w-[794px] bg-white p-10 shadow-xl">
+        <div className="overflow-x-auto">
+          <div className="mx-auto min-h-[1123px] w-[794px] bg-white p-10 shadow-xl">
             <header className="mb-8 border-b border-slate-300 pb-5">
               <div className="flex items-start justify-between">
                 <div>

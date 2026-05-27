@@ -74,6 +74,39 @@ export default function CheckoutPage() {
   const ppc = calcularPpc(atividades);
   const turnoEncerrado = Boolean(fechamentos[chaveTurno(obraId, dataTurnoAtual, turno)]);
 
+  async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
+    const ids = atividadesCarregadas.map((item) => item.id);
+
+    if (ids.length === 0) {
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("atividade_recursos")
+      .select("*")
+      .in("atividade_id", ids);
+
+    if (error) {
+      console.warn("Recursos planejados indisponiveis no checkout.", error);
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    setRecursosPorAtividade(
+      ((data || []) as AtividadeRecurso[]).reduce<Record<number, AtividadeRecurso[]>>(
+        (mapa, recurso) => {
+          mapa[recurso.atividade_id] = [
+            ...(mapa[recurso.atividade_id] ?? []),
+            recurso,
+          ];
+          return mapa;
+        },
+        {}
+      )
+    );
+  }
+
   useEffect(() => {
     async function carregarAtividades(obraAtualId: number | null) {
       if (!obraAtualId) {
@@ -142,39 +175,6 @@ export default function CheckoutPage() {
     const carregadas = (data || []) as Atividade[];
     setAtividadesBanco(carregadas);
     await carregarRecursosAtividades(carregadas);
-  }
-
-  async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
-    const ids = atividadesCarregadas.map((item) => item.id);
-
-    if (ids.length === 0) {
-      setRecursosPorAtividade({});
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("atividade_recursos")
-      .select("*")
-      .in("atividade_id", ids);
-
-    if (error) {
-      console.warn("Recursos planejados indisponiveis no checkout.", error);
-      setRecursosPorAtividade({});
-      return;
-    }
-
-    setRecursosPorAtividade(
-      ((data || []) as AtividadeRecurso[]).reduce<Record<number, AtividadeRecurso[]>>(
-        (mapa, recurso) => {
-          mapa[recurso.atividade_id] = [
-            ...(mapa[recurso.atividade_id] ?? []),
-            recurso,
-          ];
-          return mapa;
-        },
-        {}
-      )
-    );
   }
 
   function iniciarEdicao(item: Atividade) {
@@ -430,7 +430,7 @@ export default function CheckoutPage() {
           </label>
         </section>
 
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <ResumoCard titulo="Planejadas" valor={String(planejadas)} />
           <ResumoCard
             titulo="Finalizadas"
@@ -465,177 +465,179 @@ export default function CheckoutPage() {
               <EstadoVazio texto="Nenhuma atividade para fechar nesta obra e turno." />
             </div>
           ) : (
-            <table className="w-full">
-              <thead className="bg-slate-50 text-sm">
-                <tr>
-                  <th className="p-3 text-left">Pri</th>
-                  <th className="p-3 text-left">Disc</th>
-                  <th className="p-3 text-left">Atividade</th>
-                  <th className="p-3 text-left">Local</th>
-                  <th className="p-3 text-left">Resp</th>
-                  <th className="p-3 text-left">Avanco</th>
-                  <th className="p-3 text-center">Status</th>
-                  <th className="p-3 text-center">Farol</th>
-                  <th className="p-3 text-center">Decisao</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="min-w-[900px] w-full">
+                <thead className="bg-slate-50 text-sm">
+                  <tr>
+                    <th className="p-3 text-left">Pri</th>
+                    <th className="p-3 text-left">Disc</th>
+                    <th className="p-3 text-left">Atividade</th>
+                    <th className="p-3 text-left">Local</th>
+                    <th className="p-3 text-left">Resp</th>
+                    <th className="p-3 text-left">Avanco</th>
+                    <th className="p-3 text-center">Status</th>
+                    <th className="p-3 text-center">Farol</th>
+                    <th className="p-3 text-center">Decisao</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {atividades.map((item) => {
-                  const progresso = calcularProgresso(item);
-                  const farol = obterFarolOperacional(item.status, progresso);
-                  const editando = atividadeEditandoId === item.id;
-                  const validada = Boolean(validacoes[String(item.id)]);
+                <tbody>
+                  {atividades.map((item) => {
+                    const progresso = calcularProgresso(item);
+                    const farol = obterFarolOperacional(item.status, progresso);
+                    const editando = atividadeEditandoId === item.id;
+                    const validada = Boolean(validacoes[String(item.id)]);
 
-                  return (
-                    <tr
-                      key={item.id}
-                      className="border-t text-sm hover:bg-slate-50"
-                    >
-                      <td className="p-3">
-                        <span
-                          className={`rounded-md px-2 py-1 text-xs font-bold ${
-                            item.prioridade === "A"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {item.prioridade}
-                        </span>
-                      </td>
-
-                      <td className="p-3 font-semibold">{item.disciplina}</td>
-                      <td className="p-3 font-medium">{item.atividade}</td>
-                      <td className="p-3">{item.local}</td>
-                      <td className="p-3">
-                        {editando ? (
-                          <input
-                            value={edicao.responsavel}
-                            onChange={(e) =>
-                              setEdicao((atual) => ({
-                                ...atual,
-                                responsavel: e.target.value,
-                              }))
-                            }
-                            className="w-full rounded-lg border border-slate-300 p-2 text-sm"
-                          />
-                        ) : (
-                          item.responsavel
-                        )}
-                      </td>
-
-                      <td className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
-                            <div
-                              className={`h-full ${
-                                progresso >= 100
-                                  ? "bg-green-500"
-                                  : progresso >= 50
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }`}
-                              style={{ width: `${progresso}%` }}
-                            />
-                          </div>
-                          <span className="w-10 text-xs font-bold">
-                            {progresso}%
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-t text-sm hover:bg-slate-50"
+                      >
+                        <td className="p-3">
+                          <span
+                            className={`rounded-md px-2 py-1 text-xs font-bold ${
+                              item.prioridade === "A"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {item.prioridade}
                           </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="p-3 text-center">
-                        <StatusBadge status={item.status} />
-                      </td>
-                      <td className="p-3 text-center text-xs font-bold">{farol}</td>
-                      <td className="p-3">
-                        {editando ? (
-                          <div className="grid gap-2">
-                            <div className="grid grid-cols-3 gap-2">
-                              <input
-                                value={edicao.previsto}
-                                onChange={(e) =>
-                                  setEdicao((atual) => ({
-                                    ...atual,
-                                    previsto: e.target.value,
-                                  }))
-                                }
-                                type="number"
-                                min="0"
-                                className="rounded-lg border border-slate-300 p-2 text-xs"
-                                placeholder="Prev."
-                              />
-                              <input
-                                value={edicao.realizado}
-                                onChange={(e) =>
-                                  setEdicao((atual) => ({
-                                    ...atual,
-                                    realizado: e.target.value,
-                                  }))
-                                }
-                                type="number"
-                                min="0"
-                                className="rounded-lg border border-slate-300 p-2 text-xs"
-                                placeholder="Real"
-                              />
-                              <input
-                                value={edicao.tempoPrevistoHoras}
-                                onChange={(e) =>
-                                  setEdicao((atual) => ({
-                                    ...atual,
-                                    tempoPrevistoHoras: e.target.value,
-                                  }))
-                                }
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                className="rounded-lg border border-slate-300 p-2 text-xs"
-                                placeholder="HH"
+                        <td className="p-3 font-semibold">{item.disciplina}</td>
+                        <td className="p-3 font-medium">{item.atividade}</td>
+                        <td className="p-3">{item.local}</td>
+                        <td className="p-3">
+                          {editando ? (
+                            <input
+                              value={edicao.responsavel}
+                              onChange={(e) =>
+                                setEdicao((atual) => ({
+                                  ...atual,
+                                  responsavel: e.target.value,
+                                }))
+                              }
+                              className="w-full rounded-lg border border-slate-300 p-2 text-sm"
+                            />
+                          ) : (
+                            item.responsavel
+                          )}
+                        </td>
+
+                        <td className="p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
+                              <div
+                                className={`h-full ${
+                                  progresso >= 100
+                                    ? "bg-green-500"
+                                    : progresso >= 50
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
+                                }`}
+                                style={{ width: `${progresso}%` }}
                               />
                             </div>
-                            <div className="flex justify-end gap-2">
+                            <span className="w-10 text-xs font-bold">
+                              {progresso}%
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="p-3 text-center">
+                          <StatusBadge status={item.status} />
+                        </td>
+                        <td className="p-3 text-center text-xs font-bold">{farol}</td>
+                        <td className="p-3">
+                          {editando ? (
+                            <div className="grid gap-2">
+                              <div className="grid grid-cols-3 gap-2">
+                                <input
+                                  value={edicao.previsto}
+                                  onChange={(e) =>
+                                    setEdicao((atual) => ({
+                                      ...atual,
+                                      previsto: e.target.value,
+                                    }))
+                                  }
+                                  type="number"
+                                  min="0"
+                                  className="rounded-lg border border-slate-300 p-2 text-xs"
+                                  placeholder="Prev."
+                                />
+                                <input
+                                  value={edicao.realizado}
+                                  onChange={(e) =>
+                                    setEdicao((atual) => ({
+                                      ...atual,
+                                      realizado: e.target.value,
+                                    }))
+                                  }
+                                  type="number"
+                                  min="0"
+                                  className="rounded-lg border border-slate-300 p-2 text-xs"
+                                  placeholder="Real"
+                                />
+                                <input
+                                  value={edicao.tempoPrevistoHoras}
+                                  onChange={(e) =>
+                                    setEdicao((atual) => ({
+                                      ...atual,
+                                      tempoPrevistoHoras: e.target.value,
+                                    }))
+                                  }
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  className="rounded-lg border border-slate-300 p-2 text-xs"
+                                  placeholder="HH"
+                                />
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setAtividadeEditandoId(null)}
+                                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => salvarEdicao(item)}
+                                  className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white"
+                                >
+                                  Salvar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => setAtividadeEditandoId(null)}
-                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600"
+                                onClick={() => iniciarEdicao(item)}
+                                disabled={turnoEncerrado}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700"
                               >
-                                Cancelar
+                                Editar
                               </button>
                               <button
                                 type="button"
-                                onClick={() => salvarEdicao(item)}
-                                className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white"
+                                onClick={() => validarAtividade(item)}
+                                disabled={validada || turnoEncerrado}
+                                className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                               >
-                                Salvar
+                                {validada ? "Validado" : "Validar"}
                               </button>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => iniciarEdicao(item)}
-                              disabled={turnoEncerrado}
-                              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => validarAtividade(item)}
-                              disabled={validada || turnoEncerrado}
-                              className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                            >
-                              {validada ? "Validado" : "Validar"}
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
@@ -650,7 +652,7 @@ export default function CheckoutPage() {
               <EstadoVazio texto="Nenhuma restricao registrada para este turno." />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="grid gap-4 pt-4 lg:grid-cols-2">
               {restricoes.map((item) => (
                 <div
                   key={item.id}
@@ -682,7 +684,7 @@ export default function CheckoutPage() {
           )}
         </section>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 lg:grid-cols-2">
           <section className="rounded-2xl bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-lg font-bold">Resumo do fechamento</h3>
             <textarea
