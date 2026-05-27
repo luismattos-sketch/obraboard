@@ -224,9 +224,13 @@ export default function CampoPage() {
       const parametros = new URLSearchParams(window.location.search);
       const obraParam = parametros.get("obraId");
       const turnoParam = parametros.get("turno");
-      const obraParamId = obraParam ? Number(obraParam) : null;
+      const obraParamNumero = obraParam ? Number(obraParam) : null;
+      const obraParamId =
+        obraParamNumero && Number.isFinite(obraParamNumero)
+          ? obraParamNumero
+          : null;
       const obraQr = obraParam
-        ? cadastro.obras.find((item) => item.id === obraParamId) ?? null
+        ? cadastro.obras.find((item) => String(item.id) === String(obraParamId)) ?? null
         : null;
       const obraAtivaCadastro = obraQr ?? obterObraAtiva(cadastro);
       const obraIdResolvida = obraQr?.id ?? obraParamId ?? obraAtivaCadastro?.id ?? null;

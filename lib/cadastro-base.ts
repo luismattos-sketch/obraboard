@@ -146,8 +146,6 @@ export async function sincronizarCadastroBaseRemoto() {
     return cadastroBaseInicial;
   }
 
-  const cadastroLocal = carregarCadastroBase();
-
   const { data, error } = await supabase
     .from("cadastro_base")
     .select("dados")
@@ -157,6 +155,7 @@ export async function sincronizarCadastroBaseRemoto() {
   if (error) {
     console.warn("Cadastro remoto indisponivel, usando cache local.", error);
     const cadastroFallback = await carregarCadastroBaseFallback();
+    const cadastroLocal = carregarCadastroBase();
 
     if (!cadastroTemConteudo(cadastroLocal) && cadastroTemConteudo(cadastroFallback)) {
       salvarCadastroBaseLocal(cadastroFallback);
@@ -172,6 +171,8 @@ export async function sincronizarCadastroBaseRemoto() {
   }
 
   if (!data?.dados) {
+    const cadastroLocal = carregarCadastroBase();
+
     if (cadastroTemConteudo(cadastroLocal)) {
       await salvarCadastroBaseRemoto(cadastroLocal);
     }
@@ -180,6 +181,7 @@ export async function sincronizarCadastroBaseRemoto() {
   }
 
   const cadastroRemoto = normalizarCadastroBase(data.dados as Partial<CadastroBase>);
+  const cadastroLocal = carregarCadastroBase();
 
   if (!cadastroTemConteudo(cadastroLocal) && cadastroTemConteudo(cadastroRemoto)) {
     salvarCadastroBaseLocal(cadastroRemoto);
@@ -228,7 +230,7 @@ export function criarCadastroBaseVazio(): CadastroBase {
 
 export function obterObraAtiva(cadastro: CadastroBase) {
   return (
-    cadastro.obras.find((obra) => obra.id === cadastro.obraAtivaId) ??
+    cadastro.obras.find((obra) => String(obra.id) === String(cadastro.obraAtivaId)) ??
     cadastro.obras[0] ??
     null
   );
@@ -282,13 +284,13 @@ export function definirDadosObra(
 
 export function salvarObraAtivaId(obraId: number | null) {
   const cadastro = carregarCadastroBase();
-  const obraExiste = obraId
-    ? cadastro.obras.some((obra) => obra.id === obraId)
-    : false;
+  const obraSelecionada = obraId
+    ? cadastro.obras.find((obra) => String(obra.id) === String(obraId)) ?? null
+    : null;
 
   salvarCadastroBase({
     ...cadastro,
-    obraAtivaId: obraExiste ? obraId : cadastro.obras[0]?.id ?? null,
+    obraAtivaId: obraSelecionada?.id ?? cadastro.obras[0]?.id ?? null,
   });
   notificarCadastroBaseAtualizado();
 }
@@ -443,14 +445,18 @@ function cadastroTemConteudo(cadastro: CadastroBase) {
 
 function normalizarCadastroBase(cadastro: Partial<CadastroBase>): CadastroBase {
   const obras = Array.isArray(cadastro.obras)
-    ? cadastro.obras.map((obra) => ({
-        ...obra,
-        logoUrl: obra.logoUrl ?? cadastro.logoUrl ?? "",
-      }))
+    ? cadastro.obras
+        .map((obra) => ({
+          ...obra,
+          id: Number(obra.id),
+          logoUrl: obra.logoUrl ?? cadastro.logoUrl ?? "",
+        }))
+        .filter((obra) => Number.isFinite(obra.id))
     : [];
   const obraAtivaId =
-    cadastro.obraAtivaId && obras.some((obra) => obra.id === cadastro.obraAtivaId)
-      ? cadastro.obraAtivaId
+    cadastro.obraAtivaId &&
+    obras.some((obra) => String(obra.id) === String(cadastro.obraAtivaId))
+      ? Number(cadastro.obraAtivaId)
       : obras[0]?.id ?? null;
 
   return {

@@ -138,7 +138,9 @@ export default function Home() {
         }`
       : "";
   const qrCodeUrl = campoObraAtivaUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&v=${encodeURIComponent(
+        `${obraAtivaId}-${turnoAtual}`
+      )}&data=${encodeURIComponent(
         campoObraAtivaUrl
       )}`
     : "";
