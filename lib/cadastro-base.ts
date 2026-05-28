@@ -240,6 +240,55 @@ export function obterObraAtivaId(cadastro: CadastroBase) {
   return obterObraAtiva(cadastro)?.id ?? null;
 }
 
+export function normalizarObraId(obraId: number | string | null | undefined) {
+  if (obraId === null || obraId === undefined || obraId === "") {
+    return null;
+  }
+
+  const id = Number(obraId);
+
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+export function obterObraPorId(
+  cadastro: CadastroBase,
+  obraId: number | string | null | undefined
+) {
+  const id = normalizarObraId(obraId);
+
+  if (!id) {
+    return null;
+  }
+
+  return cadastro.obras.find((obra) => String(obra.id) === String(id)) ?? null;
+}
+
+export function resolverObraPorParametro(
+  cadastro: CadastroBase,
+  obraIdParametro: string | null | undefined
+) {
+  const parametroInformado = obraIdParametro !== null && obraIdParametro !== undefined;
+  const obraId = normalizarObraId(obraIdParametro);
+
+  if (parametroInformado) {
+    const obra = obterObraPorId(cadastro, obraId);
+
+    return {
+      obra,
+      obraId,
+      parametroInformado,
+    };
+  }
+
+  const obra = obterObraAtiva(cadastro);
+
+  return {
+    obra,
+    obraId: obra?.id ?? null,
+    parametroInformado,
+  };
+}
+
 export function obterDadosObra(
   cadastro: CadastroBase,
   obraId = cadastro.obraAtivaId

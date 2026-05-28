@@ -7,10 +7,11 @@ import { supabase } from "../../lib/supabase";
 import type { Atividade, AtividadeRecurso } from "../../lib/types";
 import {
   cadastroBaseEvento,
+  cadastroDadosObraInicial,
   carregarCadastroBase,
   obterDadosObra,
-  obterObraAtiva,
   obterTurnoAtivoNome,
+  resolverObraPorParametro,
   salvarTurnoAtivo,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
@@ -29,6 +30,9 @@ import {
   turnoEstaEncerrado,
   type FechamentosTurno,
 } from "../../lib/operacao";
+import { criarRotaComObra } from "../../lib/rotas";
+
+const dataHoje = () => new Date().toISOString().slice(0, 10);
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -60,6 +64,7 @@ export default function CheckoutPage() {
   });
 
   const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
   const atividades = useMemo(
     () =>
       atividadesBanco.filter(
@@ -74,7 +79,12 @@ export default function CheckoutPage() {
   const parciais = contarStatus(atividades, "Parcial");
   const planejadas = contarStatus(atividades, "Planejada");
   const ppc = calcularPpc(atividades);
-  const turnoEncerrado = turnoEstaEncerrado(fechamentos, obraId, dataTurnoAtual, turno);
+  const turnoEncerrado = turnoEstaEncerrado(
+    fechamentos,
+    obraId,
+    dataTurnoOperacional,
+    turno
+  );
   const statusTurno = turnoEncerrado ? "Turno encerrado" : "Turno em andamento";
 
   async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
@@ -134,20 +144,28 @@ export default function CheckoutPage() {
 
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
-      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const obraParam = new URLSearchParams(window.location.search).get("obraId");
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtiva = obraResolvida.obra;
+      const obraResolvidaId = obraResolvida.obraId;
+      const dadosObra = obraAtiva
+        ? obterDadosObra(cadastro, obraAtiva.id)
+        : cadastroDadosObraInicial;
       const turnoAtivo = obterTurnoAtivoNome(
         cadastro,
-        obraAtiva?.id ?? null,
+        obraResolvidaId,
         dadosObra.turnos
       );
 
-      setObraId(obraAtiva?.id ?? null);
-      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setObraId(obraResolvidaId);
+      setObra(
+        obraAtiva?.nome ??
+          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+      );
       setTurnosCadastrados(dadosObra.turnos);
       setTurno(turnoAtivo);
       setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
-      void carregarAtividades(obraAtiva?.id ?? null);
+      void carregarAtividades(obraResolvidaId);
     }
 
     queueMicrotask(carregarContextoObra);
@@ -372,7 +390,14 @@ export default function CheckoutPage() {
   }
 
   function encerrarTurno() {
-    const chave = chaveTurno(obraId, dataTurnoAtual, turno);
+    setErro("");
+
+    if (!obraId || !turno) {
+      setErro("Selecione obra e turno antes de encerrar.");
+      return;
+    }
+
+    const chave = chaveTurno(obraId, dataTurnoOperacional, turno);
     const novosFechamentos = {
       ...fechamentos,
       [chave]: { encerradoEm: new Date().toISOString() },
@@ -384,14 +409,14 @@ export default function CheckoutPage() {
   }
 
   function gerarRdo() {
-    router.push("/rdo");
+    router.push(criarRotaComObra("/rdo", obraId));
   }
 
   return (
     <DesktopLayout
       titulo="Check-out do Turno"
       subtitulo={`Obra: ${obra} - Turno ${turno || "-"} - Data: ${
-        dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"
+        dataTurnoOperacional ? formatarDataTurno(dataTurnoOperacional) : "-"
       }`}
       status={statusTurno}
       statusTom={turnoEncerrado ? "encerrado" : "andamento"}

@@ -11,10 +11,11 @@ import type {
 } from "../../lib/types";
 import {
   cadastroBaseEvento,
+  cadastroDadosObraInicial,
   carregarCadastroBase,
   obterDadosObra,
-  obterObraAtiva,
   obterTurnoAtivoNome,
+  resolverObraPorParametro,
   salvarTurnoAtivo,
   type DisciplinaCadastrada,
   type FuncaoPrevistaCadastrada,
@@ -384,15 +385,23 @@ export default function CheckinPage() {
   useEffect(() => {
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
-      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const obraParam = new URLSearchParams(window.location.search).get("obraId");
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtiva = obraResolvida.obra;
+      const obraResolvidaId = obraResolvida.obraId;
+      const dadosObra = obraAtiva
+        ? obterDadosObra(cadastro, obraAtiva.id)
+        : cadastroDadosObraInicial;
       const turnoAtivo = obterTurnoAtivoNome(
         cadastro,
-        obraAtiva?.id ?? null,
+        obraResolvidaId,
         dadosObra.turnos
       );
-      setObraId(obraAtiva?.id ?? null);
-      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setObraId(obraResolvidaId);
+      setObra(
+        obraAtiva?.nome ??
+          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+      );
       setTurnosCadastrados(dadosObra.turnos);
       setDisciplinasCadastradas(dadosObra.disciplinas);
       setUsuariosCadastrados(dadosObra.usuarios);
@@ -404,7 +413,7 @@ export default function CheckinPage() {
         setTurno("");
       }
 
-      void carregarAtividades(obraAtiva?.id ?? null);
+      void carregarAtividades(obraResolvidaId);
       setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
     }
 

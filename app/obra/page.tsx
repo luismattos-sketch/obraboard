@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
 import {
   cadastroBaseEvento,
+  cadastroDadosObraInicial,
   carregarCadastroBase,
   definirDadosObra,
   notificarCadastroBaseAtualizado,
@@ -11,6 +12,7 @@ import {
   obterObraAtiva,
   obterObraAtivaId,
   removerDadosObra,
+  resolverObraPorParametro,
   salvarCadastroBase,
   type CriticidadeObra,
   type DisciplinaCadastrada,
@@ -58,10 +60,6 @@ export default function CadastroObraPage() {
   const [obras, setObras] = useState<ObraCadastrada[]>([]);
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [obraEditandoId, setObraEditandoId] = useState<number | null>(null);
-  const [obraVisualizandoId, setObraVisualizandoId] = useState<number | null>(
-    null
-  );
-
   const [usuarioNome, setUsuarioNome] = useState("");
   const [usuarioFuncao, setUsuarioFuncao] = useState("");
   const [usuarioEmail, setUsuarioEmail] = useState("");
@@ -167,15 +165,23 @@ export default function CadastroObraPage() {
     setObservacoes("");
     setLogoUrl("");
     setObraEditandoId(null);
-    setObraVisualizandoId(null);
   }
 
   useEffect(() => {
     function carregarCadastro() {
       const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
-      const ativoId = obterObraAtivaId(cadastro);
-      const dadosObra = obterDadosObra(cadastro, ativoId);
+      const obraParam = new URLSearchParams(window.location.search).get("obraId");
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtiva = obraResolvida.obra ?? (
+        obraResolvida.parametroInformado ? null : obterObraAtiva(cadastro)
+      );
+      const ativoId = obraResolvida.parametroInformado
+        ? obraResolvida.obraId
+        : obterObraAtivaId(cadastro);
+      const dadosObra =
+        obraAtiva || !obraResolvida.parametroInformado
+          ? obterDadosObra(cadastro, ativoId)
+          : cadastroDadosObraInicial;
 
       setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
       setObras(cadastro.obras);
@@ -183,7 +189,6 @@ export default function CadastroObraPage() {
 
       if (obraAtiva) {
         preencherFormularioObra(obraAtiva);
-        setObraVisualizandoId(obraAtiva.id);
         setObraEditandoId(null);
         setModoObra("visualizando");
       } else {
@@ -225,7 +230,6 @@ export default function CadastroObraPage() {
 
     if (obraSelecionada) {
       preencherFormularioObra(obraSelecionada);
-      setObraVisualizandoId(obraSelecionada.id);
       setObraEditandoId(null);
       setModoObra("visualizando");
       setMensagem(
@@ -243,6 +247,7 @@ export default function CadastroObraPage() {
     setDisciplinas(dadosObra.disciplinas);
     setFuncoesPrevistas(dadosObra.funcoesPrevistas);
     setTurnos(dadosObra.turnos);
+    atualizarObraIdNaUrl(ativoId);
     salvarCadastroBase({ ...cadastro, obraAtivaId: ativoId });
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
@@ -366,14 +371,15 @@ export default function CadastroObraPage() {
     setObras(novasObras);
     setObraAtivaId(obraAtivaAposSalvar);
     preencherFormularioObra(obra);
-    setObraVisualizandoId(obra.id);
     setObraEditandoId(null);
     setModoObra("visualizando");
+    atualizarObraIdNaUrl(obra.id);
     setMensagem(editando ? "Obra atualizada." : "Obra cadastrada.");
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
   function cadastrarNovaObra() {
+    atualizarObraIdNaUrl(null);
     limparObra();
     limparUsuario();
     limparTurno();
@@ -381,7 +387,6 @@ export default function CadastroObraPage() {
     limparFuncaoPrevista();
     setObraAtivaId(null);
     setObraEditandoId(null);
-    setObraVisualizandoId(null);
     setModoObra("criando");
     setUsuarios([]);
     setDisciplinas([]);
@@ -401,8 +406,8 @@ export default function CadastroObraPage() {
     setFuncoesPrevistas(dadosObra.funcoesPrevistas);
     setTurnos(dadosObra.turnos);
     setObraEditandoId(obra.id);
-    setObraVisualizandoId(null);
     setModoObra("editando");
+    atualizarObraIdNaUrl(obra.id);
     salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obra.id });
   }
 
@@ -438,6 +443,7 @@ export default function CadastroObraPage() {
       setFuncoesPrevistas([]);
       setTurnos([]);
       setModoObra("criando");
+      atualizarObraIdNaUrl(null);
       setMensagem("Edição cancelada.");
       return;
     }
@@ -447,12 +453,12 @@ export default function CadastroObraPage() {
     preencherFormularioObra(obraParaRestaurar);
     setObraAtivaId(obraParaRestaurar.id);
     setObraEditandoId(null);
-    setObraVisualizandoId(obraParaRestaurar.id);
     setModoObra("visualizando");
     setUsuarios(dadosObra.usuarios);
     setDisciplinas(dadosObra.disciplinas);
     setFuncoesPrevistas(dadosObra.funcoesPrevistas);
     setTurnos(dadosObra.turnos);
+    atualizarObraIdNaUrl(obraParaRestaurar.id);
     salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obraParaRestaurar.id });
     setMensagem("Edição cancelada.");
   }
@@ -466,8 +472,8 @@ export default function CadastroObraPage() {
 
     setObraAtivaId(id);
     setObraEditandoId(id);
-    setObraVisualizandoId(null);
     setModoObra(obras.some((obra) => obra.id === id) ? "editando" : "criando");
+    atualizarObraIdNaUrl(id);
 
     if (obras.some((obra) => obra.id === id)) {
       salvarCadastroBase({ ...carregarCadastroBase(), obraAtivaId: id });
@@ -488,6 +494,7 @@ export default function CadastroObraPage() {
     });
     setObras(novasObras);
     setObraAtivaId(novoAtivoId);
+    atualizarObraIdNaUrl(novoAtivoId);
     if (obraEditandoId === id) {
       limparObra();
     }
@@ -527,7 +534,6 @@ export default function CadastroObraPage() {
 
   function editarUsuario(usuario: UsuarioCadastrado) {
     tornarObraAtualAtivaParaEdicao();
-    setObraVisualizandoId(null);
     setUsuarioNome(usuario.nome);
     setUsuarioFuncao(usuario.funcao);
     setUsuarioEmail(usuario.email);
@@ -730,7 +736,6 @@ export default function CadastroObraPage() {
 
   function editarDisciplina(disciplina: DisciplinaCadastrada) {
     tornarObraAtualAtivaParaEdicao();
-    setObraVisualizandoId(null);
     setDisciplinaCodigo(disciplina.codigo);
     setDisciplinaNome(disciplina.nome);
     setDisciplinaEditandoId(disciplina.id);
@@ -780,7 +785,6 @@ export default function CadastroObraPage() {
 
   function editarFuncaoPrevista(funcao: FuncaoPrevistaCadastrada) {
     tornarObraAtualAtivaParaEdicao();
-    setObraVisualizandoId(null);
     setFuncaoPrevistaNome(funcao.nome);
     setFuncaoEditandoId(funcao.id);
   }
@@ -1677,10 +1681,6 @@ function calcularHorasTrabalho(
   return minutosLiquidos / 60;
 }
 
-function calcularHhDisponivel(quantidade: number, cargaHoraria: number) {
-  return quantidade * cargaHoraria;
-}
-
 function converterHoraParaMinutos(hora: string) {
   const [horas, minutos] = hora.split(":").map(Number);
 
@@ -1712,6 +1712,23 @@ function permissaoPorNivel(nivel: NivelAcesso) {
 
 function valorOuTraco(valor: string) {
   return valor || "-";
+}
+
+function atualizarObraIdNaUrl(obraId: number | null) {
+  const params = new URLSearchParams(window.location.search);
+
+  if (obraId) {
+    params.set("obraId", String(obraId));
+  } else {
+    params.delete("obraId");
+  }
+
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    "",
+    query ? `${window.location.pathname}?${query}` : window.location.pathname
+  );
 }
 
 function SecaoTitulo({

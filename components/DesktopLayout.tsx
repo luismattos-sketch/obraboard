@@ -8,11 +8,12 @@ import {
   carregarCadastroBase,
   obterObraAtiva,
   obterObraAtivaId,
+  resolverObraPorParametro,
   salvarObraAtivaId,
   sincronizarCadastroBaseRemoto,
   type ObraCadastrada,
 } from "../lib/cadastro-base";
-import { criarCampoPath } from "../lib/rotas";
+import { criarCampoPath, criarRotaComObra } from "../lib/rotas";
 
 interface Props {
   children: ReactNode;
@@ -46,21 +47,32 @@ export default function DesktopLayout({
   const [logoSalvo, setLogoSalvo] = useState("");
   const [obras, setObras] = useState<ObraCadastrada[]>([]);
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
+  const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
   const campoHref = criarCampoPath(obraAtivaId);
+  const itensMenu = menuItems.map((item) => ({
+    ...item,
+    href: criarRotaComObra(item.href, obraAtivaId),
+  }));
   const classeStatus =
     statusTom === "planejado"
       ? "bg-blue-100 text-blue-700"
       : statusTom === "encerrado"
       ? "bg-slate-200 text-slate-700"
       : "bg-green-100 text-green-700";
-  const itensMobile = [...menuItems, { href: campoHref, label: "Campo", icon: "CP" }];
+  const itensMobile = [...itensMenu, { href: campoHref, label: "Campo", icon: "CP" }];
 
   useEffect(() => {
     function carregarContexto() {
       const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
-      const ativoId = obterObraAtivaId(cadastro);
+      const obraParam = new URLSearchParams(window.location.search).get("obraId");
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtiva = obraResolvida.parametroInformado
+        ? obraResolvida.obra
+        : obterObraAtiva(cadastro);
+      const ativoId = obraResolvida.parametroInformado
+        ? obraResolvida.obraId
+        : obterObraAtivaId(cadastro);
 
       if (logoUrl === undefined) {
         setLogoSalvo(obraAtiva?.logoUrl || cadastro.logoUrl);
@@ -87,6 +99,7 @@ export default function DesktopLayout({
     const novoId = valor ? Number(valor) : null;
 
     setObraAtivaId(novoId);
+    atualizarObraIdNaUrl(pathname, novoId);
     salvarObraAtivaId(novoId);
   }
 
@@ -103,7 +116,7 @@ export default function DesktopLayout({
             </div>
 
             <nav className="space-y-2">
-              {menuItems.map((item) => (
+              {itensMenu.map((item) => (
                 <MenuLink
                   key={item.href}
                   href={item.href}
@@ -302,4 +315,17 @@ function MenuLink({
       <span>{label}</span>
     </Link>
   );
+}
+
+function atualizarObraIdNaUrl(pathname: string, obraId: number | null) {
+  const params = new URLSearchParams(window.location.search);
+
+  if (obraId) {
+    params.set("obraId", String(obraId));
+  } else {
+    params.delete("obraId");
+  }
+
+  const query = params.toString();
+  window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
 }

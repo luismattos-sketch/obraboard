@@ -6,10 +6,11 @@ import { supabase } from "../../lib/supabase";
 import type { Atividade, RecursoDisponivelTurno } from "../../lib/types";
 import {
   cadastroBaseEvento,
+  cadastroDadosObraInicial,
   carregarCadastroBase,
   obterDadosObra,
-  obterObraAtiva,
   obterTurnoAtivoNome,
+  resolverObraPorParametro,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 import {
@@ -20,6 +21,7 @@ import {
   listarRestricoesHistorico,
   type RestricaoHistorico,
 } from "../../lib/operacao";
+import { criarRotaComObra } from "../../lib/rotas";
 
 type MaoObraReal = {
   id: number;
@@ -262,13 +264,21 @@ export default function RdoPage() {
       const parametros = new URLSearchParams(window.location.search);
       const dataParam = parametros.get("dataTurno") || "";
       const turnoParam = parametros.get("turno") || "";
-      const obraAtiva = obterObraAtiva(cadastro);
-      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
-      const turnoAtivo = obterTurnoAtivoNome(cadastro, obraAtiva?.id ?? null, dadosObra.turnos);
+      const obraParam = parametros.get("obraId");
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtiva = obraResolvida.obra;
+      const obraResolvidaId = obraResolvida.obraId;
+      const dadosObra = obraAtiva
+        ? obterDadosObra(cadastro, obraAtiva.id)
+        : cadastroDadosObraInicial;
+      const turnoAtivo = obterTurnoAtivoNome(cadastro, obraResolvidaId, dadosObra.turnos);
 
       setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
-      setObraId(obraAtiva?.id ?? null);
-      setObra(obraAtiva?.nome ?? "Sem obra selecionada");
+      setObraId(obraResolvidaId);
+      setObra(
+        obraAtiva?.nome ??
+          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+      );
       setTurnosCadastrados(dadosObra.turnos);
       setTurno(
         turnoParam && dadosObra.turnos.some((item) => item.nome === turnoParam)
@@ -277,8 +287,8 @@ export default function RdoPage() {
       );
       setDataTurnoSelecionada(dataParam);
       setRestricoesCampo(carregarObjetoLocal<Record<number, RestricaoCampo>>(restricaoStorageKey, {}));
-      setRestricoesHistorico(listarRestricoesHistorico(obraAtiva?.id ?? null, null, null));
-      void carregarDados(obraAtiva?.id ?? null);
+      setRestricoesHistorico(listarRestricoesHistorico(obraResolvidaId, null, null));
+      void carregarDados(obraResolvidaId);
     }
 
     queueMicrotask(carregarContextoObra);
@@ -324,7 +334,10 @@ export default function RdoPage() {
                       <p className="text-xs font-semibold text-slate-500">{item.status}</p>
                     </div>
                     <a
-                      href={`/rdo?dataTurno=${encodeURIComponent(item.dataTurno)}&turno=${encodeURIComponent(item.turno)}`}
+                      href={criarRotaComObra(
+                        `/rdo?dataTurno=${encodeURIComponent(item.dataTurno)}&turno=${encodeURIComponent(item.turno)}`,
+                        obraId
+                      )}
                       className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-teal-700"
                     >
                       Abrir folha

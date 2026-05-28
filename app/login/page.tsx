@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { carregarCadastroBase, obterObraAtivaId } from "../../lib/cadastro-base";
+import { criarCampoPath, criarRotaComObra } from "../../lib/rotas";
 
 export default function LoginPage() {
 
@@ -11,21 +13,22 @@ export default function LoginPage() {
     useState("Planejador");
 
   function entrar() {
+    const obraAtivaId = obterObraAtivaId(carregarCadastroBase());
 
     if (perfil === "Planejador") {
-      router.push("/checkin");
+      router.push(criarRotaComObra("/checkin", obraAtivaId));
     }
 
     else if (perfil === "Supervisor") {
-      router.push("/campo");
+      router.push(criarCampoPath(obraAtivaId));
     }
 
     else if (perfil === "Gestor") {
-      router.push("/");
+      router.push(criarRotaComObra("/", obraAtivaId));
     }
 
     else {
-      router.push("/");
+      router.push(criarRotaComObra("/", obraAtivaId));
     }
 
   }

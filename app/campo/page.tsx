@@ -13,7 +13,7 @@ import {
   cadastroDadosObraInicial,
   carregarCadastroBase,
   obterDadosObra,
-  obterObraAtiva,
+  resolverObraPorParametro,
   obterTurnoAtivoNome,
   salvarObraAtivaId,
   salvarTurnoAtivo,
@@ -82,7 +82,6 @@ export default function CampoPage() {
   );
   const [restricaoEditandoId, setRestricaoEditandoId] = useState<number | null>(null);
   const [restricaoTexto, setRestricaoTexto] = useState("");
-  const [responsaveisAtividade, setResponsaveisAtividade] = useState<Record<number, string>>({});
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
   const [agora, setAgora] = useState(Date.now());
@@ -228,25 +227,16 @@ export default function CampoPage() {
       const obraParam = parametros.get("obraId");
       const turnoParam = parametros.get("turno");
       const obraParamInformado = parametros.has("obraId");
-      const obraParamNumero = obraParam ? Number(obraParam) : null;
-      const obraParamId =
-        obraParamNumero && Number.isFinite(obraParamNumero)
-          ? obraParamNumero
-          : null;
-      const obraQr = obraParam
-        ? cadastro.obras.find((item) => String(item.id) === String(obraParamId)) ?? null
-        : null;
-      const obraAtivaCadastro = obraParamInformado ? obraQr : obterObraAtiva(cadastro);
-      const obraIdResolvida = obraParamInformado
-        ? obraParamId
-        : obraAtivaCadastro?.id ?? null;
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtivaCadastro = obraResolvida.obra;
+      const obraIdResolvida = obraResolvida.obraId;
       const dadosObra = obraAtivaCadastro
         ? obterDadosObra(cadastro, obraAtivaCadastro.id)
         : cadastroDadosObraInicial;
       const avisoObraAtual =
-        obraParamInformado && !obraParamId
+        obraParamInformado && !obraIdResolvida
           ? "Link da obra invalido. Selecione ou cadastre uma obra/frente."
-          : obraParamInformado && obraParamId && !obraQr
+          : obraParamInformado && obraIdResolvida && !obraAtivaCadastro
           ? "A obra/frente informada no link nao foi encontrada neste cadastro."
           : !obraParamInformado && !obraAtivaCadastro
           ? "Selecione ou cadastre uma obra/frente para abrir a tela Campo."
@@ -277,7 +267,7 @@ export default function CampoPage() {
 
       setTurno(turnoSelecionado || "");
 
-      if (obraQr && cadastro.obraAtivaId !== obraIdResolvida) {
+      if (obraAtivaCadastro && cadastro.obraAtivaId !== obraIdResolvida) {
         salvarObraAtivaId(obraIdResolvida);
       }
 
@@ -387,8 +377,6 @@ export default function CampoPage() {
   }
 
   async function finalizarAtividade(atividade: Atividade) {
-    const responsavelSelecionado =
-      responsaveisAtividade[atividade.id] || atividade.responsavel;
     const realizadoInformado = obterRealizadoInformado(
       atividade.id,
       realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0
@@ -403,7 +391,7 @@ export default function CampoPage() {
       atividade.id,
       "Finalizada",
       realizadoInformado,
-      responsavelSelecionado
+      atividade.responsavel
     );
     setAtividadesEditaveis((atuais) => {
       const novos = { ...atuais };
@@ -422,7 +410,7 @@ export default function CampoPage() {
       atividade.id,
       definirStatusPorAvanco(atividade.previsto, atividade.realizado),
       Number(atividade.realizado || 0),
-      responsaveisAtividade[atividade.id] || atividade.responsavel
+      atividade.responsavel
     );
   }
 
@@ -758,8 +746,7 @@ export default function CampoPage() {
             const restricao = restricoes[atividade.id];
             const bloqueadaFinalizada =
               atividade.status === "Finalizada" && !atividadesEditaveis[atividade.id];
-            const responsavelSelecionado =
-              responsaveisAtividade[atividade.id] ?? atividade.responsavel ?? "";
+            const responsavelSelecionado = atividade.responsavel ?? "";
 
             return (
               <div key={atividade.id} className="rounded-xl bg-white p-4 shadow-sm">

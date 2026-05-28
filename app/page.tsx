@@ -6,10 +6,11 @@ import { supabase } from "../lib/supabase";
 import type { Atividade, RecursoDisponivelTurno } from "../lib/types";
 import {
   cadastroBaseEvento,
+  cadastroDadosObraInicial,
   carregarCadastroBase,
   obterDadosObra,
-  obterObraAtiva,
   obterTurnoAtivoNome,
+  resolverObraPorParametro,
   salvarTurnoAtivo,
   type FuncaoPrevistaCadastrada,
   type TurnoCadastrado,
@@ -244,16 +245,24 @@ export default function Home() {
 
     function carregarContexto() {
       const cadastro = carregarCadastroBase();
-      const obraAtiva = obterObraAtiva(cadastro);
-      const dadosObra = obterDadosObra(cadastro, obraAtiva?.id ?? null);
+      const obraParam = new URLSearchParams(window.location.search).get("obraId");
+      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
+      const obraAtiva = obraResolvida.obra;
+      const obraResolvidaId = obraResolvida.obraId;
+      const dadosObra = obraAtiva
+        ? obterDadosObra(cadastro, obraAtiva.id)
+        : cadastroDadosObraInicial;
       const turnoAtivoNome = obterTurnoAtivoNome(
         cadastro,
-        obraAtiva?.id ?? null,
+        obraResolvidaId,
         dadosObra.turnos
       );
 
-      setObraAtivaNome(obraAtiva?.nome || "Sem obra selecionada");
-      setObraAtivaId(obraAtiva?.id ?? null);
+      setObraAtivaNome(
+        obraAtiva?.nome ||
+          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+      );
+      setObraAtivaId(obraResolvidaId);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnosCadastrados(dadosObra.turnos);
       setTurnoAtivo(turnoAtivoNome);
@@ -262,7 +271,7 @@ export default function Home() {
       );
       setFechamentos(carregarOperacaoLocal(checkoutFechamentosStorageKey, {}));
       setTurnosIniciados(carregarOperacaoLocal(turnosIniciadosStorageKey, {}));
-      void carregarAtividades(obraAtiva?.id ?? null);
+      void carregarAtividades(obraResolvidaId);
       void carregarMaoObraReal();
       setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
     }
@@ -555,6 +564,7 @@ export default function Home() {
               {qrCodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
                   <a href={campoObraAtivaUrl} aria-label="Abrir tela Campo">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       key={campoObraAtivaUrl}
                       src={qrCodeUrl}
