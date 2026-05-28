@@ -26,6 +26,8 @@ import {
   registrarRestricaoHistorico,
   salvarObjetoLocal,
   carregarObjetoLocal,
+  turnoEstaEncerrado,
+  type FechamentosTurno,
 } from "../../lib/operacao";
 
 export default function CheckoutPage() {
@@ -47,7 +49,7 @@ export default function CheckoutPage() {
   const [validacoes, setValidacoes] = useState<Record<string, true>>(() =>
     carregarObjetoLocal(checkoutValidacoesStorageKey, {})
   );
-  const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>(() =>
+  const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
     carregarObjetoLocal(checkoutFechamentosStorageKey, {})
   );
   const [edicao, setEdicao] = useState({
@@ -72,7 +74,8 @@ export default function CheckoutPage() {
   const parciais = contarStatus(atividades, "Parcial");
   const planejadas = contarStatus(atividades, "Planejada");
   const ppc = calcularPpc(atividades);
-  const turnoEncerrado = Boolean(fechamentos[chaveTurno(obraId, dataTurnoAtual, turno)]);
+  const turnoEncerrado = turnoEstaEncerrado(fechamentos, obraId, dataTurnoAtual, turno);
+  const statusTurno = turnoEncerrado ? "Turno encerrado" : "Turno em andamento";
 
   async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
     const ids = atividadesCarregadas.map((item) => item.id);
@@ -143,6 +146,7 @@ export default function CheckoutPage() {
       setObra(obraAtiva?.nome ?? "Sem obra selecionada");
       setTurnosCadastrados(dadosObra.turnos);
       setTurno(turnoAtivo);
+      setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
       void carregarAtividades(obraAtiva?.id ?? null);
     }
 
@@ -375,6 +379,7 @@ export default function CheckoutPage() {
     };
     setFechamentos(novosFechamentos);
     salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
+    window.dispatchEvent(new Event("storage"));
     setMensagem("Turno encerrado para a obra/frente selecionada.");
   }
 
@@ -388,11 +393,13 @@ export default function CheckoutPage() {
       subtitulo={`Obra: ${obra} - Turno ${turno || "-"} - Data: ${
         dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"
       }`}
+      status={statusTurno}
+      statusTom={turnoEncerrado ? "encerrado" : "andamento"}
     >
       <div className="space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Obra ativa: {obra} · {turnoEncerrado ? "Turno encerrado" : "Turno em andamento"}
+            Obra ativa: {obra} · {statusTurno}
           </div>
 
           {mensagem && (

@@ -10,6 +10,7 @@ import type {
 } from "../../lib/types";
 import {
   cadastroBaseEvento,
+  cadastroDadosObraInicial,
   carregarCadastroBase,
   obterDadosObra,
   obterObraAtiva,
@@ -28,6 +29,7 @@ import {
   registrarRestricaoHistorico,
   restricaoStorageKey,
 } from "../../lib/operacao";
+import { criarCampoPath } from "../../lib/rotas";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
 
@@ -57,6 +59,7 @@ export default function CampoPage() {
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
+  const [avisoObra, setAvisoObra] = useState("");
   const [obrasCadastradas, setObrasCadastradas] = useState<ObraCadastrada[]>([]);
   const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
@@ -224,6 +227,7 @@ export default function CampoPage() {
       const parametros = new URLSearchParams(window.location.search);
       const obraParam = parametros.get("obraId");
       const turnoParam = parametros.get("turno");
+      const obraParamInformado = parametros.has("obraId");
       const obraParamNumero = obraParam ? Number(obraParam) : null;
       const obraParamId =
         obraParamNumero && Number.isFinite(obraParamNumero)
@@ -232,9 +236,21 @@ export default function CampoPage() {
       const obraQr = obraParam
         ? cadastro.obras.find((item) => String(item.id) === String(obraParamId)) ?? null
         : null;
-      const obraAtivaCadastro = obraQr ?? obterObraAtiva(cadastro);
-      const obraIdResolvida = obraQr?.id ?? obraParamId ?? obraAtivaCadastro?.id ?? null;
-      const dadosObra = obterDadosObra(cadastro, obraIdResolvida);
+      const obraAtivaCadastro = obraParamInformado ? obraQr : obterObraAtiva(cadastro);
+      const obraIdResolvida = obraParamInformado
+        ? obraParamId
+        : obraAtivaCadastro?.id ?? null;
+      const dadosObra = obraAtivaCadastro
+        ? obterDadosObra(cadastro, obraAtivaCadastro.id)
+        : cadastroDadosObraInicial;
+      const avisoObraAtual =
+        obraParamInformado && !obraParamId
+          ? "Link da obra invalido. Selecione ou cadastre uma obra/frente."
+          : obraParamInformado && obraParamId && !obraQr
+          ? "A obra/frente informada no link nao foi encontrada neste cadastro."
+          : !obraParamInformado && !obraAtivaCadastro
+          ? "Selecione ou cadastre uma obra/frente para abrir a tela Campo."
+          : "";
       const turnoAtivo = obterTurnoAtivoNome(
         cadastro,
         obraIdResolvida,
@@ -252,15 +268,14 @@ export default function CampoPage() {
       setObraId(obraIdResolvida);
       setObra(
         obraAtivaCadastro?.nome ??
-          (obraIdResolvida ? "Obra selecionada pelo QR Code" : "Sem obra selecionada")
+          (obraIdResolvida ? "Obra informada no link" : "Sem obra selecionada")
       );
+      setAvisoObra(avisoObraAtual);
       setTurnosCadastrados(dadosObra.turnos);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
       setUsuariosCadastrados(dadosObra.usuarios);
 
-      if (turnoSelecionado) {
-        setTurno(turnoSelecionado);
-      }
+      setTurno(turnoSelecionado || "");
 
       if (obraQr && cadastro.obraAtivaId !== obraIdResolvida) {
         salvarObraAtivaId(obraIdResolvida);
@@ -296,7 +311,9 @@ export default function CampoPage() {
   }, []);
 
   function alterarObraSelecionada(valor: string) {
-    salvarObraAtivaId(valor ? Number(valor) : null);
+    const novoId = valor ? Number(valor) : null;
+    window.history.replaceState(null, "", criarCampoPath(novoId));
+    salvarObraAtivaId(novoId);
   }
 
   function alterarTurnoSelecionado(novoTurno: string) {
@@ -550,6 +567,11 @@ export default function CampoPage() {
         <p className="text-xs font-semibold text-teal-200">Obra ativa: {obra}</p>
         <h1 className="text-2xl font-bold">Minhas Atividades</h1>
         <p className="text-sm text-slate-300">Campo · Turno {turno || "-"}</p>
+        {avisoObra && (
+          <p className="mt-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-teal-100">
+            {avisoObra}
+          </p>
+        )}
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <label className="block">
@@ -583,6 +605,7 @@ export default function CampoPage() {
             >
               {turnosCadastrados.length === 0 ? (
                 <>
+                  <option value="">Todos os turnos</option>
                   <option value="Dia">Turno Dia</option>
                   <option value="Noite">Turno Noite</option>
                 </>

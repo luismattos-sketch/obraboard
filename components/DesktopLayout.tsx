@@ -12,6 +12,7 @@ import {
   sincronizarCadastroBaseRemoto,
   type ObraCadastrada,
 } from "../lib/cadastro-base";
+import { criarCampoPath } from "../lib/rotas";
 
 interface Props {
   children: ReactNode;
@@ -36,7 +37,7 @@ export default function DesktopLayout({
   children,
   titulo,
   subtitulo,
-  status = "Turno em andamento",
+  status,
   statusTom = "andamento",
   infoCentral,
   detalheCentral,
@@ -46,7 +47,7 @@ export default function DesktopLayout({
   const [obras, setObras] = useState<ObraCadastrada[]>([]);
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const logoExibido = logoUrl ?? logoSalvo;
-  const campoHref = obraAtivaId ? `/campo?obraId=${obraAtivaId}` : "/campo";
+  const campoHref = criarCampoPath(obraAtivaId);
   const classeStatus =
     statusTom === "planejado"
       ? "bg-blue-100 text-blue-700"
@@ -251,9 +252,11 @@ export default function DesktopLayout({
                 </div>
               )}
 
-              <div className={`justify-self-start rounded-full px-4 py-2 text-sm font-semibold lg:justify-self-end ${classeStatus}`}>
-                {status}
-              </div>
+              {status && (
+                <div className={`justify-self-start rounded-full px-4 py-2 text-sm font-semibold lg:justify-self-end ${classeStatus}`}>
+                  {status}
+                </div>
+              )}
             </div>
           </header>
 

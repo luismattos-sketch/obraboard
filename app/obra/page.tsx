@@ -109,8 +109,8 @@ export default function CadastroObraPage() {
   const classeBotaoPrimario = bloqueiaFormularioObra
     ? "cursor-not-allowed bg-slate-300 text-slate-500"
     : "bg-teal-600 text-white hover:bg-teal-700";
-  const obraEmTrabalhoId = obraEditandoId ?? obraAtivaId;
-  const podeEditarDadosObra = Boolean(obraEmTrabalhoId) && !bloqueiaFormularioObra;
+  const obraEmTrabalhoId = modoObra === "criando" ? null : obraEditandoId ?? obraAtivaId;
+  const podeEditarDadosObra = modoObra !== "visualizando";
   const bloqueiaTurnos = !podeEditarDadosObra;
   const classeCampoTurno = bloqueiaTurnos ? classeCampoBloqueavel : "";
   const classeBotaoTurno = podeEditarDadosObra && !bloqueiaTurnos
@@ -313,7 +313,13 @@ export default function CadastroObraPage() {
     }
 
     const editando = modoObra === "editando" && obraEditandoId !== null;
-    const obraId = obraEditandoId ?? obraAtivaId ?? gerarIdTemporario();
+    const obraId = editando ? obraEditandoId : gerarIdTemporario();
+
+    if (!obraId) {
+      setMensagem("Nao foi possivel identificar a obra para salvar.");
+      return;
+    }
+
     const obra: ObraCadastrada = {
       id: obraId,
       logoUrl,
@@ -368,15 +374,13 @@ export default function CadastroObraPage() {
   }
 
   function cadastrarNovaObra() {
-    const novoId = gerarIdTemporario();
-
     limparObra();
     limparUsuario();
     limparTurno();
     limparDisciplina();
     limparFuncaoPrevista();
-    setObraAtivaId(novoId);
-    setObraEditandoId(novoId);
+    setObraAtivaId(null);
+    setObraEditandoId(null);
     setObraVisualizandoId(null);
     setModoObra("criando");
     setUsuarios([]);
@@ -546,7 +550,12 @@ export default function CadastroObraPage() {
   function salvarTurno() {
     const obraDestinoId = obraEmTrabalhoId;
 
-    if (!obraDestinoId || bloqueiaTurnos) {
+    if (bloqueiaTurnos) {
+      return;
+    }
+
+    if (!turnoNome || !turnoHoraInicio || !turnoHoraFim) {
+      setMensagem("Preencha nome, inicio e fim do turno antes de adicionar.");
       return;
     }
 
@@ -562,6 +571,14 @@ export default function CadastroObraPage() {
     const novosTurnos = turnoEditandoId
       ? turnos.map((item) => (item.id === turnoEditandoId ? turno : item))
       : [...turnos, turno];
+
+    if (modoObra === "criando" || !obraDestinoId) {
+      setTurnos(novosTurnos);
+      limparTurno();
+      setMensagem(turnoEditandoId ? "Turno atualizado." : "Turno cadastrado.");
+      return;
+    }
+
     const cadastroAtual = carregarCadastroBase();
 
     salvarCadastroBase(
@@ -600,11 +617,13 @@ export default function CadastroObraPage() {
   }
 
   function editarTurno(turno: TurnoCadastrado) {
-    if (!obraEmTrabalhoId) {
+    if (!obraEmTrabalhoId && modoObra !== "criando") {
       return;
     }
 
-    tornarObraAtualAtivaParaEdicao();
+    if (modoObra !== "criando") {
+      tornarObraAtualAtivaParaEdicao();
+    }
     setTurnoNome(turno.nome);
     setTurnoHoraInicio(turno.horaInicio);
     setTurnoHoraFim(turno.horaFim);
@@ -615,11 +634,21 @@ export default function CadastroObraPage() {
   function excluirTurno(id: number) {
     const obraDestinoId = obraEmTrabalhoId;
 
-    if (!obraDestinoId || bloqueiaTurnos) {
+    if (bloqueiaTurnos) {
       return;
     }
 
     const novosTurnos = turnos.filter((item) => item.id !== id);
+
+    if (modoObra === "criando" || !obraDestinoId) {
+      setTurnos(novosTurnos);
+      if (turnoEditandoId === id) {
+        limparTurno();
+      }
+      setMensagem("Turno excluido.");
+      return;
+    }
+
     const cadastroAtual = carregarCadastroBase();
     const turnoAtivoAtual = cadastroAtual.turnoAtivoPorObra[String(obraDestinoId)];
     const turnoExcluido = turnos.find((item) => item.id === id);
@@ -1240,7 +1269,7 @@ export default function CadastroObraPage() {
               <input
                 value={turnoNome}
                 onChange={(e) => setTurnoNome(e.target.value)}
-                disabled={!obraAtivaId || bloqueiaTurnos}
+                disabled={bloqueiaTurnos}
                 className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoTurno}`}
                 placeholder="Ex.: Dia"
               />
@@ -1251,7 +1280,7 @@ export default function CadastroObraPage() {
                 value={turnoHoraInicio}
                 onChange={(e) => setTurnoHoraInicio(e.target.value)}
                 type="time"
-                disabled={!obraAtivaId || bloqueiaTurnos}
+                disabled={bloqueiaTurnos}
                 className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoTurno}`}
               />
             </CampoRotulado>
@@ -1261,7 +1290,7 @@ export default function CadastroObraPage() {
                 value={turnoHoraFim}
                 onChange={(e) => setTurnoHoraFim(e.target.value)}
                 type="time"
-                disabled={!obraAtivaId || bloqueiaTurnos}
+                disabled={bloqueiaTurnos}
                 className={`w-full rounded-lg border border-slate-300 p-3 ${classeCampoTurno}`}
               />
             </CampoRotulado>
@@ -1271,7 +1300,7 @@ export default function CadastroObraPage() {
                 checked={turnoDescontaRefeicao}
                 onChange={(e) => setTurnoDescontaRefeicao(e.target.checked)}
                 type="checkbox"
-                disabled={!obraAtivaId || bloqueiaTurnos}
+                disabled={bloqueiaTurnos}
                 className="mb-0.5 h-4 w-4"
               />
               Descontar refeição

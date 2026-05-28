@@ -16,12 +16,15 @@ import {
 import {
   carregarObjetoLocal as carregarOperacaoLocal,
   checkoutFechamentosStorageKey,
+  type FechamentosTurno,
   chaveTurno,
   listarRestricoesHistorico,
   restricaoStorageKey,
   salvarObjetoLocal,
+  turnoEstaEncerrado,
   type RestricaoHistorico,
 } from "../lib/operacao";
+import { criarCampoUrl } from "../lib/rotas";
 
 type MaoObraReal = {
   id: number;
@@ -60,6 +63,9 @@ export default function Home() {
   const [recursosDisponiveis, setRecursosDisponiveis] = useState<
     RecursoDisponivelTurno[]
   >([]);
+  const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
+    carregarOperacaoLocal(checkoutFechamentosStorageKey, {})
+  );
 
   const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
   const atividadesDaData = useMemo(
@@ -131,7 +137,16 @@ export default function Home() {
     dataTurnoAtual,
     turnoAtivoDados
   );
-  const campoObraAtivaUrl = origemApp ? `${origemApp}/campo` : "";
+  const turnoEncerrado = turnoEstaEncerrado(
+    fechamentos,
+    obraAtivaId,
+    dataTurnoAtual,
+    turnoAtual === "-" ? null : turnoAtual
+  );
+  const indicadorTurnoExibido = turnoEncerrado
+    ? { ...indicadorTurno, texto: "Turno encerrado" as const, tom: "encerrado" as const }
+    : indicadorTurno;
+  const campoObraAtivaUrl = criarCampoUrl(origemApp, obraAtivaId);
   const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
         campoObraAtivaUrl
@@ -226,6 +241,7 @@ export default function Home() {
       setTurnoAtivoDados(
         dadosObra.turnos.find((item) => item.nome === turnoAtivoNome) ?? null
       );
+      setFechamentos(carregarOperacaoLocal(checkoutFechamentosStorageKey, {}));
       void carregarAtividades(obraAtiva?.id ?? null);
       void carregarMaoObraReal();
       setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
@@ -331,10 +347,10 @@ export default function Home() {
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
       subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual} - Inicio: ${dataTurnoFormatada}`}
-      status={indicadorTurno.texto}
-      statusTom={indicadorTurno.tom}
+      status={indicadorTurnoExibido.texto}
+      statusTom={indicadorTurnoExibido.tom}
       infoCentral={relogioTurno}
-      detalheCentral={indicadorTurno.detalhe}
+      detalheCentral={indicadorTurnoExibido.detalhe}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
