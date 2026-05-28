@@ -20,11 +20,14 @@ export const restricaoStorageKey = "obraboard:campo-restricoes";
 export const restricaoHistoricoStorageKey = "obraboard:campo-restricoes-historico";
 export const checkoutValidacoesStorageKey = "obraboard:checkout-validacoes";
 export const checkoutFechamentosStorageKey = "obraboard:checkout-fechamentos";
+export const turnosIniciadosStorageKey = "obraboard:turnos-iniciados";
 
 export type FechamentosTurno = Record<
   string,
   { encerradoEm: string; automatico?: boolean }
 >;
+
+export type TurnosIniciados = Record<string, { iniciadoEm: string }>;
 
 export function calcularAvancoReal(previsto: number | null | undefined, realizado: number | null | undefined) {
   const total = Number(previsto || 0);
@@ -100,6 +103,19 @@ export function turnoEstaEncerrado(
   }
 
   return Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
+}
+
+export function turnoEstaIniciado(
+  turnosIniciados: TurnosIniciados,
+  obraId: number | null,
+  dataTurno: string | null,
+  turno: string | null
+) {
+  if (!obraId || !dataTurno || !turno) {
+    return false;
+  }
+
+  return Boolean(turnosIniciados[chaveTurno(obraId, dataTurno, turno)]);
 }
 
 export function carregarObjetoLocal<T>(chave: string, fallback: T): T {

@@ -10,6 +10,7 @@ import {
   obterDadosObra,
   obterObraAtiva,
   obterTurnoAtivoNome,
+  salvarTurnoAtivo,
   type FuncaoPrevistaCadastrada,
   type TurnoCadastrado,
 } from "../lib/cadastro-base";
@@ -21,7 +22,10 @@ import {
   listarRestricoesHistorico,
   restricaoStorageKey,
   salvarObjetoLocal,
+  turnoEstaIniciado,
   turnoEstaEncerrado,
+  turnosIniciadosStorageKey,
+  type TurnosIniciados,
   type RestricaoHistorico,
 } from "../lib/operacao";
 import { criarCampoUrl } from "../lib/rotas";
@@ -43,6 +47,7 @@ type RestricaoAtividade = {
 
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
 const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
+const dataHoje = () => new Date().toISOString().slice(0, 10);
 
 export default function Home() {
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
@@ -51,6 +56,7 @@ export default function Home() {
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivo, setTurnoAtivo] = useState("");
   const [turnoAtivoDados, setTurnoAtivoDados] = useState<TurnoCadastrado | null>(null);
+  const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [origemApp, setOrigemApp] = useState("");
   const [agora, setAgora] = useState(() => new Date());
   const [restricoesCampo, setRestricoesCampo] = useState<
@@ -66,8 +72,12 @@ export default function Home() {
   const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
     carregarOperacaoLocal(checkoutFechamentosStorageKey, {})
   );
+  const [turnosIniciados, setTurnosIniciados] = useState<TurnosIniciados>(() =>
+    carregarOperacaoLocal(turnosIniciadosStorageKey, {})
+  );
 
   const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
   const atividadesDaData = useMemo(
     () =>
       dataTurnoAtual
@@ -140,11 +150,19 @@ export default function Home() {
   const turnoEncerrado = turnoEstaEncerrado(
     fechamentos,
     obraAtivaId,
-    dataTurnoAtual,
+    dataTurnoOperacional,
+    turnoAtual === "-" ? null : turnoAtual
+  );
+  const turnoIniciado = turnoEstaIniciado(
+    turnosIniciados,
+    obraAtivaId,
+    dataTurnoOperacional,
     turnoAtual === "-" ? null : turnoAtual
   );
   const indicadorTurnoExibido = turnoEncerrado
     ? { ...indicadorTurno, texto: "Turno encerrado" as const, tom: "encerrado" as const }
+    : turnoIniciado
+    ? { ...indicadorTurno, texto: "Turno em andamento" as const, tom: "andamento" as const }
     : indicadorTurno;
   const campoObraAtivaUrl = criarCampoUrl(origemApp, obraAtivaId);
   const qrCodeUrl = campoObraAtivaUrl
@@ -237,11 +255,13 @@ export default function Home() {
       setObraAtivaNome(obraAtiva?.nome || "Sem obra selecionada");
       setObraAtivaId(obraAtiva?.id ?? null);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
+      setTurnosCadastrados(dadosObra.turnos);
       setTurnoAtivo(turnoAtivoNome);
       setTurnoAtivoDados(
         dadosObra.turnos.find((item) => item.nome === turnoAtivoNome) ?? null
       );
       setFechamentos(carregarOperacaoLocal(checkoutFechamentosStorageKey, {}));
+      setTurnosIniciados(carregarOperacaoLocal(turnosIniciadosStorageKey, {}));
       void carregarAtividades(obraAtiva?.id ?? null);
       void carregarMaoObraReal();
       setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
@@ -343,6 +363,30 @@ export default function Home() {
     window.dispatchEvent(new Event("storage"));
   }, [dataTurnoAtual, indicadorTurno.tom, obraAtivaId, turnoAtual]);
 
+  function alterarTurnoPainel(novoTurno: string) {
+    setTurnoAtivo(novoTurno);
+    setTurnoAtivoDados(
+      turnosCadastrados.find((item) => item.nome === novoTurno) ?? null
+    );
+    salvarTurnoAtivo(obraAtivaId, novoTurno);
+  }
+
+  function iniciarTurnoPainel() {
+    if (!obraAtivaId || !dataTurnoOperacional || turnoAtual === "-") {
+      return;
+    }
+
+    const chave = chaveTurno(obraAtivaId, dataTurnoOperacional, turnoAtual);
+    const novosTurnosIniciados = {
+      ...turnosIniciados,
+      [chave]: { iniciadoEm: new Date().toISOString() },
+    };
+
+    setTurnosIniciados(novosTurnosIniciados);
+    salvarObjetoLocal(turnosIniciadosStorageKey, novosTurnosIniciados);
+    window.dispatchEvent(new Event("storage"));
+  }
+
   return (
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
@@ -353,6 +397,54 @@ export default function Home() {
       detalheCentral={indicadorTurnoExibido.detalhe}
     >
       <div className="space-y-4">
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="grid gap-3 lg:grid-cols-[minmax(220px,360px)_auto_1fr] lg:items-end">
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                Turno ativo
+              </span>
+              <select
+                value={turnoAtivo}
+                onChange={(e) => alterarTurnoPainel(e.target.value)}
+                disabled={!obraAtivaId || turnosCadastrados.length === 0}
+                className="w-full rounded-lg border border-slate-300 bg-white p-3"
+              >
+                {turnosCadastrados.length === 0 ? (
+                  <option value="">Cadastre turnos na obra</option>
+                ) : (
+                  turnosCadastrados.map((item) => (
+                    <option key={item.id} value={item.nome}>
+                      {item.nome || "Turno sem nome"} - {formatarHoras(item.horasTrabalho)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={iniciarTurnoPainel}
+              disabled={
+                !obraAtivaId ||
+                turnoAtual === "-" ||
+                turnoEncerrado ||
+                turnoIniciado
+              }
+              className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {turnoEncerrado
+                ? "Turno encerrado"
+                : turnoIniciado
+                ? "Turno iniciado"
+                : "Iniciar turno"}
+            </button>
+
+            <p className="text-sm font-semibold text-slate-500">
+              A selecao do turno vale para Check-in, Campo, Check-out e RDO.
+            </p>
+          </div>
+        </section>
+
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <KpiCard titulo="Atividades" valor={String(atividades.length)} />
           <KpiCard titulo="Execucao" valor={String(executando)} />
