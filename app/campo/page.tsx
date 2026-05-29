@@ -47,7 +47,6 @@ type MaoObraReal = {
   data_turno?: string | null;
 };
 
-const dataHoje = () => new Date().toISOString().slice(0, 10);
 const controleStorageKey = "obraboard:campo-controles";
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
 
@@ -80,6 +79,9 @@ export default function CampoPage() {
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
   const [agora, setAgora] = useState(Date.now());
+  const dataTurnoAtual = obterDataTurnoAtual(
+    turno ? atividades.filter((item) => item.turno === turno) : atividades
+  );
 
   const responsaveisDisponiveis = useMemo(() => {
     const nomes = new Set<string>();
@@ -102,10 +104,11 @@ export default function CampoPage() {
     () =>
       atividades.filter(
         (item) =>
+          (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
           (!turno || item.turno === turno) &&
           (!responsavelFiltro || item.responsavel === responsavelFiltro)
       ),
-    [atividades, responsavelFiltro, turno]
+    [atividades, dataTurnoAtual, responsavelFiltro, turno]
   );
 
   const atividadesFiltradas = useMemo(() => {
@@ -314,7 +317,21 @@ export default function CampoPage() {
       atualizacao.responsavel = responsavel;
     }
 
-    const { error } = await supabase.from("atividades").update(atualizacao).eq("id", id);
+    let consulta = supabase.from("atividades").update(atualizacao).eq("id", id);
+
+    if (obraId) {
+      consulta = consulta.eq("obra_id", obraId);
+    }
+
+    if (dataTurnoAtual) {
+      consulta = consulta.eq("data_turno", dataTurnoAtual);
+    }
+
+    if (turno) {
+      consulta = consulta.eq("turno", turno);
+    }
+
+    const { error } = await consulta;
 
     if (error) {
       console.error(error);
@@ -480,13 +497,18 @@ export default function CampoPage() {
       return;
     }
 
+    if (!obraId || !dataTurnoAtual || !turno) {
+      alert("A tela Campo precisa estar vinculada a obra, data e turno.");
+      return;
+    }
+
     const payload = {
       atividade_id: atividadeMaoObraId,
       obra_id: obraId,
       funcao,
       quantidade: Number(quantidade),
       turno,
-      data_turno: dataHoje(),
+      data_turno: dataTurnoAtual,
     };
 
     const { error } = await supabase.from("mao_obra").insert([payload]);
@@ -497,7 +519,7 @@ export default function CampoPage() {
           funcao,
           quantidade: Number(quantidade),
           turno,
-          data_turno: dataHoje(),
+          data_turno: dataTurnoAtual,
         },
       ]);
 
@@ -509,7 +531,7 @@ export default function CampoPage() {
           funcao,
           quantidade: Number(quantidade),
           turno,
-          data_turno: dataHoje(),
+          data_turno: dataTurnoAtual,
         };
 
         salvarListaLocal(maoObraLocalStorageKey, [
@@ -537,10 +559,17 @@ export default function CampoPage() {
           </p>
         )}
 
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="mt-3 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
             <p className="text-xs font-bold uppercase text-slate-400">Obra</p>
             <p className="mt-1 text-sm font-semibold text-white">{obra}</p>
+          </div>
+
+          <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
+            <p className="text-xs font-bold uppercase text-slate-400">Data</p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              {dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"}
+            </p>
           </div>
 
           <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
@@ -548,14 +577,14 @@ export default function CampoPage() {
             <p className="mt-1 text-sm font-semibold text-white">{turno || "-"}</p>
           </div>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
+          <label className="block rounded-lg border border-slate-700 bg-slate-800 p-3">
+            <span className="block text-xs font-bold uppercase text-slate-400">
               Responsável
             </span>
             <select
               value={responsavelFiltro}
               onChange={(e) => setResponsavelFiltro(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
+              className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-2 text-sm font-semibold text-white"
             >
               <option value="">Todos os responsáveis</option>
               {responsaveisDisponiveis.map((responsavel) => (
@@ -941,6 +970,25 @@ function formatarDuracao(ms: number) {
     2,
     "0"
   )}:${String(segundos).padStart(2, "0")}`;
+}
+
+function obterDataTurnoAtual(atividades: Array<{ data_turno?: string | null }>) {
+  const datas = atividades
+    .map((item) => item.data_turno)
+    .filter((data): data is string => Boolean(data))
+    .sort();
+
+  return datas.at(-1) ?? null;
+}
+
+function formatarDataTurno(dataTurno: string) {
+  const [ano, mes, dia] = dataTurno.split("-");
+
+  if (!ano || !mes || !dia) {
+    return dataTurno;
+  }
+
+  return `${dia}/${mes}/${ano}`;
 }
 
 function carregarObjetoLocal<T>(chave: string): T {
