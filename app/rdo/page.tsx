@@ -6,12 +6,8 @@ import { supabase } from "../../lib/supabase";
 import type { Atividade, RecursoDisponivelTurno } from "../../lib/types";
 import {
   cadastroBaseEvento,
-  cadastroDadosObraInicial,
   carregarCadastroBase,
-  obterDadosObra,
-  obterTurnoAtivoNome,
-  resolverObraPorParametro,
-  type TurnoCadastrado,
+  getContextoAtual,
 } from "../../lib/cadastro-base";
 import {
   calcularAvancoReal,
@@ -21,7 +17,6 @@ import {
   listarRestricoesHistorico,
   type RestricaoHistorico,
 } from "../../lib/operacao";
-import { criarRotaComObra } from "../../lib/rotas";
 
 type MaoObraReal = {
   id: number;
@@ -56,7 +51,6 @@ export default function RdoPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
-  const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [turno, setTurno] = useState("");
   const [dataTurnoSelecionada, setDataTurnoSelecionada] = useState("");
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
@@ -65,7 +59,11 @@ export default function RdoPage() {
   const [restricoesCampo, setRestricoesCampo] = useState<Record<number, RestricaoCampo>>({});
   const [restricoesHistorico, setRestricoesHistorico] = useState<RestricaoHistorico[]>([]);
 
-  const dataTurnoMaisRecente = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoMaisRecente = obterDataTurnoAtual(
+    turno
+      ? atividadesBanco.filter((item) => item.turno === turno)
+      : atividadesBanco
+  );
   const dataTurnoAtual = dataTurnoSelecionada || dataTurnoMaisRecente;
   const atividades = useMemo(
     () =>
@@ -263,28 +261,16 @@ export default function RdoPage() {
       const cadastro = carregarCadastroBase();
       const parametros = new URLSearchParams(window.location.search);
       const dataParam = parametros.get("dataTurno") || "";
-      const turnoParam = parametros.get("turno") || "";
-      const obraParam = parametros.get("obraId");
-      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
-      const obraAtiva = obraResolvida.obra;
-      const obraResolvidaId = obraResolvida.obraId;
-      const dadosObra = obraAtiva
-        ? obterDadosObra(cadastro, obraAtiva.id)
-        : cadastroDadosObraInicial;
-      const turnoAtivo = obterTurnoAtivoNome(cadastro, obraResolvidaId, dadosObra.turnos);
-
+      const contexto = getContextoAtual(cadastro);
+      const obraAtiva = contexto.obraAtiva;
+      const obraResolvidaId = contexto.obraAtivaId;
       setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
       setObraId(obraResolvidaId);
       setObra(
         obraAtiva?.nome ??
           (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
       );
-      setTurnosCadastrados(dadosObra.turnos);
-      setTurno(
-        turnoParam && dadosObra.turnos.some((item) => item.nome === turnoParam)
-          ? turnoParam
-          : turnoAtivo || dadosObra.turnos[0]?.nome || ""
-      );
+      setTurno(contexto.turnoAtivo?.nome ?? "");
       setDataTurnoSelecionada(dataParam);
       setRestricoesCampo(carregarObjetoLocal<Record<number, RestricaoCampo>>(restricaoStorageKey, {}));
       setRestricoesHistorico(listarRestricoesHistorico(obraResolvidaId, null, null));
@@ -333,15 +319,9 @@ export default function RdoPage() {
                       </p>
                       <p className="text-xs font-semibold text-slate-500">{item.status}</p>
                     </div>
-                    <a
-                      href={criarRotaComObra(
-                        `/rdo?dataTurno=${encodeURIComponent(item.dataTurno)}&turno=${encodeURIComponent(item.turno)}`,
-                        obraId
-                      )}
-                      className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-teal-700"
-                    >
-                      Abrir folha
-                    </a>
+                    <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
+                      Historico
+                    </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center text-xs md:grid-cols-5">
                     <ResumoHistorico label="Avanço" value={`${item.avanco}%`} />
@@ -359,26 +339,20 @@ export default function RdoPage() {
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
             Obra ativa: {obra}
           </div>
-          <label className="block max-w-sm">
-            <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
-              Turno
-            </span>
-            <select
-              value={turno}
-              onChange={(e) => setTurno(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 p-3"
-            >
-              {turnosCadastrados.length === 0 ? (
-                <option value="">Sem turnos cadastrados</option>
-              ) : (
-                turnosCadastrados.map((item) => (
-                  <option key={item.id} value={item.nome}>
-                    {item.nome || "Turno sem nome"} - {formatarHoras(item.horasTrabalho)}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+          {!obraId && (
+            <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+              Selecione uma obra no menu lateral para continuar.
+            </p>
+          )}
+          {obraId && !turno && (
+            <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+              Selecione ou publique um turno no Checkin para continuar.
+            </p>
+          )}
+          <div className="max-w-sm rounded-xl border border-slate-200 p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Turno ativo</p>
+            <p className="mt-1 font-bold text-slate-900">{turno || "-"}</p>
+          </div>
           <p className="mt-3 text-sm font-semibold text-slate-500">
             Folha aberta: {dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"} - Turno {turno || "-"}
           </p>
@@ -611,13 +585,6 @@ function formatarDataTurno(dataTurno: string) {
   }
 
   return `${dia}/${mes}/${ano}`;
-}
-
-function formatarHoras(horas: number) {
-  return `${horas.toLocaleString("pt-BR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
-  })} h`;
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {

@@ -231,7 +231,6 @@ export function criarCadastroBaseVazio(): CadastroBase {
 export function obterObraAtiva(cadastro: CadastroBase) {
   return (
     cadastro.obras.find((obra) => String(obra.id) === String(cadastro.obraAtivaId)) ??
-    cadastro.obras[0] ??
     null
   );
 }
@@ -323,7 +322,6 @@ export function definirDadosObra(
 
   return {
     ...cadastro,
-    obraAtivaId: obraId,
     dadosPorObra: {
       ...cadastro.dadosPorObra,
       [String(obraId)]: normalizarDadosObra(dados),
@@ -339,9 +337,23 @@ export function salvarObraAtivaId(obraId: number | null) {
 
   salvarCadastroBase({
     ...cadastro,
-    obraAtivaId: obraSelecionada?.id ?? cadastro.obras[0]?.id ?? null,
+    obraAtivaId: obraSelecionada?.id ?? null,
   });
   notificarCadastroBaseAtualizado();
+}
+
+export function obterTurnoPorId(
+  turnos: TurnoCadastrado[],
+  turnoId: number | string | null | undefined
+) {
+  if (turnoId === null || turnoId === undefined || turnoId === "") {
+    return null;
+  }
+
+  return (
+    turnos.find((turno) => String(turno.id) === String(turnoId)) ??
+    null
+  );
 }
 
 export function obterTurnoAtivoNome(
@@ -350,14 +362,72 @@ export function obterTurnoAtivoNome(
   turnos: TurnoCadastrado[]
 ) {
   if (!obraId) {
-    return turnos[0]?.nome ?? "";
+    return "";
   }
 
   const turnoSalvo = cadastro.turnoAtivoPorObra[String(obraId)];
 
   return turnos.some((turno) => turno.nome === turnoSalvo)
     ? turnoSalvo
-    : turnos[0]?.nome ?? "";
+    : "";
+}
+
+export function obterTurnoAtivo(
+  cadastro: CadastroBase,
+  obraId: number | null,
+  turnos: TurnoCadastrado[]
+) {
+  const turnoNome = obterTurnoAtivoNome(cadastro, obraId, turnos);
+
+  return turnos.find((turno) => turno.nome === turnoNome) ?? null;
+}
+
+export function getContextoAtual(
+  cadastro = carregarCadastroBase(),
+  parametros?: {
+    obraId?: string | number | null;
+    turnoId?: string | number | null;
+    usarParametrosUrl?: boolean;
+  }
+) {
+  const deveLerUrl =
+    parametros?.usarParametrosUrl && typeof window !== "undefined";
+  const searchParams = deveLerUrl
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const obraIdParametro =
+    parametros?.obraId ??
+    (searchParams?.has("obraId") ? searchParams.get("obraId") : undefined);
+  const turnoIdParametro =
+    parametros?.turnoId ??
+    (searchParams?.has("turnoId") ? searchParams.get("turnoId") : undefined);
+  const obraIdInformado = obraIdParametro !== undefined;
+  const turnoIdInformado = turnoIdParametro !== undefined;
+  const obraAtiva = obraIdInformado
+    ? obterObraPorId(cadastro, obraIdParametro)
+    : obterObraAtiva(cadastro);
+  const obraAtivaId = obraAtiva?.id ?? normalizarObraId(obraIdParametro);
+  const dadosObra = obraAtiva
+    ? obterDadosObra(cadastro, obraAtiva.id)
+    : cadastroDadosObraInicial;
+  const turnoAtivo = turnoIdInformado
+    ? obterTurnoPorId(dadosObra.turnos, turnoIdParametro)
+    : obterTurnoAtivo(cadastro, obraAtiva?.id ?? null, dadosObra.turnos);
+
+  return {
+    obraAtiva,
+    obraAtivaId: obraAtiva?.id ?? null,
+    turnoAtivo,
+    turnoAtivoId: turnoAtivo?.id ?? null,
+    dadosObra,
+    obraIdInformado,
+    turnoIdInformado,
+    obraIdParametro: obraAtivaId,
+    turnoIdParametro:
+      turnoIdParametro === null || turnoIdParametro === undefined
+        ? null
+        : String(turnoIdParametro),
+  };
 }
 
 export function salvarTurnoAtivo(obraId: number | null, turnoNome: string) {
@@ -506,7 +576,7 @@ function normalizarCadastroBase(cadastro: Partial<CadastroBase>): CadastroBase {
     cadastro.obraAtivaId &&
     obras.some((obra) => String(obra.id) === String(cadastro.obraAtivaId))
       ? Number(cadastro.obraAtivaId)
-      : obras[0]?.id ?? null;
+      : null;
 
   return {
     ...cadastroBaseInicial,

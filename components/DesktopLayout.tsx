@@ -6,9 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   cadastroBaseEvento,
   carregarCadastroBase,
-  obterObraAtiva,
-  obterObraAtivaId,
-  resolverObraPorParametro,
+  getContextoAtual,
   salvarObraAtivaId,
   sincronizarCadastroBaseRemoto,
   type ObraCadastrada,
@@ -47,9 +45,10 @@ export default function DesktopLayout({
   const [logoSalvo, setLogoSalvo] = useState("");
   const [obras, setObras] = useState<ObraCadastrada[]>([]);
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
+  const [turnoAtivoId, setTurnoAtivoId] = useState<number | null>(null);
   const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
-  const campoHref = criarCampoPath(obraAtivaId);
+  const campoHref = criarCampoPath(obraAtivaId, turnoAtivoId);
   const itensMenu = menuItems.map((item) => ({
     ...item,
     href: criarRotaComObra(item.href, obraAtivaId),
@@ -65,21 +64,16 @@ export default function DesktopLayout({
   useEffect(() => {
     function carregarContexto() {
       const cadastro = carregarCadastroBase();
-      const obraParam = new URLSearchParams(window.location.search).get("obraId");
-      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
-      const obraAtiva = obraResolvida.parametroInformado
-        ? obraResolvida.obra
-        : obterObraAtiva(cadastro);
-      const ativoId = obraResolvida.parametroInformado
-        ? obraResolvida.obraId
-        : obterObraAtivaId(cadastro);
+      const contexto = getContextoAtual(cadastro);
+      const obraAtiva = contexto.obraAtiva;
 
       if (logoUrl === undefined) {
         setLogoSalvo(obraAtiva?.logoUrl || cadastro.logoUrl);
       }
 
       setObras(cadastro.obras);
-      setObraAtivaId(ativoId);
+      setObraAtivaId(contexto.obraAtivaId);
+      setTurnoAtivoId(contexto.turnoAtivoId);
     }
 
     queueMicrotask(() => {
@@ -149,7 +143,12 @@ export default function DesktopLayout({
               </label>
 
               <div className="mt-3">
-                <MenuLink href={campoHref} label="Campo" icon="CP" />
+                <MenuLink
+                  href={campoHref}
+                  label="Campo"
+                  icon="CP"
+                  disabledText="Publique um turno no Check-in"
+                />
               </div>
             </div>
 
@@ -234,6 +233,7 @@ export default function DesktopLayout({
                   label={item.label}
                   icon={item.icon}
                   compact
+                  disabledText="Publique um turno no Check-in"
                 />
               ))}
             </nav>
@@ -285,13 +285,34 @@ function MenuLink({
   label,
   icon,
   compact = false,
+  disabledText,
 }: {
   href: string;
   label: string;
   icon: string;
   compact?: boolean;
+  disabledText?: string;
 }) {
   const pathname = usePathname();
+  const classeBase = `flex items-center gap-3 rounded-xl text-sm font-semibold transition ${
+    compact ? "shrink-0 px-3 py-2" : "px-4 py-3"
+  }`;
+
+  if (!href) {
+    return (
+      <span
+        title={disabledText}
+        className={`${classeBase} cursor-not-allowed text-slate-500`}
+      >
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/10 text-sm">
+          {icon}
+        </span>
+
+        <span>{label}</span>
+      </span>
+    );
+  }
+
   const hrefPathname = href.split("?")[0];
 
   const ativo =
@@ -300,9 +321,7 @@ function MenuLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-xl text-sm font-semibold transition ${
-        compact ? "shrink-0 px-3 py-2" : "px-4 py-3"
-      } ${
+      className={`${classeBase} ${
         ativo
           ? "bg-teal-500 text-white shadow-sm"
           : "text-slate-300 hover:bg-slate-800 hover:text-white"

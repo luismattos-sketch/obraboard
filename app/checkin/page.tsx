@@ -13,9 +13,8 @@ import {
   cadastroBaseEvento,
   cadastroDadosObraInicial,
   carregarCadastroBase,
+  getContextoAtual,
   obterDadosObra,
-  obterTurnoAtivoNome,
-  resolverObraPorParametro,
   salvarTurnoAtivo,
   type DisciplinaCadastrada,
   type FuncaoPrevistaCadastrada,
@@ -26,6 +25,11 @@ import {
   chaveTurno,
   checkoutFechamentosStorageKey,
   carregarObjetoLocal,
+  type ControlesTurno,
+  obterControleTurno,
+  publicarControleTurno,
+  salvarObjetoLocal,
+  turnosOperacaoStorageKey,
 } from "../../lib/operacao";
 
 type RecursoFormulario = {
@@ -165,8 +169,19 @@ export default function CheckinPage() {
   const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>(
     () => carregarObjetoLocal(checkoutFechamentosStorageKey, {})
   );
+  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
+    carregarObjetoLocal(turnosOperacaoStorageKey, {})
+  );
+  const [edicaoLiberada, setEdicaoLiberada] = useState(false);
 
   const turnoEncerrado = Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
+  const controleTurno = obterControleTurno(controlesTurno, obraId, dataTurno, turno);
+  const turnoPublicado = ["publicado", "em_andamento", "pausado"].includes(
+    controleTurno?.status ?? ""
+  );
+  const checkinBloqueado =
+    (turnoPublicado || turnoEncerrado || controleTurno?.status === "encerrado") &&
+    !edicaoLiberada;
 
   const atividadesTurno = useMemo(
     () =>
@@ -385,18 +400,12 @@ export default function CheckinPage() {
   useEffect(() => {
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
-      const obraParam = new URLSearchParams(window.location.search).get("obraId");
-      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
-      const obraAtiva = obraResolvida.obra;
-      const obraResolvidaId = obraResolvida.obraId;
+      const contexto = getContextoAtual(cadastro);
+      const obraAtiva = contexto.obraAtiva;
+      const obraResolvidaId = contexto.obraAtivaId;
       const dadosObra = obraAtiva
         ? obterDadosObra(cadastro, obraAtiva.id)
         : cadastroDadosObraInicial;
-      const turnoAtivo = obterTurnoAtivoNome(
-        cadastro,
-        obraResolvidaId,
-        dadosObra.turnos
-      );
       setObraId(obraResolvidaId);
       setObra(
         obraAtiva?.nome ??
@@ -407,14 +416,16 @@ export default function CheckinPage() {
       setUsuariosCadastrados(dadosObra.usuarios);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
 
-      if (turnoAtivo) {
-        setTurno(turnoAtivo);
+      if (contexto.turnoAtivo) {
+        setTurno(contexto.turnoAtivo.nome);
       } else {
         setTurno("");
       }
 
       void carregarAtividades(obraResolvidaId);
       setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
+      setControlesTurno(carregarObjetoLocal(turnosOperacaoStorageKey, {}));
+      setEdicaoLiberada(false);
     }
 
     queueMicrotask(carregarContextoObra);
@@ -440,6 +451,11 @@ export default function CheckinPage() {
   async function adicionarAtividade() {
     setMensagem("");
     setErro("");
+
+    if (checkinBloqueado) {
+      setErro("Clique em Editar para alterar o turno publicado.");
+      return;
+    }
 
     if (!obraId) {
       setErro("Selecione uma obra ativa antes de cadastrar atividades.");
@@ -824,6 +840,11 @@ export default function CheckinPage() {
     setMensagem("");
     setErro("");
 
+    if (checkinBloqueado) {
+      setErro("Clique em Editar para alterar os recursos do turno publicado.");
+      return;
+    }
+
     if (!obraId || !dataTurno || !turno) {
       setErro("Selecione obra, data e turno antes de cadastrar recursos.");
       return;
@@ -879,6 +900,11 @@ export default function CheckinPage() {
     setMensagem("");
     setErro("");
 
+    if (checkinBloqueado) {
+      setErro("Clique em Editar para alterar os recursos do turno publicado.");
+      return;
+    }
+
     if (recurso.id > 0) {
       const { error } = await supabase
         .from("recursos_disponiveis")
@@ -900,6 +926,10 @@ export default function CheckinPage() {
   }
 
   function iniciarEdicao(item: Atividade) {
+    if (checkinBloqueado) {
+      return;
+    }
+
     setMensagem("");
     setErro("");
     setAtividadeExcluindoId(null);
@@ -953,6 +983,11 @@ export default function CheckinPage() {
   async function salvarEdicao(id: number) {
     setMensagem("");
     setErro("");
+
+    if (checkinBloqueado) {
+      setErro("Clique em Editar para alterar o turno publicado.");
+      return;
+    }
 
     if (
       !edicao.atividade ||
@@ -1023,6 +1058,10 @@ export default function CheckinPage() {
   }
 
   function pedirExclusao(id: number) {
+    if (checkinBloqueado) {
+      return;
+    }
+
     setMensagem("");
     setErro("");
     setAtividadeEditandoId(null);
@@ -1036,6 +1075,12 @@ export default function CheckinPage() {
   async function confirmarExclusao(id: number) {
     setMensagem("");
     setErro("");
+
+    if (checkinBloqueado) {
+      setErro("Clique em Editar para alterar o turno publicado.");
+      return;
+    }
+
     setSalvando(true);
 
     await supabase.from("atividade_recursos").delete().eq("atividade_id", id);
@@ -1070,6 +1115,7 @@ export default function CheckinPage() {
 
   function alterarTurnoSelecionado(novoTurno: string) {
     setTurno(novoTurno);
+    setEdicaoLiberada(false);
     salvarTurnoAtivo(obraId, novoTurno);
   }
 
@@ -1082,12 +1128,29 @@ export default function CheckinPage() {
       return;
     }
 
+    if (!turno) {
+      setErro("Selecione um turno antes de publicar.");
+      return;
+    }
+
     if (atividadesTurno.length === 0) {
       setErro("Adicione ao menos uma atividade antes de publicar o turno.");
       return;
     }
 
-    setMensagem("Turno pronto para execucao no campo.");
+    const novosControles = publicarControleTurno(
+      controlesTurno,
+      obraId,
+      dataTurno,
+      turno
+    );
+
+    salvarTurnoAtivo(obraId, turno);
+    setControlesTurno(novosControles);
+    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
+    setEdicaoLiberada(false);
+    window.dispatchEvent(new Event("storage"));
+    setMensagem("Turno publicado. O Check-in foi bloqueado para execucao no campo.");
   }
 
   return (
@@ -1107,6 +1170,12 @@ export default function CheckinPage() {
           >
             {erro || mensagem}
           </div>
+        )}
+
+        {!obraId && (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center text-sm font-semibold text-slate-500">
+            Selecione uma obra no menu lateral para continuar.
+          </p>
         )}
 
         <section className="rounded-2xl bg-white p-5 shadow-sm">
@@ -1149,6 +1218,7 @@ export default function CheckinPage() {
                 value={dataTurno}
                 onChange={(e) => setDataTurno(e.target.value)}
                 type="date"
+                disabled={checkinBloqueado}
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               />
             </CampoRotulado>
@@ -1157,6 +1227,7 @@ export default function CheckinPage() {
               <select
                 value={turno}
                 onChange={(e) => alterarTurnoSelecionado(e.target.value)}
+                disabled={checkinBloqueado}
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               >
                 {turnosCadastrados.length === 0 ? (
@@ -1176,6 +1247,7 @@ export default function CheckinPage() {
               <input
                 value={planejador}
                 onChange={(e) => setPlanejador(e.target.value)}
+                disabled={checkinBloqueado}
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 placeholder="Planejador"
               />
@@ -1211,7 +1283,10 @@ export default function CheckinPage() {
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <fieldset
+            disabled={checkinBloqueado}
+            className="order-2 rounded-2xl bg-white p-5 shadow-sm disabled:opacity-70 xl:order-2"
+          >
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 className="text-lg font-bold">
@@ -1422,9 +1497,12 @@ export default function CheckinPage() {
                   : "Adicionar atividade"}
               </button>
             </div>
-          </div>
+          </fieldset>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <fieldset
+            disabled={checkinBloqueado}
+            className="order-1 rounded-2xl bg-white p-5 shadow-sm disabled:opacity-70 xl:order-1"
+          >
             <div className="mb-4">
               <h2 className="text-lg font-bold">Recursos disponiveis</h2>
               <p className="text-sm text-slate-500">
@@ -1509,7 +1587,7 @@ export default function CheckinPage() {
                 ))
               )}
             </div>
-          </div>
+          </fieldset>
         </section>
 
         <section className="rounded-2xl bg-white shadow-sm">
@@ -1774,7 +1852,7 @@ export default function CheckinPage() {
                               <button
                                 type="button"
                                 onClick={() => iniciarEdicao(item)}
-                                disabled={turnoEncerrado}
+                                disabled={turnoEncerrado || checkinBloqueado}
                                 className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:text-slate-400"
                               >
                                 Editar
@@ -1783,7 +1861,7 @@ export default function CheckinPage() {
                               <button
                                 type="button"
                                 onClick={() => pedirExclusao(item.id)}
-                                disabled={turnoEncerrado}
+                                disabled={turnoEncerrado || checkinBloqueado}
                                 className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 disabled:text-slate-400"
                               >
                                 Excluir
@@ -1807,6 +1885,7 @@ export default function CheckinPage() {
             <textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
+              disabled={checkinBloqueado}
               className="min-h-[120px] w-full rounded-lg border border-slate-300 p-4 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               placeholder="Registre liberações, riscos, premissas e combinados do turno..."
             />
@@ -1825,14 +1904,25 @@ export default function CheckinPage() {
               execução no campo.
             </p>
 
-            <button
-              type="button"
-              onClick={publicarTurno}
-              disabled={turnoEncerrado}
-              className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {turnoEncerrado ? "Turno encerrado" : "Publicar turno"}
-            </button>
+            {checkinBloqueado ? (
+              <button
+                type="button"
+                onClick={() => setEdicaoLiberada(true)}
+                disabled={turnoEncerrado || controleTurno?.status === "encerrado"}
+                className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                Editar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={publicarTurno}
+                disabled={turnoEncerrado}
+                className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {turnoEncerrado ? "Turno encerrado" : "Publicar turno"}
+              </button>
+            )}
           </div>
         </section>
       </div>

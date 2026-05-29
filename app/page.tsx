@@ -8,25 +8,27 @@ import {
   cadastroBaseEvento,
   cadastroDadosObraInicial,
   carregarCadastroBase,
+  getContextoAtual,
   obterDadosObra,
-  obterTurnoAtivoNome,
-  resolverObraPorParametro,
-  salvarTurnoAtivo,
   type FuncaoPrevistaCadastrada,
   type TurnoCadastrado,
 } from "../lib/cadastro-base";
 import {
+  calcularTempoTurno,
   carregarObjetoLocal as carregarOperacaoLocal,
   checkoutFechamentosStorageKey,
+  encerrarControleTurno,
   type FechamentosTurno,
   chaveTurno,
+  type ControlesTurno,
+  iniciarControleTurno,
   listarRestricoesHistorico,
+  obterControleTurno,
+  pausarControleTurno,
   restricaoStorageKey,
   salvarObjetoLocal,
-  turnoEstaIniciado,
   turnoEstaEncerrado,
-  turnosIniciadosStorageKey,
-  type TurnosIniciados,
+  turnosOperacaoStorageKey,
   type RestricaoHistorico,
 } from "../lib/operacao";
 import { criarCampoUrl } from "../lib/rotas";
@@ -73,11 +75,16 @@ export default function Home() {
   const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
     carregarOperacaoLocal(checkoutFechamentosStorageKey, {})
   );
-  const [turnosIniciados, setTurnosIniciados] = useState<TurnosIniciados>(() =>
-    carregarOperacaoLocal(turnosIniciadosStorageKey, {})
+  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
+    carregarOperacaoLocal(turnosOperacaoStorageKey, {})
   );
+  const [mensagem, setMensagem] = useState("");
 
-  const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoAtual = obterDataTurnoAtual(
+    turnoAtivo
+      ? atividadesBanco.filter((item) => item.turno === turnoAtivo)
+      : atividadesBanco
+  );
   const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
   const atividadesDaData = useMemo(
     () =>
@@ -86,13 +93,12 @@ export default function Home() {
         : atividadesBanco,
     [atividadesBanco, dataTurnoAtual]
   );
-  const turnoAtual =
-    turnoAtivo || atividadesDaData.find((item) => item.turno)?.turno || "-";
+  const turnoAtual = turnoAtivo;
   const atividades = useMemo(
     () =>
-      turnoAtual === "-"
-        ? atividadesDaData
-        : atividadesDaData.filter((item) => item.turno === turnoAtual),
+      turnoAtual
+        ? atividadesDaData.filter((item) => item.turno === turnoAtual)
+        : [],
     [atividadesDaData, turnoAtual]
   );
   const recursosReaisPorFuncao = useMemo(() => {
@@ -105,7 +111,7 @@ export default function Home() {
           item.atividade_id
             ? atividadesIds.has(item.atividade_id)
             : (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
-              (turnoAtual === "-" || item.turno === turnoAtual)
+              (!turnoAtual || item.turno === turnoAtual)
       )
       .forEach((item) => {
         const funcao = item.funcao || "";
@@ -142,30 +148,28 @@ export default function Home() {
   const dataTurnoFormatada = dataTurnoAtual
     ? formatarDataTurno(dataTurnoAtual)
     : "Turno sem data";
-  const relogioTurno = formatarRelogioTurno(agora);
-  const indicadorTurno = obterIndicadorTurno(
-    agora,
-    dataTurnoAtual,
-    turnoAtivoDados
+  const controleTurno = obterControleTurno(
+    controlesTurno,
+    obraAtivaId,
+    dataTurnoOperacional,
+    turnoAtual || null
   );
+  const tempoDecorridoMs = calcularTempoTurno(controleTurno, agora.getTime());
   const turnoEncerrado = turnoEstaEncerrado(
     fechamentos,
     obraAtivaId,
     dataTurnoOperacional,
-    turnoAtual === "-" ? null : turnoAtual
+    turnoAtual || null
   );
-  const turnoIniciado = turnoEstaIniciado(
-    turnosIniciados,
+  const statusOperacao = turnoEncerrado
+    ? "encerrado"
+    : controleTurno?.status ?? "planejado";
+  const indicadorTurnoExibido = obterIndicadorOperacao(statusOperacao);
+  const campoObraAtivaUrl = criarCampoUrl(
+    origemApp,
     obraAtivaId,
-    dataTurnoOperacional,
-    turnoAtual === "-" ? null : turnoAtual
+    turnoAtivoDados?.id
   );
-  const indicadorTurnoExibido = turnoEncerrado
-    ? { ...indicadorTurno, texto: "Turno encerrado" as const, tom: "encerrado" as const }
-    : turnoIniciado
-    ? { ...indicadorTurno, texto: "Turno em andamento" as const, tom: "andamento" as const }
-    : indicadorTurno;
-  const campoObraAtivaUrl = criarCampoUrl(origemApp, obraAtivaId);
   const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
         campoObraAtivaUrl
@@ -209,7 +213,7 @@ export default function Home() {
   }, [atividades, historicoRestricoes, restricoesCampo]);
 
   useEffect(() => {
-    const intervalo = window.setInterval(() => setAgora(new Date()), 30000);
+    const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
     queueMicrotask(() => setOrigemApp(window.location.origin));
 
     return () => window.clearInterval(intervalo);
@@ -245,18 +249,12 @@ export default function Home() {
 
     function carregarContexto() {
       const cadastro = carregarCadastroBase();
-      const obraParam = new URLSearchParams(window.location.search).get("obraId");
-      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
-      const obraAtiva = obraResolvida.obra;
-      const obraResolvidaId = obraResolvida.obraId;
+      const contexto = getContextoAtual(cadastro);
+      const obraAtiva = contexto.obraAtiva;
+      const obraResolvidaId = contexto.obraAtivaId;
       const dadosObra = obraAtiva
         ? obterDadosObra(cadastro, obraAtiva.id)
         : cadastroDadosObraInicial;
-      const turnoAtivoNome = obterTurnoAtivoNome(
-        cadastro,
-        obraResolvidaId,
-        dadosObra.turnos
-      );
 
       setObraAtivaNome(
         obraAtiva?.nome ||
@@ -265,12 +263,10 @@ export default function Home() {
       setObraAtivaId(obraResolvidaId);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnosCadastrados(dadosObra.turnos);
-      setTurnoAtivo(turnoAtivoNome);
-      setTurnoAtivoDados(
-        dadosObra.turnos.find((item) => item.nome === turnoAtivoNome) ?? null
-      );
+      setTurnoAtivo(contexto.turnoAtivo?.nome ?? "");
+      setTurnoAtivoDados(contexto.turnoAtivo);
       setFechamentos(carregarOperacaoLocal(checkoutFechamentosStorageKey, {}));
-      setTurnosIniciados(carregarOperacaoLocal(turnosIniciadosStorageKey, {}));
+      setControlesTurno(carregarOperacaoLocal(turnosOperacaoStorageKey, {}));
       void carregarAtividades(obraResolvidaId);
       void carregarMaoObraReal();
       setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
@@ -292,7 +288,7 @@ export default function Home() {
     void carregarRecursosPainel();
 
     async function carregarRecursosPainel() {
-      if (!obraAtivaId || !dataTurnoAtual || !turnoAtual || turnoAtual === "-") {
+      if (!obraAtivaId || !dataTurnoAtual || !turnoAtual) {
         setRecursosDisponiveis([]);
         return;
       }
@@ -340,116 +336,167 @@ export default function Home() {
         listarRestricoesHistorico(
           obraAtivaId,
           dataTurnoAtual,
-          turnoAtual === "-" ? null : turnoAtual
+          turnoAtual || null
         )
       )
     );
   }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
 
-  useEffect(() => {
-    if (
-      indicadorTurno.tom !== "encerrado" ||
-      !obraAtivaId ||
-      !dataTurnoAtual ||
-      turnoAtual === "-"
-    ) {
+  function iniciarTurnoPainel() {
+    if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
       return;
     }
 
-    const chave = chaveTurno(obraAtivaId, dataTurnoAtual, turnoAtual);
-    const fechamentos = carregarOperacaoLocal<
-      Record<string, { encerradoEm: string; automatico?: boolean }>
-    >(checkoutFechamentosStorageKey, {});
-
-    if (fechamentos[chave]) {
-      return;
-    }
-
-    salvarObjetoLocal(checkoutFechamentosStorageKey, {
-      ...fechamentos,
-      [chave]: { encerradoEm: new Date().toISOString(), automatico: true },
-    });
-    window.dispatchEvent(new Event("storage"));
-  }, [dataTurnoAtual, indicadorTurno.tom, obraAtivaId, turnoAtual]);
-
-  function alterarTurnoPainel(novoTurno: string) {
-    setTurnoAtivo(novoTurno);
-    setTurnoAtivoDados(
-      turnosCadastrados.find((item) => item.nome === novoTurno) ?? null
+    gravarControlesTurno(
+      iniciarControleTurno(
+        controlesTurno,
+        obraAtivaId,
+        dataTurnoOperacional,
+        turnoAtual
+      )
     );
-    salvarTurnoAtivo(obraAtivaId, novoTurno);
+    setMensagem("Turno iniciado.");
   }
 
-  function iniciarTurnoPainel() {
-    if (!obraAtivaId || !dataTurnoOperacional || turnoAtual === "-") {
+  function pararTurnoPainel() {
+    if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
       return;
     }
 
+    gravarControlesTurno(
+      pausarControleTurno(
+        controlesTurno,
+        obraAtivaId,
+        dataTurnoOperacional,
+        turnoAtual
+      )
+    );
+    setMensagem("Turno pausado.");
+  }
+
+  function continuarTurnoPainel() {
+    iniciarTurnoPainel();
+    setMensagem("Turno retomado.");
+  }
+
+  function encerrarTurnoPainel() {
+    if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
+      return;
+    }
+
+    const novosControles = encerrarControleTurno(
+      controlesTurno,
+      obraAtivaId,
+      dataTurnoOperacional,
+      turnoAtual
+    );
+    const controleEncerrado = obterControleTurno(
+      novosControles,
+      obraAtivaId,
+      dataTurnoOperacional,
+      turnoAtual
+    );
     const chave = chaveTurno(obraAtivaId, dataTurnoOperacional, turnoAtual);
-    const novosTurnosIniciados = {
-      ...turnosIniciados,
-      [chave]: { iniciadoEm: new Date().toISOString() },
+    const novosFechamentos = {
+      ...fechamentos,
+      [chave]: {
+        encerradoEm: controleEncerrado?.encerradoEm ?? new Date().toISOString(),
+        rdoGeradoEm: controleEncerrado?.rdoGeradoEm ?? new Date().toISOString(),
+        tempoFinalMs: controleEncerrado?.elapsedMs ?? tempoDecorridoMs,
+      },
     };
 
-    setTurnosIniciados(novosTurnosIniciados);
-    salvarObjetoLocal(turnosIniciadosStorageKey, novosTurnosIniciados);
+    gravarControlesTurno(novosControles);
+    setFechamentos(novosFechamentos);
+    salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
+    window.dispatchEvent(new Event("storage"));
+    setMensagem("Turno encerrado e RDO gerado automaticamente.");
+  }
+
+  function gravarControlesTurno(novosControles: ControlesTurno) {
+    setControlesTurno(novosControles);
+    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
     window.dispatchEvent(new Event("storage"));
   }
 
   return (
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
-      subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual} - Inicio: ${dataTurnoFormatada}`}
+      subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual || "-"} - Data: ${dataTurnoFormatada}`}
       status={indicadorTurnoExibido.texto}
       statusTom={indicadorTurnoExibido.tom}
-      infoCentral={relogioTurno}
+      infoCentral={formatarDuracao(tempoDecorridoMs)}
       detalheCentral={indicadorTurnoExibido.detalhe}
     >
       <div className="space-y-4">
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-[minmax(220px,360px)_auto_1fr] lg:items-end">
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                Turno ativo
-              </span>
-              <select
-                value={turnoAtivo}
-                onChange={(e) => alterarTurnoPainel(e.target.value)}
-                disabled={!obraAtivaId || turnosCadastrados.length === 0}
-                className="w-full rounded-lg border border-slate-300 bg-white p-3"
-              >
-                {turnosCadastrados.length === 0 ? (
-                  <option value="">Cadastre turnos na obra</option>
-                ) : (
-                  turnosCadastrados.map((item) => (
-                    <option key={item.id} value={item.nome}>
-                      {item.nome || "Turno sem nome"} - {formatarHoras(item.horasTrabalho)}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
+        {mensagem && (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+            {mensagem}
+          </div>
+        )}
 
-            <button
-              type="button"
-              onClick={iniciarTurnoPainel}
-              disabled={
-                !obraAtivaId ||
-                turnoAtual === "-" ||
-                turnoEncerrado ||
-                turnoIniciado
-              }
-              className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {turnoEncerrado
-                ? "Turno encerrado"
-                : turnoIniciado
-                ? "Turno iniciado"
-                : "Iniciar turno"}
-            </button>
+        {!obraAtivaId ? (
+          <EstadoVazio texto="Selecione uma obra no menu lateral para continuar." />
+        ) : !turnoAtual ? (
+          <EstadoVazio texto="Selecione ou publique um turno no Checkin para continuar." />
+        ) : null}
+
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="grid gap-3 lg:grid-cols-[minmax(220px,360px)_auto_1fr] lg:items-center">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-bold uppercase text-slate-500">
+                Turno ativo
+              </p>
+              <p className="mt-1 font-bold text-slate-900">
+                {turnoAtual || "-"}
+              </p>
+              {turnoAtivoDados && (
+                <p className="text-xs font-semibold text-slate-500">
+                  Planejado: {turnoAtivoDados.horaInicio} - {turnoAtivoDados.horaFim}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {statusOperacao === "em_andamento" ? (
+                <button
+                  type="button"
+                  onClick={pararTurnoPainel}
+                  className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-yellow-600"
+                >
+                  Parar Turno
+                </button>
+              ) : statusOperacao === "pausado" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={continuarTurnoPainel}
+                    className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
+                  >
+                    Continuar Turno
+                  </button>
+                  <button
+                    type="button"
+                    onClick={encerrarTurnoPainel}
+                    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+                  >
+                    Encerrar Turno
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={iniciarTurnoPainel}
+                  disabled={!obraAtivaId || !turnoAtual || statusOperacao === "encerrado"}
+                  className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {statusOperacao === "encerrado" ? "Turno encerrado" : "Iniciar Turno"}
+                </button>
+              )}
+            </div>
 
             <p className="text-sm font-semibold text-slate-500">
-              A selecao do turno vale para Check-in, Campo, Check-out e RDO.
+              A contagem e manual: iniciar, parar, continuar e encerrar nao dependem do horario planejado.
             </p>
           </div>
         </section>
@@ -558,7 +605,7 @@ export default function Home() {
               <h3 className="text-xl font-bold">Campo da obra ativa</h3>
               <p className="mb-4 text-sm text-slate-500">
                 Acesso direto para {obraAtivaNome}
-                {turnoAtual !== "-" ? ` - Turno ${turnoAtual}` : ""}.
+                {turnoAtual ? ` - Turno ${turnoAtual}` : ""}.
               </p>
 
               {qrCodeUrl ? (
@@ -580,7 +627,7 @@ export default function Home() {
                   </a>
                 </div>
               ) : (
-                <EstadoVazio texto="Selecione uma obra ativa para gerar o QR Code." />
+                <EstadoVazio texto={!obraAtivaId ? "Selecione uma obra no menu lateral para continuar." : "Selecione ou publique um turno no Checkin para continuar."} />
               )}
             </section>
 
@@ -652,61 +699,40 @@ function formatarDataTurno(dataTurno: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-function formatarRelogioTurno(agora: Date) {
-  return agora.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function obterIndicadorTurno(
-  agora: Date,
-  dataTurno: string | null,
-  turno: TurnoCadastrado | null
-): {
+function obterIndicadorOperacao(status: string): {
   texto: string;
   detalhe: string;
   tom: "planejado" | "andamento" | "encerrado";
 } {
-  if (!dataTurno || !turno?.horaInicio || !turno.horaFim) {
-    return { texto: "Turno planejado", detalhe: "Decorrido --", tom: "planejado" };
+  if (status === "encerrado") {
+    return { texto: "Turno encerrado", detalhe: "Tempo final", tom: "encerrado" };
   }
 
-  const inicioTurno = criarDataHoraTurno(dataTurno, turno.horaInicio);
-  let fimTurno = criarDataHoraTurno(dataTurno, turno.horaFim);
-
-  if (fimTurno <= inicioTurno) {
-    fimTurno = new Date(fimTurno.getTime() + 24 * 60 * 60000);
+  if (status === "em_andamento") {
+    return { texto: "Turno em andamento", detalhe: "Tempo real", tom: "andamento" };
   }
 
-  if (agora < inicioTurno) {
-    return { texto: "Turno planejado", detalhe: "Decorrido 0h 00min", tom: "planejado" };
+  if (status === "pausado") {
+    return { texto: "Turno pausado", detalhe: "Tempo pausado", tom: "planejado" };
   }
 
-  const fimCalculo = agora >= fimTurno ? fimTurno : agora;
-  const minutos = Math.max(0,
-    Math.floor((fimCalculo.getTime() - inicioTurno.getTime()) / 60000)
-  );
-  const horas = Math.floor(minutos / 60);
-  const minutosRestantes = minutos % 60;
-  const detalhe = `Decorrido ${horas}h ${String(minutosRestantes).padStart(
-    2,
-    "0"
-  )}min`;
-
-  if (agora >= fimTurno) {
-    return { texto: "Turno encerrado", detalhe, tom: "encerrado" };
+  if (status === "publicado") {
+    return { texto: "Turno publicado", detalhe: "Pronto para iniciar", tom: "planejado" };
   }
 
-  return {
-    texto: "Turno em andamento",
-    detalhe,
-    tom: "andamento",
-  };
+  return { texto: "Turno planejado", detalhe: "Aguardando inicio", tom: "planejado" };
 }
 
-function criarDataHoraTurno(dataTurno: string, hora: string) {
-  return new Date(`${dataTurno}T${hora}`);
+function formatarDuracao(ms: number) {
+  const segundosTotais = Math.floor(ms / 1000);
+  const horas = Math.floor(segundosTotais / 3600);
+  const minutos = Math.floor((segundosTotais % 3600) / 60);
+  const segundos = segundosTotais % 60;
+
+  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(
+    2,
+    "0"
+  )}:${String(segundos).padStart(2, "0")}`;
 }
 
 function formatarHoras(horas: number) {

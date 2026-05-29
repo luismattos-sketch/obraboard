@@ -12,15 +12,10 @@ import {
   cadastroBaseEvento,
   cadastroDadosObraInicial,
   carregarCadastroBase,
+  getContextoAtual,
   obterDadosObra,
-  resolverObraPorParametro,
-  obterTurnoAtivoNome,
-  salvarObraAtivaId,
-  salvarTurnoAtivo,
   sincronizarCadastroBaseRemoto,
   type FuncaoPrevistaCadastrada,
-  type ObraCadastrada,
-  type TurnoCadastrado,
   type UsuarioCadastrado,
 } from "../../lib/cadastro-base";
 import {
@@ -29,7 +24,6 @@ import {
   registrarRestricaoHistorico,
   restricaoStorageKey,
 } from "../../lib/operacao";
-import { criarCampoPath } from "../../lib/rotas";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
 
@@ -45,9 +39,12 @@ type RestricaoAtividade = {
 
 type MaoObraReal = {
   id: number;
+  obra_id?: number | null;
   atividade_id?: number | null;
   funcao: string | null;
   quantidade: number | null;
+  turno?: string | null;
+  data_turno?: string | null;
 };
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
@@ -60,8 +57,6 @@ export default function CampoPage() {
   const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
   const [avisoObra, setAvisoObra] = useState("");
-  const [obrasCadastradas, setObrasCadastradas] = useState<ObraCadastrada[]>([]);
-  const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
     useState<FuncaoPrevistaCadastrada[]>([]);
   const [usuariosCadastrados, setUsuariosCadastrados] = useState<UsuarioCadastrado[]>([]);
@@ -225,59 +220,48 @@ export default function CampoPage() {
         : carregarCadastroBase();
       const parametros = new URLSearchParams(window.location.search);
       const obraParam = parametros.get("obraId");
-      const turnoParam = parametros.get("turno");
-      const obraParamInformado = parametros.has("obraId");
-      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
-      const obraAtivaCadastro = obraResolvida.obra;
-      const obraIdResolvida = obraResolvida.obraId;
+      const turnoIdParam = parametros.get("turnoId");
+      const linkCompleto = parametros.has("obraId") && parametros.has("turnoId");
+
+      if (!linkCompleto) {
+        setObraId(null);
+        setObra("Link invalido");
+        setTurno("");
+        setAvisoObra("Link inválido. Acesse o Campo pelo QR Code ou pelo botão Campo.");
+        setAtividades([]);
+        setFuncoesPrevistasCadastradas([]);
+        setUsuariosCadastrados([]);
+        return;
+      }
+
+      const contexto = getContextoAtual(cadastro, {
+        obraId: obraParam,
+        turnoId: turnoIdParam,
+      });
+      const obraAtivaCadastro = contexto.obraAtiva;
+      const obraIdResolvida = contexto.obraAtivaId;
+      const turnoResolvido = contexto.turnoAtivo;
       const dadosObra = obraAtivaCadastro
         ? obterDadosObra(cadastro, obraAtivaCadastro.id)
         : cadastroDadosObraInicial;
-      const avisoObraAtual =
-        obraParamInformado && !obraIdResolvida
-          ? "Link da obra invalido. Selecione ou cadastre uma obra/frente."
-          : obraParamInformado && obraIdResolvida && !obraAtivaCadastro
-          ? "A obra/frente informada no link nao foi encontrada neste cadastro."
-          : !obraParamInformado && !obraAtivaCadastro
-          ? "Selecione ou cadastre uma obra/frente para abrir a tela Campo."
-          : "";
-      const turnoAtivo = obterTurnoAtivoNome(
-        cadastro,
-        obraIdResolvida,
-        dadosObra.turnos
-      );
-      const turnoQr =
-        turnoParam &&
-        (dadosObra.turnos.length === 0 ||
-          dadosObra.turnos.some((item) => item.nome === turnoParam))
-          ? turnoParam
-          : "";
-      const turnoSelecionado = turnoQr || turnoAtivo;
 
-      setObrasCadastradas(cadastro.obras);
+      if (!obraAtivaCadastro || !obraIdResolvida || !turnoResolvido) {
+        setObraId(null);
+        setObra("Link invalido");
+        setTurno("");
+        setAvisoObra("Link inválido. Acesse o Campo pelo QR Code ou pelo botão Campo.");
+        setAtividades([]);
+        setFuncoesPrevistasCadastradas([]);
+        setUsuariosCadastrados([]);
+        return;
+      }
+
       setObraId(obraIdResolvida);
-      setObra(
-        obraAtivaCadastro?.nome ??
-          (obraIdResolvida ? "Obra informada no link" : "Sem obra selecionada")
-      );
-      setAvisoObra(avisoObraAtual);
-      setTurnosCadastrados(dadosObra.turnos);
+      setObra(obraAtivaCadastro.nome || obraAtivaCadastro.codigo || "Obra sem nome");
+      setAvisoObra("");
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
       setUsuariosCadastrados(dadosObra.usuarios);
-
-      setTurno(turnoSelecionado || "");
-
-      if (obraAtivaCadastro && cadastro.obraAtivaId !== obraIdResolvida) {
-        salvarObraAtivaId(obraIdResolvida);
-      }
-
-      if (
-        obraIdResolvida &&
-        turnoQr &&
-        cadastro.turnoAtivoPorObra[String(obraIdResolvida)] !== turnoQr
-      ) {
-        salvarTurnoAtivo(obraIdResolvida, turnoQr);
-      }
+      setTurno(turnoResolvido.nome);
 
       void carregarAtividades(obraIdResolvida);
       void carregarMaoObraReal();
@@ -299,17 +283,6 @@ export default function CampoPage() {
     // carregarAtividades recebe o id atual explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function alterarObraSelecionada(valor: string) {
-    const novoId = valor ? Number(valor) : null;
-    window.history.replaceState(null, "", criarCampoPath(novoId));
-    salvarObraAtivaId(novoId);
-  }
-
-  function alterarTurnoSelecionado(novoTurno: string) {
-    setTurno(novoTurno);
-    salvarTurnoAtivo(obraId, novoTurno);
-  }
 
   async function atualizarAtividade(
     id: number,
@@ -531,9 +504,12 @@ export default function CampoPage() {
       if (fallbackError) {
         const itemLocal: MaoObraReal = {
           id: Date.now() * -1,
+          obra_id: obraId,
           atividade_id: atividadeMaoObraId,
           funcao,
           quantidade: Number(quantidade),
+          turno,
+          data_turno: dataHoje(),
         };
 
         salvarListaLocal(maoObraLocalStorageKey, [
@@ -562,50 +538,15 @@ export default function CampoPage() {
         )}
 
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
-              Obra
-            </span>
-            <select
-              value={obraId ?? ""}
-              onChange={(e) => alterarObraSelecionada(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
-            >
-              <option value="">
-                {obrasCadastradas.length === 0 ? "Cadastre uma obra" : "Selecionar obra"}
-              </option>
-              {obrasCadastradas.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nome || item.codigo || "Obra sem nome"}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
+            <p className="text-xs font-bold uppercase text-slate-400">Obra</p>
+            <p className="mt-1 text-sm font-semibold text-white">{obra}</p>
+          </div>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase text-slate-400">
-              Turno
-            </span>
-            <select
-              value={turno}
-              onChange={(e) => alterarTurnoSelecionado(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-sm font-semibold text-white"
-            >
-              {turnosCadastrados.length === 0 ? (
-                <>
-                  <option value="">Todos os turnos</option>
-                  <option value="Dia">Turno Dia</option>
-                  <option value="Noite">Turno Noite</option>
-                </>
-              ) : (
-                turnosCadastrados.map((item) => (
-                  <option key={item.id} value={item.nome}>
-                    {item.nome || "Turno sem nome"} - {formatarHoras(item.horasTrabalho)}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+          <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
+            <p className="text-xs font-bold uppercase text-slate-400">Turno</p>
+            <p className="mt-1 text-sm font-semibold text-white">{turno || "-"}</p>
+          </div>
 
           <label className="block">
             <span className="mb-1 block text-xs font-bold uppercase text-slate-400">

@@ -21,13 +21,31 @@ export const restricaoHistoricoStorageKey = "obraboard:campo-restricoes-historic
 export const checkoutValidacoesStorageKey = "obraboard:checkout-validacoes";
 export const checkoutFechamentosStorageKey = "obraboard:checkout-fechamentos";
 export const turnosIniciadosStorageKey = "obraboard:turnos-iniciados";
+export const turnosOperacaoStorageKey = "obraboard:turnos-operacao";
 
 export type FechamentosTurno = Record<
   string,
-  { encerradoEm: string; automatico?: boolean }
+  { encerradoEm: string; automatico?: boolean; rdoGeradoEm?: string; tempoFinalMs?: number }
 >;
 
 export type TurnosIniciados = Record<string, { iniciadoEm: string }>;
+export type TurnoStatus =
+  | "planejado"
+  | "publicado"
+  | "em_andamento"
+  | "pausado"
+  | "encerrado";
+export type ControleTurno = {
+  status: TurnoStatus;
+  publicadoEm?: string;
+  iniciadoEm?: string;
+  pausadoEm?: string;
+  encerradoEm?: string;
+  rdoGeradoEm?: string;
+  elapsedMs: number;
+  runningSince: number | null;
+};
+export type ControlesTurno = Record<string, ControleTurno>;
 
 export function calcularAvancoReal(previsto: number | null | undefined, realizado: number | null | undefined) {
   const total = Number(previsto || 0);
@@ -103,6 +121,124 @@ export function turnoEstaEncerrado(
   }
 
   return Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
+}
+
+export function obterControleTurno(
+  controles: ControlesTurno,
+  obraId: number | null,
+  dataTurno: string | null,
+  turno: string | null
+) {
+  if (!obraId || !dataTurno || !turno) {
+    return null;
+  }
+
+  return controles[chaveTurno(obraId, dataTurno, turno)] ?? null;
+}
+
+export function calcularTempoTurno(controle: ControleTurno | null, agora = Date.now()) {
+  if (!controle) {
+    return 0;
+  }
+
+  return (
+    Number(controle.elapsedMs || 0) +
+    (controle.runningSince ? Math.max(0, agora - controle.runningSince) : 0)
+  );
+}
+
+export function publicarControleTurno(
+  controles: ControlesTurno,
+  obraId: number,
+  dataTurno: string,
+  turno: string
+) {
+  const chave = chaveTurno(obraId, dataTurno, turno);
+  const atual = controles[chave];
+
+  return {
+    ...controles,
+    [chave]: {
+      ...atual,
+      status: "publicado" as const,
+      publicadoEm: new Date().toISOString(),
+      elapsedMs: atual?.elapsedMs ?? 0,
+      runningSince: null,
+    },
+  };
+}
+
+export function iniciarControleTurno(
+  controles: ControlesTurno,
+  obraId: number,
+  dataTurno: string,
+  turno: string
+) {
+  const chave = chaveTurno(obraId, dataTurno, turno);
+  const atual = controles[chave];
+
+  if (atual?.status === "em_andamento") {
+    return controles;
+  }
+
+  return {
+    ...controles,
+    [chave]: {
+      ...atual,
+      status: "em_andamento" as const,
+      iniciadoEm: atual?.iniciadoEm ?? new Date().toISOString(),
+      elapsedMs: atual?.elapsedMs ?? 0,
+      runningSince: Date.now(),
+    },
+  };
+}
+
+export function pausarControleTurno(
+  controles: ControlesTurno,
+  obraId: number,
+  dataTurno: string,
+  turno: string
+) {
+  const chave = chaveTurno(obraId, dataTurno, turno);
+  const atual = controles[chave];
+
+  if (!atual || atual.status !== "em_andamento") {
+    return controles;
+  }
+
+  return {
+    ...controles,
+    [chave]: {
+      ...atual,
+      status: "pausado" as const,
+      pausadoEm: new Date().toISOString(),
+      elapsedMs: calcularTempoTurno(atual),
+      runningSince: null,
+    },
+  };
+}
+
+export function encerrarControleTurno(
+  controles: ControlesTurno,
+  obraId: number,
+  dataTurno: string,
+  turno: string
+) {
+  const chave = chaveTurno(obraId, dataTurno, turno);
+  const atual = controles[chave];
+  const agoraIso = new Date().toISOString();
+
+  return {
+    ...controles,
+    [chave]: {
+      ...atual,
+      status: "encerrado" as const,
+      encerradoEm: agoraIso,
+      rdoGeradoEm: agoraIso,
+      elapsedMs: calcularTempoTurno(atual),
+      runningSince: null,
+    },
+  };
 }
 
 export function turnoEstaIniciado(

@@ -213,45 +213,6 @@ export default function CadastroObraPage() {
     };
   }, []);
 
-  function selecionarObraAtiva(novoId: number | null) {
-    const cadastro = carregarCadastroBase();
-    const obraSelecionada =
-      cadastro.obras.find((obra) => obra.id === novoId) ?? null;
-    const ativoId = obraSelecionada?.id ?? null;
-    const dadosObra = obterDadosObra(cadastro, ativoId);
-
-    limparUsuario();
-    limparTurno();
-    limparDisciplina();
-    limparFuncaoPrevista();
-
-    setObraAtivaId(ativoId);
-    setLogoUrl(obraSelecionada?.logoUrl || cadastro.logoUrl);
-
-    if (obraSelecionada) {
-      preencherFormularioObra(obraSelecionada);
-      setObraEditandoId(null);
-      setModoObra("visualizando");
-      setMensagem(
-        `Obra ativa alterada para ${
-          obraSelecionada.nome || obraSelecionada.codigo || "obra selecionada"
-        }.`
-      );
-    } else {
-      limparObra();
-      setModoObra("criando");
-      setMensagem("Nenhuma obra ativa selecionada.");
-    }
-
-    setUsuarios(dadosObra.usuarios);
-    setDisciplinas(dadosObra.disciplinas);
-    setFuncoesPrevistas(dadosObra.funcoesPrevistas);
-    setTurnos(dadosObra.turnos);
-    atualizarObraIdNaUrl(ativoId);
-    salvarCadastroBase({ ...cadastro, obraAtivaId: ativoId });
-    queueMicrotask(notificarCadastroBaseAtualizado);
-  }
-
   useEffect(() => {
     if (!cadastroCarregado) {
       return;
@@ -271,7 +232,7 @@ export default function CadastroObraPage() {
           ...cadastroAtual,
           logoUrl,
           obras,
-          obraAtivaId: obraDestinoId,
+          obraAtivaId: cadastroAtual.obraAtivaId,
         },
         obraDestinoId,
         {
@@ -354,27 +315,29 @@ export default function CadastroObraPage() {
     };
 
     const cadastroAtual = carregarCadastroBase();
-    const obraAtivaAposSalvar = obra.id;
-
     salvarCadastroBase(
       definirDadosObra(
         {
           ...cadastroAtual,
           logoUrl,
           obras: novasObras,
-          obraAtivaId: obraAtivaAposSalvar,
+          obraAtivaId: cadastroAtual.obraAtivaId,
         },
         obra.id,
         dadosDaObra
       )
     );
     setObras(novasObras);
-    setObraAtivaId(obraAtivaAposSalvar);
+    setObraAtivaId(obra.id);
     preencherFormularioObra(obra);
     setObraEditandoId(null);
     setModoObra("visualizando");
     atualizarObraIdNaUrl(obra.id);
-    setMensagem(editando ? "Obra atualizada." : "Obra cadastrada.");
+    setMensagem(
+      editando
+        ? "Obra atualizada."
+        : "Obra cadastrada. Selecione-a no menu lateral para torna-la ativa."
+    );
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
 
@@ -408,7 +371,6 @@ export default function CadastroObraPage() {
     setObraEditandoId(obra.id);
     setModoObra("editando");
     atualizarObraIdNaUrl(obra.id);
-    salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obra.id });
   }
 
   function editarObraSelecionada() {
@@ -427,7 +389,6 @@ export default function CadastroObraPage() {
         : obterObraAtivaId(cadastroAtual);
     const obraParaRestaurar =
       cadastroAtual.obras.find((obra) => obra.id === idParaRestaurar) ??
-      cadastroAtual.obras[0] ??
       null;
 
     limparUsuario();
@@ -459,7 +420,6 @@ export default function CadastroObraPage() {
     setFuncoesPrevistas(dadosObra.funcoesPrevistas);
     setTurnos(dadosObra.turnos);
     atualizarObraIdNaUrl(obraParaRestaurar.id);
-    salvarCadastroBase({ ...cadastroAtual, obraAtivaId: obraParaRestaurar.id });
     setMensagem("Edição cancelada.");
   }
 
@@ -475,16 +435,12 @@ export default function CadastroObraPage() {
     setModoObra(obras.some((obra) => obra.id === id) ? "editando" : "criando");
     atualizarObraIdNaUrl(id);
 
-    if (obras.some((obra) => obra.id === id)) {
-      salvarCadastroBase({ ...carregarCadastroBase(), obraAtivaId: id });
-    }
   }
 
   function excluirObra(id: number) {
     const novasObras = obras.filter((item) => item.id !== id);
-    const novoAtivoId =
-      obraAtivaId === id ? novasObras[0]?.id ?? null : obraAtivaId;
     const cadastroAtual = carregarCadastroBase();
+    const novoAtivoId = cadastroAtual.obraAtivaId === id ? null : cadastroAtual.obraAtivaId;
 
     salvarCadastroBase({
       ...cadastroAtual,
@@ -591,11 +547,7 @@ export default function CadastroObraPage() {
       definirDadosObra(
         {
           ...cadastroAtual,
-          obraAtivaId: obraDestinoId,
-          turnoAtivoPorObra: {
-            ...cadastroAtual.turnoAtivoPorObra,
-            [String(obraDestinoId)]: turno.nome,
-          },
+          obraAtivaId: cadastroAtual.obraAtivaId,
         },
         obraDestinoId,
         {
@@ -660,14 +612,14 @@ export default function CadastroObraPage() {
     const turnoExcluido = turnos.find((item) => item.id === id);
     const proximoTurnoAtivo =
       turnoAtivoAtual === turnoExcluido?.nome
-        ? novosTurnos[0]?.nome ?? ""
+        ? ""
         : turnoAtivoAtual ?? "";
 
     salvarCadastroBase(
       definirDadosObra(
         {
           ...cadastroAtual,
-          obraAtivaId: obraDestinoId,
+          obraAtivaId: cadastroAtual.obraAtivaId,
           turnoAtivoPorObra: {
             ...cadastroAtual.turnoAtivoPorObra,
             [String(obraDestinoId)]: proximoTurnoAtivo,
@@ -815,30 +767,15 @@ export default function CadastroObraPage() {
           </div>
         )}
 
-        <section className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm lg:flex-row lg:items-end lg:justify-between">
-          <label className="block w-full max-w-md">
-            <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
+        <section className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">
               Obra ativa
-            </span>
-            <select
-              value={obraAtivaId ?? ""}
-              onChange={(e) => {
-                const novoId = e.target.value ? Number(e.target.value) : null;
-                selecionarObraAtiva(novoId);
-              }}
-              className="w-full rounded-lg border border-slate-300 bg-white p-3"
-            >
-              <option value="">
-                {obras.length === 0 ? "Cadastre uma obra" : "Selecionar obra"}
-              </option>
-
-              {obras.map((obra) => (
-                <option key={obra.id} value={obra.id}>
-                  {obra.nome || obra.codigo || "Obra sem nome"}
-                </option>
-              ))}
-            </select>
-          </label>
+            </p>
+            <p className="mt-1 font-semibold text-slate-900">
+              {obraSelecionada?.nome || obraSelecionada?.codigo || "Selecione uma obra no menu lateral"}
+            </p>
+          </div>
 
           <button
             type="button"

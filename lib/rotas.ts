@@ -13,17 +13,29 @@ export function criarRotaComObra(
   return `${pathname}?${params.toString()}`;
 }
 
-export function criarCampoPath(obraId: number | string | null | undefined) {
-  return criarRotaComObra("/campo", obraId);
+export function criarCampoPath(
+  obraId: number | string | null | undefined,
+  turnoId: number | string | null | undefined
+) {
+  if (!obraId || !turnoId) {
+    return "";
+  }
+
+  const params = new URLSearchParams();
+  params.set("obraId", String(obraId));
+  params.set("turnoId", String(turnoId));
+
+  return `/campo?${params.toString()}`;
 }
 
 export function criarCampoUrl(
   origem: string,
-  obraId: number | string | null | undefined
+  obraId: number | string | null | undefined,
+  turnoId: number | string | null | undefined
 ) {
-  if (!origem || !obraId) {
+  if (!origem || !obraId || !turnoId) {
     return "";
   }
 
-  return new URL(criarCampoPath(obraId), origem).toString();
+  return new URL(criarCampoPath(obraId, turnoId), origem).toString();
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import DesktopLayout from "../../components/DesktopLayout";
 import { supabase } from "../../lib/supabase";
 import type { Atividade, AtividadeRecurso } from "../../lib/types";
@@ -9,33 +8,34 @@ import {
   cadastroBaseEvento,
   cadastroDadosObraInicial,
   carregarCadastroBase,
+  getContextoAtual,
   obterDadosObra,
-  obterTurnoAtivoNome,
-  resolverObraPorParametro,
-  salvarTurnoAtivo,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 import {
   calcularAvancoReal,
   calcularPpc,
+  calcularTempoTurno,
   chaveTurno,
   checkoutFechamentosStorageKey,
   checkoutValidacoesStorageKey,
+  encerrarControleTurno,
   definirStatusPorAvanco,
   listarRestricoesHistorico,
+  obterControleTurno,
   obterFarolOperacional,
   registrarRestricaoHistorico,
   salvarObjetoLocal,
   carregarObjetoLocal,
   turnoEstaEncerrado,
+  turnosOperacaoStorageKey,
+  type ControlesTurno,
   type FechamentosTurno,
 } from "../../lib/operacao";
-import { criarRotaComObra } from "../../lib/rotas";
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const [obraId, setObraId] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
   const [turnosCadastrados, setTurnosCadastrados] = useState<
@@ -56,6 +56,9 @@ export default function CheckoutPage() {
   const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
     carregarObjetoLocal(checkoutFechamentosStorageKey, {})
   );
+  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
+    carregarObjetoLocal(turnosOperacaoStorageKey, {})
+  );
   const [edicao, setEdicao] = useState({
     previsto: "",
     realizado: "",
@@ -63,7 +66,11 @@ export default function CheckoutPage() {
     responsavel: "",
   });
 
-  const dataTurnoAtual = obterDataTurnoAtual(atividadesBanco);
+  const dataTurnoAtual = obterDataTurnoAtual(
+    turno
+      ? atividadesBanco.filter((item) => item.turno === turno)
+      : atividadesBanco
+  );
   const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
   const atividades = useMemo(
     () =>
@@ -85,7 +92,21 @@ export default function CheckoutPage() {
     dataTurnoOperacional,
     turno
   );
-  const statusTurno = turnoEncerrado ? "Turno encerrado" : "Turno em andamento";
+  const controleTurno = obterControleTurno(
+    controlesTurno,
+    obraId,
+    dataTurnoOperacional,
+    turno
+  );
+  const statusTurno = turnoEncerrado
+    ? "Turno encerrado"
+    : controleTurno?.status === "pausado"
+    ? "Turno pausado"
+    : controleTurno?.status === "em_andamento"
+    ? "Turno em andamento"
+    : controleTurno?.status === "publicado"
+    ? "Turno publicado"
+    : "Turno planejado";
 
   async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
     const ids = atividadesCarregadas.map((item) => item.id);
@@ -144,18 +165,12 @@ export default function CheckoutPage() {
 
     function carregarContextoObra() {
       const cadastro = carregarCadastroBase();
-      const obraParam = new URLSearchParams(window.location.search).get("obraId");
-      const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
-      const obraAtiva = obraResolvida.obra;
-      const obraResolvidaId = obraResolvida.obraId;
+      const contexto = getContextoAtual(cadastro);
+      const obraAtiva = contexto.obraAtiva;
+      const obraResolvidaId = contexto.obraAtivaId;
       const dadosObra = obraAtiva
         ? obterDadosObra(cadastro, obraAtiva.id)
         : cadastroDadosObraInicial;
-      const turnoAtivo = obterTurnoAtivoNome(
-        cadastro,
-        obraResolvidaId,
-        dadosObra.turnos
-      );
 
       setObraId(obraResolvidaId);
       setObra(
@@ -163,8 +178,9 @@ export default function CheckoutPage() {
           (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
       );
       setTurnosCadastrados(dadosObra.turnos);
-      setTurno(turnoAtivo);
+      setTurno(contexto.turnoAtivo?.nome ?? "");
       setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
+      setControlesTurno(carregarObjetoLocal(turnosOperacaoStorageKey, {}));
       void carregarAtividades(obraResolvidaId);
     }
 
@@ -177,11 +193,6 @@ export default function CheckoutPage() {
       window.removeEventListener("storage", carregarContextoObra);
     };
   }, []);
-
-  function alterarTurno(novoTurno: string) {
-    setTurno(novoTurno);
-    salvarTurnoAtivo(obraId, novoTurno);
-  }
 
   async function recarregarAtividades() {
     if (!obraId) {
@@ -393,23 +404,42 @@ export default function CheckoutPage() {
     setErro("");
 
     if (!obraId || !turno) {
-      setErro("Selecione obra e turno antes de encerrar.");
+      setErro(
+        !obraId
+          ? "Selecione uma obra no menu lateral para continuar."
+          : "Selecione ou publique um turno no Checkin para continuar."
+      );
       return;
     }
 
+    const novosControles = encerrarControleTurno(
+      controlesTurno,
+      obraId,
+      dataTurnoOperacional,
+      turno
+    );
+    const controleEncerrado = obterControleTurno(
+      novosControles,
+      obraId,
+      dataTurnoOperacional,
+      turno
+    );
     const chave = chaveTurno(obraId, dataTurnoOperacional, turno);
     const novosFechamentos = {
       ...fechamentos,
-      [chave]: { encerradoEm: new Date().toISOString() },
+      [chave]: {
+        encerradoEm: controleEncerrado?.encerradoEm ?? new Date().toISOString(),
+        rdoGeradoEm: controleEncerrado?.rdoGeradoEm ?? new Date().toISOString(),
+        tempoFinalMs: calcularTempoTurno(controleEncerrado),
+      },
     };
+
+    setControlesTurno(novosControles);
+    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
     setFechamentos(novosFechamentos);
     salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
     window.dispatchEvent(new Event("storage"));
-    setMensagem("Turno encerrado para a obra/frente selecionada.");
-  }
-
-  function gerarRdo() {
-    router.push(criarRotaComObra("/rdo", obraId));
+    setMensagem("Turno encerrado e RDO gerado automaticamente.");
   }
 
   return (
@@ -439,27 +469,18 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <label className="block max-w-sm">
-            <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
-              Turno
-            </span>
-            <select
-              value={turno}
-              onChange={(e) => alterarTurno(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white p-3"
-            >
-              {turnosCadastrados.length === 0 ? (
-                <option value="">Cadastre turnos na obra</option>
-              ) : (
-                turnosCadastrados.map((item) => (
-                  <option key={item.id} value={item.nome}>
-                    {item.nome || "Turno sem nome"} -{" "}
-                    {formatarHoras(item.horasTrabalho)}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+          {!obraId && (
+            <EstadoVazio texto="Selecione uma obra no menu lateral para continuar." />
+          )}
+
+          {obraId && !turno && (
+            <EstadoVazio texto="Selecione ou publique um turno no Checkin para continuar." />
+          )}
+
+          <div className="max-w-sm rounded-xl border border-slate-200 bg-white p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Turno ativo</p>
+            <p className="mt-1 font-bold text-slate-900">{turno || "-"}</p>
+          </div>
         </section>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
@@ -734,14 +755,7 @@ export default function CheckoutPage() {
                 disabled={turnoEncerrado}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold"
               >
-                Reprogramar pendencias para proximo turno
-              </button>
-              <button
-                type="button"
-                onClick={gerarRdo}
-                className="w-full rounded-xl bg-teal-600 px-4 py-3 text-left font-bold text-white"
-              >
-                Gerar RDO
+                Reprogramar para o proximo turno
               </button>
               <button
                 type="button"
