@@ -983,7 +983,6 @@ function salvarListaLocal(chave: string, valor: unknown[]) {
 
   window.localStorage.setItem(chave, JSON.stringify(valor));
 }
-
 function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: string) {
   return textoEditando.trim() || textoSalvo || "Sem descrição";
 }
@@ -1017,11 +1016,4 @@ function ResumoCard({
       <p className={`text-2xl font-bold ${destaque}`}>{valor}</p>
     </div>
   );
-}
-
-function formatarHoras(horas: number) {
-  return `${horas.toLocaleString("pt-BR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
-  })} h`;
 }

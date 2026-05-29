@@ -59,7 +59,6 @@ export default function Home() {
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivo, setTurnoAtivo] = useState("");
   const [turnoAtivoDados, setTurnoAtivoDados] = useState<TurnoCadastrado | null>(null);
-  const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [origemApp, setOrigemApp] = useState("");
   const [agora, setAgora] = useState(() => new Date());
   const [restricoesCampo, setRestricoesCampo] = useState<
@@ -262,7 +261,6 @@ export default function Home() {
       );
       setObraAtivaId(obraResolvidaId);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
-      setTurnosCadastrados(dadosObra.turnos);
       setTurnoAtivo(contexto.turnoAtivo?.nome ?? "");
       setTurnoAtivoDados(contexto.turnoAtivo);
       setFechamentos(carregarOperacaoLocal(checkoutFechamentosStorageKey, {}));
@@ -425,8 +423,8 @@ export default function Home() {
       subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual || "-"} - Data: ${dataTurnoFormatada}`}
       status={indicadorTurnoExibido.texto}
       statusTom={indicadorTurnoExibido.tom}
-      infoCentral={formatarDuracao(tempoDecorridoMs)}
-      detalheCentral={indicadorTurnoExibido.detalhe}
+      infoCentral={formatarRelogioTurno(agora)}
+      detalheCentral={`Decorrido ${formatarDuracao(tempoDecorridoMs)} - ${indicadorTurnoExibido.detalhe}`}
     >
       <div className="space-y-4">
         {mensagem && (
@@ -733,6 +731,13 @@ function formatarDuracao(ms: number) {
     2,
     "0"
   )}:${String(segundos).padStart(2, "0")}`;
+}
+
+function formatarRelogioTurno(data: Date) {
+  return data.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatarHoras(horas: number) {

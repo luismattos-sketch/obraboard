@@ -425,7 +425,6 @@ export default function CheckinPage() {
       void carregarAtividades(obraResolvidaId);
       setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
       setControlesTurno(carregarObjetoLocal(turnosOperacaoStorageKey, {}));
-      setEdicaoLiberada(false);
     }
 
     queueMicrotask(carregarContextoObra);
@@ -1119,6 +1118,12 @@ export default function CheckinPage() {
     salvarTurnoAtivo(obraId, novoTurno);
   }
 
+  function liberarEdicaoCheckin() {
+    setMensagem("");
+    setErro("");
+    setEdicaoLiberada(true);
+  }
+
   function publicarTurno() {
     setMensagem("");
     setErro("");
@@ -1282,12 +1287,12 @@ export default function CheckinPage() {
           />
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="flex flex-col gap-3">
           <fieldset
             disabled={checkinBloqueado}
-            className="order-2 rounded-2xl bg-white p-5 shadow-sm disabled:opacity-70 xl:order-2"
+            className="order-2 rounded-2xl bg-white p-4 shadow-sm disabled:opacity-70"
           >
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 className="text-lg font-bold">
                   {atividadeEditandoId ? "Editar atividade" : "Nova atividade"}
@@ -1405,7 +1410,7 @@ export default function CheckinPage() {
               </CampoRotulado>
             </div>
 
-            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="mb-3">
                 <h3 className="font-bold">Recursos da atividade</h3>
                 <p className="text-sm text-slate-500">
@@ -1501,16 +1506,16 @@ export default function CheckinPage() {
 
           <fieldset
             disabled={checkinBloqueado}
-            className="order-1 rounded-2xl bg-white p-5 shadow-sm disabled:opacity-70 xl:order-1"
+            className="order-1 rounded-2xl bg-white p-4 shadow-sm disabled:opacity-70"
           >
-            <div className="mb-4">
+            <div className="mb-3">
               <h2 className="text-lg font-bold">Recursos disponiveis</h2>
               <p className="text-sm text-slate-500">
                 Quantitativo do turno selecionado, usado como origem do HH.
               </p>
             </div>
 
-            <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <div className="mb-3 grid gap-2 md:grid-cols-[minmax(180px,1fr)_120px_140px_120px]">
               <select
                 value={funcaoDisponivel}
                 onChange={(e) => setFuncaoDisponivel(e.target.value)}
@@ -1555,7 +1560,7 @@ export default function CheckinPage() {
 
             <div className="space-y-2">
               {recursosDisponiveis.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
+                <p className="rounded-lg border border-dashed border-slate-300 p-3 text-center text-sm font-semibold text-slate-500">
                   Nenhum recurso disponivel cadastrado no check-in deste turno.
                 </p>
               ) : (
@@ -1907,9 +1912,8 @@ export default function CheckinPage() {
             {checkinBloqueado ? (
               <button
                 type="button"
-                onClick={() => setEdicaoLiberada(true)}
-                disabled={turnoEncerrado || controleTurno?.status === "encerrado"}
-                className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-400"
+                onClick={liberarEdicaoCheckin}
+                className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200"
               >
                 Editar
               </button>

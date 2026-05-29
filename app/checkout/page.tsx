@@ -21,9 +21,11 @@ import {
   checkoutValidacoesStorageKey,
   encerrarControleTurno,
   definirStatusPorAvanco,
+  iniciarControleTurno,
   listarRestricoesHistorico,
   obterControleTurno,
   obterFarolOperacional,
+  pausarControleTurno,
   registrarRestricaoHistorico,
   salvarObjetoLocal,
   carregarObjetoLocal,
@@ -59,6 +61,7 @@ export default function CheckoutPage() {
   const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
     carregarObjetoLocal(turnosOperacaoStorageKey, {})
   );
+  const [agora, setAgora] = useState(() => new Date());
   const [edicao, setEdicao] = useState({
     previsto: "",
     realizado: "",
@@ -98,6 +101,10 @@ export default function CheckoutPage() {
     dataTurnoOperacional,
     turno
   );
+  const tempoDecorridoMs = calcularTempoTurno(controleTurno, agora.getTime());
+  const statusOperacao = turnoEncerrado
+    ? "encerrado"
+    : controleTurno?.status ?? "planejado";
   const statusTurno = turnoEncerrado
     ? "Turno encerrado"
     : controleTurno?.status === "pausado"
@@ -140,6 +147,12 @@ export default function CheckoutPage() {
       )
     );
   }
+
+  useEffect(() => {
+    const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
+
+    return () => window.clearInterval(intervalo);
+  }, []);
 
   useEffect(() => {
     async function carregarAtividades(obraAtualId: number | null) {
@@ -434,12 +447,41 @@ export default function CheckoutPage() {
       },
     };
 
-    setControlesTurno(novosControles);
-    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
+    gravarControlesTurno(novosControles);
     setFechamentos(novosFechamentos);
     salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
     window.dispatchEvent(new Event("storage"));
     setMensagem("Turno encerrado e RDO gerado automaticamente.");
+  }
+
+  function gravarControlesTurno(novosControles: ControlesTurno) {
+    setControlesTurno(novosControles);
+    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
+    window.dispatchEvent(new Event("storage"));
+  }
+
+  function pararTurnoCheckout() {
+    if (!obraId || !dataTurnoOperacional || !turno) {
+      setErro("Selecione ou publique um turno no Checkin para continuar.");
+      return;
+    }
+
+    gravarControlesTurno(
+      pausarControleTurno(controlesTurno, obraId, dataTurnoOperacional, turno)
+    );
+    setMensagem("Turno pausado.");
+  }
+
+  function continuarTurnoCheckout() {
+    if (!obraId || !dataTurnoOperacional || !turno) {
+      setErro("Selecione ou publique um turno no Checkin para continuar.");
+      return;
+    }
+
+    gravarControlesTurno(
+      iniciarControleTurno(controlesTurno, obraId, dataTurnoOperacional, turno)
+    );
+    setMensagem("Turno retomado.");
   }
 
   return (
@@ -450,6 +492,8 @@ export default function CheckoutPage() {
       }`}
       status={statusTurno}
       statusTom={turnoEncerrado ? "encerrado" : "andamento"}
+      infoCentral={formatarRelogioTurno(agora)}
+      detalheCentral={`Decorrido ${formatarDuracao(tempoDecorridoMs)}`}
     >
       <div className="space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-sm">
@@ -480,6 +524,42 @@ export default function CheckoutPage() {
           <div className="max-w-sm rounded-xl border border-slate-200 bg-white p-3">
             <p className="text-xs font-bold uppercase text-slate-500">Turno ativo</p>
             <p className="mt-1 font-bold text-slate-900">{turno || "-"}</p>
+          </div>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-[minmax(140px,180px)_minmax(160px,220px)_1fr] md:items-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-bold uppercase text-slate-500">Hora atual</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {formatarRelogioTurno(agora)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-bold uppercase text-slate-500">
+                Tempo decorrido
+              </p>
+              <p className="mt-1 text-xl font-bold text-teal-700">
+                {formatarDuracao(tempoDecorridoMs)}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row md:justify-end">
+              {statusOperacao === "em_andamento" ? (
+                <button
+                  type="button"
+                  onClick={pararTurnoCheckout}
+                  className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-yellow-600"
+                >
+                  Parar Turno
+                </button>
+              ) : statusOperacao === "pausado" ? (
+                <button
+                  type="button"
+                  onClick={continuarTurnoCheckout}
+                  className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
+                >
+                  Continuar Turno
+                </button>
+              ) : null}
+            </div>
           </div>
         </section>
 
@@ -814,11 +894,23 @@ function obterProximoTurno(turnoAtual: string, turnos: TurnoCadastrado[]) {
   return turnos[proximoIndice] ?? null;
 }
 
-function formatarHoras(horas: number) {
-  return `${horas.toLocaleString("pt-BR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
-  })} h`;
+function formatarDuracao(ms: number) {
+  const segundosTotais = Math.floor(ms / 1000);
+  const horas = Math.floor(segundosTotais / 3600);
+  const minutos = Math.floor((segundosTotais % 3600) / 60);
+  const segundos = segundosTotais % 60;
+
+  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(
+    2,
+    "0"
+  )}:${String(segundos).padStart(2, "0")}`;
+}
+
+function formatarRelogioTurno(data: Date) {
+  return data.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function CabecalhoSecao({ titulo, texto }: { titulo: string; texto: string }) {
