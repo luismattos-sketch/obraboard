@@ -83,7 +83,9 @@ export default function Home() {
         )
       : atividadesBanco
   );
+
   const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
+
   const atividadesDaData = useMemo(
     () =>
       dataTurnoAtual
@@ -91,7 +93,9 @@ export default function Home() {
         : atividadesBanco,
     [atividadesBanco, dataTurnoAtual]
   );
+
   const turnoAtual = turnoAtivo;
+
   const atividades = useMemo(
     () =>
       turnoAtual
@@ -106,21 +110,21 @@ export default function Home() {
         : [],
     [atividadesDaData, dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]
   );
+
   const recursosReaisPorFuncao = useMemo(() => {
     const mapa = new Map<string, number>();
     const atividadesIds = new Set(atividades.map((item) => item.id));
 
     maoObraReal
-      .filter(
-        (item) =>
-          item.atividade_id
-            ? atividadesIds.has(item.atividade_id)
-            : pertenceAoTurno(item, {
-                obraId: obraAtivaId,
-                turnoId: turnoAtivoDados?.id ?? null,
-                turno: turnoAtual || null,
-                dataTurno: dataTurnoAtual,
-              })
+      .filter((item) =>
+        item.atividade_id
+          ? atividadesIds.has(item.atividade_id)
+          : pertenceAoTurno(item, {
+              obraId: obraAtivaId,
+              turnoId: turnoAtivoDados?.id ?? null,
+              turno: turnoAtual || null,
+              dataTurno: dataTurnoAtual,
+            })
       )
       .forEach((item) => {
         const funcao = item.funcao || "";
@@ -132,6 +136,7 @@ export default function Home() {
 
     return mapa;
   }, [atividades, dataTurnoAtual, maoObraReal, obraAtivaId, turnoAtivoDados, turnoAtual]);
+
   const recursosPrevistosPorFuncao = useMemo(() => {
     const mapa = new Map<string, { quantidade: number; hh: number }>();
 
@@ -144,6 +149,7 @@ export default function Home() {
 
     return mapa;
   }, [recursosDisponiveis]);
+
   const funcoesRecursos = useMemo(() => {
     const nomes = new Set([
       ...funcoesPrevistas.map((item) => item.nome),
@@ -157,41 +163,69 @@ export default function Home() {
   const dataTurnoFormatada = dataTurnoAtual
     ? formatarDataTurno(dataTurnoAtual)
     : "Turno sem data";
+
   const controleTurno = obterControleTurno(
     controlesTurno,
     obraAtivaId,
     dataTurnoOperacional,
     turnoAtual || null
   );
+
   const tempoDecorridoMs = calcularTempoTurno(controleTurno, agora.getTime());
+
   const turnoEncerrado = turnoEstaEncerrado(
     fechamentos,
     obraAtivaId,
     dataTurnoOperacional,
     turnoAtual || null
   );
+
   const statusOperacao = turnoEncerrado
     ? "encerrado"
     : controleTurno?.status ?? "planejado";
+
   const indicadorTurnoExibido = obterIndicadorOperacao(statusOperacao);
-  const campoObraAtivaUrl = clientePronto
-    ? gerarCampoUrl({
-        obraId: obraAtivaId,
-        turnoId: turnoAtivoDados?.id,
-      })
-    : null;
+
+  const turnoIdCampo = useMemo(() => {
+    if (turnoAtivoDados?.id) {
+      return turnoAtivoDados.id;
+    }
+
+    const atividadeDoTurnoAtual = atividadesBanco.find(
+      (item) =>
+        pertenceAoTurno(item, {
+          obraId: obraAtivaId,
+          turno: turnoAtual || null,
+          dataTurno: dataTurnoAtual,
+        }) && item.turno_id
+    );
+
+    return atividadeDoTurnoAtual?.turno_id ?? null;
+  }, [atividadesBanco, dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
+
+  const campoObraAtivaUrl =
+    clientePronto && obraAtivaId && turnoIdCampo
+      ? gerarCampoUrl({
+          obraId: obraAtivaId,
+          turnoId: turnoIdCampo,
+        })
+      : null;
+
   const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
         campoObraAtivaUrl
       )}&size=180x180&margin=8`
     : null;
+
   const qrCodeRenderKey = campoObraAtivaUrl
-    ? `${campoObraAtivaUrl}:${statusOperacao}:${turnoAtivoDados?.id ?? ""}`
+    ? `${campoObraAtivaUrl}:${statusOperacao}:${turnoIdCampo ?? ""}`
     : null;
+
   const executando = contarStatus(atividades, "Execução");
   const restricoes = contarStatus(atividades, "Restrição");
   const finalizadas = contarStatus(atividades, "Finalizada");
   const parciais = contarStatus(atividades, "Parcial");
+
   const restricoesPainel = useMemo(() => {
     const restricoesAtivas = atividades
       .filter(
@@ -308,14 +342,13 @@ export default function Home() {
 
       const locais = carregarListaLocal<RecursoDisponivelTurno>(
         recursosDisponiveisStorageKey
-      ).filter(
-        (item) =>
-          pertenceAoTurno(item, {
-            obraId: obraAtivaId,
-            turnoId: turnoAtivoDados.id,
-            turno: turnoAtual,
-            dataTurno: dataTurnoAtual,
-          })
+      ).filter((item) =>
+        pertenceAoTurno(item, {
+          obraId: obraAtivaId,
+          turnoId: turnoAtivoDados.id,
+          turno: turnoAtual,
+          dataTurno: dataTurnoAtual,
+        })
       );
 
       const { data, error } = await supabase
@@ -410,13 +443,16 @@ export default function Home() {
       dataTurnoOperacional,
       turnoAtual
     );
+
     const controleEncerrado = obterControleTurno(
       novosControles,
       obraAtivaId,
       dataTurnoOperacional,
       turnoAtual
     );
+
     const chave = chaveTurno(obraAtivaId, dataTurnoOperacional, turnoAtual);
+
     const novosFechamentos = {
       ...fechamentos,
       [chave]: {
@@ -647,7 +683,13 @@ export default function Home() {
                   </a>
                 </div>
               ) : (
-                <EstadoVazio texto={!obraAtivaId ? "Selecione uma obra no menu lateral para continuar." : "Selecione ou publique um turno no Checkin para continuar."} />
+                <EstadoVazio
+                  texto={
+                    !obraAtivaId
+                      ? "Selecione uma obra no menu lateral para continuar."
+                      : "Selecione ou publique um turno no Checkin para gerar o acesso ao Campo."
+                  }
+                />
               )}
             </section>
 
