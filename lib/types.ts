@@ -20,6 +20,7 @@ export type Atividade = {
   unidade: string | null;
   tempo_previsto_horas?: number | null;
   origem_atividade_id?: number | null;
+  turno_id?: number | null;
   status: StatusAtividade;
   progresso: number | null;
   turno: string | null;
@@ -39,6 +40,7 @@ export type RecursoPrevisto = {
 
 export type RecursoDisponivelTurno = RecursoPrevisto & {
   obra_id?: number | null;
+  turno_id?: number | null;
   data_turno: string;
   turno: string;
 };

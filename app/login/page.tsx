@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { carregarCadastroBase, getContextoAtual } from "../../lib/cadastro-base";
-import { criarCampoPath, criarRotaComObra } from "../../lib/rotas";
+import { criarRotaComObra, gerarCampoUrl } from "../../lib/rotas";
 
 export default function LoginPage() {
 
@@ -22,7 +22,10 @@ export default function LoginPage() {
 
     else if (perfil === "Supervisor") {
       router.push(
-        criarCampoPath(obraAtivaId, contexto.turnoAtivoId) ||
+        gerarCampoUrl({
+          obraId: obraAtivaId,
+          turnoId: contexto.turnoAtivoId,
+        }) ||
           criarRotaComObra("/checkin", obraAtivaId)
       );
     }

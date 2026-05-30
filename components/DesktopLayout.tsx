@@ -11,7 +11,7 @@ import {
   sincronizarCadastroBaseRemoto,
   type ObraCadastrada,
 } from "../lib/cadastro-base";
-import { criarCampoPath, criarRotaComObra } from "../lib/rotas";
+import { criarRotaComObra, gerarCampoUrl } from "../lib/rotas";
 
 interface Props {
   children: ReactNode;
@@ -48,7 +48,7 @@ export default function DesktopLayout({
   const [turnoAtivoId, setTurnoAtivoId] = useState<number | null>(null);
   const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
-  const campoHref = criarCampoPath(obraAtivaId, turnoAtivoId);
+  const campoHref = gerarCampoUrl({ obraId: obraAtivaId, turnoId: turnoAtivoId });
   const itensMenu = menuItems.map((item) => ({
     ...item,
     href: criarRotaComObra(item.href, obraAtivaId),
@@ -228,7 +228,7 @@ export default function DesktopLayout({
             <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
               {itensMobile.map((item) => (
                 <MenuLink
-                  key={item.href}
+                  key={item.href ?? item.label}
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
@@ -287,7 +287,7 @@ function MenuLink({
   compact = false,
   disabledText,
 }: {
-  href: string;
+  href: string | null;
   label: string;
   icon: string;
   compact?: boolean;
@@ -313,7 +313,7 @@ function MenuLink({
     );
   }
 
-  const hrefPathname = href.split("?")[0];
+  const hrefPathname = obterPathnameHref(href);
 
   const ativo =
     hrefPathname === "/" ? pathname === "/" : pathname.startsWith(hrefPathname);
@@ -334,6 +334,14 @@ function MenuLink({
       <span>{label}</span>
     </Link>
   );
+}
+
+function obterPathnameHref(href: string) {
+  try {
+    return new URL(href).pathname;
+  } catch {
+    return href.split("?")[0];
+  }
 }
 
 function atualizarObraIdNaUrl(pathname: string, obraId: number | null) {

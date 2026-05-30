@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import type {
   Atividade,
@@ -10,10 +11,11 @@ import type {
 } from "../../lib/types";
 import {
   cadastroBaseEvento,
-  cadastroDadosObraInicial,
   carregarCadastroBase,
-  getContextoAtual,
   obterDadosObra,
+  obterObraPorId,
+  obterTurnoPorId,
+  normalizarObraId,
   sincronizarCadastroBaseRemoto,
   type FuncaoPrevistaCadastrada,
   type UsuarioCadastrado,
@@ -21,8 +23,9 @@ import {
 import {
   calcularAvancoReal,
   definirStatusPorAvanco,
+  listarRestricoesHistorico,
+  pertenceAoTurno,
   registrarRestricaoHistorico,
-  restricaoStorageKey,
 } from "../../lib/operacao";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
@@ -40,6 +43,7 @@ type RestricaoAtividade = {
 type MaoObraReal = {
   id: number;
   obra_id?: number | null;
+  turno_id?: number | null;
   atividade_id?: number | null;
   funcao: string | null;
   quantidade: number | null;
@@ -47,13 +51,37 @@ type MaoObraReal = {
   data_turno?: string | null;
 };
 
-const controleStorageKey = "obraboard:campo-controles";
-const maoObraLocalStorageKey = "obraboard:mao-obra-local";
+const mensagemLinkInvalido =
+  "Link inválido. Acesse o Campo pelo QR Code ou pelo botão Campo.";
 
 export default function CampoPage() {
+  return (
+    <Suspense fallback={<CampoFallback />}>
+      <CampoPageContent />
+    </Suspense>
+  );
+}
+
+function CampoFallback() {
+  return (
+    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
+      <p className="rounded-xl bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
+        {mensagemLinkInvalido}
+      </p>
+    </main>
+  );
+}
+
+function CampoPageContent() {
+  const searchParams = useSearchParams();
+  const obraId = searchParams.get("obraId");
+  const turnoId = searchParams.get("turnoId");
+  const obraIdParametro = normalizarObraId(obraId);
+  const turnoIdParametro = normalizarIdParametro(turnoId);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
-  const [obraId, setObraId] = useState<number | null>(null);
+  const [obraIdCampo, setObraIdCampo] = useState<number | null>(null);
+  const [turnoIdCampo, setTurnoIdCampo] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
   const [avisoObra, setAvisoObra] = useState("");
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
@@ -62,18 +90,14 @@ export default function CampoPage() {
   const [recursosPorAtividade, setRecursosPorAtividade] = useState<
     Record<number, AtividadeRecurso[]>
   >({});
-  const [turno, setTurno] = useState("Dia");
+  const [turno, setTurno] = useState("");
   const [responsavelFiltro, setResponsavelFiltro] = useState("");
   const [filtro, setFiltro] = useState<FiltroStatus>("Todas");
   const [atividadeMaoObraId, setAtividadeMaoObraId] = useState<number | null>(null);
   const [funcao, setFuncao] = useState("");
   const [quantidade, setQuantidade] = useState("");
-  const [controles, setControles] = useState<Record<number, ControleAtividade>>(
-    () => carregarObjetoLocal(controleStorageKey)
-  );
-  const [restricoes, setRestricoes] = useState<Record<number, RestricaoAtividade>>(
-    () => carregarObjetoLocal(restricaoStorageKey)
-  );
+  const [controles, setControles] = useState<Record<number, ControleAtividade>>({});
+  const [restricoes, setRestricoes] = useState<Record<number, RestricaoAtividade>>({});
   const [restricaoEditandoId, setRestricaoEditandoId] = useState<number | null>(null);
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
@@ -104,11 +128,16 @@ export default function CampoPage() {
     () =>
       atividades.filter(
         (item) =>
+          pertenceAoTurno(item, {
+            obraId: obraIdCampo,
+            turnoId: turnoIdCampo,
+            turno,
+            dataTurno: dataTurnoAtual,
+          }) &&
           (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
-          (!turno || item.turno === turno) &&
           (!responsavelFiltro || item.responsavel === responsavelFiltro)
       ),
-    [atividades, dataTurnoAtual, responsavelFiltro, turno]
+    [atividades, dataTurnoAtual, obraIdCampo, responsavelFiltro, turno, turnoIdCampo]
   );
 
   const atividadesFiltradas = useMemo(() => {
@@ -130,27 +159,64 @@ export default function CampoPage() {
     return () => window.clearInterval(intervalo);
   }, []);
 
-  useEffect(() => {
-    salvarObjetoLocal(controleStorageKey, controles);
-  }, [controles]);
-
-  useEffect(() => {
-    salvarObjetoLocal(restricaoStorageKey, restricoes);
-  }, [restricoes]);
-
-  async function carregarAtividades(obraAtualId = obraId) {
-    if (!obraAtualId) {
+  async function carregarAtividades(
+    obraAtualId = obraIdCampo,
+    turnoAtualId = turnoIdCampo,
+    turnoAtualNome = turno
+  ) {
+    if (!obraAtualId || !turnoAtualId || !turnoAtualNome) {
       setAtividades([]);
+      setRecursosPorAtividade({});
       return;
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("atividades")
       .select("*")
       .eq("obra_id", obraAtualId)
       .order("id", { ascending: true });
 
-    const carregadas = (data || []) as Atividade[];
+    if (error) {
+      console.error(error);
+      setAtividades([]);
+      setRecursosPorAtividade({});
+      return;
+    }
+
+    const carregadas = ((data || []) as Atividade[]).filter(
+      (item) =>
+        pertenceAoTurno(item, {
+          obraId: obraAtualId,
+          turnoId: turnoAtualId,
+          turno: turnoAtualNome,
+        })
+    );
+    const dataAtual = obterDataTurnoAtual(carregadas);
+    const historicoRestricoes = listarRestricoesHistorico(
+      obraAtualId,
+      dataAtual,
+      turnoAtualNome
+    );
+
+    setRestricoes(
+      historicoRestricoes.reduce<Record<number, RestricaoAtividade>>(
+        (mapa, restricao) => {
+          if (
+            restricao.status === "aberta" ||
+            restricao.status === "resolvida" ||
+            restricao.status === "parada"
+          ) {
+            mapa[restricao.atividadeId] = {
+              texto: restricao.texto,
+              status: restricao.status,
+            };
+          }
+
+          return mapa;
+        },
+        {}
+      )
+    );
     setAtividades(carregadas);
     setRealizadoAtividade((atuais) => {
       const proximos = { ...atuais };
@@ -204,70 +270,82 @@ export default function CampoPage() {
     );
   }
 
-  async function carregarMaoObraReal() {
-    const { data } = await supabase
+  async function carregarMaoObraReal(
+    obraAtualId = obraIdCampo,
+    turnoAtualId = turnoIdCampo,
+    turnoAtualNome = turno
+  ) {
+    if (!obraAtualId || !turnoAtualId || !turnoAtualNome) {
+      setMaoObraReal([]);
+      return;
+    }
+
+    const { data, error } = await supabase
       .from("mao_obra")
       .select("*")
+      .eq("obra_id", obraAtualId)
       .order("id", { ascending: true });
 
-    setMaoObraReal([
-      ...((data || []) as MaoObraReal[]),
-      ...carregarListaLocal<MaoObraReal>(maoObraLocalStorageKey),
-    ]);
+    if (error) {
+      console.error(error);
+      setMaoObraReal([]);
+      return;
+    }
+
+    setMaoObraReal(
+      ((data || []) as MaoObraReal[]).filter(
+        (item) =>
+          pertenceAoTurno(item, {
+            obraId: obraAtualId,
+            turnoId: turnoAtualId,
+            turno: turnoAtualNome,
+          })
+      )
+    );
+  }
+
+  function limparCampoInvalido() {
+    setObraIdCampo(null);
+    setTurnoIdCampo(null);
+    setObra("Link invalido");
+    setTurno("");
+    setAvisoObra(mensagemLinkInvalido);
+    setAtividades([]);
+    setMaoObraReal([]);
+    setRecursosPorAtividade({});
+    setFuncoesPrevistasCadastradas([]);
+    setUsuariosCadastrados([]);
   }
 
   useEffect(() => {
     async function carregarContextoObra(sincronizarRemoto = false) {
+      if (!obraIdParametro || !turnoIdParametro) {
+        limparCampoInvalido();
+        return;
+      }
+
       const cadastro = sincronizarRemoto
         ? await sincronizarCadastroBaseRemoto()
         : carregarCadastroBase();
-      const parametros = new URLSearchParams(window.location.search);
-      const obraParam = parametros.get("obraId");
-      const turnoIdParam = parametros.get("turnoId");
-      const linkCompleto = parametros.has("obraId") && parametros.has("turnoId");
+      const obraCadastro = obterObraPorId(cadastro, obraIdParametro);
+      const dadosObra = obterDadosObra(cadastro, obraIdParametro);
+      const turnoCadastro = obterTurnoPorId(dadosObra.turnos, turnoIdParametro);
 
-      if (!linkCompleto) {
-        setObraId(null);
-        setObra("Link invalido");
-        setTurno("");
-        setAvisoObra("Link inválido. Acesse o Campo pelo QR Code ou pelo botão Campo.");
-        setAtividades([]);
-        setFuncoesPrevistasCadastradas([]);
-        setUsuariosCadastrados([]);
+      if (!obraCadastro || !turnoCadastro) {
+        limparCampoInvalido();
         return;
       }
 
-      const contexto = getContextoAtual(cadastro, {
-        obraId: obraParam,
-        turnoId: turnoIdParam,
-      });
-      const obraAtivaCadastro = contexto.obraAtiva;
-      const obraIdResolvida = contexto.obraAtivaId;
-      const turnoResolvido = contexto.turnoAtivo;
-      const dadosObra = obraAtivaCadastro
-        ? obterDadosObra(cadastro, obraAtivaCadastro.id)
-        : cadastroDadosObraInicial;
-
-      if (!obraAtivaCadastro || !obraIdResolvida || !turnoResolvido) {
-        setObraId(null);
-        setObra("Link invalido");
-        setTurno("");
-        setAvisoObra("Link inválido. Acesse o Campo pelo QR Code ou pelo botão Campo.");
-        setAtividades([]);
-        setFuncoesPrevistasCadastradas([]);
-        setUsuariosCadastrados([]);
-        return;
-      }
-
-      setObraId(obraIdResolvida);
-      setObra(obraAtivaCadastro.nome || obraAtivaCadastro.codigo || "Obra sem nome");
+      setObraIdCampo(obraIdParametro);
+      setTurnoIdCampo(turnoIdParametro);
+      setObra(obraCadastro.nome || obraCadastro.codigo || "Obra sem nome");
       setAvisoObra("");
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
       setUsuariosCadastrados(dadosObra.usuarios);
-      setTurno(turnoResolvido.nome);
+      setTurno(turnoCadastro.nome);
 
-      void carregarAtividades(obraIdResolvida);
-      void carregarMaoObraReal();
+      void carregarAtividades(obraIdParametro, turnoIdParametro, turnoCadastro.nome);
+      void carregarMaoObraReal(obraIdParametro, turnoIdParametro, turnoCadastro.nome);
     }
 
     queueMicrotask(() => {
@@ -283,9 +361,9 @@ export default function CampoPage() {
       window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
       window.removeEventListener("storage", carregarContextoLocal);
     };
-    // carregarAtividades recebe o id atual explicitamente neste efeito.
+    // As cargas recebem os ids da URL explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [obraIdParametro, turnoIdParametro]);
 
   async function atualizarAtividade(
     id: number,
@@ -317,21 +395,18 @@ export default function CampoPage() {
       atualizacao.responsavel = responsavel;
     }
 
-    let consulta = supabase.from("atividades").update(atualizacao).eq("id", id);
-
-    if (obraId) {
-      consulta = consulta.eq("obra_id", obraId);
+    if (!obraIdCampo || !turnoIdCampo || !dataTurnoAtual) {
+      alert(mensagemLinkInvalido);
+      return;
     }
 
-    if (dataTurnoAtual) {
-      consulta = consulta.eq("data_turno", dataTurnoAtual);
-    }
-
-    if (turno) {
-      consulta = consulta.eq("turno", turno);
-    }
-
-    const { error } = await consulta;
+    const { error } = await supabase
+      .from("atividades")
+      .update(atualizacao)
+      .eq("id", id)
+      .eq("obra_id", obraIdCampo)
+      .eq("data_turno", dataTurnoAtual)
+      .eq("turno", turno);
 
     if (error) {
       console.error(error);
@@ -497,14 +572,15 @@ export default function CampoPage() {
       return;
     }
 
-    if (!obraId || !dataTurnoAtual || !turno) {
+    if (!obraIdCampo || !turnoIdCampo || !dataTurnoAtual || !turno) {
       alert("A tela Campo precisa estar vinculada a obra, data e turno.");
       return;
     }
 
     const payload = {
       atividade_id: atividadeMaoObraId,
-      obra_id: obraId,
+      obra_id: obraIdCampo,
+      turno_id: turnoIdCampo,
       funcao,
       quantidade: Number(quantidade),
       turno,
@@ -514,32 +590,9 @@ export default function CampoPage() {
     const { error } = await supabase.from("mao_obra").insert([payload]);
 
     if (error) {
-      const { error: fallbackError } = await supabase.from("mao_obra").insert([
-        {
-          funcao,
-          quantidade: Number(quantidade),
-          turno,
-          data_turno: dataTurnoAtual,
-        },
-      ]);
-
-      if (fallbackError) {
-        const itemLocal: MaoObraReal = {
-          id: Date.now() * -1,
-          obra_id: obraId,
-          atividade_id: atividadeMaoObraId,
-          funcao,
-          quantidade: Number(quantidade),
-          turno,
-          data_turno: dataTurnoAtual,
-        };
-
-        salvarListaLocal(maoObraLocalStorageKey, [
-          ...carregarListaLocal<MaoObraReal>(maoObraLocalStorageKey),
-          itemLocal,
-        ]);
-        setMaoObraReal((atuais) => [...atuais, itemLocal]);
-      }
+      console.error(error);
+      alert("Erro ao salvar mão de obra.");
+      return;
     }
 
     setFuncao("");
@@ -991,46 +1044,16 @@ function formatarDataTurno(dataTurno: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-function carregarObjetoLocal<T>(chave: string): T {
-  if (typeof window === "undefined") {
-    return {} as T;
+function normalizarIdParametro(id: string | null) {
+  if (!id) {
+    return null;
   }
 
-  try {
-    return JSON.parse(window.localStorage.getItem(chave) || "{}") as T;
-  } catch {
-    return {} as T;
-  }
+  const numero = Number(id);
+
+  return Number.isFinite(numero) && numero > 0 ? numero : null;
 }
 
-function salvarObjetoLocal(chave: string, valor: unknown) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(chave, JSON.stringify(valor));
-}
-
-function carregarListaLocal<T>(chave: string): T[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const valor = JSON.parse(window.localStorage.getItem(chave) || "[]");
-    return Array.isArray(valor) ? (valor as T[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function salvarListaLocal(chave: string, valor: unknown[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(chave, JSON.stringify(valor));
-}
 function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: string) {
   return textoEditando.trim() || textoSalvo || "Sem descrição";
 }

@@ -62,6 +62,7 @@ export type CadastroBase = {
   obras: ObraCadastrada[];
   obraAtivaId: number | null;
   turnoAtivoPorObra: Record<string, string>;
+  turnoAtivoIdPorObra: Record<string, number>;
   dadosPorObra: Record<string, CadastroDadosObra>;
   usuarios: UsuarioCadastrado[];
   disciplinas: DisciplinaCadastrada[];
@@ -87,6 +88,7 @@ export const cadastroBaseInicial: CadastroBase = {
   obras: [],
   obraAtivaId: null,
   turnoAtivoPorObra: {},
+  turnoAtivoIdPorObra: {},
   dadosPorObra: {},
   usuarios: [],
   disciplinas: [],
@@ -206,6 +208,10 @@ export async function sincronizarCadastroBaseRemoto() {
       ...cadastroRemoto.turnoAtivoPorObra,
       ...cadastroLocal.turnoAtivoPorObra,
     },
+    turnoAtivoIdPorObra: {
+      ...cadastroRemoto.turnoAtivoIdPorObra,
+      ...cadastroLocal.turnoAtivoIdPorObra,
+    },
   };
 
   salvarCadastroBaseLocal(cadastroMesclado);
@@ -220,6 +226,7 @@ export function criarCadastroBaseVazio(): CadastroBase {
     obras: [],
     obraAtivaId: null,
     turnoAtivoPorObra: {},
+    turnoAtivoIdPorObra: {},
     dadosPorObra: {},
     usuarios: [],
     disciplinas: [],
@@ -372,11 +379,33 @@ export function obterTurnoAtivoNome(
     : "";
 }
 
+export function obterTurnoAtivoId(
+  cadastro: CadastroBase,
+  obraId: number | null,
+  turnos: TurnoCadastrado[]
+) {
+  if (!obraId) {
+    return null;
+  }
+
+  const turnoIdSalvo = cadastro.turnoAtivoIdPorObra[String(obraId)];
+
+  return turnos.some((turno) => String(turno.id) === String(turnoIdSalvo))
+    ? Number(turnoIdSalvo)
+    : null;
+}
+
 export function obterTurnoAtivo(
   cadastro: CadastroBase,
   obraId: number | null,
   turnos: TurnoCadastrado[]
 ) {
+  const turnoId = obterTurnoAtivoId(cadastro, obraId, turnos);
+
+  if (turnoId) {
+    return obterTurnoPorId(turnos, turnoId);
+  }
+
   const turnoNome = obterTurnoAtivoNome(cadastro, obraId, turnos);
 
   return turnos.find((turno) => turno.nome === turnoNome) ?? null;
@@ -430,18 +459,31 @@ export function getContextoAtual(
   };
 }
 
-export function salvarTurnoAtivo(obraId: number | null, turnoNome: string) {
+export function salvarTurnoAtivo(
+  obraId: number | null,
+  turnoNome: string,
+  turnoId?: number | null
+) {
   if (!obraId || !turnoNome) {
     return;
   }
 
   const cadastro = carregarCadastroBase();
+  const dadosObra = obterDadosObra(cadastro, obraId);
+  const turnoSelecionado =
+    (turnoId ? obterTurnoPorId(dadosObra.turnos, turnoId) : null) ??
+    dadosObra.turnos.find((turno) => turno.nome === turnoNome) ??
+    null;
 
   salvarCadastroBase({
     ...cadastro,
     turnoAtivoPorObra: {
       ...cadastro.turnoAtivoPorObra,
-      [String(obraId)]: turnoNome,
+      [String(obraId)]: turnoSelecionado?.nome ?? turnoNome,
+    },
+    turnoAtivoIdPorObra: {
+      ...cadastro.turnoAtivoIdPorObra,
+      ...(turnoSelecionado ? { [String(obraId)]: turnoSelecionado.id } : {}),
     },
   });
   notificarCadastroBaseAtualizado();
@@ -584,6 +626,7 @@ function normalizarCadastroBase(cadastro: Partial<CadastroBase>): CadastroBase {
     obras,
     obraAtivaId,
     turnoAtivoPorObra: cadastro.turnoAtivoPorObra ?? {},
+    turnoAtivoIdPorObra: cadastro.turnoAtivoIdPorObra ?? {},
     dadosPorObra: cadastro.dadosPorObra ?? {},
     usuarios: Array.isArray(cadastro.usuarios) ? cadastro.usuarios : [],
     disciplinas: Array.isArray(cadastro.disciplinas)

@@ -10,6 +10,7 @@ import {
   carregarCadastroBase,
   getContextoAtual,
   obterDadosObra,
+  salvarTurnoAtivo,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 import {
@@ -25,6 +26,7 @@ import {
   listarRestricoesHistorico,
   obterControleTurno,
   obterFarolOperacional,
+  pertenceAoTurno,
   pausarControleTurno,
   registrarRestricaoHistorico,
   salvarObjetoLocal,
@@ -69,9 +71,19 @@ export default function CheckoutPage() {
     responsavel: "",
   });
 
+  const turnoSelecionado = useMemo(
+    () => turnosCadastrados.find((item) => item.nome === turno) ?? null,
+    [turno, turnosCadastrados]
+  );
   const dataTurnoAtual = obterDataTurnoAtual(
     turno
-      ? atividadesBanco.filter((item) => item.turno === turno)
+      ? atividadesBanco.filter((item) =>
+          pertenceAoTurno(item, {
+            obraId,
+            turnoId: turnoSelecionado?.id ?? null,
+            turno,
+          })
+        )
       : atividadesBanco
   );
   const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
@@ -80,9 +92,15 @@ export default function CheckoutPage() {
       atividadesBanco.filter(
         (item) =>
           (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
-          (!turno || item.turno === turno)
+          (!turno ||
+            pertenceAoTurno(item, {
+              obraId,
+              turnoId: turnoSelecionado?.id ?? null,
+              turno,
+              dataTurno: dataTurnoAtual,
+            }))
       ),
-    [atividadesBanco, dataTurnoAtual, turno]
+    [atividadesBanco, dataTurnoAtual, obraId, turno, turnoSelecionado]
   );
   const restricoes = atividades.filter((item) => item.status === "Restrição");
   const finalizadas = atividades.filter((item) => calcularAvancoReal(item.previsto, item.realizado) >= 100).length;
@@ -262,7 +280,8 @@ export default function CheckoutPage() {
         tempo_previsto_horas: Number(edicao.tempoPrevistoHoras || 0),
       })
       .eq("id", item.id)
-      .eq("obra_id", obraId);
+      .eq("obra_id", obraId)
+      .eq("turno", turno);
 
     if (error) {
       console.error(error);
@@ -292,7 +311,8 @@ export default function CheckoutPage() {
         status,
       })
       .eq("id", item.id)
-      .eq("obra_id", obraId);
+      .eq("obra_id", obraId)
+      .eq("turno", turno);
 
     if (error) {
       console.error(error);
@@ -340,6 +360,7 @@ export default function CheckoutPage() {
         .select("id")
         .eq("obra_id", obraId)
         .eq("origem_atividade_id", item.id)
+        .eq("turno_id", proximoTurno.id)
         .eq("turno", proximoTurno.nome)
         .eq("data_turno", dataTurnoAtual)
         .maybeSingle();
@@ -353,6 +374,7 @@ export default function CheckoutPage() {
         .insert([
           {
             obra_id: obraId,
+            turno_id: proximoTurno.id,
             prioridade: item.prioridade,
             disciplina: item.disciplina,
             atividade: `${item.atividade} (reprogramada)`,
@@ -397,7 +419,7 @@ export default function CheckoutPage() {
         )
         .forEach((restricao) =>
           registrarRestricaoHistorico(
-            { ...item, id: nova.id, turno: proximoTurno.nome },
+            { ...item, id: nova.id, turno: proximoTurno.nome, turno_id: proximoTurno.id },
             restricao.texto,
             "reprogramada"
           )
@@ -409,6 +431,7 @@ export default function CheckoutPage() {
       `obraboard:checkout-reprogramacao:${obraId}:${dataTurnoAtual}:${turno}`,
       JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, pendentes: pendentes.length })
     );
+    salvarTurnoAtivo(obraId, proximoTurno.nome, proximoTurno.id);
     setMensagem(`${criadas} pendencias reprogramadas para ${proximoTurno.nome}.`);
     await recarregarAtividades();
   }

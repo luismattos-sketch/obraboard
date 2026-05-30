@@ -27,6 +27,7 @@ import {
   carregarObjetoLocal,
   type ControlesTurno,
   obterControleTurno,
+  pertenceAoTurno,
   publicarControleTurno,
   salvarObjetoLocal,
   turnosOperacaoStorageKey,
@@ -40,6 +41,7 @@ type RecursoFormulario = {
 
 type AtividadeInsert = {
   obra_id: number;
+  turno_id: number;
   prioridade: PrioridadeAtividade;
   disciplina: string;
   atividade: string;
@@ -174,6 +176,10 @@ export default function CheckinPage() {
   );
   const [edicaoLiberada, setEdicaoLiberada] = useState(false);
 
+  const turnoSelecionado = useMemo(
+    () => turnosCadastrados.find((item) => item.nome === turno) ?? null,
+    [turno, turnosCadastrados]
+  );
   const turnoEncerrado = Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
   const controleTurno = obterControleTurno(controlesTurno, obraId, dataTurno, turno);
   const turnoPublicado = ["publicado", "em_andamento", "pausado"].includes(
@@ -187,11 +193,14 @@ export default function CheckinPage() {
     () =>
       atividades.filter(
         (item) =>
-          item.obra_id === obraId &&
-          item.data_turno === dataTurno &&
-          item.turno === turno
+          pertenceAoTurno(item, {
+            obraId,
+            turnoId: turnoSelecionado?.id ?? null,
+            turno,
+            dataTurno,
+          })
       ),
-    [atividades, dataTurno, obraId, turno]
+    [atividades, dataTurno, obraId, turno, turnoSelecionado]
   );
 
   const recursosDisponiveisPorFuncao = useMemo(() => {
@@ -241,9 +250,12 @@ export default function CheckinPage() {
     return atividades
       .filter(
         (item) =>
-          item.obra_id === obraId &&
-          item.data_turno === dataTurno &&
-          item.turno === turno
+          pertenceAoTurno(item, {
+            obraId,
+            turnoId: turnoSelecionado?.id ?? null,
+            turno,
+            dataTurno,
+          })
       )
       .reduce(
         (total, item) =>
@@ -253,7 +265,7 @@ export default function CheckinPage() {
       );
     // somarRecursosAtividade depende do mapa atualizado em memoria.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atividades, dataTurno, obraId, recursosPorAtividade, turno]);
+  }, [atividades, dataTurno, obraId, recursosPorAtividade, turno, turnoSelecionado]);
 
   const totais = useMemo(() => {
     const planejadas = atividadesTurno.filter(
@@ -356,18 +368,22 @@ export default function CheckinPage() {
   async function carregarRecursosDisponiveis(
     obraAtualId = obraId,
     dataAtual = dataTurno,
-    turnoAtual = turno
+    turnoAtual = turno,
+    turnoAtualId = turnoSelecionado?.id ?? null
   ) {
-    if (!obraAtualId || !dataAtual || !turnoAtual) {
+    if (!obraAtualId || !dataAtual || !turnoAtual || !turnoAtualId) {
       setRecursosDisponiveis([]);
       return;
     }
 
     const locais = carregarRecursosDisponiveisLocais().filter(
       (item) =>
-        item.obra_id === obraAtualId &&
-        item.data_turno === dataAtual &&
-        item.turno === turnoAtual
+        pertenceAoTurno(item, {
+          obraId: obraAtualId,
+          turnoId: turnoAtualId,
+          turno: turnoAtual,
+          dataTurno: dataAtual,
+        })
     );
 
     const { data, error } = await supabase
@@ -385,8 +401,11 @@ export default function CheckinPage() {
     }
 
     const banco = (data || []).map((item: Record<string, unknown>) => ({
-      id: Number(item.id),
-      obra_id: Number(item.obra_id),
+        id: Number(item.id),
+        obra_id: Number(item.obra_id),
+        turno_id: item.turno_id === null || item.turno_id === undefined
+          ? null
+          : Number(item.turno_id),
       data_turno: String(item.data_turno),
       turno: String(item.turno),
       funcao: String(item.funcao),
@@ -441,11 +460,16 @@ export default function CheckinPage() {
 
   useEffect(() => {
     queueMicrotask(() => {
-      void carregarRecursosDisponiveis(obraId, dataTurno, turno);
+      void carregarRecursosDisponiveis(
+        obraId,
+        dataTurno,
+        turno,
+        turnoSelecionado?.id ?? null
+      );
     });
     // carregarRecursosDisponiveis recebe os parametros explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obraId, dataTurno, turno]);
+  }, [obraId, dataTurno, turno, turnoSelecionado]);
 
   async function adicionarAtividade() {
     setMensagem("");
@@ -637,6 +661,10 @@ export default function CheckinPage() {
     await finalizarCadastro("Atividade programada com excedente no proximo turno.");
   }
 
+  function obterTurnoIdPorNome(turnoNome: string) {
+    return turnosCadastrados.find((item) => item.nome === turnoNome)?.id ?? null;
+  }
+
   async function salvarParteAtividade({
     tempoPrevisto,
     quantidadePrevista,
@@ -652,8 +680,17 @@ export default function CheckinPage() {
       throw new Error("Obra ativa nao definida.");
     }
 
+    const turnoDestinoId = obterTurnoIdPorNome(turnoDestino);
+
+    if (!turnoDestinoId) {
+      setErro("Turno destino nao encontrado.");
+      setSalvando(false);
+      throw new Error("Turno destino nao encontrado.");
+    }
+
     const payload: AtividadeInsert = {
       obra_id: obraId,
+      turno_id: turnoDestinoId,
       prioridade,
       disciplina,
       atividade,
@@ -751,9 +788,12 @@ export default function CheckinPage() {
     return atividades
       .filter(
         (item) =>
-          item.obra_id === obraId &&
-          item.data_turno === dataTurno &&
-          item.turno === turnoAlvo
+          pertenceAoTurno(item, {
+            obraId,
+            turnoId: obterTurnoIdPorNome(turnoAlvo),
+            turno: turnoAlvo,
+            dataTurno,
+          })
       )
       .reduce(
         (total, item) => total + somarRecursoDaAtividadePorFuncao(item.id, funcao),
@@ -844,7 +884,7 @@ export default function CheckinPage() {
       return;
     }
 
-    if (!obraId || !dataTurno || !turno) {
+    if (!obraId || !dataTurno || !turno || !turnoSelecionado) {
       setErro("Selecione obra, data e turno antes de cadastrar recursos.");
       return;
     }
@@ -864,6 +904,7 @@ export default function CheckinPage() {
 
     const payload = {
       obra_id: obraId,
+      turno_id: turnoSelecionado.id,
       data_turno: dataTurno,
       turno,
       funcao: funcaoDisponivel,
@@ -879,6 +920,7 @@ export default function CheckinPage() {
       locais.push({
         id: -Date.now(),
         obra_id: obraId,
+        turno_id: turnoSelecionado.id,
         data_turno: dataTurno,
         turno,
         funcao: funcaoDisponivel,
@@ -892,7 +934,12 @@ export default function CheckinPage() {
     setQuantidadeDisponivel("");
     setCargaHorariaDisponivel("");
     setMensagem("Recurso disponivel cadastrado no turno.");
-    await carregarRecursosDisponiveis(obraId, dataTurno, turno);
+    await carregarRecursosDisponiveis(
+      obraId,
+      dataTurno,
+      turno,
+      turnoSelecionado.id
+    );
   }
 
   async function removerRecursoDisponivel(recurso: RecursoDisponivelTurno) {
@@ -921,7 +968,12 @@ export default function CheckinPage() {
     }
 
     setMensagem("Recurso disponivel removido.");
-    await carregarRecursosDisponiveis(obraId, dataTurno, turno);
+    await carregarRecursosDisponiveis(
+      obraId,
+      dataTurno,
+      turno,
+      turnoSelecionado?.id ?? null
+    );
   }
 
   function iniciarEdicao(item: Atividade) {
@@ -1113,9 +1165,12 @@ export default function CheckinPage() {
   }
 
   function alterarTurnoSelecionado(novoTurno: string) {
+    const turnoSelecionadoNovo =
+      turnosCadastrados.find((item) => item.nome === novoTurno) ?? null;
+
     setTurno(novoTurno);
     setEdicaoLiberada(false);
-    salvarTurnoAtivo(obraId, novoTurno);
+    salvarTurnoAtivo(obraId, novoTurno, turnoSelecionadoNovo?.id ?? null);
   }
 
   function liberarEdicaoCheckin() {
@@ -1150,7 +1205,7 @@ export default function CheckinPage() {
       turno
     );
 
-    salvarTurnoAtivo(obraId, turno);
+    salvarTurnoAtivo(obraId, turno, turnoSelecionado?.id ?? null);
     setControlesTurno(novosControles);
     salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
     setEdicaoLiberada(false);

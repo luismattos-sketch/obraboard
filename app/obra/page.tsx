@@ -609,11 +609,21 @@ export default function CadastroObraPage() {
 
     const cadastroAtual = carregarCadastroBase();
     const turnoAtivoAtual = cadastroAtual.turnoAtivoPorObra[String(obraDestinoId)];
+    const turnoAtivoIdAtual = cadastroAtual.turnoAtivoIdPorObra[String(obraDestinoId)];
     const turnoExcluido = turnos.find((item) => item.id === id);
     const proximoTurnoAtivo =
-      turnoAtivoAtual === turnoExcluido?.nome
+      turnoAtivoAtual === turnoExcluido?.nome || turnoAtivoIdAtual === id
         ? ""
         : turnoAtivoAtual ?? "";
+    const proximoTurnoAtivoId =
+      turnoAtivoIdAtual === id ? undefined : turnoAtivoIdAtual;
+    const novoTurnoAtivoIdPorObra = { ...cadastroAtual.turnoAtivoIdPorObra };
+
+    if (proximoTurnoAtivoId) {
+      novoTurnoAtivoIdPorObra[String(obraDestinoId)] = proximoTurnoAtivoId;
+    } else {
+      delete novoTurnoAtivoIdPorObra[String(obraDestinoId)];
+    }
 
     salvarCadastroBase(
       definirDadosObra(
@@ -624,6 +634,7 @@ export default function CadastroObraPage() {
             ...cadastroAtual.turnoAtivoPorObra,
             [String(obraDestinoId)]: proximoTurnoAtivo,
           },
+          turnoAtivoIdPorObra: novoTurnoAtivoIdPorObra,
         },
         obraDestinoId,
         {

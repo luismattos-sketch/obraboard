@@ -6,6 +6,7 @@ export type RestricaoHistorico = {
   id: string;
   atividadeId: number;
   obraId: number | null;
+  turnoId?: number | null;
   dataTurno: string | null;
   turno: string | null;
   atividade: string;
@@ -13,6 +14,8 @@ export type RestricaoHistorico = {
   texto: string;
   status: RestricaoStatus;
   registradaEm: string;
+  paradaEm?: string | null;
+  retomadaEm?: string | null;
   encerradaEm?: string | null;
 };
 
@@ -104,6 +107,35 @@ export function obterFarolOperacional(status: string, avanco: number) {
   }
 
   return "Pendente";
+}
+
+export function pertenceAoTurno(
+  item: {
+    obra_id?: number | null;
+    turno_id?: number | null;
+    data_turno?: string | null;
+    turno?: string | null;
+  },
+  contexto: {
+    obraId: number | null;
+    turnoId: number | null;
+    turno: string | null;
+    dataTurno?: string | null;
+  }
+) {
+  if (!contexto.obraId || !contexto.turnoId || item.obra_id !== contexto.obraId) {
+    return false;
+  }
+
+  if (contexto.dataTurno && item.data_turno !== contexto.dataTurno) {
+    return false;
+  }
+
+  if (item.turno_id !== null && item.turno_id !== undefined) {
+    return Number(item.turno_id) === contexto.turnoId;
+  }
+
+  return Boolean(contexto.turno && item.turno === contexto.turno);
 }
 
 export function chaveTurno(obraId: number | null, dataTurno: string | null, turno: string | null) {
@@ -285,7 +317,9 @@ export function registrarRestricaoHistorico(
     []
   );
   const existenteAberta = historico.find(
-    (item) => item.atividadeId === atividade.id && item.status === "aberta"
+    (item) =>
+      item.atividadeId === atividade.id &&
+      ["aberta", "parada", "reprogramada"].includes(item.status)
   );
   const agora = new Date().toISOString();
 
@@ -296,7 +330,14 @@ export function registrarRestricaoHistorico(
             ...item,
             texto,
             status,
-            encerradaEm: status === "aberta" ? null : agora,
+            paradaEm:
+              status === "parada" ? item.paradaEm ?? agora : item.paradaEm ?? null,
+            retomadaEm:
+              item.status === "parada" && status !== "parada"
+                ? item.retomadaEm ?? agora
+                : item.retomadaEm ?? null,
+            encerradaEm:
+              status === "aberta" || status === "parada" ? null : agora,
           }
         : item
     );
@@ -310,6 +351,7 @@ export function registrarRestricaoHistorico(
       id: `${atividade.id}-${Date.now()}`,
       atividadeId: atividade.id,
       obraId: atividade.obra_id ?? null,
+      turnoId: atividade.turno_id ?? null,
       dataTurno: atividade.data_turno ?? null,
       turno: atividade.turno ?? null,
       atividade: atividade.atividade,
@@ -317,7 +359,9 @@ export function registrarRestricaoHistorico(
       texto,
       status,
       registradaEm: agora,
-      encerradaEm: status === "aberta" ? null : agora,
+      paradaEm: status === "parada" ? agora : null,
+      retomadaEm: null,
+      encerradaEm: status === "aberta" || status === "parada" ? null : agora,
     },
   ]);
 }

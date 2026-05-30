@@ -18,6 +18,7 @@ import {
   carregarObjetoLocal as carregarOperacaoLocal,
   checkoutFechamentosStorageKey,
   encerrarControleTurno,
+  pertenceAoTurno,
   type FechamentosTurno,
   chaveTurno,
   type ControlesTurno,
@@ -25,27 +26,22 @@ import {
   listarRestricoesHistorico,
   obterControleTurno,
   pausarControleTurno,
-  restricaoStorageKey,
   salvarObjetoLocal,
   turnoEstaEncerrado,
   turnosOperacaoStorageKey,
   type RestricaoHistorico,
 } from "../lib/operacao";
-import { criarCampoUrl } from "../lib/rotas";
+import { gerarCampoUrl } from "../lib/rotas";
 
 type MaoObraReal = {
   id: number;
   obra_id?: number | null;
+  turno_id?: number | null;
   atividade_id?: number | null;
   funcao: string | null;
   quantidade: number | null;
   turno: string | null;
   data_turno: string | null;
-};
-
-type RestricaoAtividade = {
-  texto: string;
-  status: "aberta" | "resolvida" | "parada";
 };
 
 const maoObraLocalStorageKey = "obraboard:mao-obra-local";
@@ -59,11 +55,8 @@ export default function Home() {
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivo, setTurnoAtivo] = useState("");
   const [turnoAtivoDados, setTurnoAtivoDados] = useState<TurnoCadastrado | null>(null);
-  const [origemApp, setOrigemApp] = useState("");
+  const [clientePronto, setClientePronto] = useState(false);
   const [agora, setAgora] = useState(() => new Date());
-  const [restricoesCampo, setRestricoesCampo] = useState<
-    Record<number, RestricaoAtividade>
-  >(() => carregarObjetoLocal(restricaoStorageKey));
   const [historicoRestricoes, setHistoricoRestricoes] = useState<RestricaoHistorico[]>([]);
   const [funcoesPrevistas, setFuncoesPrevistas] = useState<
     FuncaoPrevistaCadastrada[]
@@ -81,7 +74,13 @@ export default function Home() {
 
   const dataTurnoAtual = obterDataTurnoAtual(
     turnoAtivo
-      ? atividadesBanco.filter((item) => item.turno === turnoAtivo)
+      ? atividadesBanco.filter((item) =>
+          pertenceAoTurno(item, {
+            obraId: obraAtivaId,
+            turnoId: turnoAtivoDados?.id ?? null,
+            turno: turnoAtivo,
+          })
+        )
       : atividadesBanco
   );
   const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
@@ -96,9 +95,16 @@ export default function Home() {
   const atividades = useMemo(
     () =>
       turnoAtual
-        ? atividadesDaData.filter((item) => item.turno === turnoAtual)
+        ? atividadesDaData.filter((item) =>
+            pertenceAoTurno(item, {
+              obraId: obraAtivaId,
+              turnoId: turnoAtivoDados?.id ?? null,
+              turno: turnoAtual,
+              dataTurno: dataTurnoAtual,
+            })
+          )
         : [],
-    [atividadesDaData, turnoAtual]
+    [atividadesDaData, dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]
   );
   const recursosReaisPorFuncao = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -109,8 +115,12 @@ export default function Home() {
         (item) =>
           item.atividade_id
             ? atividadesIds.has(item.atividade_id)
-            : (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
-              (!turnoAtual || item.turno === turnoAtual)
+            : pertenceAoTurno(item, {
+                obraId: obraAtivaId,
+                turnoId: turnoAtivoDados?.id ?? null,
+                turno: turnoAtual || null,
+                dataTurno: dataTurnoAtual,
+              })
       )
       .forEach((item) => {
         const funcao = item.funcao || "";
@@ -121,7 +131,7 @@ export default function Home() {
       });
 
     return mapa;
-  }, [atividades, dataTurnoAtual, maoObraReal, turnoAtual]);
+  }, [atividades, dataTurnoAtual, maoObraReal, obraAtivaId, turnoAtivoDados, turnoAtual]);
   const recursosPrevistosPorFuncao = useMemo(() => {
     const mapa = new Map<string, { quantidade: number; hh: number }>();
 
@@ -164,16 +174,17 @@ export default function Home() {
     ? "encerrado"
     : controleTurno?.status ?? "planejado";
   const indicadorTurnoExibido = obterIndicadorOperacao(statusOperacao);
-  const campoObraAtivaUrl = criarCampoUrl(
-    origemApp,
-    obraAtivaId,
-    turnoAtivoDados?.id
-  );
+  const campoObraAtivaUrl = clientePronto
+    ? gerarCampoUrl({
+        obraId: obraAtivaId,
+        turnoId: turnoAtivoDados?.id,
+      })
+    : null;
   const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
         campoObraAtivaUrl
       )}&size=180x180&margin=8`
-    : "";
+    : null;
   const executando = contarStatus(atividades, "Execução");
   const restricoes = contarStatus(atividades, "Restrição");
   const finalizadas = contarStatus(atividades, "Finalizada");
@@ -186,17 +197,19 @@ export default function Home() {
           !historicoRestricoes.some(
             (historico) =>
               historico.atividadeId === item.id &&
-              historico.status === (restricoesCampo[item.id]?.status || "aberta") &&
-              historico.texto === (restricoesCampo[item.id]?.texto || "")
+              historico.dataTurno === item.data_turno &&
+              (historico.turnoId
+                ? historico.turnoId === item.turno_id
+                : historico.turno === item.turno)
           )
       )
       .map((item) => ({
         codigo: `R${item.id}`,
         titulo: item.atividade,
         responsavel: item.responsavel,
-        observacao: restricoesCampo[item.id]?.texto || "Sem observação registrada.",
+        observacao: "Sem observação registrada.",
         criticidade: item.prioridade === "A" ? "Alta" : "Média",
-        status: restricoesCampo[item.id]?.status || "aberta",
+        status: "aberta",
       }));
 
     const historico = historicoRestricoes.map((item) => ({
@@ -209,11 +222,11 @@ export default function Home() {
     }));
 
     return [...restricoesAtivas, ...historico];
-  }, [atividades, historicoRestricoes, restricoesCampo]);
+  }, [atividades, historicoRestricoes]);
 
   useEffect(() => {
     const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
-    queueMicrotask(() => setOrigemApp(window.location.origin));
+    queueMicrotask(() => setClientePronto(true));
 
     return () => window.clearInterval(intervalo);
   }, []);
@@ -267,7 +280,6 @@ export default function Home() {
       setControlesTurno(carregarOperacaoLocal(turnosOperacaoStorageKey, {}));
       void carregarAtividades(obraResolvidaId);
       void carregarMaoObraReal();
-      setRestricoesCampo(carregarObjetoLocal(restricaoStorageKey));
     }
 
     carregarContexto();
@@ -286,7 +298,7 @@ export default function Home() {
     void carregarRecursosPainel();
 
     async function carregarRecursosPainel() {
-      if (!obraAtivaId || !dataTurnoAtual || !turnoAtual) {
+      if (!obraAtivaId || !dataTurnoAtual || !turnoAtual || !turnoAtivoDados?.id) {
         setRecursosDisponiveis([]);
         return;
       }
@@ -295,9 +307,12 @@ export default function Home() {
         recursosDisponiveisStorageKey
       ).filter(
         (item) =>
-          item.obra_id === obraAtivaId &&
-          item.data_turno === dataTurnoAtual &&
-          item.turno === turnoAtual
+          pertenceAoTurno(item, {
+            obraId: obraAtivaId,
+            turnoId: turnoAtivoDados.id,
+            turno: turnoAtual,
+            dataTurno: dataTurnoAtual,
+          })
       );
 
       const { data, error } = await supabase
@@ -317,6 +332,10 @@ export default function Home() {
         ...((data || []) as Array<Record<string, unknown>>).map((item) => ({
           id: Number(item.id),
           obra_id: Number(item.obra_id),
+          turno_id:
+            item.turno_id === null || item.turno_id === undefined
+              ? null
+              : Number(item.turno_id),
           data_turno: String(item.data_turno),
           turno: String(item.turno),
           funcao: String(item.funcao),
@@ -326,7 +345,7 @@ export default function Home() {
         ...locais,
       ]);
     }
-  }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
+  }, [dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
 
   useEffect(() => {
     queueMicrotask(() =>
@@ -606,7 +625,7 @@ export default function Home() {
                 {turnoAtual ? ` - Turno ${turnoAtual}` : ""}.
               </p>
 
-              {qrCodeUrl ? (
+              {campoObraAtivaUrl && qrCodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
                   <a href={campoObraAtivaUrl} aria-label="Abrir tela Campo">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -757,18 +776,6 @@ function carregarListaLocal<T>(chave: string): T[] {
     return Array.isArray(valor) ? (valor as T[]) : [];
   } catch {
     return [];
-  }
-}
-
-function carregarObjetoLocal<T>(chave: string): T {
-  if (typeof window === "undefined") {
-    return {} as T;
-  }
-
-  try {
-    return JSON.parse(window.localStorage.getItem(chave) || "{}") as T;
-  } catch {
-    return {} as T;
   }
 }
 
