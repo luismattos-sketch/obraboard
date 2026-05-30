@@ -72,17 +72,32 @@ export default function Home() {
   );
   const [mensagem, setMensagem] = useState("");
 
-  const dataTurnoAtual = obterDataTurnoAtual(
-    turnoAtivo
-      ? atividadesBanco.filter((item) =>
-          pertenceAoTurno(item, {
-            obraId: obraAtivaId,
-            turnoId: turnoAtivoDados?.id ?? null,
-            turno: turnoAtivo,
-          })
-        )
-      : atividadesBanco
-  );
+  const turnoAtual = turnoAtivo;
+
+const atividadesDoTurnoAtual = useMemo(() => {
+  if (!turnoAtual) {
+    return atividadesBanco;
+  }
+
+  return atividadesBanco.filter((item) => {
+    const mesmaObra =
+      !obraAtivaId || Number(item.obra_id) === Number(obraAtivaId);
+
+    const mesmoTurnoPorId =
+      turnoAtivoDados?.id &&
+      item.turno_id &&
+      Number(item.turno_id) === Number(turnoAtivoDados.id);
+
+    const mesmoTurnoPorNome =
+      item.turno &&
+      String(item.turno).trim().toLowerCase() ===
+        String(turnoAtual).trim().toLowerCase();
+
+    return mesmaObra && (mesmoTurnoPorId || mesmoTurnoPorNome);
+  });
+}, [atividadesBanco, obraAtivaId, turnoAtivoDados, turnoAtual]);
+
+const dataTurnoAtual = obterDataTurnoAtual(atividadesDoTurnoAtual);
 
   const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
 
@@ -96,20 +111,28 @@ export default function Home() {
 
   const turnoAtual = turnoAtivo;
 
-  const atividades = useMemo(
-    () =>
-      turnoAtual
-        ? atividadesDaData.filter((item) =>
-            pertenceAoTurno(item, {
-              obraId: obraAtivaId,
-              turnoId: turnoAtivoDados?.id ?? null,
-              turno: turnoAtual,
-              dataTurno: dataTurnoAtual,
-            })
-          )
-        : [],
-    [atividadesDaData, dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]
-  );
+  const atividades = useMemo(() => {
+  if (!turnoAtual) {
+    return [];
+  }
+
+  return atividadesDaData.filter((item) => {
+    const mesmaObra =
+      !obraAtivaId || Number(item.obra_id) === Number(obraAtivaId);
+
+    const mesmoTurnoPorId =
+      turnoIdCampo &&
+      item.turno_id &&
+      Number(item.turno_id) === Number(turnoIdCampo);
+
+    const mesmoTurnoPorNome =
+      item.turno &&
+      String(item.turno).trim().toLowerCase() ===
+        String(turnoAtual).trim().toLowerCase();
+
+    return mesmaObra && (mesmoTurnoPorId || mesmoTurnoPorNome);
+  });
+}, [atividadesDaData, obraAtivaId, turnoAtual, turnoIdCampo]);
 
   const recursosReaisPorFuncao = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -187,30 +210,24 @@ export default function Home() {
   const indicadorTurnoExibido = obterIndicadorOperacao(statusOperacao);
 
   const turnoIdCampo = useMemo(() => {
-    if (turnoAtivoDados?.id) {
-      return turnoAtivoDados.id;
-    }
+  const atividadeComTurnoId = atividadesDoTurnoAtual.find(
+    (item) => item.turno_id
+  );
 
-    const atividadeDoTurnoAtual = atividadesBanco.find(
-      (item) =>
-        pertenceAoTurno(item, {
-          obraId: obraAtivaId,
-          turnoId: null,
-          turno: turnoAtual || null,
-          dataTurno: dataTurnoAtual,
-        }) && item.turno_id
-    );
+  if (atividadeComTurnoId?.turno_id) {
+    return Number(atividadeComTurnoId.turno_id);
+  }
 
-    return atividadeDoTurnoAtual?.turno_id ?? null;
-  }, [atividadesBanco, dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
+  if (turnoAtivoDados?.id) {
+    return Number(turnoAtivoDados.id);
+  }
 
-  const campoObraAtivaUrl =
-    clientePronto && obraAtivaId && turnoIdCampo
-      ? gerarCampoUrl({
-          obraId: obraAtivaId,
-          turnoId: turnoIdCampo,
-        })
-      : null;
+  return null;
+}, [atividadesDoTurnoAtual, turnoAtivoDados]);
+
+  const qrCodeRenderKey = campoObraAtivaUrl
+  ? `${campoObraAtivaUrl}:${statusOperacao}:${turnoIdCampo ?? ""}`
+  : null;
 
   const qrCodeUrl = campoObraAtivaUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
