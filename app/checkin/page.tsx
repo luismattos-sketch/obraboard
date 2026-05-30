@@ -16,6 +16,7 @@ import {
   getContextoAtual,
   obterDadosObra,
   salvarTurnoAtivo,
+  sincronizarCadastroBaseRemoto,
   type DisciplinaCadastrada,
   type FuncaoPrevistaCadastrada,
   type TurnoCadastrado,
@@ -417,8 +418,7 @@ export default function CheckinPage() {
   }
 
   useEffect(() => {
-    function carregarContextoObra() {
-      const cadastro = carregarCadastroBase();
+    function carregarContextoObra(cadastro = carregarCadastroBase()) {
       const contexto = getContextoAtual(cadastro);
       const obraAtiva = contexto.obraAtiva;
       const obraResolvidaId = contexto.obraAtivaId;
@@ -446,13 +446,23 @@ export default function CheckinPage() {
       setControlesTurno(carregarObjetoLocal(turnosOperacaoStorageKey, {}));
     }
 
-    queueMicrotask(carregarContextoObra);
-    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
-    window.addEventListener("storage", carregarContextoObra);
+    async function carregarContextoObraRemoto() {
+      carregarContextoObra(await sincronizarCadastroBaseRemoto());
+    }
+
+    function carregarContextoObraLocal() {
+      carregarContextoObra();
+    }
+
+    queueMicrotask(() => {
+      void carregarContextoObraRemoto();
+    });
+    window.addEventListener(cadastroBaseEvento, carregarContextoObraLocal);
+    window.addEventListener("storage", carregarContextoObraLocal);
 
     return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
-      window.removeEventListener("storage", carregarContextoObra);
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObraLocal);
+      window.removeEventListener("storage", carregarContextoObraLocal);
     };
     // carregarAtividades recebe o id atual explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1170,7 +1180,7 @@ export default function CheckinPage() {
 
     setTurno(novoTurno);
     setEdicaoLiberada(false);
-    salvarTurnoAtivo(obraId, novoTurno, turnoSelecionadoNovo?.id ?? null);
+    void salvarTurnoAtivo(obraId, novoTurno, turnoSelecionadoNovo?.id ?? null);
   }
 
   function liberarEdicaoCheckin() {
@@ -1179,7 +1189,7 @@ export default function CheckinPage() {
     setEdicaoLiberada(true);
   }
 
-  function publicarTurno() {
+  async function publicarTurno() {
     setMensagem("");
     setErro("");
 
@@ -1205,12 +1215,14 @@ export default function CheckinPage() {
       turno
     );
 
-    salvarTurnoAtivo(obraId, turno, turnoSelecionado?.id ?? null);
+    setSalvando(true);
+    await salvarTurnoAtivo(obraId, turno, turnoSelecionado?.id ?? null);
     setControlesTurno(novosControles);
     salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
     setEdicaoLiberada(false);
     window.dispatchEvent(new Event("storage"));
     setMensagem("Turno publicado. O Check-in foi bloqueado para execucao no campo.");
+    setSalvando(false);
   }
 
   return (
@@ -1976,10 +1988,14 @@ export default function CheckinPage() {
               <button
                 type="button"
                 onClick={publicarTurno}
-                disabled={turnoEncerrado}
+                disabled={turnoEncerrado || salvando}
                 className="mt-5 w-full rounded-xl bg-white px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                {turnoEncerrado ? "Turno encerrado" : "Publicar turno"}
+                {turnoEncerrado
+                  ? "Turno encerrado"
+                  : salvando
+                  ? "Publicando..."
+                  : "Publicar turno"}
               </button>
             )}
           </div>

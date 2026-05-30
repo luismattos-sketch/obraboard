@@ -8,6 +8,7 @@ import {
   cadastroBaseEvento,
   carregarCadastroBase,
   getContextoAtual,
+  sincronizarCadastroBaseRemoto,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 import {
@@ -316,8 +317,7 @@ export default function RdoPage() {
   }
 
   useEffect(() => {
-    function carregarContextoObra() {
-      const cadastro = carregarCadastroBase();
+    function carregarContextoObra(cadastro = carregarCadastroBase()) {
       const parametros = new URLSearchParams(window.location.search);
       const dataParam = parametros.get("dataTurno") || "";
       const contexto = getContextoAtual(cadastro);
@@ -336,13 +336,23 @@ export default function RdoPage() {
       void carregarDados(obraResolvidaId);
     }
 
-    queueMicrotask(carregarContextoObra);
-    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
-    window.addEventListener("storage", carregarContextoObra);
+    async function carregarContextoObraRemoto() {
+      carregarContextoObra(await sincronizarCadastroBaseRemoto());
+    }
+
+    function carregarContextoObraLocal() {
+      carregarContextoObra();
+    }
+
+    queueMicrotask(() => {
+      void carregarContextoObraRemoto();
+    });
+    window.addEventListener(cadastroBaseEvento, carregarContextoObraLocal);
+    window.addEventListener("storage", carregarContextoObraLocal);
 
     return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
-      window.removeEventListener("storage", carregarContextoObra);
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObraLocal);
+      window.removeEventListener("storage", carregarContextoObraLocal);
     };
   }, []);
 

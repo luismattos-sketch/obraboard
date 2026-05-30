@@ -14,6 +14,7 @@ import {
   removerDadosObra,
   resolverObraPorParametro,
   salvarCadastroBase,
+  sincronizarCadastroBaseRemoto,
   type CriticidadeObra,
   type DisciplinaCadastrada,
   type FuncaoPrevistaCadastrada,
@@ -168,8 +169,7 @@ export default function CadastroObraPage() {
   }
 
   useEffect(() => {
-    function carregarCadastro() {
-      const cadastro = carregarCadastroBase();
+    function carregarCadastro(cadastro = carregarCadastroBase()) {
       const obraParam = new URLSearchParams(window.location.search).get("obraId");
       const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
       const obraAtiva = obraResolvida.obra ?? (
@@ -203,13 +203,23 @@ export default function CadastroObraPage() {
       setCadastroCarregado(true);
     }
 
-    queueMicrotask(carregarCadastro);
-    window.addEventListener(cadastroBaseEvento, carregarCadastro);
-    window.addEventListener("storage", carregarCadastro);
+    async function carregarCadastroRemoto() {
+      carregarCadastro(await sincronizarCadastroBaseRemoto());
+    }
+
+    function carregarCadastroLocal() {
+      carregarCadastro();
+    }
+
+    queueMicrotask(() => {
+      void carregarCadastroRemoto();
+    });
+    window.addEventListener(cadastroBaseEvento, carregarCadastroLocal);
+    window.addEventListener("storage", carregarCadastroLocal);
 
     return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarCadastro);
-      window.removeEventListener("storage", carregarCadastro);
+      window.removeEventListener(cadastroBaseEvento, carregarCadastroLocal);
+      window.removeEventListener("storage", carregarCadastroLocal);
     };
   }, []);
 
@@ -226,7 +236,7 @@ export default function CadastroObraPage() {
 
     const cadastroAtual = carregarCadastroBase();
 
-    salvarCadastroBase(
+    void salvarCadastroBase(
       definirDadosObra(
         {
           ...cadastroAtual,
@@ -273,7 +283,7 @@ export default function CadastroObraPage() {
     leitor.readAsDataURL(arquivo);
   }
 
-  function salvarObra() {
+  async function salvarObra() {
     if (bloqueiaFormularioObra) {
       return;
     }
@@ -315,7 +325,7 @@ export default function CadastroObraPage() {
     };
 
     const cadastroAtual = carregarCadastroBase();
-    salvarCadastroBase(
+    await salvarCadastroBase(
       definirDadosObra(
         {
           ...cadastroAtual,
@@ -442,7 +452,7 @@ export default function CadastroObraPage() {
     const cadastroAtual = carregarCadastroBase();
     const novoAtivoId = cadastroAtual.obraAtivaId === id ? null : cadastroAtual.obraAtivaId;
 
-    salvarCadastroBase({
+    void salvarCadastroBase({
       ...cadastroAtual,
       obras: novasObras,
       obraAtivaId: novoAtivoId,
@@ -509,7 +519,7 @@ export default function CadastroObraPage() {
     setMensagem("Usuário excluído.");
   }
 
-  function salvarTurno() {
+  async function salvarTurno() {
     const obraDestinoId = obraEmTrabalhoId;
 
     if (bloqueiaTurnos) {
@@ -543,7 +553,7 @@ export default function CadastroObraPage() {
 
     const cadastroAtual = carregarCadastroBase();
 
-    salvarCadastroBase(
+    await salvarCadastroBase(
       definirDadosObra(
         {
           ...cadastroAtual,
@@ -625,7 +635,7 @@ export default function CadastroObraPage() {
       delete novoTurnoAtivoIdPorObra[String(obraDestinoId)];
     }
 
-    salvarCadastroBase(
+    void salvarCadastroBase(
       definirDadosObra(
         {
           ...cadastroAtual,

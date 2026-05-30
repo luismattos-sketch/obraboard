@@ -11,6 +11,7 @@ import {
   getContextoAtual,
   obterDadosObra,
   salvarTurnoAtivo,
+  sincronizarCadastroBaseRemoto,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
 import {
@@ -194,8 +195,7 @@ export default function CheckoutPage() {
       setCarregando(false);
     }
 
-    function carregarContextoObra() {
-      const cadastro = carregarCadastroBase();
+    function carregarContextoObra(cadastro = carregarCadastroBase()) {
       const contexto = getContextoAtual(cadastro);
       const obraAtiva = contexto.obraAtiva;
       const obraResolvidaId = contexto.obraAtivaId;
@@ -215,13 +215,23 @@ export default function CheckoutPage() {
       void carregarAtividades(obraResolvidaId);
     }
 
-    queueMicrotask(carregarContextoObra);
-    window.addEventListener(cadastroBaseEvento, carregarContextoObra);
-    window.addEventListener("storage", carregarContextoObra);
+    async function carregarContextoObraRemoto() {
+      carregarContextoObra(await sincronizarCadastroBaseRemoto());
+    }
+
+    function carregarContextoObraLocal() {
+      carregarContextoObra();
+    }
+
+    queueMicrotask(() => {
+      void carregarContextoObraRemoto();
+    });
+    window.addEventListener(cadastroBaseEvento, carregarContextoObraLocal);
+    window.addEventListener("storage", carregarContextoObraLocal);
 
     return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarContextoObra);
-      window.removeEventListener("storage", carregarContextoObra);
+      window.removeEventListener(cadastroBaseEvento, carregarContextoObraLocal);
+      window.removeEventListener("storage", carregarContextoObraLocal);
     };
   }, []);
 
@@ -431,7 +441,7 @@ export default function CheckoutPage() {
       `obraboard:checkout-reprogramacao:${obraId}:${dataTurnoAtual}:${turno}`,
       JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, pendentes: pendentes.length })
     );
-    salvarTurnoAtivo(obraId, proximoTurno.nome, proximoTurno.id);
+    void salvarTurnoAtivo(obraId, proximoTurno.nome, proximoTurno.id);
     setMensagem(`${criadas} pendencias reprogramadas para ${proximoTurno.nome}.`);
     await recarregarAtividades();
   }

@@ -118,29 +118,54 @@ export function carregarESincronizarCadastroBase(): CadastroBase {
   const cadastro = carregarCadastroBase();
 
   if (typeof window !== "undefined") {
-    salvarCadastroBase(cadastro);
+    void salvarCadastroBase(cadastro);
   }
 
   return cadastro;
 }
 
-export function salvarCadastroBase(cadastro: CadastroBase) {
+export async function salvarCadastroBase(cadastro: CadastroBase) {
   if (typeof window === "undefined") {
     return;
   }
 
   try {
     window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastro));
-    void salvarCadastroBaseRemoto(cadastro);
+    await salvarCadastroBaseRemoto(cadastro);
   } catch {
     try {
       const cadastroSemLogo = { ...cadastro, logoUrl: "" };
       window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastroSemLogo));
-      void salvarCadastroBaseRemoto(cadastroSemLogo);
+      await salvarCadastroBaseRemoto(cadastroSemLogo);
     } catch {
       // Mantem a tela funcionando mesmo se o armazenamento local estiver cheio.
     }
   }
+}
+
+export function apagarCadastroBase() {
+  void salvarCadastroBase(criarCadastroBaseVazio());
+  notificarCadastroBaseAtualizado();
+}
+
+export async function carregarCadastroBaseRemoto() {
+  const { data, error } = await supabase
+    .from("cadastro_base")
+    .select("dados")
+    .eq("id", cadastroBaseRemotoId)
+    .single();
+
+  if (error) {
+    console.error("Erro ao carregar cadastro_base remoto:", error);
+    return null;
+  }
+
+  if (!data?.dados) {
+    console.error("cadastro_base retornou vazio");
+    return null;
+  }
+
+  return normalizarCadastroBase(data.dados as Partial<CadastroBase>);
 }
 
 export async function sincronizarCadastroBaseRemoto() {
@@ -336,13 +361,13 @@ export function definirDadosObra(
   };
 }
 
-export function salvarObraAtivaId(obraId: number | null) {
+export async function salvarObraAtivaId(obraId: number | null) {
   const cadastro = carregarCadastroBase();
   const obraSelecionada = obraId
     ? cadastro.obras.find((obra) => String(obra.id) === String(obraId)) ?? null
     : null;
 
-  salvarCadastroBase({
+  await salvarCadastroBase({
     ...cadastro,
     obraAtivaId: obraSelecionada?.id ?? null,
   });
@@ -459,7 +484,7 @@ export function getContextoAtual(
   };
 }
 
-export function salvarTurnoAtivo(
+export async function salvarTurnoAtivo(
   obraId: number | null,
   turnoNome: string,
   turnoId?: number | null
@@ -475,7 +500,7 @@ export function salvarTurnoAtivo(
     dadosObra.turnos.find((turno) => turno.nome === turnoNome) ??
     null;
 
-  salvarCadastroBase({
+  await salvarCadastroBase({
     ...cadastro,
     turnoAtivoPorObra: {
       ...cadastro.turnoAtivoPorObra,

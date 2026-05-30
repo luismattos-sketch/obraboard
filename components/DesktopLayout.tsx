@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  apagarCadastroBase,
   cadastroBaseEvento,
   carregarCadastroBase,
   getContextoAtual,
@@ -62,8 +63,7 @@ export default function DesktopLayout({
   const itensMobile = [...itensMenu, { href: campoHref, label: "Campo", icon: "CP" }];
 
   useEffect(() => {
-    function carregarContexto() {
-      const cadastro = carregarCadastroBase();
+    function carregarContexto(cadastro = carregarCadastroBase()) {
       const contexto = getContextoAtual(cadastro);
       const obraAtiva = contexto.obraAtiva;
 
@@ -77,15 +77,17 @@ export default function DesktopLayout({
     }
 
     queueMicrotask(() => {
-      carregarContexto();
-      void sincronizarCadastroBaseRemoto();
+      void sincronizarCadastroBaseRemoto().then(carregarContexto);
     });
-    window.addEventListener(cadastroBaseEvento, carregarContexto);
-    window.addEventListener("storage", carregarContexto);
+    const carregarContextoLocal = () => {
+      carregarContexto();
+    };
+    window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
+    window.addEventListener("storage", carregarContextoLocal);
 
     return () => {
-      window.removeEventListener(cadastroBaseEvento, carregarContexto);
-      window.removeEventListener("storage", carregarContexto);
+      window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
+      window.removeEventListener("storage", carregarContextoLocal);
     };
   }, [logoUrl]);
 
@@ -94,7 +96,24 @@ export default function DesktopLayout({
 
     setObraAtivaId(novoId);
     atualizarObraIdNaUrl(pathname, novoId);
-    salvarObraAtivaId(novoId);
+    void salvarObraAtivaId(novoId);
+  }
+
+  function apagarDadosEntrada() {
+    const confirmou = window.confirm(
+      "Tem certeza que deseja apagar todos os dados de entrada cadastrados? Esta acao nao pode ser desfeita."
+    );
+
+    if (!confirmou) {
+      return;
+    }
+
+    apagarCadastroBase();
+    setLogoSalvo("");
+    setObras([]);
+    setObraAtivaId(null);
+    setTurnoAtivoId(null);
+    limparContextoNaUrl(pathname);
   }
 
   return (
@@ -168,15 +187,25 @@ export default function DesktopLayout({
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-bold">
-                LV
-              </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={apagarDadosEntrada}
+              className="w-full rounded-lg border border-slate-800 px-3 py-2 text-left text-xs font-semibold text-slate-500 transition hover:border-red-900/70 hover:bg-red-950/30 hover:text-red-200"
+            >
+              Apagar dados de entrada
+            </button>
 
-              <div>
-                <p className="text-sm font-semibold">Luis Villaca</p>
-                <p className="text-xs text-slate-400">Planejador</p>
+            <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-bold">
+                  LV
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold">Luis Villaca</p>
+                  <p className="text-xs text-slate-400">Planejador</p>
+                </div>
               </div>
             </div>
           </div>
@@ -352,6 +381,15 @@ function atualizarObraIdNaUrl(pathname: string, obraId: number | null) {
   } else {
     params.delete("obraId");
   }
+
+  const query = params.toString();
+  window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
+}
+
+function limparContextoNaUrl(pathname: string) {
+  const params = new URLSearchParams(window.location.search);
+  params.delete("obraId");
+  params.delete("turnoId");
 
   const query = params.toString();
   window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);

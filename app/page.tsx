@@ -10,6 +10,7 @@ import {
   carregarCadastroBase,
   getContextoAtual,
   obterDadosObra,
+  sincronizarCadastroBaseRemoto,
   type FuncaoPrevistaCadastrada,
   type TurnoCadastrado,
 } from "../lib/cadastro-base";
@@ -129,7 +130,6 @@ export default function Home() {
       ? gerarCampoUrl({
           obraId: obraAtivaId,
           turnoId: turnoIdCampo,
-          dataTurno: dataTurnoAtual,
         })
       : null;
 
@@ -320,8 +320,7 @@ export default function Home() {
       ]);
     }
 
-    function carregarContexto() {
-      const cadastro = carregarCadastroBase();
+    function carregarContexto(cadastro = carregarCadastroBase()) {
       const contexto = getContextoAtual(cadastro);
       const obraAtiva = contexto.obraAtiva;
       const obraResolvidaId = contexto.obraAtivaId;
@@ -343,15 +342,25 @@ export default function Home() {
       void carregarMaoObraReal();
     }
 
-    carregarContexto();
-    const intervaloAtualizacao = window.setInterval(carregarContexto, 60000);
-    window.addEventListener(cadastroBaseEvento, carregarContexto);
-    window.addEventListener("storage", carregarContexto);
+    function carregarContextoLocal() {
+      carregarContexto();
+    }
+
+    async function carregarContextoRemoto() {
+      carregarContexto(await sincronizarCadastroBaseRemoto());
+    }
+
+    void carregarContextoRemoto();
+    const intervaloAtualizacao = window.setInterval(() => {
+      void carregarContextoRemoto();
+    }, 60000);
+    window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
+    window.addEventListener("storage", carregarContextoLocal);
 
     return () => {
       window.clearInterval(intervaloAtualizacao);
-      window.removeEventListener(cadastroBaseEvento, carregarContexto);
-      window.removeEventListener("storage", carregarContexto);
+      window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
+      window.removeEventListener("storage", carregarContextoLocal);
     };
   }, []);
 

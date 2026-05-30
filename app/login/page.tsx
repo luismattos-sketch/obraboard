@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { carregarCadastroBase, getContextoAtual } from "../../lib/cadastro-base";
+import { getContextoAtual, sincronizarCadastroBaseRemoto } from "../../lib/cadastro-base";
 import { criarRotaComObra, gerarCampoUrl } from "../../lib/rotas";
 
 export default function LoginPage() {
@@ -12,8 +12,8 @@ export default function LoginPage() {
   const [perfil, setPerfil] =
     useState("Planejador");
 
-  function entrar() {
-    const contexto = getContextoAtual(carregarCadastroBase());
+  async function entrar() {
+    const contexto = getContextoAtual(await sincronizarCadastroBaseRemoto());
     const obraAtivaId = contexto.obraAtivaId;
 
     if (perfil === "Planejador") {
