@@ -195,6 +195,7 @@ export default function Home() {
       (item) =>
         pertenceAoTurno(item, {
           obraId: obraAtivaId,
+          turnoId: null,
           turno: turnoAtual || null,
           dataTurno: dataTurnoAtual,
         }) && item.turno_id
