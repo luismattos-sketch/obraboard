@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import type {
   Atividade,
@@ -51,39 +50,30 @@ type MaoObraReal = {
   data_turno?: string | null;
 };
 
-const mensagemLinkInvalido =
-  "Link inválido. Acesse o Campo pelo QR Code ou pelo botão Campo.";
+const mensagemLinkInvalido = "Link inválido ou turno não encontrado.";
+
+type ParametrosCampoUrl = {
+  obraId: string | null;
+  turnoId: string | null;
+};
 
 export default function CampoPage() {
-  return (
-    <Suspense fallback={<CampoFallback />}>
-      <CampoPageContent />
-    </Suspense>
-  );
-}
-
-function CampoFallback() {
-  return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
-      <p className="rounded-xl bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
-        {mensagemLinkInvalido}
-      </p>
-    </main>
-  );
+  return <CampoPageContent />;
 }
 
 function CampoPageContent() {
-  const searchParams = useSearchParams();
-  const obraId = searchParams.get("obraId");
-  const turnoId = searchParams.get("turnoId");
-  const obraIdParametro = normalizarObraId(obraId);
-  const turnoIdParametro = normalizarIdParametro(turnoId);
+  const [parametrosUrl, setParametrosUrl] = useState<ParametrosCampoUrl | null>(null);
+  const obraIdParametro = normalizarObraId(parametrosUrl?.obraId ?? null);
+  const turnoIdParametro = normalizarIdParametro(parametrosUrl?.turnoId ?? null);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraIdCampo, setObraIdCampo] = useState<number | null>(null);
   const [turnoIdCampo, setTurnoIdCampo] = useState<number | null>(null);
   const [obra, setObra] = useState("Sem obra selecionada");
   const [avisoObra, setAvisoObra] = useState("");
+  const [statusLinkCampo, setStatusLinkCampo] = useState<
+    "carregando" | "valido" | "invalido"
+  >("carregando");
   const [funcoesPrevistasCadastradas, setFuncoesPrevistasCadastradas] =
     useState<FuncaoPrevistaCadastrada[]>([]);
   const [usuariosCadastrados, setUsuariosCadastrados] = useState<UsuarioCadastrado[]>([]);
@@ -159,6 +149,25 @@ function CampoPageContent() {
     return () => window.clearInterval(intervalo);
   }, []);
 
+  useEffect(() => {
+    function lerParametrosUrl() {
+      const params = new URLSearchParams(window.location.search);
+
+      setParametrosUrl({
+        obraId: params.get("obraId"),
+        turnoId: params.get("turnoId"),
+      });
+      setStatusLinkCampo("carregando");
+    }
+
+    lerParametrosUrl();
+    window.addEventListener("popstate", lerParametrosUrl);
+
+    return () => {
+      window.removeEventListener("popstate", lerParametrosUrl);
+    };
+  }, []);
+
   async function carregarAtividades(
     obraAtualId = obraIdCampo,
     turnoAtualId = turnoIdCampo,
@@ -174,6 +183,7 @@ function CampoPageContent() {
       .from("atividades")
       .select("*")
       .eq("obra_id", obraAtualId)
+      .eq("turno_id", turnoAtualId)
       .order("id", { ascending: true });
 
     if (error) {
@@ -284,6 +294,7 @@ function CampoPageContent() {
       .from("mao_obra")
       .select("*")
       .eq("obra_id", obraAtualId)
+      .eq("turno_id", turnoAtualId)
       .order("id", { ascending: true });
 
     if (error) {
@@ -307,9 +318,10 @@ function CampoPageContent() {
   function limparCampoInvalido() {
     setObraIdCampo(null);
     setTurnoIdCampo(null);
-    setObra("Link invalido");
+    setObra("Obra não encontrada");
     setTurno("");
     setAvisoObra(mensagemLinkInvalido);
+    setStatusLinkCampo("invalido");
     setAtividades([]);
     setMaoObraReal([]);
     setRecursosPorAtividade({});
@@ -319,6 +331,10 @@ function CampoPageContent() {
 
   useEffect(() => {
     async function carregarContextoObra(sincronizarRemoto = false) {
+      if (!parametrosUrl) {
+        return;
+      }
+
       if (!obraIdParametro || !turnoIdParametro) {
         limparCampoInvalido();
         return;
@@ -336,6 +352,7 @@ function CampoPageContent() {
         return;
       }
 
+      setStatusLinkCampo("valido");
       setObraIdCampo(obraIdParametro);
       setTurnoIdCampo(turnoIdParametro);
       setObra(obraCadastro.nome || obraCadastro.codigo || "Obra sem nome");
@@ -363,7 +380,7 @@ function CampoPageContent() {
     };
     // As cargas recebem os ids da URL explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obraIdParametro, turnoIdParametro]);
+  }, [obraIdParametro, parametrosUrl, turnoIdParametro]);
 
   async function atualizarAtividade(
     id: number,
@@ -405,6 +422,7 @@ function CampoPageContent() {
       .update(atualizacao)
       .eq("id", id)
       .eq("obra_id", obraIdCampo)
+      .eq("turno_id", turnoIdCampo)
       .eq("data_turno", dataTurnoAtual)
       .eq("turno", turno);
 
@@ -598,6 +616,14 @@ function CampoPageContent() {
     setFuncao("");
     setQuantidade("");
     await carregarMaoObraReal();
+  }
+
+  if (statusLinkCampo === "carregando") {
+    return <MensagemCampo texto="Carregando link do Campo..." />;
+  }
+
+  if (statusLinkCampo === "invalido") {
+    return <MensagemCampo texto={mensagemLinkInvalido} />;
   }
 
   return (
@@ -984,6 +1010,16 @@ function CampoPageContent() {
           })
         )}
       </section>
+    </main>
+  );
+}
+
+function MensagemCampo({ texto }: { texto: string }) {
+  return (
+    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
+      <p className="rounded-xl bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
+        {texto}
+      </p>
     </main>
   );
 }
