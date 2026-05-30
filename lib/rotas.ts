@@ -20,9 +20,12 @@ export function gerarCampoUrl({
   obraId: number | string | null | undefined;
   turnoId: number | string | null | undefined;
 }) {
-  if (!obraId || !turnoId || typeof window === "undefined") {
+  const obra = String(obraId ?? "").trim();
+  const turno = String(turnoId ?? "").trim();
+
+  if (!obra || !turno || typeof window === "undefined") {
     return null;
   }
 
-  return `${window.location.origin}/campo?obraId=${obraId}&turnoId=${turnoId}`;
+  return `${window.location.origin}/campo?obraId=${obra}&turnoId=${turno}`;
 }
