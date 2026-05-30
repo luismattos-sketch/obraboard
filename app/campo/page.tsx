@@ -55,6 +55,7 @@ const mensagemLinkInvalido = "Link inválido ou turno não encontrado.";
 type ParametrosCampoUrl = {
   obraId: string | null;
   turnoId: string | null;
+  dataTurno: string | null;
 };
 
 export default function CampoPage() {
@@ -65,6 +66,7 @@ function CampoPageContent() {
   const [parametrosUrl, setParametrosUrl] = useState<ParametrosCampoUrl | null>(null);
   const obraIdParametro = normalizarObraId(parametrosUrl?.obraId ?? null);
   const turnoIdParametro = normalizarIdParametro(parametrosUrl?.turnoId ?? null);
+  const dataTurnoParametro = parametrosUrl?.dataTurno ?? null;
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraIdCampo, setObraIdCampo] = useState<number | null>(null);
@@ -93,7 +95,9 @@ function CampoPageContent() {
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
   const [agora, setAgora] = useState(Date.now());
-  const dataTurnoAtual = obterDataTurnoAtual(
+  const dataTurnoAtual =
+  dataTurnoParametro ??
+  obterDataTurnoAtual(
     turno ? atividades.filter((item) => item.turno === turno) : atividades
   );
 
@@ -115,20 +119,37 @@ function CampoPageContent() {
   }, [atividades, usuariosCadastrados]);
 
   const atividadesTurno = useMemo(
-    () =>
-      atividades.filter(
-        (item) =>
-          pertenceAoTurno(item, {
-            obraId: obraIdCampo,
-            turnoId: turnoIdCampo,
-            turno,
-            dataTurno: dataTurnoAtual,
-          }) &&
-          (!dataTurnoAtual || item.data_turno === dataTurnoAtual) &&
-          (!responsavelFiltro || item.responsavel === responsavelFiltro)
-      ),
-    [atividades, dataTurnoAtual, obraIdCampo, responsavelFiltro, turno, turnoIdCampo]
-  );
+  () =>
+    atividades.filter((item) => {
+      const mesmaObra =
+        obraIdCampo !== null && Number(item.obra_id) === Number(obraIdCampo);
+
+      const mesmoTurno =
+        turnoIdCampo !== null &&
+        item.turno_id !== null &&
+        item.turno_id !== undefined &&
+        Number(item.turno_id) === Number(turnoIdCampo);
+
+      const mesmoTurnoPorNome =
+        Boolean(turno) &&
+        String(item.turno ?? "").trim().toLowerCase() ===
+          String(turno).trim().toLowerCase();
+
+      const mesmaData =
+        Boolean(dataTurnoAtual) && item.data_turno === dataTurnoAtual;
+
+      const mesmoResponsavel =
+        !responsavelFiltro || item.responsavel === responsavelFiltro;
+
+      return (
+        mesmaObra &&
+        mesmaData &&
+        (mesmoTurno || mesmoTurnoPorNome) &&
+        mesmoResponsavel
+      );
+    }),
+  [atividades, dataTurnoAtual, obraIdCampo, responsavelFiltro, turno, turnoIdCampo]
+);
 
   const atividadesFiltradas = useMemo(() => {
     if (filtro === "Todas") {
@@ -153,10 +174,11 @@ function CampoPageContent() {
     function lerParametrosUrl() {
       const params = new URLSearchParams(window.location.search);
 
-      setParametrosUrl({
-        obraId: params.get("obraId"),
-        turnoId: params.get("turnoId"),
-      });
+setParametrosUrl({
+  obraId: params.get("obraId"),
+  turnoId: params.get("turnoId"),
+  dataTurno: params.get("dataTurno"),
+});
       setStatusLinkCampo("carregando");
     }
 
@@ -169,22 +191,28 @@ function CampoPageContent() {
   }, []);
 
   async function carregarAtividades(
-    obraAtualId = obraIdCampo,
-    turnoAtualId = turnoIdCampo,
-    turnoAtualNome = turno
-  ) {
+  obraAtualId = obraIdCampo,
+  turnoAtualId = turnoIdCampo,
+  turnoAtualNome = turno,
+  dataAtualTurno = dataTurnoAtual
+) {
     if (!obraAtualId || !turnoAtualId || !turnoAtualNome) {
       setAtividades([]);
       setRecursosPorAtividade({});
       return;
     }
 
-    const { data, error } = await supabase
-      .from("atividades")
-      .select("*")
-      .eq("obra_id", obraAtualId)
-      .eq("turno_id", turnoAtualId)
-      .order("id", { ascending: true });
+    let consulta = supabase
+  .from("atividades")
+  .select("*")
+  .eq("obra_id", obraAtualId)
+  .eq("turno_id", turnoAtualId);
+
+if (dataAtualTurno) {
+  consulta = consulta.eq("data_turno", dataAtualTurno);
+}
+
+const { data, error } = await consulta.order("id", { ascending: true });
 
     if (error) {
       console.error(error);
@@ -194,13 +222,15 @@ function CampoPageContent() {
     }
 
     const carregadas = ((data || []) as Atividade[]).filter(
-      (item) =>
-        pertenceAoTurno(item, {
-          obraId: obraAtualId,
-          turnoId: turnoAtualId,
-          turno: turnoAtualNome,
-        })
-    );
+  (item) =>
+    pertenceAoTurno(item, {
+      obraId: obraAtualId,
+      turnoId: turnoAtualId,
+      turno: turnoAtualNome,
+      dataTurno: dataAtualTurno,
+    }) &&
+    (!dataAtualTurno || item.data_turno === dataAtualTurno)
+);
     const dataAtual = obterDataTurnoAtual(carregadas);
     const historicoRestricoes = listarRestricoesHistorico(
       obraAtualId,
@@ -361,7 +391,12 @@ function CampoPageContent() {
       setUsuariosCadastrados(dadosObra.usuarios);
       setTurno(turnoCadastro.nome);
 
-      void carregarAtividades(obraIdParametro, turnoIdParametro, turnoCadastro.nome);
+      void carregarAtividades(
+  obraIdParametro,
+  turnoIdParametro,
+  turnoCadastro.nome,
+  dataTurnoParametro
+);
       void carregarMaoObraReal(obraIdParametro, turnoIdParametro, turnoCadastro.nome);
     }
 
@@ -380,7 +415,7 @@ function CampoPageContent() {
     };
     // As cargas recebem os ids da URL explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obraIdParametro, parametrosUrl, turnoIdParametro]);
+  }, [obraIdParametro, parametrosUrl, turnoIdParametro, dataTurnoParametro]);
 
   async function atualizarAtividade(
     id: number,
