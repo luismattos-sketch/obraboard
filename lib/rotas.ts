@@ -16,16 +16,27 @@ export function criarRotaComObra(
 export function gerarCampoUrl({
   obraId,
   turnoId,
+  dataTurno,
 }: {
   obraId: number | string | null | undefined;
   turnoId: number | string | null | undefined;
+  dataTurno?: string | null | undefined;
 }) {
   const obra = String(obraId ?? "").trim();
   const turno = String(turnoId ?? "").trim();
+  const data = String(dataTurno ?? "").trim();
 
   if (!obra || !turno || typeof window === "undefined") {
     return null;
   }
 
-  return `${window.location.origin}/campo?obraId=${obra}&turnoId=${turno}`;
+  const params = new URLSearchParams();
+  params.set("obraId", obra);
+  params.set("turnoId", turno);
+
+  if (data) {
+    params.set("dataTurno", data);
+  }
+
+  return `${window.location.origin}/campo?${params.toString()}`;
 }
