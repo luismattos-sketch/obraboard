@@ -185,6 +185,9 @@ export default function Home() {
         campoObraAtivaUrl
       )}&size=180x180&margin=8`
     : null;
+  const qrCodeRenderKey = campoObraAtivaUrl
+    ? `${campoObraAtivaUrl}:${statusOperacao}:${turnoAtivoDados?.id ?? ""}`
+    : null;
   const executando = contarStatus(atividades, "Execução");
   const restricoes = contarStatus(atividades, "Restrição");
   const finalizadas = contarStatus(atividades, "Finalizada");
@@ -630,7 +633,7 @@ export default function Home() {
                   <a href={campoObraAtivaUrl} aria-label="Abrir tela Campo">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      key={campoObraAtivaUrl}
+                      key={qrCodeRenderKey}
                       src={qrCodeUrl}
                       alt="QR Code para abrir a tela Campo"
                       className="h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"
