@@ -214,7 +214,23 @@ function CampoPageContent() {
       consulta = consulta.eq("data_turno", dataAtualTurno);
     }
 
-    const { data, error } = await consulta.order("id", { ascending: true });
+    let { data, error } = await consulta.order("id", { ascending: true });
+
+    if (colunaInexistente(error, "turno_id")) {
+      let consultaSemTurnoId = supabase
+        .from("atividades")
+        .select("*")
+        .eq("obra_id", obraAtualId)
+        .eq("turno", turnoAtualNome);
+
+      if (dataAtualTurno) {
+        consultaSemTurnoId = consultaSemTurnoId.eq("data_turno", dataAtualTurno);
+      }
+
+      const resultado = await consultaSemTurnoId.order("id", { ascending: true });
+      data = resultado.data;
+      error = resultado.error;
+    }
 
     if (error) {
       console.error(error);
@@ -322,12 +338,24 @@ function CampoPageContent() {
       return;
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("mao_obra")
       .select("*")
       .eq("obra_id", obraAtualId)
       .eq("turno_id", turnoAtualId)
       .order("id", { ascending: true });
+
+    if (colunaInexistente(error, "turno_id")) {
+      const resultado = await supabase
+        .from("mao_obra")
+        .select("*")
+        .eq("obra_id", obraAtualId)
+        .eq("turno", turnoAtualNome)
+        .order("id", { ascending: true });
+
+      data = resultado.data;
+      error = resultado.error;
+    }
 
     if (error) {
       console.error(error);
@@ -500,7 +528,7 @@ function CampoPageContent() {
       return;
     }
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from("atividades")
       .update(atualizacao)
       .eq("id", id)
@@ -508,6 +536,18 @@ function CampoPageContent() {
       .eq("turno_id", turnoIdCampo)
       .eq("data_turno", dataTurnoAtual)
       .eq("turno", turno);
+
+    if (colunaInexistente(error, "turno_id")) {
+      const resultado = await supabase
+        .from("atividades")
+        .update(atualizacao)
+        .eq("id", id)
+        .eq("obra_id", obraIdCampo)
+        .eq("data_turno", dataTurnoAtual)
+        .eq("turno", turno);
+
+      error = resultado.error;
+    }
 
     if (error) {
       console.error(error);
@@ -688,7 +728,21 @@ function CampoPageContent() {
       data_turno: dataTurnoAtual,
     };
 
-    const { error } = await supabase.from("mao_obra").insert([payload]);
+    let { error } = await supabase.from("mao_obra").insert([payload]);
+
+    if (colunaInexistente(error, "turno_id")) {
+      const payloadSemTurnoId = {
+        atividade_id: payload.atividade_id,
+        obra_id: payload.obra_id,
+        funcao: payload.funcao,
+        quantidade: payload.quantidade,
+        turno: payload.turno,
+        data_turno: payload.data_turno,
+      };
+
+      const resultado = await supabase.from("mao_obra").insert([payloadSemTurnoId]);
+      error = resultado.error;
+    }
 
     if (error) {
       console.error(error);
@@ -1187,6 +1241,12 @@ function obterObrasCadastro(cadastro: CadastroBase) {
     cadastroComAliases.projetos ??
     []
   );
+}
+
+function colunaInexistente(error: unknown, coluna: string) {
+  const erro = error as { code?: string; message?: string } | null;
+
+  return erro?.code === "42703" && erro.message?.includes(coluna);
 }
 
 function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: string) {

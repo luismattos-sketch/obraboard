@@ -717,15 +717,29 @@ export default function CheckinPage() {
       origem_atividade_id: origemAtividadeId,
     };
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("atividades")
       .insert([payload])
       .select("id")
       .single();
 
+    if (colunaInexistente(error, "turno_id")) {
+      const payloadSemTurnoId: Partial<AtividadeInsert> = { ...payload };
+      delete payloadSemTurnoId.turno_id;
+
+      const resultado = await supabase
+        .from("atividades")
+        .insert([payloadSemTurnoId])
+        .select("id")
+        .single();
+
+      data = resultado.data;
+      error = resultado.error;
+    }
+
     if (error || !data) {
       console.error(error);
-      setErro("Erro ao salvar atividade. Verifique o SQL atualizado no Supabase.");
+      setErro(`Erro ao salvar atividade: ${obterMensagemErroSupabase(error)}`);
       setSalvando(false);
       throw error ?? new Error("Atividade sem id retornado.");
     }
@@ -2135,4 +2149,16 @@ function formatarData(dataTurno: string) {
   }
 
   return `${dia}/${mes}/${ano}`;
+}
+
+function colunaInexistente(error: unknown, coluna: string) {
+  const erro = error as { code?: string; message?: string } | null;
+
+  return erro?.code === "42703" && erro.message?.includes(coluna);
+}
+
+function obterMensagemErroSupabase(error: unknown) {
+  const erro = error as { message?: string } | null;
+
+  return erro?.message ?? "verifique a conexao e o SQL atualizado no Supabase.";
 }
