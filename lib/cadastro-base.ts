@@ -78,9 +78,6 @@ export type CadastroBase = {
 export const cadastroBaseStorageKey = "obraboard:cadastro-base";
 export const cadastroBaseEvento = "obraboard:cadastro-base-atualizado";
 const cadastroBaseRemotoId = "default";
-const cadastroBaseFallbackTurno = "__cadastro_base__";
-const cadastroBaseFallbackDisciplina = "__sistema__";
-
 export const cadastroDadosObraInicial: CadastroDadosObra = {
   usuarios: [],
   disciplinas: [],
@@ -107,50 +104,17 @@ export const cadastroBaseInicial: CadastroBase = {
 };
 
 export function carregarCadastroBase(): CadastroBase {
-  if (typeof window === "undefined") {
-    return cadastroBaseInicial;
-  }
-
-  const salvo = window.localStorage.getItem(cadastroBaseStorageKey);
-
-  if (!salvo) {
-    return cadastroBaseInicial;
-  }
-
-  try {
-    return normalizarCadastroBase(JSON.parse(salvo));
-  } catch {
-    return cadastroBaseInicial;
-  }
+  return cadastroBaseInicial;
 }
 
 export function carregarESincronizarCadastroBase(): CadastroBase {
-  const cadastro = carregarCadastroBase();
-
-  if (typeof window !== "undefined") {
-    void salvarCadastroBase(cadastro);
-  }
-
-  return cadastro;
+  void sincronizarCadastroBaseRemoto();
+  return cadastroBaseInicial;
 }
 
 export async function salvarCadastroBase(cadastro: CadastroBase) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastro));
-    await salvarCadastroBaseRemoto(cadastro);
-  } catch {
-    try {
-      const cadastroSemLogo = { ...cadastro, logoUrl: "" };
-      window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastroSemLogo));
-      await salvarCadastroBaseRemoto(cadastroSemLogo);
-    } catch {
-      // Mantem a tela funcionando mesmo se o armazenamento local estiver cheio.
-    }
-  }
+  await salvarCadastroBaseRemoto(cadastro);
+  notificarCadastroBaseAtualizado();
 }
 
 export function apagarCadastroBase() {
@@ -190,69 +154,17 @@ export async function sincronizarCadastroBaseRemoto() {
     .maybeSingle();
 
   if (error) {
-    console.warn("Cadastro remoto indisponivel, usando cache local.", error);
-    const cadastroFallback = await carregarCadastroBaseFallback();
-    const cadastroLocal = carregarCadastroBase();
-
-    if (!cadastroTemConteudo(cadastroLocal) && cadastroTemConteudo(cadastroFallback)) {
-      salvarCadastroBaseLocal(cadastroFallback);
-      notificarCadastroBaseAtualizado();
-      return cadastroFallback;
-    }
-
-    if (cadastroTemConteudo(cadastroLocal)) {
-      await salvarCadastroBaseFallback(cadastroLocal);
-    }
-
-    return cadastroLocal;
+    console.warn("Cadastro remoto indisponivel.", error);
+    return cadastroBaseInicial;
   }
 
   if (!data?.dados) {
-    const cadastroLocal = carregarCadastroBase();
-
-    if (cadastroTemConteudo(cadastroLocal)) {
-      await salvarCadastroBaseRemoto(cadastroLocal);
-    }
-
-    return cadastroLocal;
+    return cadastroBaseInicial;
   }
 
   const cadastroRemoto = normalizarCadastroBase(data.dados as Partial<CadastroBase>);
-  const cadastroLocal = carregarCadastroBase();
-
-  if (!cadastroTemConteudo(cadastroLocal) && cadastroTemConteudo(cadastroRemoto)) {
-    salvarCadastroBaseLocal(cadastroRemoto);
-    notificarCadastroBaseAtualizado();
-    return cadastroRemoto;
-  }
-
-  if (cadastroTemConteudo(cadastroLocal) && !cadastroTemConteudo(cadastroRemoto)) {
-    await salvarCadastroBaseRemoto(cadastroLocal);
-    return cadastroLocal;
-  }
-
-  const obraAtivaLocalValida =
-    cadastroLocal.obraAtivaId &&
-    cadastroRemoto.obras.some((obra) => obra.id === cadastroLocal.obraAtivaId);
-  const cadastroMesclado = {
-    ...cadastroRemoto,
-    obraAtivaId: obraAtivaLocalValida
-      ? cadastroLocal.obraAtivaId
-      : cadastroRemoto.obraAtivaId,
-    turnoAtivoPorObra: {
-      ...cadastroRemoto.turnoAtivoPorObra,
-      ...cadastroLocal.turnoAtivoPorObra,
-    },
-    turnoAtivoIdPorObra: {
-      ...cadastroRemoto.turnoAtivoIdPorObra,
-      ...cadastroLocal.turnoAtivoIdPorObra,
-    },
-  };
-
-  salvarCadastroBaseLocal(cadastroMesclado);
   notificarCadastroBaseAtualizado();
-  void salvarCadastroBaseRemoto(cadastroMesclado);
-  return cadastroMesclado;
+  return cadastroRemoto;
 }
 
 export function criarCadastroBaseVazio(): CadastroBase {
@@ -547,17 +459,6 @@ export function notificarCadastroBaseAtualizado() {
   window.dispatchEvent(new Event(cadastroBaseEvento));
 }
 
-function salvarCadastroBaseLocal(cadastro: CadastroBase) {
-  try {
-    window.localStorage.setItem(cadastroBaseStorageKey, JSON.stringify(cadastro));
-  } catch {
-    window.localStorage.setItem(
-      cadastroBaseStorageKey,
-      JSON.stringify({ ...cadastro, logoUrl: "" })
-    );
-  }
-}
-
 async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
   const { error } = await supabase.from("cadastro_base").upsert({
     id: cadastroBaseRemotoId,
@@ -567,81 +468,7 @@ async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
 
   if (error) {
     console.warn("Nao foi possivel sincronizar cadastro no Supabase.", error);
-    await salvarCadastroBaseFallback(cadastro);
   }
-}
-
-async function carregarCadastroBaseFallback() {
-  const { data, error } = await supabase
-    .from("atividades")
-    .select("id, atividade")
-    .eq("turno", cadastroBaseFallbackTurno)
-    .eq("disciplina", cadastroBaseFallbackDisciplina)
-    .order("id", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data?.atividade) {
-    return cadastroBaseInicial;
-  }
-
-  try {
-    return normalizarCadastroBase(JSON.parse(data.atividade));
-  } catch {
-    return cadastroBaseInicial;
-  }
-}
-
-async function salvarCadastroBaseFallback(cadastro: CadastroBase) {
-  const cadastroSemLogo = {
-    ...cadastro,
-    logoUrl: "",
-    obras: cadastro.obras.map((obra) => ({ ...obra, logoUrl: "" })),
-  };
-  const atividade = JSON.stringify(cadastroSemLogo);
-  const payload = {
-    obra_id: null,
-    prioridade: "C",
-    disciplina: cadastroBaseFallbackDisciplina,
-    atividade,
-    local: "cadastro_base",
-    responsavel: "sistema",
-    previsto: 0,
-    realizado: 0,
-    unidade: "un",
-    tempo_previsto_horas: 0,
-    status: "Planejada",
-    progresso: 0,
-    turno: cadastroBaseFallbackTurno,
-    data_turno: "2000-01-01",
-  };
-
-  const { data } = await supabase
-    .from("atividades")
-    .select("id")
-    .eq("turno", cadastroBaseFallbackTurno)
-    .eq("disciplina", cadastroBaseFallbackDisciplina)
-    .order("id", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (data?.id) {
-    await supabase.from("atividades").update(payload).eq("id", data.id);
-    return;
-  }
-
-  await supabase.from("atividades").insert([payload]);
-}
-
-function cadastroTemConteudo(cadastro: CadastroBase) {
-  return (
-    cadastro.obras.length > 0 ||
-    Object.keys(cadastro.dadosPorObra).length > 0 ||
-    cadastro.usuarios.length > 0 ||
-    cadastro.disciplinas.length > 0 ||
-    cadastro.funcoesPrevistas.length > 0 ||
-    cadastro.turnos.length > 0
-  );
 }
 
 function normalizarCadastroBase(cadastro: Partial<CadastroBase>): CadastroBase {

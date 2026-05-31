@@ -24,15 +24,16 @@ import {
 } from "../../lib/cadastro-base";
 import {
   chaveTurno,
-  checkoutFechamentosStorageKey,
-  carregarObjetoLocal,
   type ControlesTurno,
   obterControleTurno,
   pertenceAoTurno,
   publicarControleTurno,
-  salvarObjetoLocal,
-  turnosOperacaoStorageKey,
 } from "../../lib/operacao";
+import {
+  carregarControlesTurnoRemotos,
+  carregarFechamentosTurnoRemotos,
+  salvarControleTurnoRemoto,
+} from "../../lib/operacao-remota";
 
 type RecursoFormulario = {
   id: number;
@@ -76,36 +77,10 @@ const unidades = [
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 let sequenciaRecursoFormulario = 0;
-const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
 
 function criarIdTemporario() {
   sequenciaRecursoFormulario += 1;
   return sequenciaRecursoFormulario;
-}
-
-function carregarRecursosDisponiveisLocais() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    return JSON.parse(
-      window.localStorage.getItem(recursosDisponiveisStorageKey) || "[]"
-    ) as RecursoDisponivelTurno[];
-  } catch {
-    return [];
-  }
-}
-
-function salvarRecursosDisponiveisLocais(recursos: RecursoDisponivelTurno[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(
-    recursosDisponiveisStorageKey,
-    JSON.stringify(recursos)
-  );
 }
 
 export default function CheckinPage() {
@@ -169,12 +144,8 @@ export default function CheckinPage() {
   });
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
-  const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>(
-    () => carregarObjetoLocal(checkoutFechamentosStorageKey, {})
-  );
-  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
-    carregarObjetoLocal(turnosOperacaoStorageKey, {})
-  );
+  const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>({});
+  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>({});
   const [edicaoLiberada, setEdicaoLiberada] = useState(false);
 
   const turnoSelecionado = useMemo(
@@ -377,16 +348,6 @@ export default function CheckinPage() {
       return;
     }
 
-    const locais = carregarRecursosDisponiveisLocais().filter(
-      (item) =>
-        pertenceAoTurno(item, {
-          obraId: obraAtualId,
-          turnoId: turnoAtualId,
-          turno: turnoAtual,
-          dataTurno: dataAtual,
-        })
-    );
-
     const { data, error } = await supabase
       .from("recursos_disponiveis")
       .select("*")
@@ -396,8 +357,8 @@ export default function CheckinPage() {
       .order("id", { ascending: true });
 
     if (error) {
-      console.warn("Tabela recursos_disponiveis indisponivel, usando localStorage.", error);
-      setRecursosDisponiveis(locais);
+      console.warn("Tabela recursos_disponiveis indisponivel no Supabase.", error);
+      setRecursosDisponiveis([]);
       return;
     }
 
@@ -414,7 +375,7 @@ export default function CheckinPage() {
       cargaHoraria: Number(item.carga_horaria || 0),
     }));
 
-    setRecursosDisponiveis([...banco, ...locais]);
+    setRecursosDisponiveis(banco);
   }
 
   useEffect(() => {
@@ -442,8 +403,17 @@ export default function CheckinPage() {
       }
 
       void carregarAtividades(obraResolvidaId);
-      setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
-      setControlesTurno(carregarObjetoLocal(turnosOperacaoStorageKey, {}));
+      void carregarEstadoOperacaoRemoto(obraResolvidaId);
+    }
+
+    async function carregarEstadoOperacaoRemoto(obraResolvidaId: number | null) {
+      const [controles, fechamentosRemotos] = await Promise.all([
+        carregarControlesTurnoRemotos(obraResolvidaId),
+        carregarFechamentosTurnoRemotos(obraResolvidaId),
+      ]);
+
+      setControlesTurno(controles);
+      setFechamentos(fechamentosRemotos);
     }
 
     async function carregarContextoObraRemoto() {
@@ -458,11 +428,9 @@ export default function CheckinPage() {
       void carregarContextoObraRemoto();
     });
     window.addEventListener(cadastroBaseEvento, carregarContextoObraLocal);
-    window.addEventListener("storage", carregarContextoObraLocal);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, carregarContextoObraLocal);
-      window.removeEventListener("storage", carregarContextoObraLocal);
     };
     // carregarAtividades recebe o id atual explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -939,19 +907,9 @@ export default function CheckinPage() {
     const { error } = await supabase.from("recursos_disponiveis").insert([payload]);
 
     if (error) {
-      console.warn("Salvando recurso disponivel no localStorage.", error);
-      const locais = carregarRecursosDisponiveisLocais();
-      locais.push({
-        id: -Date.now(),
-        obra_id: obraId,
-        turno_id: turnoSelecionado.id,
-        data_turno: dataTurno,
-        turno,
-        funcao: funcaoDisponivel,
-        quantidade,
-        cargaHoraria,
-      });
-      salvarRecursosDisponiveisLocais(locais);
+      console.error(error);
+      setErro("Erro ao salvar recurso disponivel no Supabase.");
+      return;
     }
 
     setFuncaoDisponivel("");
@@ -985,10 +943,6 @@ export default function CheckinPage() {
         setErro("Erro ao remover recurso disponivel.");
         return;
       }
-    } else {
-      salvarRecursosDisponiveisLocais(
-        carregarRecursosDisponiveisLocais().filter((item) => item.id !== recurso.id)
-      );
     }
 
     setMensagem("Recurso disponivel removido.");
@@ -1232,9 +1186,17 @@ export default function CheckinPage() {
     setSalvando(true);
     await salvarTurnoAtivo(obraId, turno, turnoSelecionado?.id ?? null);
     setControlesTurno(novosControles);
-    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
+    const controle = obterControleTurno(novosControles, obraId, dataTurno, turno);
+    if (controle) {
+      await salvarControleTurnoRemoto(
+        obraId,
+        dataTurno,
+        turno,
+        turnoSelecionado?.id ?? null,
+        controle
+      );
+    }
     setEdicaoLiberada(false);
-    window.dispatchEvent(new Event("storage"));
     setMensagem("Turno publicado. O Check-in foi bloqueado para execucao no campo.");
     setSalvando(false);
   }

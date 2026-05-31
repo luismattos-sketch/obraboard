@@ -22,11 +22,12 @@ import {
 import {
   calcularAvancoReal,
   definirStatusPorAvanco,
-  listarRestricoesHistorico,
   pertenceAoTurno,
-  registrarRestricaoHistorico,
-  salvarAtividadeOperacaoCadastro,
 } from "../../lib/operacao";
+import {
+  listarRestricoesHistoricoRemoto,
+  registrarRestricaoHistoricoRemoto,
+} from "../../lib/operacao-remota";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
 
@@ -97,7 +98,7 @@ function CampoPageContent() {
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
-  const [agora, setAgora] = useState(Date.now());
+  const [agora, setAgora] = useState(() => Date.now());
   const dataTurnoAtual =
     dataTurnoParametro ??
     obterDataTurnoAtual(
@@ -251,7 +252,7 @@ function CampoPageContent() {
         (!dataAtualTurno || item.data_turno === dataAtualTurno)
     );
     const dataAtual = obterDataTurnoAtual(carregadas);
-    const historicoRestricoes = listarRestricoesHistorico(
+    const historicoRestricoes = await listarRestricoesHistoricoRemoto(
       obraAtualId,
       dataAtual,
       turnoAtualNome
@@ -277,6 +278,24 @@ function CampoPageContent() {
       )
     );
     setAtividades(carregadas);
+    setControles(
+      carregadas.reduce<Record<number, ControleAtividade>>((mapa, atividade) => {
+        const registro = atividade as Atividade & {
+          tempo_acumulado_ms?: number | null;
+          iniciado_em?: string | null;
+          status?: StatusAtividade;
+        };
+
+        mapa[atividade.id] = {
+          elapsedMs: Number(registro.tempo_acumulado_ms || 0),
+          runningSince:
+            registro.status === "Execução" && registro.iniciado_em
+              ? new Date(registro.iniciado_em).getTime()
+              : null,
+        };
+        return mapa;
+      }, {})
+    );
     setRealizadoAtividade(
       carregadas.reduce<Record<number, string>>((mapa, atividade) => {
         mapa[atividade.id] = String(atividade.realizado ?? 0);
@@ -474,15 +493,59 @@ function CampoPageContent() {
       void carregarContextoObra();
     };
     window.addEventListener(cadastroBaseEvento, recarregarContextoRemoto);
-    window.addEventListener("storage", recarregarContextoRemoto);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, recarregarContextoRemoto);
-      window.removeEventListener("storage", recarregarContextoRemoto);
     };
     // As cargas recebem os ids da URL explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obraIdParametro, parametrosUrl, turnoIdParametro, dataTurnoParametro]);
+
+  useEffect(() => {
+    if (!obraIdCampo || !turnoIdCampo) {
+      return;
+    }
+
+    const canal = supabase
+      .channel(`campo-${obraIdCampo}-${turnoIdCampo}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "atividades",
+          filter: `obra_id=eq.${obraIdCampo}`,
+        },
+        () => void carregarAtividades()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "mao_obra",
+          filter: `obra_id=eq.${obraIdCampo}`,
+        },
+        () => void carregarMaoObraReal()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "restricoes_historico",
+          filter: `obra_id=eq.${obraIdCampo}`,
+        },
+        () => void carregarAtividades()
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(canal);
+    };
+    // As funcoes usam o estado atual da tela Campo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obraIdCampo, turnoIdCampo, dataTurnoAtual, turno]);
 
   async function atualizarAtividade(
     id: number,
@@ -498,7 +561,24 @@ function CampoPageContent() {
       quantidadeRealizada === undefined || previsto <= 0
         ? undefined
         : Math.min(100, Math.round((quantidadeRealizada / previsto) * 100));
-    const atualizacao: AtualizacaoAtividade = { status };
+    const controleAtual = controles[id];
+    const tempoAcumulado =
+      controleAtual?.elapsedMs && controleAtual.runningSince
+        ? controleAtual.elapsedMs + agora - controleAtual.runningSince
+        : controleAtual?.elapsedMs ?? 0;
+    const atualizacao: AtualizacaoAtividade &
+      Record<string, string | number | null | undefined> = {
+      status,
+      tempo_acumulado_ms: Math.round(tempoAcumulado),
+      iniciado_em:
+        status === "Execução"
+          ? atividadeAtual && (atividadeAtual as Atividade & { iniciado_em?: string | null }).iniciado_em
+            ? (atividadeAtual as Atividade & { iniciado_em?: string | null }).iniciado_em
+            : new Date().toISOString()
+          : undefined,
+      pausado_em: status === "Parcial" || status === "Restrição" ? new Date().toISOString() : undefined,
+      finalizado_em: status === "Finalizada" ? new Date().toISOString() : undefined,
+    };
 
     if (quantidadeRealizada !== undefined) {
       atualizacao.realizado = quantidadeRealizada;
@@ -569,7 +649,6 @@ function CampoPageContent() {
           [id]: String(atualizacao.realizado ?? 0),
         }));
       }
-      salvarAtividadeOperacaoCadastro(atividadeAtualizada, controles[id]);
     }
 
     await carregarAtividades();
@@ -673,7 +752,7 @@ function CampoPageContent() {
     await atualizarAtividade(atividade.id, "Restrição");
   }
 
-  function salvarRestricao(id: number) {
+  async function salvarRestricao(id: number) {
     if (!restricaoTexto.trim()) {
       alert("Informe a restrição.");
       return;
@@ -688,7 +767,11 @@ function CampoPageContent() {
     }));
     const atividade = atividades.find((item) => item.id === id);
     if (atividade) {
-      registrarRestricaoHistorico(atividade, restricaoTexto.trim(), "aberta");
+      await registrarRestricaoHistoricoRemoto(
+        atividade,
+        restricaoTexto.trim(),
+        "aberta"
+      );
     }
     setRestricaoEditandoId(null);
     setRestricaoTexto("");
@@ -704,7 +787,7 @@ function CampoPageContent() {
     }));
     const atividade = atividades.find((item) => item.id === id);
     if (atividade) {
-      registrarRestricaoHistorico(
+      await registrarRestricaoHistoricoRemoto(
         atividade,
         atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
         "resolvida"
@@ -725,7 +808,7 @@ function CampoPageContent() {
     }));
     const atividade = atividades.find((item) => item.id === id);
     if (atividade) {
-      registrarRestricaoHistorico(
+      await registrarRestricaoHistoricoRemoto(
         atividade,
         atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
         "parada"

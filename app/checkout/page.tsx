@@ -19,24 +19,26 @@ import {
   calcularPpc,
   calcularTempoTurno,
   chaveTurno,
-  checkoutFechamentosStorageKey,
-  checkoutValidacoesStorageKey,
   encerrarControleTurno,
   definirStatusPorAvanco,
   iniciarControleTurno,
-  listarRestricoesHistorico,
   obterControleTurno,
   obterFarolOperacional,
   pertenceAoTurno,
   pausarControleTurno,
-  registrarRestricaoHistorico,
-  salvarObjetoLocal,
-  carregarObjetoLocal,
   turnoEstaEncerrado,
-  turnosOperacaoStorageKey,
   type ControlesTurno,
   type FechamentosTurno,
 } from "../../lib/operacao";
+import {
+  carregarControlesTurnoRemotos,
+  carregarFechamentosTurnoRemotos,
+  carregarValidacoesCheckoutRemotas,
+  listarRestricoesHistoricoRemoto,
+  registrarRestricaoHistoricoRemoto,
+  salvarControleTurnoRemoto,
+  salvarValidacaoCheckoutRemota,
+} from "../../lib/operacao-remota";
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 
@@ -55,15 +57,9 @@ export default function CheckoutPage() {
   const [recursosPorAtividade, setRecursosPorAtividade] = useState<
     Record<number, AtividadeRecurso[]>
   >({});
-  const [validacoes, setValidacoes] = useState<Record<string, true>>(() =>
-    carregarObjetoLocal(checkoutValidacoesStorageKey, {})
-  );
-  const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
-    carregarObjetoLocal(checkoutFechamentosStorageKey, {})
-  );
-  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
-    carregarObjetoLocal(turnosOperacaoStorageKey, {})
-  );
+  const [validacoes, setValidacoes] = useState<Record<string, true>>({});
+  const [fechamentos, setFechamentos] = useState<FechamentosTurno>({});
+  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>({});
   const [agora, setAgora] = useState(() => new Date());
   const [edicao, setEdicao] = useState({
     previsto: "",
@@ -191,8 +187,21 @@ export default function CheckoutPage() {
 
       const carregadas = (data || []) as Atividade[];
       setAtividadesBanco(carregadas);
+      setValidacoes(
+        await carregarValidacoesCheckoutRemotas(carregadas.map((item) => item.id))
+      );
       await carregarRecursosAtividades(carregadas);
       setCarregando(false);
+    }
+
+    async function carregarEstadoOperacaoRemoto(obraIdAtual: number | null) {
+      const [controles, fechamentosRemotos] = await Promise.all([
+        carregarControlesTurnoRemotos(obraIdAtual),
+        carregarFechamentosTurnoRemotos(obraIdAtual),
+      ]);
+
+      setControlesTurno(controles);
+      setFechamentos(fechamentosRemotos);
     }
 
     function carregarContextoObra(cadastro = carregarCadastroBase()) {
@@ -210,9 +219,8 @@ export default function CheckoutPage() {
       );
       setTurnosCadastrados(dadosObra.turnos);
       setTurno(contexto.turnoAtivo?.nome ?? "");
-      setFechamentos(carregarObjetoLocal(checkoutFechamentosStorageKey, {}));
-      setControlesTurno(carregarObjetoLocal(turnosOperacaoStorageKey, {}));
       void carregarAtividades(obraResolvidaId);
+      void carregarEstadoOperacaoRemoto(obraResolvidaId);
     }
 
     async function carregarContextoObraRemoto() {
@@ -227,11 +235,9 @@ export default function CheckoutPage() {
       void carregarContextoObraRemoto();
     });
     window.addEventListener(cadastroBaseEvento, carregarContextoObraLocal);
-    window.addEventListener("storage", carregarContextoObraLocal);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, carregarContextoObraLocal);
-      window.removeEventListener("storage", carregarContextoObraLocal);
     };
   }, []);
 
@@ -248,6 +254,9 @@ export default function CheckoutPage() {
 
     const carregadas = (data || []) as Atividade[];
     setAtividadesBanco(carregadas);
+    setValidacoes(
+      await carregarValidacoesCheckoutRemotas(carregadas.map((item) => item.id))
+    );
     await carregarRecursosAtividades(carregadas);
   }
 
@@ -257,7 +266,7 @@ export default function CheckoutPage() {
     setValidacoes((atuais) => {
       const novos = { ...atuais };
       delete novos[String(item.id)];
-      salvarObjetoLocal(checkoutValidacoesStorageKey, novos);
+      void salvarValidacaoCheckoutRemota(item, false);
       return novos;
     });
     setAtividadeEditandoId(item.id);
@@ -332,7 +341,7 @@ export default function CheckoutPage() {
 
     const novasValidacoes = { ...validacoes, [String(item.id)]: true as const };
     setValidacoes(novasValidacoes);
-    salvarObjetoLocal(checkoutValidacoesStorageKey, novasValidacoes);
+    await salvarValidacaoCheckoutRemota(item, true);
     setMensagem("Atividade validada.");
     await recarregarAtividades();
   }
@@ -421,26 +430,29 @@ export default function CheckoutPage() {
         );
       }
 
-      listarRestricoesHistorico(obraId, dataTurnoAtual, turno)
+      const restricoesRemotas = await listarRestricoesHistoricoRemoto(
+        obraId,
+        dataTurnoAtual,
+        turno
+      );
+      await Promise.all(
+        restricoesRemotas
         .filter(
           (restricao) =>
             restricao.atividadeId === item.id &&
             ["aberta", "reprogramada"].includes(restricao.status)
         )
-        .forEach((restricao) =>
-          registrarRestricaoHistorico(
+        .map((restricao) =>
+          registrarRestricaoHistoricoRemoto(
             { ...item, id: nova.id, turno: proximoTurno.nome, turno_id: proximoTurno.id },
             restricao.texto,
             "reprogramada"
           )
-        );
+        )
+      );
       criadas += 1;
     }
 
-    window.localStorage.setItem(
-      `obraboard:checkout-reprogramacao:${obraId}:${dataTurnoAtual}:${turno}`,
-      JSON.stringify({ obraId, dataTurno: dataTurnoAtual, turno, pendentes: pendentes.length })
-    );
     void salvarTurnoAtivo(obraId, proximoTurno.nome, proximoTurno.id);
     setMensagem(`${criadas} pendencias reprogramadas para ${proximoTurno.nome}.`);
     await recarregarAtividades();
@@ -482,15 +494,22 @@ export default function CheckoutPage() {
 
     gravarControlesTurno(novosControles);
     setFechamentos(novosFechamentos);
-    salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
-    window.dispatchEvent(new Event("storage"));
     setMensagem("Turno encerrado e RDO gerado automaticamente.");
   }
 
   function gravarControlesTurno(novosControles: ControlesTurno) {
     setControlesTurno(novosControles);
-    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
-    window.dispatchEvent(new Event("storage"));
+    const controle = obterControleTurno(novosControles, obraId, dataTurnoOperacional, turno);
+
+    if (obraId && dataTurnoOperacional && turno && controle) {
+      void salvarControleTurnoRemoto(
+        obraId,
+        dataTurnoOperacional,
+        turno,
+        turnoSelecionado?.id ?? null,
+        controle
+      );
+    }
   }
 
   function pararTurnoCheckout() {

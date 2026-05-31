@@ -17,20 +17,21 @@ import {
 } from "../lib/cadastro-base";
 import {
   calcularTempoTurno,
-  carregarObjetoLocal as carregarOperacaoLocal,
-  checkoutFechamentosStorageKey,
   pertenceAoTurno,
   type FechamentosTurno,
   type ControlesTurno,
   iniciarControleTurno,
-  listarRestricoesHistorico,
   obterControleTurno,
   pausarControleTurno,
-  salvarObjetoLocal,
   turnoEstaEncerrado,
-  turnosOperacaoStorageKey,
   type RestricaoHistorico,
 } from "../lib/operacao";
+import {
+  carregarControlesTurnoRemotos,
+  carregarFechamentosTurnoRemotos,
+  listarRestricoesHistoricoRemoto,
+  salvarControleTurnoRemoto,
+} from "../lib/operacao-remota";
 import { gerarCampoUrl } from "../lib/rotas";
 
 type MaoObraReal = {
@@ -44,8 +45,6 @@ type MaoObraReal = {
   data_turno: string | null;
 };
 
-const maoObraLocalStorageKey = "obraboard:mao-obra-local";
-const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 
 export default function Home() {
@@ -64,12 +63,8 @@ export default function Home() {
   const [recursosDisponiveis, setRecursosDisponiveis] = useState<
     RecursoDisponivelTurno[]
   >([]);
-  const [fechamentos, setFechamentos] = useState<FechamentosTurno>(() =>
-    carregarOperacaoLocal(checkoutFechamentosStorageKey, {})
-  );
-  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>(() =>
-    carregarOperacaoLocal(turnosOperacaoStorageKey, {})
-  );
+  const [fechamentos, setFechamentos] = useState<FechamentosTurno>({});
+  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>({});
   const [mensagem, setMensagem] = useState("");
 
   const turnoAtual = turnoAtivo;
@@ -341,10 +336,19 @@ export default function Home() {
         .select("*")
         .order("id", { ascending: true });
 
-      setMaoObraReal([
-        ...((data || []) as MaoObraReal[]),
-        ...carregarListaLocal<MaoObraReal>(maoObraLocalStorageKey),
+      setMaoObraReal((data || []) as MaoObraReal[]);
+    }
+
+    async function carregarEstadoOperacaoRemoto(obraIdAtual: number | null) {
+      const [controles, fechamentosRemotos, restricoesRemotas] = await Promise.all([
+        carregarControlesTurnoRemotos(obraIdAtual),
+        carregarFechamentosTurnoRemotos(obraIdAtual),
+        listarRestricoesHistoricoRemoto(obraIdAtual, null, null),
       ]);
+
+      setControlesTurno(controles);
+      setFechamentos(fechamentosRemotos);
+      setHistoricoRestricoes(restricoesRemotas);
     }
 
     function carregarContexto(cadastro = carregarCadastroBase()) {
@@ -363,10 +367,9 @@ export default function Home() {
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnoAtivo(contexto.turnoAtivo?.nome ?? "");
       setTurnoAtivoDados(contexto.turnoAtivo);
-      setFechamentos(carregarOperacaoLocal(checkoutFechamentosStorageKey, {}));
-      setControlesTurno(carregarOperacaoLocal(turnosOperacaoStorageKey, {}));
       void carregarAtividades(obraResolvidaId);
       void carregarMaoObraReal();
+      void carregarEstadoOperacaoRemoto(obraResolvidaId);
     }
 
     function carregarContextoLocal() {
@@ -400,17 +403,6 @@ export default function Home() {
         return;
       }
 
-      const locais = carregarListaLocal<RecursoDisponivelTurno>(
-        recursosDisponiveisStorageKey
-      ).filter((item) =>
-        pertenceAoTurno(item, {
-          obraId: obraAtivaId,
-          turnoId: turnoAtivoDados.id,
-          turno: turnoAtual,
-          dataTurno: dataTurnoAtual,
-        })
-      );
-
       const { data, error } = await supabase
         .from("recursos_disponiveis")
         .select("*")
@@ -420,7 +412,8 @@ export default function Home() {
         .order("id", { ascending: true });
 
       if (error) {
-        setRecursosDisponiveis(locais);
+        console.warn("Recursos planejados indisponiveis no Supabase.", error);
+        setRecursosDisponiveis([]);
         return;
       }
 
@@ -438,21 +431,53 @@ export default function Home() {
           quantidade: Number(item.quantidade || 0),
           cargaHoraria: Number(item.carga_horaria || 0),
         })),
-        ...locais,
       ]);
     }
   }, [dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
 
   useEffect(() => {
-    queueMicrotask(() =>
-      setHistoricoRestricoes(
-        listarRestricoesHistorico(
-          obraAtivaId,
-          dataTurnoAtual,
-          turnoAtual || null
-        )
+    queueMicrotask(() => {
+      void listarRestricoesHistoricoRemoto(
+        obraAtivaId,
+        dataTurnoAtual,
+        turnoAtual || null
+      ).then(setHistoricoRestricoes);
+    });
+  }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
+
+  useEffect(() => {
+    if (!obraAtivaId) {
+      return;
+    }
+
+    const canal = supabase
+      .channel(`painel-operacao-${obraAtivaId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "atividades", filter: `obra_id=eq.${obraAtivaId}` },
+        () => void sincronizarCadastroBaseRemoto()
       )
-    );
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "mao_obra", filter: `obra_id=eq.${obraAtivaId}` },
+        () => void sincronizarCadastroBaseRemoto()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "restricoes_historico", filter: `obra_id=eq.${obraAtivaId}` },
+        () => {
+          void listarRestricoesHistoricoRemoto(
+            obraAtivaId,
+            dataTurnoAtual,
+            turnoAtual || null
+          ).then(setHistoricoRestricoes);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(canal);
+    };
   }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
 
   function iniciarTurnoPainel() {
@@ -494,8 +519,22 @@ export default function Home() {
 
   function gravarControlesTurno(novosControles: ControlesTurno) {
     setControlesTurno(novosControles);
-    salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
-    window.dispatchEvent(new Event("storage"));
+    const controle = obterControleTurno(
+      novosControles,
+      obraAtivaId,
+      dataTurnoOperacional,
+      turnoAtual || null
+    );
+
+    if (obraAtivaId && dataTurnoOperacional && turnoAtual && controle) {
+      void salvarControleTurnoRemoto(
+        obraAtivaId,
+        dataTurnoOperacional,
+        turnoAtual,
+        turnoAtivoDados?.id ?? null,
+        controle
+      );
+    }
   }
 
   return (
@@ -876,19 +915,6 @@ function formatarHoras(horas: number) {
     maximumFractionDigits: 2,
     minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
   })} h`;
-}
-
-function carregarListaLocal<T>(chave: string): T[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const valor = JSON.parse(window.localStorage.getItem(chave) || "[]");
-    return Array.isArray(valor) ? (valor as T[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 function CabecalhoSecao({ titulo, texto }: { titulo: string; texto: string }) {

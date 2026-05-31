@@ -15,11 +15,14 @@ import {
   calcularAvancoReal,
   calcularPpc,
   chaveTurno,
-  checkoutFechamentosStorageKey,
-  listarRestricoesHistorico,
   pertenceAoTurno,
+  type FechamentosTurno,
   type RestricaoHistorico,
 } from "../../lib/operacao";
+import {
+  carregarFechamentosTurnoRemotos,
+  listarRestricoesHistoricoRemoto,
+} from "../../lib/operacao-remota";
 
 type MaoObraReal = {
   id: number;
@@ -47,9 +50,6 @@ type RestricaoResumo = {
   encerradaEm?: string | null;
 };
 
-const recursosDisponiveisStorageKey = "obraboard:recursos-disponiveis-local";
-const maoObraLocalStorageKey = "obraboard:mao-obra-local";
-
 export default function RdoPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [obraId, setObraId] = useState<number | null>(null);
@@ -61,6 +61,7 @@ export default function RdoPage() {
   const [recursosDisponiveis, setRecursosDisponiveis] = useState<RecursoDisponivelTurno[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [restricoesHistorico, setRestricoesHistorico] = useState<RestricaoHistorico[]>([]);
+  const [fechamentos, setFechamentos] = useState<FechamentosTurno>({});
 
   const turnoSelecionado = useMemo(
     () => turnosCadastrados.find((item) => item.nome === turno) ?? null,
@@ -185,7 +186,7 @@ export default function RdoPage() {
           chave: chaveGrupo,
           dataTurno,
           turno: turnoGrupo,
-          status: checkoutEncerrado(obraId, dataTurno, turnoGrupo)
+          status: checkoutEncerrado(fechamentos, obraId, dataTurno, turnoGrupo)
             ? "Turno encerrado"
             : "Em acompanhamento",
           avanco: calcularPpc(itens),
@@ -197,7 +198,7 @@ export default function RdoPage() {
       .sort((a, b) =>
         `${b.dataTurno}-${b.turno}`.localeCompare(`${a.dataTurno}-${a.turno}`)
       );
-  }, [atividadesBanco, maoObraReal, obraId, restricoesHistorico, turnosCadastrados]);
+  }, [atividadesBanco, fechamentos, maoObraReal, obraId, restricoesHistorico, turnosCadastrados]);
 
   const recursosMobilizados = useMemo(() => {
     const mapa = new Map<string, { previsto: number; real: number }>();
@@ -256,12 +257,9 @@ export default function RdoPage() {
     ]);
 
     setAtividadesBanco((atividades || []) as Atividade[]);
-    setMaoObraReal([
-      ...((maoObra || []) as MaoObraReal[]),
-      ...carregarObjetoLocal<MaoObraReal[]>(maoObraLocalStorageKey, []).filter(
-        (item) => item.obra_id === obraAtualId
-      ),
-    ]);
+    setMaoObraReal((maoObra || []) as MaoObraReal[]);
+    setRestricoesHistorico(await listarRestricoesHistoricoRemoto(obraAtualId, null, null));
+    setFechamentos(await carregarFechamentosTurnoRemotos(obraAtualId));
   }
 
   async function carregarRecursosDisponiveis(
@@ -275,16 +273,6 @@ export default function RdoPage() {
       return;
     }
 
-    const locais = carregarObjetoLocal<RecursoDisponivelTurno[]>(recursosDisponiveisStorageKey, []).filter(
-      (item) =>
-        pertenceAoTurno(item, {
-          obraId: obraAtualId,
-          turnoId: turnoAtualId,
-          turno: turnoAtual,
-          dataTurno: dataAtual,
-        })
-    );
-
     const { data, error } = await supabase
       .from("recursos_disponiveis")
       .select("*")
@@ -294,7 +282,8 @@ export default function RdoPage() {
       .order("id", { ascending: true });
 
     if (error) {
-      setRecursosDisponiveis(locais);
+      console.warn("Nao foi possivel carregar recursos_disponiveis.", error);
+      setRecursosDisponiveis([]);
       return;
     }
 
@@ -312,7 +301,6 @@ export default function RdoPage() {
         quantidade: Number(item.quantidade || 0),
         cargaHoraria: Number(item.carga_horaria || 0),
       })),
-      ...locais,
     ]);
   }
 
@@ -332,7 +320,6 @@ export default function RdoPage() {
       setTurnosCadastrados(contexto.dadosObra.turnos);
       setTurno(contexto.turnoAtivo?.nome ?? "");
       setDataTurnoSelecionada(dataParam);
-      setRestricoesHistorico(listarRestricoesHistorico(obraResolvidaId, null, null));
       void carregarDados(obraResolvidaId);
     }
 
@@ -348,11 +335,9 @@ export default function RdoPage() {
       void carregarContextoObraRemoto();
     });
     window.addEventListener(cadastroBaseEvento, carregarContextoObraLocal);
-    window.addEventListener("storage", carregarContextoObraLocal);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, carregarContextoObraLocal);
-      window.removeEventListener("storage", carregarContextoObraLocal);
     };
   }, []);
 
@@ -469,7 +454,7 @@ export default function RdoPage() {
               <InfoCard label="Turno" value={turno || "-"} />
               <InfoCard label="Atividades" value={String(atividades.length)} />
               <InfoCard label="Finalizadas" value={String(finalizadas)} />
-              <InfoCard label="Status" value={checkoutEncerrado(obraId, dataTurnoAtual, turno) ? "Turno encerrado" : "Turno em acompanhamento"} />
+              <InfoCard label="Status" value={checkoutEncerrado(fechamentos, obraId, dataTurnoAtual, turno) ? "Turno encerrado" : "Turno em acompanhamento"} />
             </section>
 
             <section className="mb-8">
@@ -607,27 +592,16 @@ export default function RdoPage() {
   );
 }
 
-function carregarObjetoLocal<T>(chave: string, fallback: T): T {
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(window.localStorage.getItem(chave) || "") as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function checkoutEncerrado(obraId: number | null, dataTurno: string | null, turno: string) {
-  if (!obraId || !dataTurno || !turno || typeof window === "undefined") {
+function checkoutEncerrado(
+  fechamentos: FechamentosTurno,
+  obraId: number | null,
+  dataTurno: string | null,
+  turno: string
+) {
+  if (!obraId || !dataTurno || !turno) {
     return false;
   }
 
-  const fechamentos = carregarObjetoLocal<Record<string, { encerradoEm: string }>>(
-    checkoutFechamentosStorageKey,
-    {}
-  );
   return Boolean(fechamentos[chaveTurno(obraId, dataTurno, turno)]);
 }
 
