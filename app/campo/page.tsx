@@ -25,6 +25,7 @@ import {
   listarRestricoesHistorico,
   pertenceAoTurno,
   registrarRestricaoHistorico,
+  salvarAtividadeOperacaoCadastro,
 } from "../../lib/operacao";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
@@ -276,22 +277,12 @@ function CampoPageContent() {
       )
     );
     setAtividades(carregadas);
-    setRealizadoAtividade((atuais) => {
-      const proximos = { ...atuais };
-
-      carregadas.forEach((atividade) => {
-        const valorAtual = proximos[atividade.id];
-
-        if (
-          valorAtual === undefined ||
-          Number(valorAtual || 0) === Number(atividade.previsto || 0)
-        ) {
-          proximos[atividade.id] = String(atividade.realizado ?? 0);
-        }
-      });
-
-      return proximos;
-    });
+    setRealizadoAtividade(
+      carregadas.reduce<Record<number, string>>((mapa, atividade) => {
+        mapa[atividade.id] = String(atividade.realizado ?? 0);
+        return mapa;
+      }, {})
+    );
     await carregarRecursosAtividades(carregadas);
   }
 
@@ -519,6 +510,13 @@ function CampoPageContent() {
       }
     }
 
+    if (
+      quantidadeRealizada !== undefined &&
+      (status === "Execução" || status === "Finalizada")
+    ) {
+      atualizacao.status = status;
+    }
+
     if (responsavel !== undefined) {
       atualizacao.responsavel = responsavel;
     }
@@ -553,6 +551,25 @@ function CampoPageContent() {
       console.error(error);
       alert("Erro ao atualizar atividade.");
       return;
+    }
+
+    const atividadeAtualizada = atividadeAtual
+      ? ({ ...atividadeAtual, ...atualizacao } as Atividade)
+      : null;
+
+    if (atividadeAtualizada) {
+      setAtividades((atuais) =>
+        atuais.map((atividade) =>
+          atividade.id === id ? atividadeAtualizada : atividade
+        )
+      );
+      if (atualizacao.realizado !== undefined) {
+        setRealizadoAtividade((atuais) => ({
+          ...atuais,
+          [id]: String(atualizacao.realizado ?? 0),
+        }));
+      }
+      salvarAtividadeOperacaoCadastro(atividadeAtualizada, controles[id]);
     }
 
     await carregarAtividades();
@@ -606,15 +623,26 @@ function CampoPageContent() {
     });
   }
 
-  async function editarAtividadeFinalizada(atividade: Atividade) {
+  async function continuarAtividadeFinalizada(atividade: Atividade) {
     setAtividadesEditaveis((atuais) => ({ ...atuais, [atividade.id]: true }));
     setRealizadoAtividade((atuais) => ({
       ...atuais,
       [atividade.id]: String(atividade.realizado ?? 0),
     }));
+    setControles((atuais) => {
+      const atual = atuais[atividade.id] ?? { elapsedMs: 0, runningSince: null };
+
+      return {
+        ...atuais,
+        [atividade.id]: {
+          ...atual,
+          runningSince: atual.runningSince ?? Date.now(),
+        },
+      };
+    });
     await atualizarAtividade(
       atividade.id,
-      definirStatusPorAvanco(atividade.previsto, atividade.realizado),
+      "Execução",
       Number(atividade.realizado || 0),
       atividade.responsavel
     );
@@ -687,7 +715,7 @@ function CampoPageContent() {
     await atualizarAtividade(id, "Parcial");
   }
 
-  function pararRestricao(id: number) {
+  async function pararRestricao(id: number) {
     setRestricoes((atuais) => ({
       ...atuais,
       [id]: {
@@ -705,6 +733,18 @@ function CampoPageContent() {
     }
     setRestricaoEditandoId(null);
     setRestricaoTexto("");
+    setControles((atuais) => {
+      const atual = atuais[id] ?? { elapsedMs: 0, runningSince: null };
+
+      return {
+        ...atuais,
+        [id]: {
+          ...atual,
+          runningSince: atual.runningSince ?? Date.now(),
+        },
+      };
+    });
+    await atualizarAtividade(id, "Execução");
   }
 
   async function adicionarMaoObra() {
@@ -1109,10 +1149,10 @@ function CampoPageContent() {
 
                 {bloqueadaFinalizada ? (
                   <button
-                    onClick={() => editarAtividadeFinalizada(atividade)}
+                    onClick={() => continuarAtividadeFinalizada(atividade)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Editar
+                    Continuar
                   </button>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">

@@ -64,6 +64,11 @@ export type CadastroBase = {
   turnoAtivoPorObra: Record<string, string>;
   turnoAtivoIdPorObra: Record<string, number>;
   dadosPorObra: Record<string, CadastroDadosObra>;
+  operacao: {
+    atividades: Record<string, Record<string, unknown>>;
+    restricoesHistorico: unknown[];
+    controlesTurno: Record<string, Record<string, unknown>>;
+  };
   usuarios: UsuarioCadastrado[];
   disciplinas: DisciplinaCadastrada[];
   funcoesPrevistas: FuncaoPrevistaCadastrada[];
@@ -90,6 +95,11 @@ export const cadastroBaseInicial: CadastroBase = {
   turnoAtivoPorObra: {},
   turnoAtivoIdPorObra: {},
   dadosPorObra: {},
+  operacao: {
+    atividades: {},
+    restricoesHistorico: [],
+    controlesTurno: {},
+  },
   usuarios: [],
   disciplinas: [],
   funcoesPrevistas: [],
@@ -253,6 +263,11 @@ export function criarCadastroBaseVazio(): CadastroBase {
     turnoAtivoPorObra: {},
     turnoAtivoIdPorObra: {},
     dadosPorObra: {},
+    operacao: {
+      atividades: {},
+      restricoesHistorico: [],
+      controlesTurno: {},
+    },
     usuarios: [],
     disciplinas: [],
     funcoesPrevistas: [],
@@ -653,6 +668,21 @@ function normalizarCadastroBase(cadastro: Partial<CadastroBase>): CadastroBase {
     turnoAtivoPorObra: cadastro.turnoAtivoPorObra ?? {},
     turnoAtivoIdPorObra: cadastro.turnoAtivoIdPorObra ?? {},
     dadosPorObra: cadastro.dadosPorObra ?? {},
+    operacao: {
+      atividades:
+        cadastro.operacao?.atividades &&
+        typeof cadastro.operacao.atividades === "object"
+          ? cadastro.operacao.atividades
+          : {},
+      restricoesHistorico: Array.isArray(cadastro.operacao?.restricoesHistorico)
+        ? cadastro.operacao.restricoesHistorico
+        : [],
+      controlesTurno:
+        cadastro.operacao?.controlesTurno &&
+        typeof cadastro.operacao.controlesTurno === "object"
+          ? cadastro.operacao.controlesTurno
+          : {},
+    },
     usuarios: Array.isArray(cadastro.usuarios) ? cadastro.usuarios : [],
     disciplinas: Array.isArray(cadastro.disciplinas)
       ? cadastro.disciplinas

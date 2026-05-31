@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../components/DesktopLayout";
 import { supabase } from "../lib/supabase";
@@ -18,10 +19,8 @@ import {
   calcularTempoTurno,
   carregarObjetoLocal as carregarOperacaoLocal,
   checkoutFechamentosStorageKey,
-  encerrarControleTurno,
   pertenceAoTurno,
   type FechamentosTurno,
-  chaveTurno,
   type ControlesTurno,
   iniciarControleTurno,
   listarRestricoesHistorico,
@@ -285,6 +284,34 @@ export default function Home() {
     return [...restricoesAtivas, ...historico];
   }, [atividades, historicoRestricoes]);
 
+  const historicoRestricoesOrdenado = useMemo(
+    () =>
+      [...historicoRestricoes].sort(
+        (a, b) =>
+          new Date(b.registradaEm).getTime() - new Date(a.registradaEm).getTime()
+      ),
+    [historicoRestricoes]
+  );
+
+  const checkoutTurnoUrl = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (obraAtivaId) {
+      params.set("obraId", String(obraAtivaId));
+    }
+
+    if (turnoIdCampo) {
+      params.set("turnoId", String(turnoIdCampo));
+    }
+
+    if (dataTurnoAtual) {
+      params.set("dataTurno", dataTurnoAtual);
+    }
+
+    const query = params.toString();
+    return query ? `/checkout?${query}` : "/checkout";
+  }, [dataTurnoAtual, obraAtivaId, turnoIdCampo]);
+
   useEffect(() => {
     const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
     queueMicrotask(() => setClientePronto(true));
@@ -465,43 +492,6 @@ export default function Home() {
     setMensagem("Turno retomado.");
   }
 
-  function encerrarTurnoPainel() {
-    if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
-      return;
-    }
-
-    const novosControles = encerrarControleTurno(
-      controlesTurno,
-      obraAtivaId,
-      dataTurnoOperacional,
-      turnoAtual
-    );
-
-    const controleEncerrado = obterControleTurno(
-      novosControles,
-      obraAtivaId,
-      dataTurnoOperacional,
-      turnoAtual
-    );
-
-    const chave = chaveTurno(obraAtivaId, dataTurnoOperacional, turnoAtual);
-
-    const novosFechamentos = {
-      ...fechamentos,
-      [chave]: {
-        encerradoEm: controleEncerrado?.encerradoEm ?? new Date().toISOString(),
-        rdoGeradoEm: controleEncerrado?.rdoGeradoEm ?? new Date().toISOString(),
-        tempoFinalMs: controleEncerrado?.elapsedMs ?? tempoDecorridoMs,
-      },
-    };
-
-    gravarControlesTurno(novosControles);
-    setFechamentos(novosFechamentos);
-    salvarObjetoLocal(checkoutFechamentosStorageKey, novosFechamentos);
-    window.dispatchEvent(new Event("storage"));
-    setMensagem("Turno encerrado e RDO gerado automaticamente.");
-  }
-
   function gravarControlesTurno(novosControles: ControlesTurno) {
     setControlesTurno(novosControles);
     salvarObjetoLocal(turnosOperacaoStorageKey, novosControles);
@@ -564,13 +554,12 @@ export default function Home() {
                   >
                     Continuar Turno
                   </button>
-                  <button
-                    type="button"
-                    onClick={encerrarTurnoPainel}
-                    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+                  <Link
+                    href={checkoutTurnoUrl}
+                    className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-slate-800"
                   >
-                    Encerrar Turno
-                  </button>
+                    Check-out
+                  </Link>
                 </>
               ) : (
                 <button
@@ -687,6 +676,36 @@ export default function Home() {
                 </div>
               )}
             </section>
+
+            <section className="rounded-2xl bg-white shadow-sm">
+              <CabecalhoSecao
+                titulo="Histórico de restrições"
+                texto="Registros do Campo para o turno atual"
+              />
+
+              {historicoRestricoesOrdenado.length === 0 ? (
+                <div className="p-4">
+                  <EstadoVazio texto="Nenhuma restrição registrada pelo Campo neste turno." />
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {historicoRestricoesOrdenado.map((item) => (
+                    <div key={item.id} className="p-4 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-bold text-slate-900">{item.atividade}</p>
+                        <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-600">
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-slate-600">{item.texto}</p>
+                      <p className="mt-2 text-xs font-semibold text-slate-400">
+                        {item.responsavel || "Sem responsável"} - {formatarDataHora(item.registradaEm)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
 
           <div className="space-y-4">
@@ -792,6 +811,21 @@ function formatarDataTurno(dataTurno: string) {
   }
 
   return `${dia}/${mes}/${ano}`;
+}
+
+function formatarDataHora(valor: string) {
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return valor;
+  }
+
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function obterIndicadorOperacao(status: string): {

@@ -1,4 +1,9 @@
 import type { Atividade, StatusAtividade } from "./types";
+import {
+  carregarCadastroBase,
+  notificarCadastroBaseAtualizado,
+  salvarCadastroBase,
+} from "./cadastro-base";
 
 export type RestricaoStatus = "aberta" | "resolvida" | "parada" | "reprogramada";
 
@@ -293,7 +298,11 @@ export function carregarObjetoLocal<T>(chave: string, fallback: T): T {
 
   try {
     const bruto = window.localStorage.getItem(chave);
-    return bruto ? (JSON.parse(bruto) as T) : fallback;
+    if (bruto) {
+      return JSON.parse(bruto) as T;
+    }
+
+    return carregarOperacaoCadastro(chave, fallback);
   } catch {
     return fallback;
   }
@@ -305,6 +314,7 @@ export function salvarObjetoLocal(chave: string, valor: unknown) {
   }
 
   window.localStorage.setItem(chave, JSON.stringify(valor));
+  salvarOperacaoCadastro(chave, valor);
 }
 
 export function registrarRestricaoHistorico(
@@ -379,5 +389,77 @@ export function listarRestricoesHistorico(
       item.obraId === obraId &&
       (!dataTurno || item.dataTurno === dataTurno) &&
       (!turno || item.turno === turno)
+  );
+}
+
+export function salvarAtividadeOperacaoCadastro(
+  atividade: Atividade,
+  controle?: { elapsedMs: number; runningSince: number | null }
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const cadastro = carregarCadastroBase();
+  const atividades = cadastro.operacao.atividades ?? {};
+
+  void salvarCadastroBase({
+    ...cadastro,
+    operacao: {
+      ...cadastro.operacao,
+      atividades: {
+        ...atividades,
+        [String(atividade.id)]: {
+          id: atividade.id,
+          obraId: atividade.obra_id ?? null,
+          turnoId: atividade.turno_id ?? null,
+          dataTurno: atividade.data_turno ?? null,
+          turno: atividade.turno ?? null,
+          atividade: atividade.atividade,
+          responsavel: atividade.responsavel,
+          previsto: atividade.previsto,
+          realizado: atividade.realizado ?? 0,
+          progresso: atividade.progresso ?? 0,
+          status: atividade.status,
+          controle: controle ?? null,
+          atualizadoEm: new Date().toISOString(),
+        },
+      },
+    },
+  }).then(notificarCadastroBaseAtualizado);
+}
+
+function carregarOperacaoCadastro<T>(chave: string, fallback: T): T {
+  const cadastro = carregarCadastroBase();
+
+  if (chave === restricaoHistoricoStorageKey) {
+    return (cadastro.operacao.restricoesHistorico as T) ?? fallback;
+  }
+
+  if (chave === turnosOperacaoStorageKey) {
+    return (cadastro.operacao.controlesTurno as T) ?? fallback;
+  }
+
+  return fallback;
+}
+
+function salvarOperacaoCadastro(chave: string, valor: unknown) {
+  if (chave !== restricaoHistoricoStorageKey && chave !== turnosOperacaoStorageKey) {
+    return;
+  }
+
+  const cadastro = carregarCadastroBase();
+  const operacao = {
+    ...cadastro.operacao,
+    ...(chave === restricaoHistoricoStorageKey
+      ? { restricoesHistorico: Array.isArray(valor) ? valor : [] }
+      : {}),
+    ...(chave === turnosOperacaoStorageKey && valor && typeof valor === "object"
+      ? { controlesTurno: valor as Record<string, Record<string, unknown>> }
+      : {}),
+  };
+
+  void salvarCadastroBase({ ...cadastro, operacao }).then(
+    notificarCadastroBaseAtualizado
   );
 }
