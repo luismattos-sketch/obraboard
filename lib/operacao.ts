@@ -17,6 +17,9 @@ export type RestricaoHistorico = {
   paradaEm?: string | null;
   retomadaEm?: string | null;
   encerradaEm?: string | null;
+  abertaEm?: string | null;
+  resolvidaEm?: string | null;
+  duracaoMs?: number | null;
 };
 
 export const restricaoStorageKey = "obraboard:campo-restricoes";

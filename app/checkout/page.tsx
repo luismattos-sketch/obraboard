@@ -10,7 +10,6 @@ import {
   carregarCadastroBase,
   getContextoAtual,
   obterDadosObra,
-  salvarTurnoAtivo,
   sincronizarCadastroBaseRemoto,
   type TurnoCadastrado,
 } from "../../lib/cadastro-base";
@@ -205,9 +204,13 @@ export default function CheckoutPage() {
     }
 
     function carregarContextoObra(cadastro = carregarCadastroBase()) {
-      const contexto = getContextoAtual(cadastro);
+      const parametros = new URLSearchParams(window.location.search);
+      const contexto = getContextoAtual(cadastro, {
+        obraId: parametros.get("obraId"),
+        turnoId: parametros.get("turnoId"),
+      });
       const obraAtiva = contexto.obraAtiva;
-      const obraResolvidaId = contexto.obraAtivaId;
+      const obraResolvidaId = contexto.obraAtivaId ?? contexto.obraIdParametro ?? null;
       const dadosObra = obraAtiva
         ? obterDadosObra(cadastro, obraAtiva.id)
         : cadastroDadosObraInicial;
@@ -282,8 +285,9 @@ export default function CheckoutPage() {
     setMensagem("");
     setErro("");
 
-    const previsto = Number(edicao.previsto || 0);
-    const realizado = Number(edicao.realizado || 0);
+    const previsto = normalizarNumeroCheckout(edicao.previsto);
+    const realizado = normalizarNumeroCheckout(edicao.realizado);
+    const tempoPrevistoHoras = normalizarNumeroCheckout(edicao.tempoPrevistoHoras);
     const progresso =
       calcularAvancoReal(previsto, realizado);
     const status = definirStatusPorAvanco(previsto, realizado);
@@ -296,7 +300,7 @@ export default function CheckoutPage() {
         progresso,
         status,
         responsavel: edicao.responsavel,
-        tempo_previsto_horas: Number(edicao.tempoPrevistoHoras || 0),
+        tempo_previsto_horas: tempoPrevistoHoras,
       })
       .eq("id", item.id)
       .eq("obra_id", obraId)
@@ -317,8 +321,8 @@ export default function CheckoutPage() {
     setMensagem("");
     setErro("");
 
-    const realizado = Number(item.realizado || 0);
-    const previsto = Number(item.previsto || 0);
+    const realizado = normalizarNumeroCheckout(item.realizado);
+    const previsto = normalizarNumeroCheckout(item.previsto);
     const progresso = calcularAvancoReal(previsto, realizado);
     const status = definirStatusPorAvanco(previsto, realizado);
 
@@ -368,7 +372,10 @@ export default function CheckoutPage() {
     let criadas = 0;
 
     for (const item of pendentes) {
-      const restante = Math.max(Number(item.previsto || 0) - Number(item.realizado || 0), 0);
+      const restante = Math.max(
+        normalizarNumeroCheckout(item.previsto) - normalizarNumeroCheckout(item.realizado),
+        0
+      );
 
       if (restante <= 0) {
         continue;
@@ -453,7 +460,6 @@ export default function CheckoutPage() {
       criadas += 1;
     }
 
-    void salvarTurnoAtivo(obraId, proximoTurno.nome, proximoTurno.id);
     setMensagem(`${criadas} pendencias reprogramadas para ${proximoTurno.nome}.`);
     await recarregarAtividades();
   }
@@ -737,47 +743,58 @@ export default function CheckoutPage() {
                         <td className="p-3">
                           {editando ? (
                             <div className="grid gap-2">
-                              <div className="grid grid-cols-3 gap-2">
-                                <input
-                                  value={edicao.previsto}
-                                  onChange={(e) =>
-                                    setEdicao((atual) => ({
-                                      ...atual,
-                                      previsto: e.target.value,
-                                    }))
-                                  }
-                                  type="number"
-                                  min="0"
-                                  className="rounded-lg border border-slate-300 p-2 text-xs"
-                                  placeholder="Prev."
-                                />
-                                <input
-                                  value={edicao.realizado}
-                                  onChange={(e) =>
-                                    setEdicao((atual) => ({
-                                      ...atual,
-                                      realizado: e.target.value,
-                                    }))
-                                  }
-                                  type="number"
-                                  min="0"
-                                  className="rounded-lg border border-slate-300 p-2 text-xs"
-                                  placeholder="Real"
-                                />
-                                <input
-                                  value={edicao.tempoPrevistoHoras}
-                                  onChange={(e) =>
-                                    setEdicao((atual) => ({
-                                      ...atual,
-                                      tempoPrevistoHoras: e.target.value,
-                                    }))
-                                  }
-                                  type="number"
-                                  min="0"
-                                  step="0.5"
-                                  className="rounded-lg border border-slate-300 p-2 text-xs"
-                                  placeholder="HH"
-                                />
+                              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                                <label className="block text-left text-[11px] font-bold uppercase text-slate-500">
+                                  Previsto
+                                  <input
+                                    value={edicao.previsto}
+                                    onChange={(e) =>
+                                      setEdicao((atual) => ({
+                                        ...atual,
+                                        previsto: e.target.value,
+                                      }))
+                                    }
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs normal-case text-slate-700"
+                                    placeholder="Quantidade prevista"
+                                  />
+                                </label>
+                                <label className="block text-left text-[11px] font-bold uppercase text-slate-500">
+                                  Realizado
+                                  <input
+                                    value={edicao.realizado}
+                                    onChange={(e) =>
+                                      setEdicao((atual) => ({
+                                        ...atual,
+                                        realizado: e.target.value,
+                                      }))
+                                    }
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs normal-case text-slate-700"
+                                    placeholder="Quantidade realizada"
+                                  />
+                                </label>
+                                <label className="block text-left text-[11px] font-bold uppercase text-slate-500">
+                                  HH previsto
+                                  <input
+                                    value={edicao.tempoPrevistoHoras}
+                                    onChange={(e) =>
+                                      setEdicao((atual) => ({
+                                        ...atual,
+                                        tempoPrevistoHoras: e.target.value,
+                                      }))
+                                    }
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs normal-case text-slate-700"
+                                    placeholder="Horas previstas"
+                                  />
+                                </label>
                               </div>
                               <div className="flex justify-end gap-2">
                                 <button
@@ -963,6 +980,13 @@ function formatarRelogioTurno(data: Date) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function normalizarNumeroCheckout(valor: string | number | null | undefined) {
+  const texto = String(valor ?? "0").trim().replace(",", ".");
+  const numero = Number(texto || 0);
+
+  return Number.isFinite(numero) ? Math.max(0, numero) : 0;
 }
 
 function CabecalhoSecao({ titulo, texto }: { titulo: string; texto: string }) {

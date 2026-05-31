@@ -180,16 +180,9 @@ export async function registrarRestricaoHistoricoRemoto(
   status: RestricaoStatus
 ) {
   const agora = new Date().toISOString();
-  const { data: existente } = await supabase
-    .from("restricoes_historico")
-    .select("id,status,parada_em,retomada_em")
-    .eq("atividade_id", atividade.id)
-    .in("status", ["aberta", "parada", "reprogramada"])
-    .order("registrada_em", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const textoNormalizado = texto.trim() || "Sem descricao";
 
-  const payload = {
+  const payloadBase = {
     atividade_id: atividade.id,
     obra_id: atividade.obra_id ?? null,
     turno_id: atividade.turno_id ?? null,
@@ -197,25 +190,79 @@ export async function registrarRestricaoHistoricoRemoto(
     turno: atividade.turno ?? null,
     atividade: atividade.atividade,
     responsavel: atividade.responsavel,
-    texto,
+    texto: textoNormalizado,
+    descricao: textoNormalizado,
+    observacao: textoNormalizado,
     status,
-    parada_em:
-      status === "parada"
-        ? (existente as { parada_em?: string | null } | null)?.parada_em ?? agora
-        : (existente as { parada_em?: string | null } | null)?.parada_em ?? null,
-    retomada_em:
-      (existente as { status?: string; retomada_em?: string | null } | null)?.status ===
-        "parada" && status !== "parada"
-        ? (existente as { retomada_em?: string | null } | null)?.retomada_em ?? agora
-        : (existente as { retomada_em?: string | null } | null)?.retomada_em ?? null,
-    encerrada_em: status === "aberta" || status === "parada" ? null : agora,
+    atualizada_em: agora,
   };
 
-  if ((existente as { id?: string } | null)?.id) {
+  if (status === "aberta") {
+    const { error } = await supabase.from("restricoes_historico").insert([
+      {
+        ...payloadBase,
+        registrada_em: agora,
+        aberta_em: agora,
+        parada_em: null,
+        retomada_em: null,
+        encerrada_em: null,
+        resolvida_em: null,
+        duracao_ms: null,
+      },
+    ]);
+
+    if (error) {
+      throw error;
+    }
+    return;
+  }
+
+  const { data: existente } = await supabase
+    .from("restricoes_historico")
+    .select("id,status,parada_em,retomada_em,registrada_em,aberta_em")
+    .eq("atividade_id", atividade.id)
+    .in("status", ["aberta", "parada", "reprogramada"])
+    .order("registrada_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const existenteTipado = existente as
+    | {
+        id?: string;
+        status?: string;
+        parada_em?: string | null;
+        retomada_em?: string | null;
+        registrada_em?: string | null;
+        aberta_em?: string | null;
+      }
+    | null;
+  const abertaEm = existenteTipado?.aberta_em ?? existenteTipado?.registrada_em ?? agora;
+  const resolvidaEm = status === "resolvida" ? agora : null;
+  const duracaoMs =
+    resolvidaEm && abertaEm
+      ? Math.max(0, new Date(resolvidaEm).getTime() - new Date(abertaEm).getTime())
+      : null;
+  const payload = {
+    ...payloadBase,
+    aberta_em: abertaEm,
+    parada_em:
+      status === "parada"
+        ? existenteTipado?.parada_em ?? agora
+        : existenteTipado?.parada_em ?? null,
+    retomada_em:
+      existenteTipado?.status === "parada" && status !== "parada"
+        ? existenteTipado?.retomada_em ?? agora
+        : existenteTipado?.retomada_em ?? null,
+    encerrada_em: status === "parada" ? null : agora,
+    resolvida_em: resolvidaEm,
+    duracao_ms: duracaoMs,
+  };
+
+  if (existenteTipado?.id) {
     const { error } = await supabase
       .from("restricoes_historico")
       .update(payload)
-      .eq("id", (existente as { id: string }).id);
+      .eq("id", existenteTipado.id);
     if (error) {
       throw error;
     }
@@ -226,6 +273,7 @@ export async function registrarRestricaoHistoricoRemoto(
     {
       ...payload,
       registrada_em: agora,
+      aberta_em: abertaEm,
     },
   ]);
 
@@ -273,11 +321,17 @@ export async function listarRestricoesHistoricoRemoto(
     turno: item.turno ? String(item.turno) : null,
     atividade: String(item.atividade || ""),
     responsavel: String(item.responsavel || ""),
-    texto: String(item.texto || ""),
+    texto: String(item.texto || item.descricao || item.observacao || ""),
     status: String(item.status || "aberta") as RestricaoStatus,
-    registradaEm: String(item.registrada_em || ""),
+    registradaEm: String(item.aberta_em || item.registrada_em || ""),
     paradaEm: item.parada_em ? String(item.parada_em) : null,
     retomadaEm: item.retomada_em ? String(item.retomada_em) : null,
-    encerradaEm: item.encerrada_em ? String(item.encerrada_em) : null,
+    encerradaEm: item.resolvida_em || item.encerrada_em ? String(item.resolvida_em || item.encerrada_em) : null,
+    abertaEm: item.aberta_em ? String(item.aberta_em) : null,
+    resolvidaEm: item.resolvida_em ? String(item.resolvida_em) : null,
+    duracaoMs:
+      item.duracao_ms === null || item.duracao_ms === undefined
+        ? null
+        : Number(item.duracao_ms),
   }));
 }

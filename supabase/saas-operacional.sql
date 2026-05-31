@@ -119,11 +119,17 @@ create table if not exists public.restricoes_historico (
   atividade text not null default '',
   responsavel text not null default '',
   texto text not null default '',
+  descricao text not null default '',
+  observacao text not null default '',
   status text not null default 'aberta',
   registrada_em timestamptz not null default now(),
+  aberta_em timestamptz,
   parada_em timestamptz,
   retomada_em timestamptz,
   encerrada_em timestamptz,
+  resolvida_em timestamptz,
+  duracao_ms bigint,
+  atualizada_em timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
@@ -155,6 +161,21 @@ create table if not exists public.checkout_validacoes (
   data_turno date,
   turno text,
   validado_em timestamptz not null default now()
+);
+
+create table if not exists public.rdos (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid references public.empresas(id) on delete cascade,
+  obra_id bigint not null,
+  turno_id bigint,
+  data_turno date not null,
+  turno text not null,
+  status text not null default 'gerado',
+  resumo jsonb not null default '{}'::jsonb,
+  criado_por uuid references auth.users(id),
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  constraint rdos_unico unique (obra_id, data_turno, turno)
 );
 
 -- Reparo idempotente para bancos onde uma tentativa anterior criou tabelas
@@ -221,11 +242,17 @@ add column if not exists turno text,
 add column if not exists atividade text not null default '',
 add column if not exists responsavel text not null default '',
 add column if not exists texto text not null default '',
+add column if not exists descricao text not null default '',
+add column if not exists observacao text not null default '',
 add column if not exists status text not null default 'aberta',
 add column if not exists registrada_em timestamptz not null default now(),
+add column if not exists aberta_em timestamptz,
 add column if not exists parada_em timestamptz,
 add column if not exists retomada_em timestamptz,
 add column if not exists encerrada_em timestamptz,
+add column if not exists resolvida_em timestamptz,
+add column if not exists duracao_ms bigint,
+add column if not exists atualizada_em timestamptz not null default now(),
 add column if not exists created_at timestamptz not null default now();
 
 alter table if exists public.turnos_operacao
@@ -253,10 +280,23 @@ add column if not exists data_turno date,
 add column if not exists turno text,
 add column if not exists validado_em timestamptz not null default now();
 
+alter table if exists public.rdos
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint,
+add column if not exists turno_id bigint,
+add column if not exists data_turno date,
+add column if not exists turno text,
+add column if not exists status text not null default 'gerado',
+add column if not exists resumo jsonb not null default '{}'::jsonb,
+add column if not exists criado_por uuid references auth.users(id),
+add column if not exists criado_em timestamptz not null default now(),
+add column if not exists atualizado_em timestamptz not null default now();
+
 create index if not exists atividades_empresa_idx on public.atividades (empresa_id);
 create index if not exists restricoes_empresa_turno_idx on public.restricoes_historico (empresa_id, obra_id, turno_id, data_turno);
 create index if not exists turnos_operacao_empresa_turno_idx on public.turnos_operacao (empresa_id, obra_id, turno_id, data_turno);
 create index if not exists checkout_validacoes_empresa_turno_idx on public.checkout_validacoes (empresa_id, obra_id, turno_id, data_turno);
+create index if not exists rdos_empresa_turno_idx on public.rdos (empresa_id, obra_id, turno_id, data_turno);
 
 create or replace function public.migrar_cadastro_base_para_saas(p_empresa_id uuid)
 returns void
@@ -364,6 +404,7 @@ alter table public.recursos_disponiveis enable row level security;
 alter table public.restricoes_historico enable row level security;
 alter table public.turnos_operacao enable row level security;
 alter table public.checkout_validacoes enable row level security;
+alter table public.rdos enable row level security;
 
 drop policy if exists "SaaS empresas por usuario" on public.empresas;
 create policy "SaaS empresas por usuario"
@@ -501,5 +542,25 @@ with check (
     select 1 from public.atividades a
     where a.id = atividade_id
       and a.empresa_id in (select public.usuario_empresa_ids())
+  )
+);
+
+drop policy if exists "SaaS rdos por empresa" on public.rdos;
+create policy "SaaS rdos por empresa"
+on public.rdos for all to authenticated
+using (
+  empresa_id in (select public.usuario_empresa_ids())
+  or exists (
+    select 1 from public.obras o
+    where o.id = obra_id
+      and o.empresa_id in (select public.usuario_empresa_ids())
+  )
+)
+with check (
+  empresa_id in (select public.usuario_empresa_ids())
+  or exists (
+    select 1 from public.obras o
+    where o.id = obra_id
+      and o.empresa_id in (select public.usuario_empresa_ids())
   )
 );

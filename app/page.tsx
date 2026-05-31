@@ -245,39 +245,15 @@ export default function Home() {
   const parciais = contarStatus(atividades, "Parcial");
 
   const restricoesPainel = useMemo(() => {
-    const restricoesAtivas = atividades
-      .filter(
-        (item) =>
-          item.status.toLowerCase().startsWith("restri") &&
-          !historicoRestricoes.some(
-            (historico) =>
-              historico.atividadeId === item.id &&
-              historico.dataTurno === item.data_turno &&
-              (historico.turnoId
-                ? historico.turnoId === item.turno_id
-                : historico.turno === item.turno)
-          )
-      )
-      .map((item) => ({
-        codigo: `R${item.id}`,
-        titulo: item.atividade,
-        responsavel: item.responsavel,
-        observacao: "Sem observação registrada.",
-        criticidade: item.prioridade === "A" ? "Alta" : "Média",
-        status: "aberta",
-      }));
-
-    const historico = historicoRestricoes.map((item) => ({
+    return historicoRestricoes.filter((item) => item.status === "aberta").map((item) => ({
       codigo: `R${item.atividadeId}`,
       titulo: item.atividade,
       responsavel: item.responsavel,
-      observacao: item.texto || "Sem observação registrada.",
-      criticidade: item.status === "aberta" ? "Alta" : "Encerrada",
-      status: item.status === "aberta" ? "aberta" : "Encerrada",
+      observacao: item.texto || "Restrição sem descrição.",
+      criticidade: "Alta",
+      status: "aberta",
     }));
-
-    return [...restricoesAtivas, ...historico];
-  }, [atividades, historicoRestricoes]);
+  }, [historicoRestricoes]);
 
   const historicoRestricoesOrdenado = useMemo(
     () =>
@@ -385,12 +361,10 @@ export default function Home() {
       void carregarContextoRemoto();
     }, 60000);
     window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
-    window.addEventListener("storage", carregarContextoLocal);
 
     return () => {
       window.clearInterval(intervaloAtualizacao);
       window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
-      window.removeEventListener("storage", carregarContextoLocal);
     };
   }, []);
 
@@ -461,6 +435,14 @@ export default function Home() {
         "postgres_changes",
         { event: "*", schema: "public", table: "mao_obra", filter: `obra_id=eq.${obraAtivaId}` },
         () => void sincronizarCadastroBaseRemoto()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "turnos_operacao", filter: `obra_id=eq.${obraAtivaId}` },
+        () => {
+          void carregarControlesTurnoRemotos(obraAtivaId).then(setControlesTurno);
+          void carregarFechamentosTurnoRemotos(obraAtivaId).then(setFechamentos);
+        }
       )
       .on(
         "postgres_changes",

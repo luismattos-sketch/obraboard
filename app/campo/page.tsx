@@ -746,10 +746,12 @@ function CampoPageContent() {
   }
 
   async function abrirRestricao(atividade: Atividade) {
-    pausarCronometro(atividade.id);
     setRestricaoEditandoId(atividade.id);
-    setRestricaoTexto(restricoes[atividade.id]?.texto ?? "");
-    await atualizarAtividade(atividade.id, "Restrição");
+    setRestricaoTexto(
+      restricoes[atividade.id]?.status === "aberta"
+        ? restricoes[atividade.id]?.texto ?? ""
+        : ""
+    );
   }
 
   async function salvarRestricao(id: number) {
@@ -758,76 +760,71 @@ function CampoPageContent() {
       return;
     }
 
-    setRestricoes((atuais) => ({
-      ...atuais,
-      [id]: {
-        texto: restricaoTexto.trim(),
-        status: "aberta",
-      },
-    }));
     const atividade = atividades.find((item) => item.id === id);
-    if (atividade) {
-      await registrarRestricaoHistoricoRemoto(
-        atividade,
-        restricaoTexto.trim(),
-        "aberta"
-      );
+    const texto = restricaoTexto.trim();
+
+    try {
+      if (atividade) {
+        pausarCronometro(id);
+        await registrarRestricaoHistoricoRemoto(atividade, texto, "aberta");
+        await atualizarAtividade(id, "Restrição");
+      }
+      setRestricoes((atuais) => ({
+        ...atuais,
+        [id]: {
+          texto,
+          status: "aberta",
+        },
+      }));
+      setRestricaoEditandoId(null);
+      setRestricaoTexto("");
+    } catch (error) {
+      console.error(error);
+      alert("Nao foi possivel salvar a restricao no Supabase.");
     }
-    setRestricaoEditandoId(null);
-    setRestricaoTexto("");
   }
 
   async function resolverRestricao(id: number) {
-    setRestricoes((atuais) => ({
-      ...atuais,
-      [id]: {
-        ...(atuais[id] ?? { texto: "" }),
-        status: "resolvida",
-      },
-    }));
     const atividade = atividades.find((item) => item.id === id);
-    if (atividade) {
-      await registrarRestricaoHistoricoRemoto(
-        atividade,
-        atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
-        "resolvida"
-      );
-    }
-    setRestricaoEditandoId(null);
-    setRestricaoTexto("");
-    await atualizarAtividade(id, "Parcial");
-  }
 
-  async function pararRestricao(id: number) {
-    setRestricoes((atuais) => ({
-      ...atuais,
-      [id]: {
-        ...(atuais[id] ?? { texto: "" }),
-        status: "parada",
-      },
-    }));
-    const atividade = atividades.find((item) => item.id === id);
-    if (atividade) {
-      await registrarRestricaoHistoricoRemoto(
-        atividade,
-        atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
-        "parada"
-      );
-    }
-    setRestricaoEditandoId(null);
-    setRestricaoTexto("");
-    setControles((atuais) => {
-      const atual = atuais[id] ?? { elapsedMs: 0, runningSince: null };
-
-      return {
+    try {
+      if (atividade) {
+        await registrarRestricaoHistoricoRemoto(
+          atividade,
+          atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
+          "resolvida"
+        );
+      }
+      setRestricoes((atuais) => ({
         ...atuais,
         [id]: {
-          ...atual,
-          runningSince: atual.runningSince ?? Date.now(),
+          ...(atuais[id] ?? { texto: "" }),
+          status: "resolvida",
         },
-      };
-    });
-    await atualizarAtividade(id, "Execução");
+      }));
+      setRestricaoEditandoId(null);
+      setRestricaoTexto("");
+      setControles((atuais) => {
+        const atual = atuais[id] ?? { elapsedMs: 0, runningSince: null };
+
+        return {
+          ...atuais,
+          [id]: {
+            ...atual,
+            runningSince: atual.runningSince ?? Date.now(),
+          },
+        };
+      });
+      await atualizarAtividade(
+        id,
+        "Execução",
+        normalizarNumeroOperacional(realizadoAtividade[id] ?? atividade?.realizado ?? 0),
+        atividade?.responsavel
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Nao foi possivel resolver a restricao no Supabase.");
+    }
   }
 
   async function adicionarMaoObra() {
@@ -1135,14 +1132,19 @@ function CampoPageContent() {
                       }
                       disabled={bloqueadaFinalizada}
                       className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-lg font-bold"
-                      onBlur={(e) =>
-                        atualizarAtividade(
+                      onBlur={(e) => {
+                        const valor = normalizarNumeroOperacional(e.target.value);
+                        setRealizadoAtividade((atuais) => ({
+                          ...atuais,
+                          [atividade.id]: String(valor),
+                        }));
+                        void atualizarAtividade(
                           atividade.id,
                           atividade.status,
-                          Number(e.target.value),
+                          valor,
                           responsavelSelecionado
-                        )
-                      }
+                        );
+                      }}
                     />
                   </div>
                 </div>
@@ -1187,10 +1189,10 @@ function CampoPageContent() {
                     <p className="mt-1 text-red-700">{restricao.texto || "Sem descrição"}</p>
                     {restricao.status === "aberta" && restricaoEditandoId !== atividade.id && (
                       <button
-                        onClick={() => pararRestricao(atividade.id)}
-                        className="mt-3 rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white"
+                        onClick={() => resolverRestricao(atividade.id)}
+                        className="mt-3 rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white"
                       >
-                        Parar restrição
+                        Resolvido
                       </button>
                     )}
                   </div>
@@ -1207,24 +1209,12 @@ function CampoPageContent() {
                       className="mt-2 min-h-[80px] w-full rounded-lg border border-red-200 bg-white p-3 text-sm"
                       placeholder="Descreva o impedimento, responsável e condição de liberação..."
                     />
-                    <div className="mt-3 grid grid-cols-3 gap-2">
+                    <div className="mt-3">
                       <button
                         onClick={() => salvarRestricao(atividade.id)}
-                        className="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white"
+                        className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white"
                       >
                         Salvar restrição
-                      </button>
-                      <button
-                        onClick={() => resolverRestricao(atividade.id)}
-                        className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white"
-                      >
-                        Resolvido
-                      </button>
-                      <button
-                        onClick={() => pararRestricao(atividade.id)}
-                        className="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white"
-                      >
-                        Parar restrição
                       </button>
                     </div>
                   </div>
@@ -1378,14 +1368,20 @@ function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: str
 
 function obterRealizadoInformado(atividadeId: number, fallback: string | number | null) {
   if (typeof document === "undefined") {
-    return Number(fallback || 0);
+    return normalizarNumeroOperacional(fallback);
   }
 
   const campo = document.querySelector<HTMLInputElement>(
     `input[data-realizado-atividade-id="${atividadeId}"]`
   );
   const valor = campo?.value ?? String(fallback ?? 0);
-  const numero = Number(valor || 0);
+
+  return normalizarNumeroOperacional(valor);
+}
+
+function normalizarNumeroOperacional(valor: string | number | null | undefined) {
+  const texto = String(valor ?? "0").trim().replace(",", ".");
+  const numero = Number(texto || 0);
 
   return Number.isFinite(numero) ? Math.max(0, numero) : 0;
 }

@@ -117,7 +117,7 @@ export default function RdoPage() {
         dataTurno: item.dataTurno,
         turno: item.turno,
         atividade: item.atividade,
-        texto: item.texto || "Sem observação registrada.",
+        texto: item.texto || "Restrição sem descrição.",
         responsavel: item.responsavel,
         status: item.status,
         registradaEm: item.registradaEm,
@@ -135,7 +135,7 @@ export default function RdoPage() {
         dataTurno: item.data_turno ?? null,
         turno: item.turno ?? null,
         atividade: item.atividade,
-        texto: "Sem observação registrada.",
+        texto: "Restrição sem descrição.",
         responsavel: item.responsavel,
         status: "aberta",
         registradaEm: "",
@@ -186,6 +186,7 @@ export default function RdoPage() {
           chave: chaveGrupo,
           dataTurno,
           turno: turnoGrupo,
+          turnoId: turnoGrupoId,
           status: checkoutEncerrado(fechamentos, obraId, dataTurno, turnoGrupo)
             ? "Turno encerrado"
             : "Em acompanhamento",
@@ -193,6 +194,16 @@ export default function RdoPage() {
           equipe,
           atividades: itens.length,
           restricoes: Math.max(restricoesGrupo.length, restricoesAtivasGrupo),
+          responsavel:
+            itens.find((item) => item.responsavel)?.responsavel ||
+            restricoesGrupo.find((item) => item.responsavel)?.responsavel ||
+            "-",
+          criadoEm:
+            [...itens]
+              .map((item) => (item as Atividade & { created_at?: string | null }).created_at)
+              .filter(Boolean)
+              .sort()
+              .at(-1) || dataTurno,
         };
       })
       .sort((a, b) =>
@@ -262,6 +273,25 @@ export default function RdoPage() {
     setFechamentos(await carregarFechamentosTurnoRemotos(obraAtualId));
   }
 
+  function abrirRdoHistorico(item: {
+    dataTurno: string;
+    turno: string;
+    turnoId: number | null;
+  }) {
+    setDataTurnoSelecionada(item.dataTurno);
+    setTurno(item.turno);
+
+    const params = new URLSearchParams(window.location.search);
+    if (obraId) {
+      params.set("obraId", String(obraId));
+    }
+    if (item.turnoId) {
+      params.set("turnoId", String(item.turnoId));
+    }
+    params.set("dataTurno", item.dataTurno);
+    window.history.replaceState(null, "", `/rdo?${params.toString()}`);
+  }
+
   async function carregarRecursosDisponiveis(
     obraAtualId: number | null,
     dataAtual: string | null,
@@ -308,9 +338,12 @@ export default function RdoPage() {
     function carregarContextoObra(cadastro = carregarCadastroBase()) {
       const parametros = new URLSearchParams(window.location.search);
       const dataParam = parametros.get("dataTurno") || "";
-      const contexto = getContextoAtual(cadastro);
+      const contexto = getContextoAtual(cadastro, {
+        obraId: parametros.get("obraId"),
+        turnoId: parametros.get("turnoId"),
+      });
       const obraAtiva = contexto.obraAtiva;
-      const obraResolvidaId = contexto.obraAtivaId;
+      const obraResolvidaId = contexto.obraAtivaId ?? contexto.obraIdParametro ?? null;
       setLogoUrl(obraAtiva?.logoUrl || cadastro.logoUrl);
       setObraId(obraResolvidaId);
       setObra(
@@ -368,29 +401,51 @@ export default function RdoPage() {
               Nenhum RDO encontrado para a obra/frente selecionada.
             </p>
           ) : (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {historicoRdos.map((item) => (
-                <div key={item.chave} className="rounded-xl border border-slate-200 p-4">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">
-                        {formatarDataTurno(item.dataTurno)} - Turno {item.turno}
-                      </p>
-                      <p className="text-xs font-semibold text-slate-500">{item.status}</p>
-                    </div>
-                    <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
-                      Historico
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-center text-xs md:grid-cols-5">
-                    <ResumoHistorico label="Avanço" value={`${item.avanco}%`} />
-                    <ResumoHistorico label="Equipe" value={String(item.equipe)} />
-                    <ResumoHistorico label="Atividades" value={String(item.atividades)} />
-                    <ResumoHistorico label="Restrições" value={String(item.restricoes)} />
-                    <ResumoHistorico label="Turno" value={item.turno} />
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50 text-left text-xs font-bold uppercase text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2">Data</th>
+                    <th className="px-3 py-2">Turno</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Responsável</th>
+                    <th className="px-3 py-2 text-right">Avanço</th>
+                    <th className="px-3 py-2 text-right">Ativ.</th>
+                    <th className="px-3 py-2 text-right">Restr.</th>
+                    <th className="px-3 py-2">Criado em</th>
+                    <th className="px-3 py-2 text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {historicoRdos.map((item) => (
+                    <tr key={item.chave}>
+                      <td className="px-3 py-2 font-semibold text-slate-800">
+                        {formatarDataTurno(item.dataTurno)}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600">{item.turno}</td>
+                      <td className="px-3 py-2 text-slate-600">{item.status}</td>
+                      <td className="px-3 py-2 text-slate-600">{item.responsavel}</td>
+                      <td className="px-3 py-2 text-right font-bold text-slate-800">
+                        {item.avanco}%
+                      </td>
+                      <td className="px-3 py-2 text-right text-slate-600">{item.atividades}</td>
+                      <td className="px-3 py-2 text-right text-slate-600">{item.restricoes}</td>
+                      <td className="px-3 py-2 text-slate-600">
+                        {formatarDataTurno(String(item.criadoEm).slice(0, 10))}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => abrirRdoHistorico(item)}
+                          className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white"
+                        >
+                          Abrir RDO
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>
@@ -696,11 +751,3 @@ function KpiCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ResumoHistorico({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-slate-50 p-2">
-      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
-      <p className="mt-1 font-bold text-slate-900">{value}</p>
-    </div>
-  );
-}
