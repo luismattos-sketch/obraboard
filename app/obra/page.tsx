@@ -325,18 +325,26 @@ export default function CadastroObraPage() {
     };
 
     const cadastroAtual = carregarCadastroBase();
-    await salvarCadastroBase(
-      definirDadosObra(
-        {
-          ...cadastroAtual,
-          logoUrl,
-          obras: novasObras,
-          obraAtivaId: cadastroAtual.obraAtivaId,
-        },
-        obra.id,
-        dadosDaObra
-      )
-    );
+    try {
+      await salvarCadastroBase(
+        definirDadosObra(
+          {
+            ...cadastroAtual,
+            logoUrl,
+            obras: novasObras,
+            obraAtivaId: cadastroAtual.obraAtivaId,
+          },
+          obra.id,
+          dadosDaObra
+        )
+      );
+    } catch (error) {
+      console.error("Erro ao salvar obra no Supabase.", error);
+      setMensagem(
+        `Erro ao salvar obra no Supabase: ${obterMensagemErro(error)}`
+      );
+      return;
+    }
     setObras(novasObras);
     setObraAtivaId(obra.id);
     preencherFormularioObra(obra);
@@ -1670,6 +1678,11 @@ function permissaoPorNivel(nivel: NivelAcesso) {
 
 function valorOuTraco(valor: string) {
   return valor || "-";
+}
+
+function obterMensagemErro(error: unknown) {
+  const erro = error as { message?: string } | null;
+  return erro?.message ?? "verifique as policies e tabelas no Supabase.";
 }
 
 function atualizarObraIdNaUrl(obraId: number | null) {

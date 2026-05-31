@@ -103,8 +103,10 @@ export const cadastroBaseInicial: CadastroBase = {
   turnos: [],
 };
 
+let cadastroBaseMemoria: CadastroBase = cadastroBaseInicial;
+
 export function carregarCadastroBase(): CadastroBase {
-  return cadastroBaseInicial;
+  return cadastroBaseMemoria;
 }
 
 export function carregarESincronizarCadastroBase(): CadastroBase {
@@ -114,6 +116,7 @@ export function carregarESincronizarCadastroBase(): CadastroBase {
 
 export async function salvarCadastroBase(cadastro: CadastroBase) {
   await salvarCadastroBaseRemoto(cadastro);
+  cadastroBaseMemoria = normalizarCadastroBase(cadastro);
   notificarCadastroBaseAtualizado();
 }
 
@@ -139,7 +142,9 @@ export async function carregarCadastroBaseRemoto() {
     return null;
   }
 
-  return normalizarCadastroBase(data.dados as Partial<CadastroBase>);
+  const cadastro = normalizarCadastroBase(data.dados as Partial<CadastroBase>);
+  cadastroBaseMemoria = cadastro;
+  return cadastro;
 }
 
 export async function sincronizarCadastroBaseRemoto() {
@@ -163,6 +168,7 @@ export async function sincronizarCadastroBaseRemoto() {
   }
 
   const cadastroRemoto = normalizarCadastroBase(data.dados as Partial<CadastroBase>);
+  cadastroBaseMemoria = cadastroRemoto;
   notificarCadastroBaseAtualizado();
   return cadastroRemoto;
 }
@@ -468,6 +474,7 @@ async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
 
   if (error) {
     console.warn("Nao foi possivel sincronizar cadastro no Supabase.", error);
+    throw error;
   }
 }
 
