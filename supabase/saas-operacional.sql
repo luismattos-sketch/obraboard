@@ -157,6 +157,102 @@ create table if not exists public.checkout_validacoes (
   validado_em timestamptz not null default now()
 );
 
+-- Reparo idempotente para bancos onde uma tentativa anterior criou tabelas
+-- antes de todas as colunas SaaS existirem. create table if not exists nao
+-- altera tabelas existentes, entao completamos as colunas antes dos indices/RLS.
+alter table if exists public.obras
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists nome text not null default '',
+add column if not exists codigo text default '',
+add column if not exists cliente text default '',
+add column if not exists contrato text default '',
+add column if not exists inicio date,
+add column if not exists termino date,
+add column if not exists orcamento text default '',
+add column if not exists situacao text default 'Planejamento',
+add column if not exists criticidade text default 'Baixa',
+add column if not exists escopo text default '',
+add column if not exists observacoes text default '',
+add column if not exists logo_url text default '',
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.turnos
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint references public.obras(id) on delete cascade,
+add column if not exists nome text not null default '',
+add column if not exists hora_inicio text default '',
+add column if not exists hora_fim text default '',
+add column if not exists desconta_refeicao boolean not null default false,
+add column if not exists horas_trabalho numeric not null default 0,
+add column if not exists ativo boolean not null default true,
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.usuarios_operacionais
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint references public.obras(id) on delete cascade,
+add column if not exists nome text not null default '',
+add column if not exists funcao text default '',
+add column if not exists email text default '',
+add column if not exists nivel_acesso text default 'Usuario',
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.disciplinas
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint references public.obras(id) on delete cascade,
+add column if not exists codigo text default '',
+add column if not exists nome text not null default '',
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.funcoes_previstas
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint references public.obras(id) on delete cascade,
+add column if not exists nome text not null default '',
+add column if not exists quantidade numeric not null default 0,
+add column if not exists carga_horaria numeric not null default 0,
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.restricoes_historico
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists atividade_id bigint references public.atividades(id) on delete cascade,
+add column if not exists obra_id bigint,
+add column if not exists turno_id bigint,
+add column if not exists data_turno date,
+add column if not exists turno text,
+add column if not exists atividade text not null default '',
+add column if not exists responsavel text not null default '',
+add column if not exists texto text not null default '',
+add column if not exists status text not null default 'aberta',
+add column if not exists registrada_em timestamptz not null default now(),
+add column if not exists parada_em timestamptz,
+add column if not exists retomada_em timestamptz,
+add column if not exists encerrada_em timestamptz,
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.turnos_operacao
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint,
+add column if not exists turno_id bigint,
+add column if not exists data_turno date,
+add column if not exists turno text,
+add column if not exists status text not null default 'planejado',
+add column if not exists publicado_em timestamptz,
+add column if not exists iniciado_em timestamptz,
+add column if not exists pausado_em timestamptz,
+add column if not exists encerrado_em timestamptz,
+add column if not exists rdo_gerado_em timestamptz,
+add column if not exists tempo_acumulado_ms bigint not null default 0,
+add column if not exists running_since timestamptz,
+add column if not exists updated_at timestamptz not null default now(),
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.checkout_validacoes
+add column if not exists empresa_id uuid references public.empresas(id) on delete cascade,
+add column if not exists obra_id bigint,
+add column if not exists turno_id bigint,
+add column if not exists data_turno date,
+add column if not exists turno text,
+add column if not exists validado_em timestamptz not null default now();
+
 create index if not exists atividades_empresa_idx on public.atividades (empresa_id);
 create index if not exists restricoes_empresa_turno_idx on public.restricoes_historico (empresa_id, obra_id, turno_id, data_turno);
 create index if not exists turnos_operacao_empresa_turno_idx on public.turnos_operacao (empresa_id, obra_id, turno_id, data_turno);
