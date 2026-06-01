@@ -25,6 +25,7 @@ import {
   pertenceAoTurno,
 } from "../../lib/operacao";
 import {
+  descreverErroSupabase,
   listarRestricoesHistoricoRemoto,
   registrarRestricaoHistoricoRemoto,
 } from "../../lib/operacao-remota";
@@ -53,7 +54,6 @@ type MaoObraReal = {
 };
 
 const mensagemLinkInvalido = "Link inválido ou turno não encontrado.";
-const mensagemErroCadastroRemoto = "Nao foi possivel carregar os dados da obra.";
 
 type ParametrosCampoUrl = {
   obraId: string | null;
@@ -401,6 +401,61 @@ function CampoPageContent() {
     setUsuariosCadastrados([]);
   }
 
+  async function resolverContextoCampoPorTabelas(
+    obraAtualId: number,
+    turnoAtualId: number
+  ) {
+    const [{ data: obraRemota }, { data: turnoRemoto }, { data: funcoes }, { data: usuarios }] =
+      await Promise.all([
+        supabase.from("obras").select("*").eq("id", obraAtualId).maybeSingle(),
+        supabase
+          .from("turnos")
+          .select("*")
+          .eq("id", turnoAtualId)
+          .eq("obra_id", obraAtualId)
+          .maybeSingle(),
+        supabase.from("funcoes_previstas").select("*").eq("obra_id", obraAtualId),
+        supabase.from("usuarios_operacionais").select("*").eq("obra_id", obraAtualId),
+      ]);
+
+    if (!obraRemota || !turnoRemoto) {
+      return null;
+    }
+
+    const obraLinha = obraRemota as Record<string, unknown>;
+    const turnoLinha = turnoRemoto as Record<string, unknown>;
+
+    return {
+      obra: {
+        id: Number(obraLinha.id),
+        nome: String(obraLinha.nome || obraLinha.codigo || "Obra sem nome"),
+        codigo: String(obraLinha.codigo || ""),
+        logoUrl: String(obraLinha.logo_url || ""),
+      } as Pick<ObraCadastrada, "id" | "nome" | "codigo" | "logoUrl">,
+      turno: {
+        id: Number(turnoLinha.id),
+        nome: String(turnoLinha.nome || ""),
+      },
+      funcoes: ((funcoes || []) as Array<Record<string, unknown>>).map<FuncaoPrevistaCadastrada>(
+        (item) => ({
+          id: Number(item.id),
+          nome: String(item.nome || ""),
+          quantidade: Number(item.quantidade || 0),
+          cargaHoraria: Number(item.carga_horaria || 0),
+        })
+      ),
+      usuarios: ((usuarios || []) as Array<Record<string, unknown>>).map<UsuarioCadastrado>(
+        (item) => ({
+          id: Number(item.id),
+          nome: String(item.nome || ""),
+          funcao: String(item.funcao || ""),
+          email: String(item.email || ""),
+          nivelAcesso: String(item.nivel_acesso || "Usuario") as UsuarioCadastrado["nivelAcesso"],
+        })
+      ),
+    };
+  }
+
   useEffect(() => {
     async function carregarContextoObra() {
       if (!parametrosUrl) {
@@ -437,53 +492,53 @@ function CampoPageContent() {
       console.log("Cadastro remoto carregado:", cadastro);
       console.log("Chaves do cadastro:", Object.keys(cadastro || {}));
 
-      if (!cadastro) {
-        limparCampoInvalido(
-          "erro ao buscar cadastro_base no Supabase ou cadastro_base retornou vazio",
-          mensagemErroCadastroRemoto
-        );
-        return;
-      }
-
-      const obras = obterObrasCadastro(cadastro);
-      const obraCadastro = obras.find(
-        (item) => String(item.id) === String(obraIdParametro)
-      );
-      const dadosObra = obterDadosObra(cadastro, obraIdParametro);
-      const turnoCadastro = obterTurnoPorId(dadosObra.turnos, turnoIdParametro);
+      const obras = cadastro ? obterObrasCadastro(cadastro) : [];
+      const obraCadastro = obras.find((item) => String(item.id) === String(obraIdParametro));
+      const dadosObra = cadastro ? obterDadosObra(cadastro, obraIdParametro) : null;
+      const turnoCadastro = dadosObra
+        ? obterTurnoPorId(dadosObra.turnos, turnoIdParametro)
+        : null;
 
       console.log("Obras/frentes encontradas:", obras);
       console.log("Obra encontrada:", obraCadastro);
-      console.log("Turnos da obra:", dadosObra.turnos);
+      console.log("Turnos da obra:", dadosObra?.turnos ?? []);
       console.log("Turno encontrado:", turnoCadastro);
 
-      if (!obraCadastro) {
-        limparCampoInvalido("obra nao encontrada dentro do JSON");
+      const contextoDireto =
+        obraCadastro && turnoCadastro
+          ? null
+          : await resolverContextoCampoPorTabelas(obraIdParametro, turnoIdParametro);
+
+      if (!obraCadastro && !contextoDireto?.obra) {
+        limparCampoInvalido("obra nao encontrada no cadastro nem na tabela obras");
         return;
       }
 
-      if (!turnoCadastro) {
-        limparCampoInvalido("turno nao encontrado dentro da obra");
+      if (!turnoCadastro && !contextoDireto?.turno) {
+        limparCampoInvalido("turno nao encontrado no cadastro nem na tabela turnos");
         return;
       }
+
+      const obraResolvida = obraCadastro ?? contextoDireto?.obra;
+      const turnoResolvido = turnoCadastro ?? contextoDireto?.turno;
 
       setMensagemCampo(mensagemLinkInvalido);
       setStatusLinkCampo("valido");
       setObraIdCampo(obraIdParametro);
       setTurnoIdCampo(turnoIdParametro);
-      setObra(obraCadastro.nome || obraCadastro.codigo || "Obra sem nome");
+      setObra(obraResolvida?.nome || obraResolvida?.codigo || "Obra sem nome");
       setAvisoObra("");
-      setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
-      setUsuariosCadastrados(dadosObra.usuarios);
-      setTurno(turnoCadastro.nome);
+      setFuncoesPrevistasCadastradas(dadosObra?.funcoesPrevistas ?? contextoDireto?.funcoes ?? []);
+      setUsuariosCadastrados(dadosObra?.usuarios ?? contextoDireto?.usuarios ?? []);
+      setTurno(turnoResolvido?.nome ?? "");
 
       void carregarAtividades(
         obraIdParametro,
         turnoIdParametro,
-        turnoCadastro.nome,
+        turnoResolvido?.nome ?? "",
         dataTurnoParametro
       );
-      void carregarMaoObraReal(obraIdParametro, turnoIdParametro, turnoCadastro.nome);
+      void carregarMaoObraReal(obraIdParametro, turnoIdParametro, turnoResolvido?.nome ?? "");
     }
 
     queueMicrotask(() => {
@@ -780,7 +835,7 @@ function CampoPageContent() {
       setRestricaoTexto("");
     } catch (error) {
       console.error(error);
-      alert("Nao foi possivel salvar a restricao no Supabase.");
+      alert(descreverErroSupabase(error, "salvar a restricao"));
     }
   }
 
@@ -823,7 +878,7 @@ function CampoPageContent() {
       );
     } catch (error) {
       console.error(error);
-      alert("Nao foi possivel resolver a restricao no Supabase.");
+      alert(descreverErroSupabase(error, "resolver a restricao"));
     }
   }
 

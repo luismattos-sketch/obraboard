@@ -24,6 +24,20 @@ type ControleTurnoLinha = {
   running_since?: string | null;
 };
 
+export function descreverErroSupabase(error: unknown, acao = "salvar") {
+  const erro = error as { code?: string; message?: string; details?: string } | null;
+
+  if (erro?.code === "42501" || erro?.message?.toLowerCase().includes("row-level security")) {
+    return `Nao foi possivel ${acao}: o Supabase bloqueou a operacao por RLS. Aplique a migracao SaaS atualizada no Supabase.`;
+  }
+
+  if (erro?.code === "42703") {
+    return `Nao foi possivel ${acao}: falta coluna no Supabase. Aplique a migracao SaaS atualizada.`;
+  }
+
+  return erro?.message ? `Nao foi possivel ${acao}: ${erro.message}` : `Nao foi possivel ${acao}.`;
+}
+
 export async function carregarControlesTurnoRemotos(
   obraId: number | null,
   dataTurno?: string | null,

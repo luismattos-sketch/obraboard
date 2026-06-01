@@ -29,6 +29,7 @@ import {
 import {
   carregarControlesTurnoRemotos,
   carregarFechamentosTurnoRemotos,
+  descreverErroSupabase,
   listarRestricoesHistoricoRemoto,
   salvarControleTurnoRemoto,
 } from "../lib/operacao-remota";
@@ -515,7 +516,10 @@ export default function Home() {
         turnoAtual,
         turnoAtivoDados?.id ?? null,
         controle
-      );
+      ).catch((error) => {
+        console.error(error);
+        setMensagem(descreverErroSupabase(error, "iniciar o turno"));
+      });
     }
   }
 

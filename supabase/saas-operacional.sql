@@ -505,6 +505,36 @@ with check (
   )
 );
 
+-- Enquanto o QR Code publico ainda nao usa token assinado/autenticacao anonima,
+-- a tela Campo precisa registrar restricoes usando a chave publica do app.
+-- Trocar por politica baseada em token_seguro_do_turno quando a rota /campo-publico
+-- estiver ativa em producao.
+drop policy if exists "Campo publico restricoes por link" on public.restricoes_historico;
+create policy "Campo publico restricoes por link"
+on public.restricoes_historico for all to anon
+using (
+  exists (
+    select 1 from public.atividades a
+    where a.id = atividade_id
+      and a.obra_id = restricoes_historico.obra_id
+      and (
+        restricoes_historico.turno_id is null
+        or a.turno_id = restricoes_historico.turno_id
+      )
+  )
+)
+with check (
+  exists (
+    select 1 from public.atividades a
+    where a.id = atividade_id
+      and a.obra_id = restricoes_historico.obra_id
+      and (
+        restricoes_historico.turno_id is null
+        or a.turno_id = restricoes_historico.turno_id
+      )
+  )
+);
+
 drop policy if exists "SaaS turnos operacao por empresa" on public.turnos_operacao;
 create policy "SaaS turnos operacao por empresa"
 on public.turnos_operacao for all to authenticated
@@ -522,6 +552,22 @@ with check (
     select 1 from public.obras o
     where o.id = obra_id
       and o.empresa_id in (select public.usuario_empresa_ids())
+  )
+);
+
+drop policy if exists "Operacao publica turnos por link" on public.turnos_operacao;
+create policy "Operacao publica turnos por link"
+on public.turnos_operacao for all to anon
+using (
+  exists (
+    select 1 from public.obras o
+    where o.id = obra_id
+  )
+)
+with check (
+  exists (
+    select 1 from public.obras o
+    where o.id = obra_id
   )
 );
 

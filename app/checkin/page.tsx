@@ -32,6 +32,7 @@ import {
 import {
   carregarControlesTurnoRemotos,
   carregarFechamentosTurnoRemotos,
+  descreverErroSupabase,
   salvarControleTurnoRemoto,
 } from "../../lib/operacao-remota";
 
@@ -1188,13 +1189,20 @@ export default function CheckinPage() {
     setControlesTurno(novosControles);
     const controle = obterControleTurno(novosControles, obraId, dataTurno, turno);
     if (controle) {
-      await salvarControleTurnoRemoto(
-        obraId,
-        dataTurno,
-        turno,
-        turnoSelecionado?.id ?? null,
-        controle
-      );
+      try {
+        await salvarControleTurnoRemoto(
+          obraId,
+          dataTurno,
+          turno,
+          turnoSelecionado?.id ?? null,
+          controle
+        );
+      } catch (error) {
+        console.error(error);
+        setErro(descreverErroSupabase(error, "publicar o turno"));
+        setSalvando(false);
+        return;
+      }
     }
     setEdicaoLiberada(false);
     setMensagem("Turno publicado. O Check-in foi bloqueado para execucao no campo.");
