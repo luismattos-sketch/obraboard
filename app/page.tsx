@@ -125,6 +125,7 @@ export default function Home() {
       ? gerarCampoUrl({
           obraId: obraAtivaId,
           turnoId: turnoIdCampo,
+          dataTurno: dataTurnoAtual,
         })
       : null;
 

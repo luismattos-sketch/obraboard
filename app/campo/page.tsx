@@ -461,6 +461,52 @@ function CampoPageContent() {
     };
   }
 
+  async function resolverContextoCampoPorAtividades(
+    obraAtualId: number,
+    turnoAtualId: number
+  ) {
+    let consulta = supabase
+      .from("atividades")
+      .select("obra_id,turno_id,turno,data_turno")
+      .eq("obra_id", obraAtualId)
+      .eq("turno_id", turnoAtualId);
+
+    if (dataTurnoParametro) {
+      consulta = consulta.eq("data_turno", dataTurnoParametro);
+    }
+
+    const { data, error } = await consulta
+      .order("data_turno", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) {
+        console.warn("Nao foi possivel resolver Campo por atividades.", error);
+      }
+      return null;
+    }
+
+    const atividade = data as Record<string, unknown>;
+    const nomeTurno = String(atividade.turno || "");
+
+    return {
+      obra: {
+        id: obraAtualId,
+        nome: "Obra informada no link",
+        codigo: "",
+        logoUrl: "",
+      } as Pick<ObraCadastrada, "id" | "nome" | "codigo" | "logoUrl">,
+      turno: {
+        id: turnoAtualId,
+        nome: nomeTurno,
+      },
+      funcoes: [],
+      usuarios: [],
+      dataTurno: atividade.data_turno ? String(atividade.data_turno) : null,
+    };
+  }
+
   useEffect(() => {
     async function carregarContextoObra() {
       if (!parametrosUrl) {
@@ -512,7 +558,8 @@ function CampoPageContent() {
       const contextoDireto =
         obraCadastro && turnoCadastro
           ? null
-          : await resolverContextoCampoPorTabelas(obraIdParametro, turnoIdParametro);
+          : (await resolverContextoCampoPorTabelas(obraIdParametro, turnoIdParametro)) ??
+            (await resolverContextoCampoPorAtividades(obraIdParametro, turnoIdParametro));
 
       if (!obraCadastro && !contextoDireto?.obra) {
         limparCampoInvalido("obra nao encontrada no cadastro nem na tabela obras");
@@ -526,12 +573,14 @@ function CampoPageContent() {
 
       const obraResolvida = obraCadastro ?? contextoDireto?.obra;
       const turnoResolvido = turnoCadastro ?? contextoDireto?.turno;
+      const dataTurnoDireta =
+        (contextoDireto as { dataTurno?: string | null } | null)?.dataTurno ?? null;
 
       setMensagemCampo(mensagemLinkInvalido);
       setStatusLinkCampo("valido");
       setObraIdCampo(obraIdParametro);
       setTurnoIdCampo(turnoIdParametro);
-      setDataTurnoCampo(dataTurnoParametro);
+      setDataTurnoCampo(dataTurnoParametro ?? dataTurnoDireta);
       setObra(obraResolvida?.nome || obraResolvida?.codigo || "Obra sem nome");
       setAvisoObra("");
       setFuncoesPrevistasCadastradas(dadosObra?.funcoesPrevistas ?? contextoDireto?.funcoes ?? []);
@@ -675,17 +724,17 @@ function CampoPageContent() {
       .eq("id", id)
       .eq("obra_id", obraIdCampo)
       .eq("turno_id", turnoIdCampo)
-      .eq("data_turno", dataTurnoGravacao)
-      .eq("turno", turno);
+      .eq("data_turno", dataTurnoGravacao);
 
     if (colunaInexistente(error, "turno_id")) {
+      const turnoGravacao = atividadeAtual?.turno ?? turno;
       const resultado = await supabase
         .from("atividades")
         .update(atualizacao)
         .eq("id", id)
         .eq("obra_id", obraIdCampo)
         .eq("data_turno", dataTurnoGravacao)
-        .eq("turno", turno);
+        .eq("turno", turnoGravacao);
 
       error = resultado.error;
     }
