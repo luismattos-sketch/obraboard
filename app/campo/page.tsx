@@ -718,25 +718,42 @@ function CampoPageContent() {
       return;
     }
 
-    let { error } = await supabase
+    let resultadoAtualizacao = await supabase
       .from("atividades")
       .update(atualizacao)
+      .select("id")
       .eq("id", id)
       .eq("obra_id", obraIdCampo)
       .eq("turno_id", turnoIdCampo)
-      .eq("data_turno", dataTurnoGravacao);
+      .eq("data_turno", dataTurnoGravacao)
+      .maybeSingle();
+    let error = resultadoAtualizacao.error;
 
     if (colunaInexistente(error, "turno_id")) {
       const turnoGravacao = atividadeAtual?.turno ?? turno;
       const resultado = await supabase
         .from("atividades")
         .update(atualizacao)
+        .select("id")
         .eq("id", id)
         .eq("obra_id", obraIdCampo)
         .eq("data_turno", dataTurnoGravacao)
-        .eq("turno", turnoGravacao);
+        .eq("turno", turnoGravacao)
+        .maybeSingle();
 
       error = resultado.error;
+      resultadoAtualizacao = resultado;
+    }
+
+    if (!error && !resultadoAtualizacao.data) {
+      resultadoAtualizacao = await supabase
+        .from("atividades")
+        .update(atualizacao)
+        .select("id")
+        .eq("id", id)
+        .eq("obra_id", obraIdCampo)
+        .maybeSingle();
+      error = resultadoAtualizacao.error;
     }
 
     if (error) {
