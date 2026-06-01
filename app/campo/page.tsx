@@ -591,7 +591,7 @@ function CampoPageContent() {
         obraIdParametro,
         turnoIdParametro,
         turnoResolvido?.nome ?? "",
-        dataTurnoParametro
+        dataTurnoParametro ?? dataTurnoDireta
       );
       void carregarMaoObraReal(obraIdParametro, turnoIdParametro, turnoResolvido?.nome ?? "");
     }
@@ -718,42 +718,34 @@ function CampoPageContent() {
       return;
     }
 
-    let resultadoAtualizacao = await supabase
+    let { error } = await supabase
       .from("atividades")
       .update(atualizacao)
-      .select("id")
       .eq("id", id)
       .eq("obra_id", obraIdCampo)
       .eq("turno_id", turnoIdCampo)
-      .eq("data_turno", dataTurnoGravacao)
-      .maybeSingle();
-    let error = resultadoAtualizacao.error;
+      .eq("data_turno", dataTurnoGravacao);
 
     if (colunaInexistente(error, "turno_id")) {
       const turnoGravacao = atividadeAtual?.turno ?? turno;
       const resultado = await supabase
         .from("atividades")
         .update(atualizacao)
-        .select("id")
         .eq("id", id)
         .eq("obra_id", obraIdCampo)
         .eq("data_turno", dataTurnoGravacao)
-        .eq("turno", turnoGravacao)
-        .maybeSingle();
+        .eq("turno", turnoGravacao);
 
       error = resultado.error;
-      resultadoAtualizacao = resultado;
     }
 
-    if (!error && !resultadoAtualizacao.data) {
-      resultadoAtualizacao = await supabase
+    if (error) {
+      const resultado = await supabase
         .from("atividades")
         .update(atualizacao)
-        .select("id")
         .eq("id", id)
-        .eq("obra_id", obraIdCampo)
-        .maybeSingle();
-      error = resultadoAtualizacao.error;
+        .eq("obra_id", obraIdCampo);
+      error = resultado.error;
     }
 
     if (error) {
