@@ -98,9 +98,11 @@ function CampoPageContent() {
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
+  const [dataTurnoCampo, setDataTurnoCampo] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
   const dataTurnoAtual =
     dataTurnoParametro ??
+    dataTurnoCampo ??
     obterDataTurnoAtual(
       turno ? atividades.filter((item) => item.turno === turno) : atividades
     );
@@ -252,6 +254,9 @@ function CampoPageContent() {
         (!dataAtualTurno || item.data_turno === dataAtualTurno)
     );
     const dataAtual = obterDataTurnoAtual(carregadas);
+    if (dataAtual) {
+      setDataTurnoCampo(dataAtual);
+    }
     const historicoRestricoes = await listarRestricoesHistoricoRemoto(
       obraAtualId,
       dataAtual,
@@ -526,6 +531,7 @@ function CampoPageContent() {
       setStatusLinkCampo("valido");
       setObraIdCampo(obraIdParametro);
       setTurnoIdCampo(turnoIdParametro);
+      setDataTurnoCampo(dataTurnoParametro);
       setObra(obraResolvida?.nome || obraResolvida?.codigo || "Obra sem nome");
       setAvisoObra("");
       setFuncoesPrevistasCadastradas(dadosObra?.funcoesPrevistas ?? contextoDireto?.funcoes ?? []);
@@ -656,7 +662,9 @@ function CampoPageContent() {
       atualizacao.responsavel = responsavel;
     }
 
-    if (!obraIdCampo || !turnoIdCampo || !dataTurnoAtual) {
+    const dataTurnoGravacao = dataTurnoAtual ?? atividadeAtual?.data_turno ?? null;
+
+    if (!obraIdCampo || !turnoIdCampo || !dataTurnoGravacao) {
       alert(mensagemLinkInvalido);
       return;
     }
@@ -667,7 +675,7 @@ function CampoPageContent() {
       .eq("id", id)
       .eq("obra_id", obraIdCampo)
       .eq("turno_id", turnoIdCampo)
-      .eq("data_turno", dataTurnoAtual)
+      .eq("data_turno", dataTurnoGravacao)
       .eq("turno", turno);
 
     if (colunaInexistente(error, "turno_id")) {
@@ -676,7 +684,7 @@ function CampoPageContent() {
         .update(atualizacao)
         .eq("id", id)
         .eq("obra_id", obraIdCampo)
-        .eq("data_turno", dataTurnoAtual)
+        .eq("data_turno", dataTurnoGravacao)
         .eq("turno", turno);
 
       error = resultado.error;
@@ -684,7 +692,7 @@ function CampoPageContent() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao atualizar atividade.");
+      alert(descreverErroSupabase(error, "atualizar a atividade"));
       return;
     }
 
@@ -706,7 +714,12 @@ function CampoPageContent() {
       }
     }
 
-    await carregarAtividades();
+    try {
+      await carregarAtividades(obraIdCampo, turnoIdCampo, turno, dataTurnoGravacao);
+    } catch (error) {
+      console.error("Atividade atualizada, mas a tela Campo nao recarregou.", error);
+      alert("Avanco salvo. Recarregue a tela se os dados nao atualizarem.");
+    }
   }
 
   async function iniciarAtividade(id: number) {

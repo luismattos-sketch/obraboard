@@ -560,14 +560,26 @@ create policy "Operacao publica turnos por link"
 on public.turnos_operacao for all to anon
 using (
   exists (
-    select 1 from public.obras o
-    where o.id = obra_id
+    select 1 from public.atividades a
+    where a.obra_id = turnos_operacao.obra_id
+      and a.data_turno = turnos_operacao.data_turno
+      and (
+        turnos_operacao.turno_id is null
+        or a.turno_id = turnos_operacao.turno_id
+        or lower(trim(a.turno)) = lower(trim(turnos_operacao.turno))
+      )
   )
 )
 with check (
   exists (
-    select 1 from public.obras o
-    where o.id = obra_id
+    select 1 from public.atividades a
+    where a.obra_id = turnos_operacao.obra_id
+      and a.data_turno = turnos_operacao.data_turno
+      and (
+        turnos_operacao.turno_id is null
+        or a.turno_id = turnos_operacao.turno_id
+        or lower(trim(a.turno)) = lower(trim(turnos_operacao.turno))
+      )
   )
 );
 
