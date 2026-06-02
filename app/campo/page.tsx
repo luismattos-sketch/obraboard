@@ -1243,12 +1243,13 @@ function CampoPageContent() {
                       data-realizado-atividade-id={atividade.id}
                       type="number"
                       value={realizadoAtividade[atividade.id] ?? String(realizado)}
-                      onInput={(e) =>
+                      onChange={(e) => {
+                        const valorDigitado = e.currentTarget.value;
                         setRealizadoAtividade((atuais) => ({
                           ...atuais,
-                          [atividade.id]: e.currentTarget.value,
-                        }))
-                      }
+                          [atividade.id]: valorDigitado,
+                        }));
+                      }}
                       disabled={bloqueadaFinalizada}
                       className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-lg font-bold"
                       onBlur={(e) => {
