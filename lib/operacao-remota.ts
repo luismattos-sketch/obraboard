@@ -299,7 +299,8 @@ export async function registrarRestricaoHistoricoRemoto(
 export async function listarRestricoesHistoricoRemoto(
   obraId: number | null,
   dataTurno: string | null,
-  turno: string | null
+  turno: string | null,
+  turnoId?: number | null
 ): Promise<RestricaoHistorico[]> {
   if (!obraId) {
     return [];
@@ -315,7 +316,9 @@ export async function listarRestricoesHistoricoRemoto(
     consulta = consulta.eq("data_turno", dataTurno);
   }
 
-  if (turno) {
+  if (turnoId) {
+    consulta = consulta.eq("turno_id", turnoId);
+  } else if (turno) {
     consulta = consulta.eq("turno", turno);
   }
 

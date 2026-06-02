@@ -285,6 +285,30 @@ export default function Home() {
     return query ? `/checkout?${query}` : "/checkout";
   }, [dataTurnoAtual, obraAtivaId, turnoIdCampo]);
 
+  async function carregarAtividadesPainel(obraId: number | null) {
+    if (!obraId) {
+      setAtividadesBanco([]);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("atividades")
+      .select("*")
+      .eq("obra_id", obraId)
+      .order("id", { ascending: true });
+
+    setAtividadesBanco((data || []) as Atividade[]);
+  }
+
+  async function carregarMaoObraRealPainel() {
+    const { data } = await supabase
+      .from("mao_obra")
+      .select("*")
+      .order("id", { ascending: true });
+
+    setMaoObraReal((data || []) as MaoObraReal[]);
+  }
+
   useEffect(() => {
     const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
     queueMicrotask(() => setClientePronto(true));
@@ -293,40 +317,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    async function carregarAtividades(obraId: number | null) {
-      if (!obraId) {
-        setAtividadesBanco([]);
-        return;
-      }
-
-      const { data } = await supabase
-        .from("atividades")
-        .select("*")
-        .eq("obra_id", obraId)
-        .order("id", { ascending: true });
-
-      setAtividadesBanco((data || []) as Atividade[]);
-    }
-
-    async function carregarMaoObraReal() {
-      const { data } = await supabase
-        .from("mao_obra")
-        .select("*")
-        .order("id", { ascending: true });
-
-      setMaoObraReal((data || []) as MaoObraReal[]);
-    }
-
     async function carregarEstadoOperacaoRemoto(obraIdAtual: number | null) {
-      const [controles, fechamentosRemotos, restricoesRemotas] = await Promise.all([
+      const [controles, fechamentosRemotos] = await Promise.all([
         carregarControlesTurnoRemotos(obraIdAtual),
         carregarFechamentosTurnoRemotos(obraIdAtual),
-        listarRestricoesHistoricoRemoto(obraIdAtual, null, null),
       ]);
 
       setControlesTurno(controles);
       setFechamentos(fechamentosRemotos);
-      setHistoricoRestricoes(restricoesRemotas);
     }
 
     function carregarContexto(cadastro = carregarCadastroBase()) {
@@ -345,8 +343,8 @@ export default function Home() {
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnoAtivo(contexto.turnoAtivo?.nome ?? "");
       setTurnoAtivoDados(contexto.turnoAtivo);
-      void carregarAtividades(obraResolvidaId);
-      void carregarMaoObraReal();
+      void carregarAtividadesPainel(obraResolvidaId);
+      void carregarMaoObraRealPainel();
       void carregarEstadoOperacaoRemoto(obraResolvidaId);
     }
 
@@ -384,7 +382,7 @@ export default function Home() {
         .select("*")
         .eq("obra_id", obraAtivaId)
         .eq("data_turno", dataTurnoAtual)
-        .eq("turno", turnoAtual)
+        .eq("turno_id", turnoAtivoDados.id)
         .order("id", { ascending: true });
 
       if (error) {
@@ -412,14 +410,20 @@ export default function Home() {
   }, [dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
 
   useEffect(() => {
+    if (!obraAtivaId || !dataTurnoAtual || !turnoIdCampo) {
+      queueMicrotask(() => setHistoricoRestricoes([]));
+      return;
+    }
+
     queueMicrotask(() => {
       void listarRestricoesHistoricoRemoto(
         obraAtivaId,
         dataTurnoAtual,
-        turnoAtual || null
+        turnoAtual || null,
+        turnoIdCampo
       ).then(setHistoricoRestricoes);
     });
-  }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
+  }, [dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]);
 
   useEffect(() => {
     if (!obraAtivaId) {
@@ -431,12 +435,18 @@ export default function Home() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "atividades", filter: `obra_id=eq.${obraAtivaId}` },
-        () => void sincronizarCadastroBaseRemoto()
+        () => {
+          void carregarAtividadesPainel(obraAtivaId);
+          void sincronizarCadastroBaseRemoto();
+        }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "mao_obra", filter: `obra_id=eq.${obraAtivaId}` },
-        () => void sincronizarCadastroBaseRemoto()
+        () => {
+          void carregarMaoObraRealPainel();
+          void sincronizarCadastroBaseRemoto();
+        }
       )
       .on(
         "postgres_changes",
@@ -453,7 +463,8 @@ export default function Home() {
           void listarRestricoesHistoricoRemoto(
             obraAtivaId,
             dataTurnoAtual,
-            turnoAtual || null
+            turnoAtual || null,
+            turnoIdCampo
           ).then(setHistoricoRestricoes);
         }
       )
@@ -462,7 +473,7 @@ export default function Home() {
     return () => {
       void supabase.removeChannel(canal);
     };
-  }, [dataTurnoAtual, obraAtivaId, turnoAtual]);
+  }, [dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]);
 
   function iniciarTurnoPainel() {
     if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {

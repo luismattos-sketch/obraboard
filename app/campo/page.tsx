@@ -260,7 +260,8 @@ function CampoPageContent() {
     const historicoRestricoes = await listarRestricoesHistoricoRemoto(
       obraAtualId,
       dataAtual,
-      turnoAtualNome
+      turnoAtualNome,
+      turnoAtualId
     );
 
     setRestricoes(
@@ -721,20 +722,13 @@ function CampoPageContent() {
     let { error } = await supabase
       .from("atividades")
       .update(atualizacao)
-      .eq("id", id)
-      .eq("obra_id", obraIdCampo)
-      .eq("turno_id", turnoIdCampo)
-      .eq("data_turno", dataTurnoGravacao);
+      .eq("id", id);
 
     if (colunaInexistente(error, "turno_id")) {
-      const turnoGravacao = atividadeAtual?.turno ?? turno;
       const resultado = await supabase
         .from("atividades")
         .update(atualizacao)
-        .eq("id", id)
-        .eq("obra_id", obraIdCampo)
-        .eq("data_turno", dataTurnoGravacao)
-        .eq("turno", turnoGravacao);
+        .eq("id", id);
 
       error = resultado.error;
     }
@@ -743,8 +737,7 @@ function CampoPageContent() {
       const resultado = await supabase
         .from("atividades")
         .update(atualizacao)
-        .eq("id", id)
-        .eq("obra_id", obraIdCampo);
+        .eq("id", id);
       error = resultado.error;
     }
 

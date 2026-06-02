@@ -308,7 +308,7 @@ export default function RdoPage() {
       .select("*")
       .eq("obra_id", obraAtualId)
       .eq("data_turno", dataAtual)
-      .eq("turno", turnoAtual)
+      .eq("turno_id", turnoAtualId)
       .order("id", { ascending: true });
 
     if (error) {

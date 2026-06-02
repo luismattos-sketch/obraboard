@@ -440,7 +440,8 @@ export default function CheckoutPage() {
       const restricoesRemotas = await listarRestricoesHistoricoRemoto(
         obraId,
         dataTurnoAtual,
-        turno
+        turno,
+        turnoSelecionado?.id ?? null
       );
       await Promise.all(
         restricoesRemotas
