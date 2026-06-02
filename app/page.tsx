@@ -248,6 +248,7 @@ export default function Home() {
 
   const restricoesPainel = useMemo(() => {
     return historicoRestricoes.filter((item) => item.status === "aberta").map((item) => ({
+      id: item.id,
       codigo: `R${item.atividadeId}`,
       titulo: item.atividade,
       responsavel: item.responsavel,
@@ -787,7 +788,7 @@ export default function Home() {
                 Atenção do Turno
               </h3>
               <p className="mb-4 text-sm text-slate-500">
-                Histórico das restrições do turno
+                Restrições abertas
               </p>
 
               <div className="space-y-3">
@@ -796,7 +797,7 @@ export default function Home() {
                 ) : (
                   restricoesPainel.map((restricao) => (
                     <RestricaoCard
-                      key={`${restricao.codigo}-${restricao.status}-${restricao.observacao}`}
+                      key={restricao.id}
                       codigo={restricao.codigo}
                       titulo={restricao.titulo}
                       responsavel={restricao.responsavel}

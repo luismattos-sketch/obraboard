@@ -191,8 +191,9 @@ export async function salvarValidacaoCheckoutRemota(
 export async function registrarRestricaoHistoricoRemoto(
   atividade: Atividade,
   texto: string,
-  status: RestricaoStatus
-) {
+  status: RestricaoStatus,
+  restricaoId?: string | null
+): Promise<string | null> {
   const agora = new Date().toISOString();
   const textoNormalizado = texto.trim() || "Sem descricao";
 
@@ -212,33 +213,44 @@ export async function registrarRestricaoHistoricoRemoto(
   };
 
   if (status === "aberta") {
-    const { error } = await supabase.from("restricoes_historico").insert([
-      {
-        ...payloadBase,
-        registrada_em: agora,
-        aberta_em: agora,
-        parada_em: null,
-        retomada_em: null,
-        encerrada_em: null,
-        resolvida_em: null,
-        duracao_ms: null,
-      },
-    ]);
+    const { data, error } = await supabase
+      .from("restricoes_historico")
+      .insert([
+        {
+          ...payloadBase,
+          registrada_em: agora,
+          aberta_em: agora,
+          parada_em: null,
+          retomada_em: null,
+          encerrada_em: null,
+          resolvida_em: null,
+          duracao_ms: null,
+        },
+      ])
+      .select("id")
+      .single();
 
     if (error) {
       throw error;
     }
-    return;
+    return (data as { id?: string } | null)?.id ?? null;
   }
 
-  const { data: existente } = await supabase
+  let consultaExistente = supabase
     .from("restricoes_historico")
-    .select("id,status,parada_em,retomada_em,registrada_em,aberta_em")
-    .eq("atividade_id", atividade.id)
-    .in("status", ["aberta", "parada", "reprogramada"])
-    .order("registrada_em", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("id,status,parada_em,retomada_em,registrada_em,aberta_em");
+
+  if (restricaoId) {
+    consultaExistente = consultaExistente.eq("id", restricaoId);
+  } else {
+    consultaExistente = consultaExistente
+      .eq("atividade_id", atividade.id)
+      .in("status", ["aberta", "parada", "reprogramada"])
+      .order("registrada_em", { ascending: false })
+      .limit(1);
+  }
+
+  const { data: existente } = await consultaExistente.maybeSingle();
 
   const existenteTipado = existente as
     | {
@@ -280,7 +292,7 @@ export async function registrarRestricaoHistoricoRemoto(
     if (error) {
       throw error;
     }
-    return;
+    return null;
   }
 
   const { error } = await supabase.from("restricoes_historico").insert([
@@ -294,6 +306,8 @@ export async function registrarRestricaoHistoricoRemoto(
   if (error) {
     throw error;
   }
+
+  return null;
 }
 
 export async function listarRestricoesHistoricoRemoto(

@@ -38,6 +38,7 @@ type ControleAtividade = {
 };
 
 type RestricaoAtividade = {
+  id: string;
   texto: string;
   status: "aberta" | "resolvida" | "parada";
 };
@@ -93,7 +94,7 @@ function CampoPageContent() {
   const [funcao, setFuncao] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [controles, setControles] = useState<Record<number, ControleAtividade>>({});
-  const [restricoes, setRestricoes] = useState<Record<number, RestricaoAtividade>>({});
+  const [restricoes, setRestricoes] = useState<Record<number, RestricaoAtividade[]>>({});
   const [restricaoEditandoId, setRestricaoEditandoId] = useState<number | null>(null);
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
@@ -265,17 +266,21 @@ function CampoPageContent() {
     );
 
     setRestricoes(
-      historicoRestricoes.reduce<Record<number, RestricaoAtividade>>(
+      historicoRestricoes.reduce<Record<number, RestricaoAtividade[]>>(
         (mapa, restricao) => {
           if (
             restricao.status === "aberta" ||
             restricao.status === "resolvida" ||
             restricao.status === "parada"
           ) {
-            mapa[restricao.atividadeId] = {
-              texto: restricao.texto,
-              status: restricao.status,
-            };
+            mapa[restricao.atividadeId] = [
+              ...(mapa[restricao.atividadeId] ?? []),
+              {
+                id: restricao.id,
+                texto: restricao.texto,
+                status: restricao.status,
+              },
+            ];
           }
 
           return mapa;
@@ -866,11 +871,7 @@ function CampoPageContent() {
 
   async function abrirRestricao(atividade: Atividade) {
     setRestricaoEditandoId(atividade.id);
-    setRestricaoTexto(
-      restricoes[atividade.id]?.status === "aberta"
-        ? restricoes[atividade.id]?.texto ?? ""
-        : ""
-    );
+    setRestricaoTexto("");
   }
 
   async function salvarRestricao(id: number) {
@@ -881,19 +882,28 @@ function CampoPageContent() {
 
     const atividade = atividades.find((item) => item.id === id);
     const texto = restricaoTexto.trim();
+    let restricaoSalvaId: string | null = null;
 
     try {
       if (atividade) {
         pausarCronometro(id);
-        await registrarRestricaoHistoricoRemoto(atividade, texto, "aberta");
+        restricaoSalvaId = await registrarRestricaoHistoricoRemoto(
+          atividade,
+          texto,
+          "aberta"
+        );
         await atualizarAtividade(id, "Restrição");
       }
       setRestricoes((atuais) => ({
         ...atuais,
-        [id]: {
-          texto,
-          status: "aberta",
-        },
+        [id]: [
+          ...(atuais[id] ?? []),
+          {
+            id: restricaoSalvaId ?? `${id}-${Date.now()}`,
+            texto,
+            status: "aberta",
+          },
+        ],
       }));
       setRestricaoEditandoId(null);
       setRestricaoTexto("");
@@ -903,23 +913,27 @@ function CampoPageContent() {
     }
   }
 
-  async function resolverRestricao(id: number) {
+  async function resolverRestricao(id: number, restricaoId: string) {
     const atividade = atividades.find((item) => item.id === id);
+    const restricaoAtual = restricoes[id]?.find((item) => item.id === restricaoId);
+    const aindaTemRestricaoAberta = (restricoes[id] ?? []).some(
+      (item) => item.id !== restricaoId && item.status === "aberta"
+    );
 
     try {
       if (atividade) {
         await registrarRestricaoHistoricoRemoto(
           atividade,
-          atuaisTextoRestricao(restricoes[id]?.texto, restricaoTexto),
-          "resolvida"
+          atuaisTextoRestricao(restricaoAtual?.texto, restricaoTexto),
+          "resolvida",
+          restricaoId
         );
       }
       setRestricoes((atuais) => ({
         ...atuais,
-        [id]: {
-          ...(atuais[id] ?? { texto: "" }),
-          status: "resolvida",
-        },
+        [id]: (atuais[id] ?? []).map((item) =>
+          item.id === restricaoId ? { ...item, status: "resolvida" } : item
+        ),
       }));
       setRestricaoEditandoId(null);
       setRestricaoTexto("");
@@ -936,7 +950,7 @@ function CampoPageContent() {
       });
       await atualizarAtividade(
         id,
-        "Execução",
+        aindaTemRestricaoAberta ? "Restrição" : "Execução",
         normalizarNumeroOperacional(realizadoAtividade[id] ?? atividade?.realizado ?? 0),
         atividade?.responsavel
       );
@@ -1168,7 +1182,7 @@ function CampoPageContent() {
               (item) => item.atividade_id === atividade.id
             );
             const recursosPlanejados = recursosPorAtividade[atividade.id] ?? [];
-            const restricao = restricoes[atividade.id];
+            const restricoesAtividade = restricoes[atividade.id] ?? [];
             const bloqueadaFinalizada =
               atividade.status === "Finalizada" && !atividadesEditaveis[atividade.id];
             const responsavelSelecionado = atividade.responsavel ?? "";
@@ -1298,8 +1312,11 @@ function CampoPageContent() {
                   )}
                 </div>
 
-                {restricao && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm">
+                {restricoesAtividade.map((restricao) => (
+                  <div
+                    key={restricao.id}
+                    className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-bold text-red-700">Restrição</p>
                       <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-red-700">
@@ -1309,14 +1326,14 @@ function CampoPageContent() {
                     <p className="mt-1 text-red-700">{restricao.texto || "Sem descrição"}</p>
                     {restricao.status === "aberta" && restricaoEditandoId !== atividade.id && (
                       <button
-                        onClick={() => resolverRestricao(atividade.id)}
+                        onClick={() => resolverRestricao(atividade.id, restricao.id)}
                         className="mt-3 rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white"
                       >
                         Resolvido
                       </button>
                     )}
                   </div>
-                )}
+                ))}
 
                 {restricaoEditandoId === atividade.id && (
                   <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
