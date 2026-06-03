@@ -523,7 +523,7 @@ export default function RdoPage() {
 
             <section className="mb-8 grid grid-cols-4 gap-3">
               <KpiCard label="PPC" value={`${ppc}%`} />
-              <KpiCard label="Planejadas" value={String(contarStatus(atividades, "Planejada"))} />
+              <KpiCard label="Planejadas" value={String(atividades.length)} />
               <KpiCard label="Finalizadas" value={String(finalizadas)} />
               <KpiCard label="Restrições" value={String(restricoesDoRdo.length)} />
             </section>
@@ -700,10 +700,6 @@ function calcularEquipeReal(
           })
     )
     .reduce((total, item) => total + Number(item.quantidade || 0), 0);
-}
-
-function contarStatus(atividades: Atividade[], status: string) {
-  return atividades.filter((item) => item.status === status).length;
 }
 
 function obterDataTurnoAtual(atividades: Array<{ data_turno?: string | null }>) {
