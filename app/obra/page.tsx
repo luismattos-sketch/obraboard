@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
 import {
   cadastroBaseEvento,
@@ -92,6 +92,7 @@ export default function CadastroObraPage() {
 
   const [mensagem, setMensagem] = useState("");
   const [modoObra, setModoObra] = useState<ModoObra>("criando");
+  const modoObraRef = useRef<ModoObra>("criando");
   const obraSelecionada = useMemo(
     () => obras.find((obra) => obra.id === obraAtivaId) ?? null,
     [obraAtivaId, obras]
@@ -169,6 +170,10 @@ export default function CadastroObraPage() {
   }
 
   useEffect(() => {
+    modoObraRef.current = modoObra;
+  }, [modoObra]);
+
+  useEffect(() => {
     function carregarCadastro(cadastro = carregarCadastroBase()) {
       const obraParam = new URLSearchParams(window.location.search).get("obraId");
       const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
@@ -208,6 +213,10 @@ export default function CadastroObraPage() {
     }
 
     function carregarCadastroLocal() {
+      if (modoObraRef.current === "editando") {
+        return;
+      }
+
       carregarCadastro();
     }
 
