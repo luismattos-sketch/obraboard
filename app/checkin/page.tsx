@@ -1274,7 +1274,6 @@ export default function CheckinPage() {
                 value={dataTurno}
                 onChange={(e) => setDataTurno(e.target.value)}
                 type="date"
-                disabled={checkinBloqueado}
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               />
             </CampoRotulado>
@@ -1283,7 +1282,6 @@ export default function CheckinPage() {
               <select
                 value={turno}
                 onChange={(e) => alterarTurnoSelecionado(e.target.value)}
-                disabled={checkinBloqueado}
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               >
                 {turnosCadastrados.length === 0 ? (
