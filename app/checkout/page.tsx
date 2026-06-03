@@ -359,12 +359,19 @@ export default function CheckoutPage() {
       return;
     }
 
-    const proximoTurno = obterProximoTurno(turno, turnosCadastrados);
+    const destinoReprogramacao = obterDestinoReprogramacao(
+      turno,
+      dataTurnoAtual,
+      turnosCadastrados
+    );
 
-    if (!proximoTurno) {
+    if (!destinoReprogramacao) {
       setErro("Nao existe proximo turno cadastrado.");
       return;
     }
+
+    const { turno: proximoTurno, dataTurno: dataTurnoDestino } =
+      destinoReprogramacao;
 
     const pendentes = atividades.filter(
       (item) => calcularAvancoReal(item.previsto, item.realizado) < 100
@@ -388,7 +395,7 @@ export default function CheckoutPage() {
         .eq("origem_atividade_id", item.id)
         .eq("turno_id", proximoTurno.id)
         .eq("turno", proximoTurno.nome)
-        .eq("data_turno", dataTurnoAtual)
+        .eq("data_turno", dataTurnoDestino)
         .maybeSingle();
 
       if (existente?.id) {
@@ -413,7 +420,7 @@ export default function CheckoutPage() {
             status: "Planejada",
             progresso: 0,
             turno: proximoTurno.nome,
-            data_turno: dataTurnoAtual,
+            data_turno: dataTurnoDestino,
             origem_atividade_id: item.id,
           },
         ])
@@ -452,7 +459,13 @@ export default function CheckoutPage() {
         )
         .map((restricao) =>
           registrarRestricaoHistoricoRemoto(
-            { ...item, id: nova.id, turno: proximoTurno.nome, turno_id: proximoTurno.id },
+            {
+              ...item,
+              id: nova.id,
+              data_turno: dataTurnoDestino,
+              turno: proximoTurno.nome,
+              turno_id: proximoTurno.id,
+            },
             restricao.texto,
             "reprogramada"
           )
@@ -461,7 +474,9 @@ export default function CheckoutPage() {
       criadas += 1;
     }
 
-    setMensagem(`${criadas} pendencias reprogramadas para ${proximoTurno.nome}.`);
+    setMensagem(
+      `${criadas} pendencias reprogramadas para ${proximoTurno.nome} em ${formatarDataTurno(dataTurnoDestino)}.`
+    );
     await recarregarAtividades();
   }
 
@@ -952,7 +967,11 @@ function calcularProgresso(item: Atividade) {
   return calcularAvancoReal(item.previsto, item.realizado);
 }
 
-function obterProximoTurno(turnoAtual: string, turnos: TurnoCadastrado[]) {
+function obterDestinoReprogramacao(
+  turnoAtual: string,
+  dataTurnoAtual: string,
+  turnos: TurnoCadastrado[]
+) {
   if (turnos.length < 2) {
     return null;
   }
@@ -960,8 +979,32 @@ function obterProximoTurno(turnoAtual: string, turnos: TurnoCadastrado[]) {
   const indiceAtual = turnos.findIndex((item) => item.nome === turnoAtual);
   const proximoIndice =
     indiceAtual >= 0 ? (indiceAtual + 1) % turnos.length : 0;
+  const mudouDia = indiceAtual >= 0 && proximoIndice <= indiceAtual;
+  const dataTurno = mudouDia
+    ? somarDiasDataIso(dataTurnoAtual, 1)
+    : dataTurnoAtual;
+  const proximoTurno = turnos[proximoIndice] ?? null;
 
-  return turnos[proximoIndice] ?? null;
+  if (!proximoTurno) {
+    return null;
+  }
+
+  return {
+    turno: proximoTurno,
+    dataTurno,
+  };
+}
+
+function somarDiasDataIso(dataIso: string, dias: number) {
+  const [ano, mes, dia] = dataIso.split("-").map(Number);
+
+  if (!ano || !mes || !dia) {
+    return dataIso;
+  }
+
+  const data = new Date(Date.UTC(ano, mes - 1, dia + dias, 12));
+
+  return data.toISOString().slice(0, 10);
 }
 
 function formatarDuracao(ms: number) {

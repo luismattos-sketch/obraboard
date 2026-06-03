@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../components/DesktopLayout";
 import { supabase } from "../lib/supabase";
 import type { Atividade, RecursoDisponivelTurno } from "../lib/types";
@@ -245,18 +245,26 @@ export default function Home() {
   const restricoes = contarStatus(atividades, "Restrição");
   const finalizadas = contarStatus(atividades, "Finalizada");
   const parciais = contarStatus(atividades, "Parcial");
+  const restricoesAtivas = useMemo(
+    () =>
+      historicoRestricoes.filter((item) =>
+        restricaoEstaAtivaNoTurno(item.status)
+      ),
+    [historicoRestricoes]
+  );
+  const totalRestricoes = Math.max(restricoes, restricoesAtivas.length);
 
   const restricoesPainel = useMemo(() => {
-    return historicoRestricoes.filter((item) => item.status === "aberta").map((item) => ({
+    return restricoesAtivas.map((item) => ({
       id: item.id,
       codigo: `R${item.atividadeId}`,
       titulo: item.atividade,
       responsavel: item.responsavel,
       observacao: item.texto || "Restrição sem descrição.",
       criticidade: "Alta",
-      status: "aberta",
+      status: item.status,
     }));
-  }, [historicoRestricoes]);
+  }, [restricoesAtivas]);
 
   const historicoRestricoesOrdenado = useMemo(
     () =>
@@ -286,7 +294,7 @@ export default function Home() {
     return query ? `/checkout?${query}` : "/checkout";
   }, [dataTurnoAtual, obraAtivaId, turnoIdCampo]);
 
-  async function carregarAtividadesPainel(obraId: number | null) {
+  const carregarAtividadesPainel = useCallback(async (obraId: number | null) => {
     if (!obraId) {
       setAtividadesBanco([]);
       return;
@@ -299,7 +307,7 @@ export default function Home() {
       .order("id", { ascending: true });
 
     setAtividadesBanco((data || []) as Atividade[]);
-  }
+  }, []);
 
   async function carregarMaoObraRealPainel() {
     const { data } = await supabase
@@ -309,6 +317,30 @@ export default function Home() {
 
     setMaoObraReal((data || []) as MaoObraReal[]);
   }
+
+  const carregarRestricoesPainel = useCallback(
+    async (
+      obraIdAtual = obraAtivaId,
+      dataAtual = dataTurnoAtual,
+      turnoNome = turnoAtual,
+      turnoIdAtual = turnoIdCampo
+    ) => {
+      if (!obraIdAtual) {
+        setHistoricoRestricoes([]);
+        return;
+      }
+
+      const restricoesAtualizadas = await listarRestricoesHistoricoRemoto(
+        obraIdAtual,
+        dataAtual ?? null,
+        turnoNome || null,
+        turnoIdAtual
+      );
+
+      setHistoricoRestricoes(restricoesAtualizadas);
+    },
+    [dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]
+  );
 
   useEffect(() => {
     const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
@@ -367,7 +399,7 @@ export default function Home() {
       window.clearInterval(intervaloAtualizacao);
       window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
     };
-  }, []);
+  }, [carregarAtividadesPainel]);
 
   useEffect(() => {
     void carregarRecursosPainel();
@@ -411,20 +443,25 @@ export default function Home() {
   }, [dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
 
   useEffect(() => {
-    if (!obraAtivaId || !dataTurnoAtual || !turnoIdCampo) {
+    if (!obraAtivaId) {
       queueMicrotask(() => setHistoricoRestricoes([]));
       return;
     }
 
+    const atualizarPainel = () => {
+      void carregarAtividadesPainel(obraAtivaId);
+      void carregarRestricoesPainel();
+    };
+
     queueMicrotask(() => {
-      void listarRestricoesHistoricoRemoto(
-        obraAtivaId,
-        dataTurnoAtual,
-        turnoAtual || null,
-        turnoIdCampo
-      ).then(setHistoricoRestricoes);
+      atualizarPainel();
     });
-  }, [dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]);
+    const intervaloRestricoes = window.setInterval(() => {
+      atualizarPainel();
+    }, 3000);
+
+    return () => window.clearInterval(intervaloRestricoes);
+  }, [obraAtivaId, carregarAtividadesPainel, carregarRestricoesPainel]);
 
   useEffect(() => {
     if (!obraAtivaId) {
@@ -438,6 +475,7 @@ export default function Home() {
         { event: "*", schema: "public", table: "atividades", filter: `obra_id=eq.${obraAtivaId}` },
         () => {
           void carregarAtividadesPainel(obraAtivaId);
+          void carregarRestricoesPainel();
           void sincronizarCadastroBaseRemoto();
         }
       )
@@ -461,12 +499,8 @@ export default function Home() {
         "postgres_changes",
         { event: "*", schema: "public", table: "restricoes_historico", filter: `obra_id=eq.${obraAtivaId}` },
         () => {
-          void listarRestricoesHistoricoRemoto(
-            obraAtivaId,
-            dataTurnoAtual,
-            turnoAtual || null,
-            turnoIdCampo
-          ).then(setHistoricoRestricoes);
+          void carregarAtividadesPainel(obraAtivaId);
+          void carregarRestricoesPainel();
         }
       )
       .subscribe();
@@ -474,7 +508,7 @@ export default function Home() {
     return () => {
       void supabase.removeChannel(canal);
     };
-  }, [dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]);
+  }, [obraAtivaId, carregarAtividadesPainel, carregarRestricoesPainel]);
 
   function iniciarTurnoPainel() {
     if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
@@ -622,7 +656,7 @@ export default function Home() {
           <KpiCard titulo="Execucao" valor={String(executando)} />
           <KpiCard
             titulo="Restricoes"
-            valor={String(restricoes)}
+            valor={String(totalRestricoes)}
             destaque="text-red-500"
           />
           <KpiCard
@@ -828,6 +862,10 @@ export default function Home() {
 
 function contarStatus(atividades: Atividade[], status: string) {
   return atividades.filter((item) => item.status === status).length;
+}
+
+function restricaoEstaAtivaNoTurno(status: string) {
+  return ["aberta", "parada", "reprogramada"].includes(status);
 }
 
 function obterDataTurnoAtual(

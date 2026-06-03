@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import type {
   Atividade,
@@ -40,7 +40,7 @@ type ControleAtividade = {
 type RestricaoAtividade = {
   id: string;
   texto: string;
-  status: "aberta" | "resolvida" | "parada";
+  status: "aberta" | "resolvida" | "parada" | "reprogramada";
 };
 
 type MaoObraReal = {
@@ -96,6 +96,8 @@ function CampoPageContent() {
   const [controles, setControles] = useState<Record<number, ControleAtividade>>({});
   const [restricoes, setRestricoes] = useState<Record<number, RestricaoAtividade[]>>({});
   const [restricaoEditandoId, setRestricaoEditandoId] = useState<number | null>(null);
+  const [restricaoSalvandoId, setRestricaoSalvandoId] = useState<number | null>(null);
+  const restricaoSalvandoRef = useRef<number | null>(null);
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
@@ -268,19 +270,15 @@ function CampoPageContent() {
     setRestricoes(
       historicoRestricoes.reduce<Record<number, RestricaoAtividade[]>>(
         (mapa, restricao) => {
-          if (
-            restricao.status === "aberta" ||
-            restricao.status === "resolvida" ||
-            restricao.status === "parada"
-          ) {
-            mapa[restricao.atividadeId] = [
-              ...(mapa[restricao.atividadeId] ?? []),
+          if (restricaoEstaVisivelNoCampo(restricao.status)) {
+            mapa[restricao.atividadeId] = mesclarRestricoesAtividade(
+              mapa[restricao.atividadeId] ?? [],
               {
                 id: restricao.id,
                 texto: restricao.texto,
                 status: restricao.status,
-              },
-            ];
+              }
+            );
           }
 
           return mapa;
@@ -880,36 +878,33 @@ function CampoPageContent() {
       return;
     }
 
+    if (restricaoSalvandoRef.current === id) {
+      return;
+    }
+
     const atividade = atividades.find((item) => item.id === id);
     const texto = restricaoTexto.trim();
-    let restricaoSalvaId: string | null = null;
 
     try {
+      restricaoSalvandoRef.current = id;
+      setRestricaoSalvandoId(id);
       if (atividade) {
         pausarCronometro(id);
-        restricaoSalvaId = await registrarRestricaoHistoricoRemoto(
+        await registrarRestricaoHistoricoRemoto(
           atividade,
           texto,
           "aberta"
         );
         await atualizarAtividade(id, "Restrição");
       }
-      setRestricoes((atuais) => ({
-        ...atuais,
-        [id]: [
-          ...(atuais[id] ?? []),
-          {
-            id: restricaoSalvaId ?? `${id}-${Date.now()}`,
-            texto,
-            status: "aberta",
-          },
-        ],
-      }));
       setRestricaoEditandoId(null);
       setRestricaoTexto("");
     } catch (error) {
       console.error(error);
       alert(descreverErroSupabase(error, "salvar a restricao"));
+    } finally {
+      restricaoSalvandoRef.current = null;
+      setRestricaoSalvandoId(null);
     }
   }
 
@@ -1349,9 +1344,12 @@ function CampoPageContent() {
                     <div className="mt-3">
                       <button
                         onClick={() => salvarRestricao(atividade.id)}
-                        className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white"
+                        disabled={restricaoSalvandoId === atividade.id}
+                        className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-red-300"
                       >
-                        Salvar restrição
+                        {restricaoSalvandoId === atividade.id
+                          ? "Salvando..."
+                          : "Salvar restrição"}
                       </button>
                     </div>
                   </div>
@@ -1501,6 +1499,42 @@ function colunaInexistente(error: unknown, coluna: string) {
 
 function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: string) {
   return textoEditando.trim() || textoSalvo || "Sem descrição";
+}
+
+function restricaoEstaVisivelNoCampo(status: string) {
+  return ["aberta", "resolvida", "parada", "reprogramada"].includes(status);
+}
+
+function mesclarRestricoesAtividade(
+  atuais: RestricaoAtividade[],
+  nova: RestricaoAtividade
+) {
+  const mapa = new Map(atuais.map((item) => [item.id, item]));
+  const textoNova = normalizarTextoRestricao(nova.texto);
+
+  if (restricaoEstaAtivaNoCampo(nova.status)) {
+    atuais.forEach((item) => {
+      if (
+        item.id !== nova.id &&
+        restricaoEstaAtivaNoCampo(item.status) &&
+        normalizarTextoRestricao(item.texto) === textoNova
+      ) {
+        mapa.delete(item.id);
+      }
+    });
+  }
+
+  mapa.set(nova.id, { ...mapa.get(nova.id), ...nova });
+
+  return Array.from(mapa.values());
+}
+
+function restricaoEstaAtivaNoCampo(status: string) {
+  return ["aberta", "parada", "reprogramada"].includes(status);
+}
+
+function normalizarTextoRestricao(texto: string) {
+  return texto.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function obterRealizadoInformado(atividadeId: number, fallback: string | number | null) {

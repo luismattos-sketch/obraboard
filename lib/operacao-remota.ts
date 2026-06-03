@@ -213,6 +213,35 @@ export async function registrarRestricaoHistoricoRemoto(
   };
 
   if (status === "aberta") {
+    const { data: existente } = await supabase
+      .from("restricoes_historico")
+      .select("id")
+      .eq("atividade_id", atividade.id)
+      .eq("texto", textoNormalizado)
+      .in("status", ["aberta", "parada", "reprogramada"])
+      .order("registrada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if ((existente as { id?: string } | null)?.id) {
+      const idExistente = (existente as { id: string }).id;
+      const { error } = await supabase
+        .from("restricoes_historico")
+        .update({
+          ...payloadBase,
+          status: "aberta",
+          encerrada_em: null,
+          resolvida_em: null,
+        })
+        .eq("id", idExistente);
+
+      if (error) {
+        throw error;
+      }
+
+      return String(idExistente);
+    }
+
     const { data, error } = await supabase
       .from("restricoes_historico")
       .insert([
@@ -233,7 +262,8 @@ export async function registrarRestricaoHistoricoRemoto(
     if (error) {
       throw error;
     }
-    return (data as { id?: string } | null)?.id ?? null;
+    const idCriado = (data as { id?: string | number } | null)?.id;
+    return idCriado === undefined || idCriado === null ? null : String(idCriado);
   }
 
   let consultaExistente = supabase
@@ -330,12 +360,6 @@ export async function listarRestricoesHistoricoRemoto(
     consulta = consulta.eq("data_turno", dataTurno);
   }
 
-  if (turnoId) {
-    consulta = consulta.eq("turno_id", turnoId);
-  } else if (turno) {
-    consulta = consulta.eq("turno", turno);
-  }
-
   const { data, error } = await consulta;
 
   if (error) {
@@ -343,7 +367,9 @@ export async function listarRestricoesHistoricoRemoto(
     return [];
   }
 
-  return ((data || []) as Array<Record<string, unknown>>).map((item) => ({
+  return ((data || []) as Array<Record<string, unknown>>)
+    .filter((item) => pertenceAoFiltroTurnoHistorico(item, turnoId, turno))
+    .map((item) => ({
     id: String(item.id),
     atividadeId: Number(item.atividade_id),
     obraId: item.obra_id === null ? null : Number(item.obra_id),
@@ -365,4 +391,27 @@ export async function listarRestricoesHistoricoRemoto(
         ? null
         : Number(item.duracao_ms),
   }));
+}
+
+function pertenceAoFiltroTurnoHistorico(
+  item: Record<string, unknown>,
+  turnoId?: number | null,
+  turno?: string | null
+) {
+  if (!turnoId && !turno) {
+    return true;
+  }
+
+  const itemTurnoId =
+    item.turno_id === null || item.turno_id === undefined
+      ? null
+      : Number(item.turno_id);
+  const mesmoTurnoId =
+    Boolean(turnoId) && itemTurnoId !== null && Number(turnoId) === itemTurnoId;
+  const mesmoTurnoNome =
+    Boolean(turno) &&
+    String(item.turno ?? "").trim().toLowerCase() ===
+      String(turno).trim().toLowerCase();
+
+  return Boolean(mesmoTurnoId || mesmoTurnoNome);
 }
