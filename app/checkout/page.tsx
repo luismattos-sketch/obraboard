@@ -102,6 +102,8 @@ export default function CheckoutPage() {
   const finalizadas = atividades.filter((item) => calcularAvancoReal(item.previsto, item.realizado) >= 100).length;
   const parciais = contarStatus(atividades, "Parcial");
   const planejadas = contarStatus(atividades, "Planejada");
+  const totalPlanejadas =
+    planejadas + finalizadas + parciais + restricoes.length;
   const ppc = calcularPpc(atividades);
   const turnoEncerrado = turnoEstaEncerrado(
     fechamentos,
@@ -638,7 +640,7 @@ export default function CheckoutPage() {
         </section>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-          <ResumoCard titulo="Planejadas" valor={String(planejadas)} />
+          <ResumoCard titulo="Planejadas" valor={String(totalPlanejadas)} />
           <ResumoCard
             titulo="Finalizadas"
             valor={String(finalizadas)}
