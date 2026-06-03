@@ -117,9 +117,9 @@ export default function DesktopLayout({
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-slate-100 text-slate-900">
-      <div className="flex h-screen">
-        <aside className="hidden w-60 shrink-0 flex-col justify-between bg-slate-950 p-4 text-white lg:flex">
+    <main className="h-screen overflow-hidden bg-slate-100 text-slate-900 print:h-auto print:overflow-visible print:bg-white">
+      <div className="flex h-screen print:block print:h-auto">
+        <aside className="hidden w-60 shrink-0 flex-col justify-between bg-slate-950 p-4 text-white print:hidden lg:flex">
           <div>
             <div className="mb-8 border-b border-slate-800 pb-5">
               <h1 className="text-2xl font-bold tracking-tight">ObraBoard</h1>
@@ -211,8 +211,8 @@ export default function DesktopLayout({
           </div>
         </aside>
 
-        <section className="min-w-0 flex-1 overflow-auto p-3 lg:p-6">
-          <div className="mb-4 rounded-xl bg-slate-950 p-3 text-white shadow-sm lg:hidden">
+        <section className="min-w-0 flex-1 overflow-auto p-3 print:overflow-visible print:p-0 lg:p-6">
+          <div className="mb-4 rounded-xl bg-slate-950 p-3 text-white shadow-sm print:hidden lg:hidden">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h1 className="text-lg font-bold tracking-tight">ObraBoard</h1>
@@ -268,7 +268,7 @@ export default function DesktopLayout({
             </nav>
           </div>
 
-          <header className="mb-6 rounded-xl bg-white p-4 shadow-sm lg:p-5">
+          <header className="mb-6 rounded-xl bg-white p-4 shadow-sm print:hidden lg:p-5">
             <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
               <div>
                 <h2 className="text-2xl font-bold lg:text-3xl">{titulo}</h2>
