@@ -24,3 +24,52 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.rdo-page {
+  color: #0f172a;
+}
+
+.rdo-table {
+  table-layout: fixed;
+}
+
+.rdo-table th,
+.rdo-table td {
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rdo-page {
+    width: 190mm !important;
+    min-height: 277mm !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .rdo-table {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .rdo-table th,
+  .rdo-table td {
+    padding: 4px !important;
+  }
+}

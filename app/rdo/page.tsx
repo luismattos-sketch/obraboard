@@ -479,8 +479,8 @@ export default function RdoPage() {
           </p>
         </section>
 
-        <div className="overflow-x-auto">
-          <div className="mx-auto min-h-[1123px] w-[794px] bg-white p-10 shadow-xl">
+        <div className="overflow-x-auto print:overflow-visible">
+          <div className="rdo-page mx-auto min-h-[1123px] w-[794px] bg-white p-10 shadow-xl">
             <header className="mb-8 border-b border-slate-300 pb-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -530,7 +530,7 @@ export default function RdoPage() {
 
             <section className="mb-8">
               <h2 className="mb-3 text-lg font-bold">Recursos Mobilizados</h2>
-              <table className="w-full border-collapse text-sm">
+              <table className="rdo-table w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-100">
                     <th className="border border-slate-300 p-2 text-left">Funcao</th>
@@ -564,7 +564,16 @@ export default function RdoPage() {
 
             <section className="mb-8">
               <h2 className="mb-3 text-lg font-bold">Atividades do Turno</h2>
-              <table className="w-full border-collapse text-sm">
+              <table className="rdo-table w-full border-collapse text-sm">
+                <colgroup>
+                  <col className="w-[9%]" />
+                  <col className="w-[27%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[10%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-slate-100">
                     <th className="border border-slate-300 p-2 text-left">Disc</th>
@@ -584,6 +593,7 @@ export default function RdoPage() {
                       <td className="border border-slate-300 p-2">{item.local}</td>
                       <td className="border border-slate-300 p-2">{item.responsavel}</td>
                       <td className="border border-slate-300 p-2 text-center">{item.status}</td>
+                      <td className="border border-slate-300 p-2 text-center">{formatarHorariosAtividade(item)}</td>
                       <td className="border border-slate-300 p-2 text-center">{calcularProgresso(item)}%</td>
                     </tr>
                   ))}
@@ -593,7 +603,16 @@ export default function RdoPage() {
 
             <section className="mb-10">
               <h2 className="mb-3 text-lg font-bold">Restrições e Tratativas</h2>
-              <table className="w-full border-collapse text-sm">
+              <table className="rdo-table w-full border-collapse text-sm">
+                <colgroup>
+                  <col className="w-[8%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[21%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[16%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-slate-100">
                     <th className="border border-slate-300 p-2 text-left">ID</th>
@@ -602,6 +621,7 @@ export default function RdoPage() {
                     <th className="border border-slate-300 p-2 text-left">Restrição</th>
                     <th className="border border-slate-300 p-2 text-left">Responsável</th>
                     <th className="border border-slate-300 p-2 text-center">Status</th>
+                    <th className="border border-slate-300 p-2 text-left">Historico</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -699,6 +719,24 @@ function calcularProgresso(item: Atividade) {
   return calcularAvancoReal(item.previsto, item.realizado);
 }
 
+function formatarHorariosAtividade(item: Atividade) {
+  const registro = item as Atividade & {
+    iniciado_em?: string | null;
+    finalizado_em?: string | null;
+    pausado_em?: string | null;
+  };
+  const inicio = formatarHoraCurta(registro.iniciado_em);
+  const fim =
+    formatarHoraCurta(registro.finalizado_em) ||
+    formatarHoraCurta(registro.pausado_em);
+
+  if (inicio && fim) {
+    return `${inicio} - ${fim}`;
+  }
+
+  return inicio || fim || "-";
+}
+
 function formatarDataTurno(dataTurno: string) {
   const [ano, mes, dia] = dataTurno.split("-");
 
@@ -707,6 +745,23 @@ function formatarDataTurno(dataTurno: string) {
   }
 
   return `${dia}/${mes}/${ano}`;
+}
+
+function formatarHoraCurta(valor: string | null | undefined) {
+  if (!valor) {
+    return "";
+  }
+
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "";
+  }
+
+  return data.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatarDataHora(valor: string | null | undefined) {
