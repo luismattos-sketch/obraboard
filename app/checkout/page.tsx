@@ -99,11 +99,15 @@ export default function CheckoutPage() {
     [atividadesBanco, dataTurnoAtual, obraId, turno, turnoSelecionado]
   );
   const restricoes = atividades.filter((item) => item.status === "Restrição");
-  const finalizadas = atividades.filter((item) => calcularAvancoReal(item.previsto, item.realizado) >= 100).length;
-  const parciais = contarStatus(atividades, "Parcial");
-  const planejadas = contarStatus(atividades, "Planejada");
-  const totalPlanejadas =
-    planejadas + finalizadas + parciais + restricoes.length;
+  const farois = atividades.map((item) =>
+    obterFarolOperacional(
+      item.status,
+      calcularAvancoReal(item.previsto, item.realizado)
+    )
+  );
+  const finalizadas = farois.filter((farol) => farol.startsWith("Conclu")).length;
+  const parciais = farois.filter((farol) => farol === "Parcial").length;
+  const totalPlanejadas = atividades.length;
   const ppc = calcularPpc(atividades);
   const turnoEncerrado = turnoEstaEncerrado(
     fechamentos,
@@ -642,7 +646,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <ResumoCard titulo="Planejadas" valor={String(totalPlanejadas)} />
           <ResumoCard
-            titulo="Finalizadas"
+            titulo="Concluidas"
             valor={String(finalizadas)}
             destaque="text-green-600"
           />
@@ -938,10 +942,6 @@ export default function CheckoutPage() {
       </div>
     </DesktopLayout>
   );
-}
-
-function contarStatus(atividades: Atividade[], status: string) {
-  return atividades.filter((item) => item.status === status).length;
 }
 
 function obterDataTurnoAtual(
