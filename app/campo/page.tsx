@@ -976,21 +976,7 @@ function CampoPageContent() {
       data_turno: dataTurnoAtual,
     };
 
-    let { error } = await supabase.from("mao_obra").insert([payload]);
-
-    if (colunaInexistente(error, "turno_id")) {
-      const payloadSemTurnoId = {
-        atividade_id: payload.atividade_id,
-        obra_id: payload.obra_id,
-        funcao: payload.funcao,
-        quantidade: payload.quantidade,
-        turno: payload.turno,
-        data_turno: payload.data_turno,
-      };
-
-      const resultado = await supabase.from("mao_obra").insert([payloadSemTurnoId]);
-      error = resultado.error;
-    }
+    const { error } = await salvarMaoObraSubstituindo(payload);
 
     if (error) {
       console.error(error);
@@ -1001,6 +987,87 @@ function CampoPageContent() {
     setFuncao("");
     setQuantidade("");
     await carregarMaoObraReal();
+  }
+
+  async function salvarMaoObraSubstituindo(payload: {
+    atividade_id: number;
+    obra_id: number;
+    turno_id: number;
+    funcao: string;
+    quantidade: number;
+    turno: string;
+    data_turno: string;
+  }) {
+    const payloadSemTurnoId = {
+      atividade_id: payload.atividade_id,
+      obra_id: payload.obra_id,
+      funcao: payload.funcao,
+      quantidade: payload.quantidade,
+      turno: payload.turno,
+      data_turno: payload.data_turno,
+    };
+
+    let consulta = await supabase
+      .from("mao_obra")
+      .select("id")
+      .eq("atividade_id", payload.atividade_id)
+      .eq("obra_id", payload.obra_id)
+      .eq("turno_id", payload.turno_id)
+      .eq("data_turno", payload.data_turno)
+      .eq("funcao", payload.funcao)
+      .order("id", { ascending: true });
+
+    const semColunaTurnoId = colunaInexistente(consulta.error, "turno_id");
+
+    if (semColunaTurnoId) {
+      consulta = await supabase
+        .from("mao_obra")
+        .select("id")
+        .eq("atividade_id", payload.atividade_id)
+        .eq("obra_id", payload.obra_id)
+        .eq("turno", payload.turno)
+        .eq("data_turno", payload.data_turno)
+        .eq("funcao", payload.funcao)
+        .order("id", { ascending: true });
+    }
+
+    if (consulta.error) {
+      return { error: consulta.error };
+    }
+
+    const existentes = ((consulta.data || []) as Array<{ id: number }>).filter(
+      (item) => Number.isFinite(Number(item.id))
+    );
+
+    if (existentes.length === 0) {
+      const insercao = await supabase
+        .from("mao_obra")
+        .insert([semColunaTurnoId ? payloadSemTurnoId : payload]);
+
+      return { error: insercao.error };
+    }
+
+    const principalId = existentes[0].id;
+    const atualizacao = await supabase
+      .from("mao_obra")
+      .update(semColunaTurnoId ? payloadSemTurnoId : payload)
+      .eq("id", principalId);
+
+    if (atualizacao.error) {
+      return { error: atualizacao.error };
+    }
+
+    const duplicados = existentes.slice(1).map((item) => item.id);
+
+    if (duplicados.length > 0) {
+      const remocao = await supabase.from("mao_obra").delete().in("id", duplicados);
+
+      if (remocao.error) {
+        return { error: remocao.error };
+      }
+    }
+
+    return { error: null };
   }
 
   if (statusLinkCampo === "carregando") {
