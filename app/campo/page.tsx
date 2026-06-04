@@ -492,7 +492,7 @@ function CampoPageContent() {
 
     if (error || !data) {
       if (error) {
-        console.warn("Nao foi possivel resolver Campo por atividades.", error);
+        console.warn("Não foi possível resolver Campo por atividades.", error);
       }
       return null;
     }
@@ -572,12 +572,12 @@ function CampoPageContent() {
             (await resolverContextoCampoPorAtividades(obraIdParametro, turnoIdParametro));
 
       if (!obraCadastro && !contextoDireto?.obra) {
-        limparCampoInvalido("obra nao encontrada no cadastro nem na tabela obras");
+        limparCampoInvalido("obra não encontrada no cadastro nem na tabela obras");
         return;
       }
 
       if (!turnoCadastro && !contextoDireto?.turno) {
-        limparCampoInvalido("turno nao encontrado no cadastro nem na tabela turnos");
+        limparCampoInvalido("turno não encontrado no cadastro nem na tabela turnos");
         return;
       }
 
@@ -785,8 +785,8 @@ function CampoPageContent() {
     try {
       await carregarAtividades(obraIdCampo, turnoIdCampo, turno, dataTurnoGravacao);
     } catch (error) {
-      console.error("Atividade atualizada, mas a tela Campo nao recarregou.", error);
-      alert("Avanco salvo. Recarregue a tela se os dados nao atualizarem.");
+      console.error("Atividade atualizada, mas a tela Campo não recarregou.", error);
+      alert("Avanço salvo. Recarregue a tela se os dados não atualizarem.");
     }
   }
 
@@ -954,7 +954,7 @@ function CampoPageContent() {
 
   async function abrirRestricao(atividade: Atividade) {
     if (!atividadeFoiIniciada(atividade)) {
-      alert("Inicie a atividade antes de cadastrar restricao.");
+      alert("Inicie a atividade antes de cadastrar restrição.");
       return;
     }
 
@@ -1003,7 +1003,7 @@ function CampoPageContent() {
       setRestricaoTexto("");
     } catch (error) {
       console.error(error);
-      alert(descreverErroSupabase(error, "salvar a restricao"));
+      alert(descreverErroSupabase(error, "salvar a restrição"));
     } finally {
       restricaoSalvandoRef.current = null;
       setRestricaoSalvandoId(null);
@@ -1053,7 +1053,7 @@ function CampoPageContent() {
       );
     } catch (error) {
       console.error(error);
-      alert(descreverErroSupabase(error, "resolver a restricao"));
+      alert(descreverErroSupabase(error, "resolver a restrição"));
     }
   }
 

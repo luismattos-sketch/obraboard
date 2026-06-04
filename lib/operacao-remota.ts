@@ -28,14 +28,14 @@ export function descreverErroSupabase(error: unknown, acao = "salvar") {
   const erro = error as { code?: string; message?: string; details?: string } | null;
 
   if (erro?.code === "42501" || erro?.message?.toLowerCase().includes("row-level security")) {
-    return `Nao foi possivel ${acao}: o Supabase bloqueou a operacao por RLS. Aplique a migracao SaaS atualizada no Supabase.`;
+    return `Não foi possível ${acao}: o Supabase bloqueou a operação por RLS. Aplique a migração SaaS atualizada no Supabase.`;
   }
 
   if (erro?.code === "42703") {
-    return `Nao foi possivel ${acao}: falta coluna no Supabase. Aplique a migracao SaaS atualizada.`;
+    return `Não foi possível ${acao}: falta coluna no Supabase. Aplique a migração SaaS atualizada.`;
   }
 
-  return erro?.message ? `Nao foi possivel ${acao}: ${erro.message}` : `Nao foi possivel ${acao}.`;
+  return erro?.message ? `Não foi possível ${acao}: ${erro.message}` : `Não foi possível ${acao}.`;
 }
 
 export async function carregarControlesTurnoRemotos(
@@ -60,7 +60,7 @@ export async function carregarControlesTurnoRemotos(
   const { data, error } = await consulta;
 
   if (error) {
-    console.warn("Nao foi possivel carregar turnos_operacao.", error);
+    console.warn("Não foi possível carregar turnos_operacao.", error);
     return {};
   }
 
@@ -149,7 +149,7 @@ export async function carregarValidacoesCheckoutRemotas(
     .in("atividade_id", atividadesIds);
 
   if (error) {
-    console.warn("Nao foi possivel carregar checkout_validacoes.", error);
+    console.warn("Não foi possível carregar checkout_validacoes.", error);
     return {};
   }
 
@@ -195,7 +195,7 @@ export async function registrarRestricaoHistoricoRemoto(
   restricaoId?: string | null
 ): Promise<string | null> {
   const agora = new Date().toISOString();
-  const textoNormalizado = texto.trim() || "Sem descricao";
+  const textoNormalizado = texto.trim() || "Sem descrição";
 
   const payloadBase = {
     atividade_id: atividade.id,
@@ -363,7 +363,7 @@ export async function listarRestricoesHistoricoRemoto(
   const { data, error } = await consulta;
 
   if (error) {
-    console.warn("Nao foi possivel carregar restricoes_historico.", error);
+    console.warn("Não foi possível carregar restricoes_historico.", error);
     return [];
   }
 

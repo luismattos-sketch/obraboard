@@ -454,7 +454,7 @@ export default function CheckoutPage() {
     );
 
     if (!destinoReprogramacao) {
-      setErro("Nao existe proximo turno cadastrado.");
+      setErro("Não existe próximo turno cadastrado.");
       return;
     }
 
@@ -517,7 +517,7 @@ export default function CheckoutPage() {
 
       if (error || !nova?.id) {
         console.error(error);
-        setErro("Erro ao reprogramar pendencias.");
+        setErro("Erro ao reprogramar pendências.");
         return;
       }
 
@@ -580,7 +580,7 @@ export default function CheckoutPage() {
         previstoTratativa <= 0 ||
         tempoTratativa <= 0
       ) {
-        setErro("Preencha todos os campos da tratativa de restricao antes de reprogramar.");
+        setErro("Preencha todos os campos da tratativa de restrição antes de reprogramar.");
         return;
       }
 
@@ -627,7 +627,7 @@ export default function CheckoutPage() {
 
       if (error || !nova?.id) {
         console.error(error);
-        setErro("Erro ao reprogramar tratativa de restricao.");
+        setErro("Erro ao reprogramar tratativa de restrição.");
         return;
       }
 
@@ -653,7 +653,7 @@ export default function CheckoutPage() {
     }
 
     setMensagem(
-      `${criadas} pendencias reprogramadas para ${proximoTurno.nome} em ${formatarDataTurno(dataTurnoDestino)}.`
+      `${criadas} pendências reprogramadas para ${proximoTurno.nome} em ${formatarDataTurno(dataTurnoDestino)}.`
     );
     await recarregarAtividades();
   }
@@ -818,7 +818,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <ResumoCard titulo="Planejadas" valor={String(totalPlanejadas)} />
           <ResumoCard
-            titulo="Concluidas"
+            titulo="Concluídas"
             valor={String(finalizadas)}
             destaque="text-green-600"
           />
@@ -828,7 +828,7 @@ export default function CheckoutPage() {
             destaque="text-yellow-500"
           />
           <ResumoCard
-            titulo="Restricoes"
+            titulo="Restrições"
             valor={String(restricoesTratativa.length)}
             destaque="text-red-500"
           />
@@ -859,10 +859,10 @@ export default function CheckoutPage() {
                     <th className="p-3 text-left">Atividade</th>
                     <th className="p-3 text-left">Local</th>
                     <th className="p-3 text-left">Resp</th>
-                    <th className="p-3 text-left">Avanco</th>
+                    <th className="p-3 text-left">Avanço</th>
                     <th className="p-3 text-center">Status</th>
                     <th className="p-3 text-center">Farol</th>
-                    <th className="p-3 text-center">Decisao</th>
+                    <th className="p-3 text-center">Decisão</th>
                   </tr>
                 </thead>
 
@@ -1039,13 +1039,13 @@ export default function CheckoutPage() {
 
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <CabecalhoSecao
-            titulo="Tratativa de Restricoes"
-            texto="Pendencias reais do turno atual"
+            titulo="Tratativa de Restrições"
+            texto="Pendências reais do turno atual"
           />
 
           {restricoesTratativa.length === 0 ? (
             <div className="pt-4">
-              <EstadoVazio texto="Nenhuma restricao registrada para este turno." />
+              <EstadoVazio texto="Nenhuma restrição registrada para este turno." />
             </div>
           ) : (
             <div className="grid gap-4 pt-4 lg:grid-cols-2">
@@ -1073,7 +1073,7 @@ export default function CheckoutPage() {
 
                   <h4 className="font-bold text-slate-900">{item.atividade}</h4>
                   <p className="mt-2 rounded-lg border border-red-200 bg-white p-2 text-sm font-semibold text-red-700">
-                    Restricao: {restricao.texto || "Sem descricao"}
+                    Restrição: {restricao.texto || "Sem descrição"}
                   </p>
                   <p className="mt-1 text-sm text-slate-600">
                     Responsável atual:{" "}
@@ -1125,7 +1125,7 @@ export default function CheckoutPage() {
                       className="md:col-span-2"
                     />
                     <CampoTratativa
-                      label="Responsavel"
+                      label="Responsável"
                       value={tratativa.responsavel}
                       onChange={(valor) =>
                         atualizarTratativaRestricao(restricao.id, "responsavel", valor)
@@ -1133,7 +1133,7 @@ export default function CheckoutPage() {
                       className="md:col-span-2"
                     />
                     <CampoTratativa
-                      label="Previsao"
+                      label="Previsão"
                       value={tratativa.previsto}
                       onChange={(valor) =>
                         atualizarTratativaRestricao(restricao.id, "previsto", valor)
@@ -1187,7 +1187,7 @@ export default function CheckoutPage() {
             <h3 className="mb-3 text-lg font-bold">Resumo do fechamento</h3>
             <textarea
               className="min-h-[130px] w-full rounded-xl border border-slate-300 p-4 text-sm"
-              placeholder="Registrar resumo do checkout, decisoes, pendencias e pontos para o proximo turno..."
+              placeholder="Registrar resumo do checkout, decisões, pendências e pontos para o próximo turno..."
             />
           </section>
 
@@ -1200,7 +1200,7 @@ export default function CheckoutPage() {
                 disabled={turnoEncerrado}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold"
               >
-                Reprogramar para o proximo turno
+                Reprogramar para o próximo turno
               </button>
               <button
                 type="button"

@@ -312,7 +312,7 @@ export default function RdoPage() {
       .order("id", { ascending: true });
 
     if (error) {
-      console.warn("Nao foi possivel carregar recursos_disponiveis.", error);
+      console.warn("Não foi possível carregar recursos_disponiveis.", error);
       setRecursosDisponiveis([]);
       return;
     }
@@ -533,7 +533,7 @@ export default function RdoPage() {
               <table className="rdo-table w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-100">
-                    <th className="border border-slate-300 p-2 text-left">Funcao</th>
+                    <th className="border border-slate-300 p-2 text-left">Função</th>
                     <th className="border border-slate-300 p-2 text-center">Previsto</th>
                     <th className="border border-slate-300 p-2 text-center">Real</th>
                     <th className="border border-slate-300 p-2 text-center">Desvio</th>
@@ -581,8 +581,8 @@ export default function RdoPage() {
                     <th className="border border-slate-300 p-2 text-left">Local</th>
                     <th className="border border-slate-300 p-2 text-left">Responsável</th>
                     <th className="border border-slate-300 p-2 text-center">Status</th>
-                    <th className="border border-slate-300 p-2 text-left">Horarios</th>
-                    <th className="border border-slate-300 p-2 text-center">Avanco</th>
+                    <th className="border border-slate-300 p-2 text-left">Horários</th>
+                    <th className="border border-slate-300 p-2 text-center">Avanço</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -657,7 +657,7 @@ export default function RdoPage() {
                 Responsável pelo fechamento
               </div>
               <div className="border-t border-slate-400 pt-2 text-center">
-                Aprovacao / Cliente
+                Aprovação / Cliente
               </div>
             </footer>
           </div>

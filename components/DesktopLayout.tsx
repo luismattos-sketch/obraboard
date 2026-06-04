@@ -101,7 +101,7 @@ export default function DesktopLayout({
 
   function apagarDadosEntrada() {
     const confirmou = window.confirm(
-      "Tem certeza que deseja apagar todos os dados de entrada cadastrados? Esta acao nao pode ser desfeita."
+      "Tem certeza que deseja apagar todos os dados de entrada cadastrados? Esta ação não pode ser desfeita."
     );
 
     if (!confirmou) {
@@ -216,7 +216,7 @@ export default function DesktopLayout({
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h1 className="text-lg font-bold tracking-tight">ObraBoard</h1>
-                <p className="text-xs text-slate-400">Gestao operacional</p>
+                <p className="text-xs text-slate-400">Gestão operacional</p>
               </div>
 
               {logoExibido ? (

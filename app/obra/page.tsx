@@ -301,7 +301,7 @@ export default function CadastroObraPage() {
     const obraId = editando ? obraEditandoId : gerarIdTemporario();
 
     if (!obraId) {
-      setMensagem("Nao foi possivel identificar a obra para salvar.");
+      setMensagem("Não foi possível identificar a obra para salvar.");
       return;
     }
 
@@ -864,7 +864,7 @@ export default function CadastroObraPage() {
                   >
                     {situacoes.map((item) => (
                       <option key={item} value={item}>
-                        {item}
+                        {rotuloSituacao(item)}
                       </option>
                     ))}
                   </select>
@@ -901,7 +901,7 @@ export default function CadastroObraPage() {
                   >
                     {criticidades.map((item) => (
                       <option key={item} value={item}>
-                        {item}
+                        {rotuloCriticidade(item)}
                       </option>
                     ))}
                   </select>
@@ -995,7 +995,7 @@ export default function CadastroObraPage() {
                 />
                 <ResumoLinha
                   label="Situação"
-                  valor={situacao}
+                  valor={rotuloSituacao(situacao)}
                 />
               </div>
 
@@ -1578,7 +1578,7 @@ export default function CadastroObraPage() {
                     </td>
                     <td className="p-3 text-center">
                       <span className="rounded-md bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">
-                        {obra.situacao}
+                        {rotuloSituacao(obra.situacao)}
                       </span>
                     </td>
                     <td className="p-3 text-right">
@@ -1671,6 +1671,27 @@ function formatarHoras(horas: number) {
     maximumFractionDigits: 2,
     minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
   })} h`;
+}
+
+function rotuloSituacao(situacao: SituacaoObra) {
+  const rotulos: Record<SituacaoObra, string> = {
+    Planejamento: "Planejamento",
+    Mobilizacao: "Mobilização",
+    Execucao: "Execução",
+    Pausada: "Pausada",
+  };
+
+  return rotulos[situacao];
+}
+
+function rotuloCriticidade(criticidade: CriticidadeObra) {
+  const rotulos: Record<CriticidadeObra, string> = {
+    Baixa: "Baixa",
+    Media: "Média",
+    Alta: "Alta",
+  };
+
+  return rotulos[criticidade];
 }
 
 function permissaoPorNivel(nivel: NivelAcesso) {

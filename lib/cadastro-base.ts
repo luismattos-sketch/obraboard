@@ -159,7 +159,7 @@ export async function sincronizarCadastroBaseRemoto() {
     .maybeSingle();
 
   if (error) {
-    console.warn("Cadastro remoto indisponivel.", error);
+    console.warn("Cadastro remoto indisponível.", error);
     return cadastroBaseInicial;
   }
 
@@ -473,7 +473,7 @@ async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
   });
 
   if (error) {
-    console.warn("Nao foi possivel sincronizar cadastro no Supabase.", error);
+    console.warn("Não foi possível sincronizar cadastro no Supabase.", error);
     throw error;
   }
 }

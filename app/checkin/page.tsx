@@ -291,7 +291,7 @@ export default function CheckinPage() {
     if (error) {
       console.error(error);
       setErro(
-        "Nao foi possivel carregar atividades. Execute o SQL atualizado no Supabase."
+        "Não foi possível carregar atividades. Execute o SQL atualizado no Supabase."
       );
       setAtividades([]);
       setRecursosPorAtividade({});
@@ -321,7 +321,7 @@ export default function CheckinPage() {
     if (error) {
       console.error(error);
       setErro(
-        "Nao foi possivel carregar recursos das atividades. Execute o SQL atualizado no Supabase."
+        "Não foi possível carregar recursos das atividades. Execute o SQL atualizado no Supabase."
       );
       setRecursosPorAtividade({});
       return;
@@ -360,7 +360,7 @@ export default function CheckinPage() {
       .order("id", { ascending: true });
 
     if (error) {
-      console.warn("Tabela recursos_disponiveis indisponivel no Supabase.", error);
+      console.warn("Tabela recursos_disponiveis indisponível no Supabase.", error);
       setRecursosDisponiveis([]);
       return;
     }
@@ -486,7 +486,7 @@ export default function CheckinPage() {
       !tempoPrevistoHoras
     ) {
       setErro(
-        "Preencha disciplina, atividade, local, responsavel, previsao e tempo previsto."
+        "Preencha disciplina, atividade, local, responsável, previsão e tempo previsto."
       );
       return;
     }
@@ -500,7 +500,7 @@ export default function CheckinPage() {
     const quantidade = Number(previsto);
 
     if (tempo <= 0 || quantidade <= 0) {
-      setErro("Previsao e tempo previsto devem ser maiores que zero.");
+      setErro("Previsão e tempo previsto devem ser maiores que zero.");
       return;
     }
 
@@ -530,11 +530,11 @@ export default function CheckinPage() {
 
     if (hhDisponivelTurno > 0 && hhCadastradoAtual + hhNovoAtividade > hhDisponivelTurno) {
       const aceitouProgramar = window.confirm(
-        "O HH cadastrado ultrapassa o HH disponivel do turno. Deseja programar o excedente para os turnos seguintes?"
+        "O HH cadastrado ultrapassa o HH disponível do turno. Deseja programar o excedente para os turnos seguintes?"
       );
 
       if (!aceitouProgramar) {
-        setErro("O HH cadastrado excede o HH disponivel no turno.");
+        setErro("O HH cadastrado excede o HH disponível no turno.");
         return;
       }
 
@@ -542,7 +542,7 @@ export default function CheckinPage() {
 
       if (!proximoTurno) {
         setErro(
-          "Nao existe proximo turno cadastrado para programar as horas excedentes."
+          "Não existe próximo turno cadastrado para programar as horas excedentes."
         );
         return;
       }
@@ -617,7 +617,7 @@ export default function CheckinPage() {
 
     if (!data.length) {
       setErro(
-        "O Supabase nao autorizou a edicao desta atividade. Verifique a politica de update da tabela atividades."
+        "O Supabase não autorizou a edição desta atividade. Verifique a política de update da tabela atividades."
       );
       setSalvando(false);
       return;
@@ -668,7 +668,7 @@ export default function CheckinPage() {
       origemAtividadeId,
     });
 
-    await finalizarCadastro("Atividade programada com excedente no proximo turno.");
+    await finalizarCadastro("Atividade programada com excedente no próximo turno.");
   }
 
   function obterTurnoIdPorNome(turnoNome: string) {
@@ -687,15 +687,15 @@ export default function CheckinPage() {
     origemAtividadeId: number | null;
   }) {
     if (!obraId) {
-      throw new Error("Obra ativa nao definida.");
+      throw new Error("Obra ativa não definida.");
     }
 
     const turnoDestinoId = obterTurnoIdPorNome(turnoDestino);
 
     if (!turnoDestinoId) {
-      setErro("Turno destino nao encontrado.");
+      setErro("Turno destino não encontrado.");
       setSalvando(false);
-      throw new Error("Turno destino nao encontrado.");
+      throw new Error("Turno destino não encontrado.");
     }
 
     const payload: AtividadeInsert = {
@@ -812,7 +812,7 @@ export default function CheckinPage() {
       const total = usado - hhDaEdicao + hhNovo;
 
       if (disponivel > 0 && total > disponivel + 0.0001) {
-        return `HH de ${funcao} excede o total disponivel para esta obra/turno.`;
+        return `HH de ${funcao} excede o total disponível para esta obra/turno.`;
       }
     }
 
@@ -879,7 +879,7 @@ export default function CheckinPage() {
     setErro("");
 
     if (!funcaoRecurso || !quantidadeRecurso) {
-      setErro("Informe funcao e quantidade para o recurso da atividade.");
+      setErro("Informe função e quantidade para o recurso da atividade.");
       return;
     }
 
@@ -936,7 +936,7 @@ export default function CheckinPage() {
     }
 
     if (!funcaoDisponivel || !quantidadeDisponivel || !cargaHorariaDisponivel) {
-      setErro("Informe funcao, quantidade e horas por pessoa do recurso disponivel.");
+      setErro("Informe função, quantidade e horas por pessoa do recurso disponível.");
       return;
     }
 
@@ -962,14 +962,14 @@ export default function CheckinPage() {
 
     if (error) {
       console.error(error);
-      setErro("Erro ao salvar recurso disponivel no Supabase.");
+      setErro("Erro ao salvar recurso disponível no Supabase.");
       return;
     }
 
     setFuncaoDisponivel("");
     setQuantidadeDisponivel("");
     setCargaHorariaDisponivel("");
-    setMensagem("Recurso disponivel cadastrado no turno.");
+    setMensagem("Recurso disponível cadastrado no turno.");
     await carregarRecursosDisponiveis(
       obraId,
       dataTurno,
@@ -994,12 +994,12 @@ export default function CheckinPage() {
         .eq("id", recurso.id);
 
       if (error) {
-        setErro("Erro ao remover recurso disponivel.");
+        setErro("Erro ao remover recurso disponível.");
         return;
       }
     }
 
-    setMensagem("Recurso disponivel removido.");
+    setMensagem("Recurso disponível removido.");
     await carregarRecursosDisponiveis(
       obraId,
       dataTurno,
@@ -1080,7 +1080,7 @@ export default function CheckinPage() {
       !edicao.previsto ||
       !edicao.tempoPrevistoHoras
     ) {
-      setErro("Preencha todos os campos antes de salvar a edicao.");
+      setErro("Preencha todos os campos antes de salvar a edição.");
       return;
     }
 
@@ -1088,7 +1088,7 @@ export default function CheckinPage() {
     const quantidade = Number(edicao.previsto);
 
     if (tempo <= 0 || quantidade <= 0) {
-      setErro("Previsao e tempo previsto devem ser maiores que zero.");
+      setErro("Previsão e tempo previsto devem ser maiores que zero.");
       return;
     }
 
@@ -1116,7 +1116,7 @@ export default function CheckinPage() {
       hhCadastradoTurno - hhAtividadeEmEdicao + hhEdicao >
         hhDisponivelTurno
     ) {
-      setErro("O HH cadastrado excede o HH disponivel no turno.");
+      setErro("O HH cadastrado excede o HH disponível no turno.");
       return;
     }
 
@@ -1146,7 +1146,7 @@ export default function CheckinPage() {
 
     if (!data.length) {
       setErro(
-        "O Supabase nao autorizou a edicao desta atividade. Verifique a politica de update da tabela atividades."
+        "O Supabase não autorizou a edição desta atividade. Verifique a política de update da tabela atividades."
       );
       setSalvando(false);
       return;
@@ -1203,7 +1203,7 @@ export default function CheckinPage() {
 
     if (!data.length) {
       setErro(
-        "O Supabase nao autorizou a exclusao desta atividade. Verifique a politica de delete da tabela atividades."
+        "O Supabase não autorizou a exclusão desta atividade. Verifique a política de delete da tabela atividades."
       );
       setSalvando(false);
       return;
@@ -1278,7 +1278,7 @@ export default function CheckinPage() {
       }
     }
     setEdicaoLiberada(false);
-    setMensagem("Turno publicado. O Check-in foi bloqueado para execucao no campo.");
+    setMensagem("Turno publicado. O Check-in foi bloqueado para execução no campo.");
     setSalvando(false);
   }
 
@@ -1683,7 +1683,7 @@ export default function CheckinPage() {
             <div className="space-y-2">
               {recursosDisponiveis.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-slate-300 p-3 text-center text-sm font-semibold text-slate-500">
-                  Nenhum recurso disponivel cadastrado no check-in deste turno.
+                  Nenhum recurso disponível cadastrado no check-in deste turno.
                 </p>
               ) : (
                 recursosDisponiveis.map((item) => (
@@ -1699,7 +1699,7 @@ export default function CheckinPage() {
                     </div>
                     <div className="mt-1 flex items-center justify-between gap-3">
                       <p className="text-xs font-semibold text-teal-700">
-                        HH disponivel: {formatarHoras(item.quantidade * item.cargaHoraria)}
+                        HH disponível: {formatarHoras(item.quantidade * item.cargaHoraria)}
                       </p>
                       <button
                         type="button"

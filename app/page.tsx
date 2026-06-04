@@ -657,16 +657,16 @@ export default function Home() {
             </div>
 
             <p className="text-sm font-semibold text-slate-500">
-              A contagem e manual: iniciar, parar, continuar e encerrar nao dependem do horario planejado.
+              A contagem é manual: iniciar, parar, continuar e encerrar não dependem do horário planejado.
             </p>
           </div>
         </section>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <KpiCard titulo="Atividades" valor={String(atividades.length)} />
-          <KpiCard titulo="Execucao" valor={String(executando)} />
+          <KpiCard titulo="Execução" valor={String(executando)} />
           <KpiCard
-            titulo="Restricoes"
+            titulo="Restrições"
             valor={String(totalRestricoes)}
             destaque="text-red-500"
           />
