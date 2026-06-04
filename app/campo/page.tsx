@@ -872,11 +872,6 @@ function CampoPageContent() {
     await atualizarAtividade(id, "Execução");
   }
 
-  async function pausarAtividade(id: number, status: StatusAtividade) {
-    pausarCronometro(id);
-    await atualizarAtividade(id, status);
-  }
-
   async function finalizarAtividade(atividade: Atividade) {
     const realizadoInformado = obterRealizadoInformado(
       atividade.id,
@@ -1513,12 +1508,6 @@ function CampoPageContent() {
                       className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
                     >
                       Iniciar
-                    </button>
-                    <button
-                      onClick={() => pausarAtividade(atividade.id, "Parcial")}
-                      className="rounded-lg bg-yellow-500 px-3 py-3 text-sm font-bold text-white transition hover:bg-yellow-600"
-                    >
-                      Parcial
                     </button>
                     <button
                       onClick={() => abrirRestricao(atividade)}
