@@ -224,11 +224,9 @@ export default function CadastroObraPage() {
       void carregarCadastroRemoto();
     });
     window.addEventListener(cadastroBaseEvento, carregarCadastroLocal);
-    window.addEventListener("storage", carregarCadastroLocal);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, carregarCadastroLocal);
-      window.removeEventListener("storage", carregarCadastroLocal);
     };
   }, []);
 

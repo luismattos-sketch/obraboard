@@ -83,11 +83,9 @@ export default function DesktopLayout({
       carregarContexto();
     };
     window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
-    window.addEventListener("storage", carregarContextoLocal);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
-      window.removeEventListener("storage", carregarContextoLocal);
     };
   }, [logoUrl]);
 
