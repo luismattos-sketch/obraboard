@@ -397,8 +397,14 @@ export default function CheckinPage() {
       setUsuariosCadastrados(dadosObra.usuarios);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
 
-      if (contexto.turnoAtivo) {
-        setTurno(contexto.turnoAtivo.nome);
+      const turnoInicial = contexto.turnoAtivo ?? dadosObra.turnos[0] ?? null;
+
+      if (turnoInicial) {
+        setTurno(turnoInicial.nome);
+
+        if (!contexto.turnoAtivo && obraResolvidaId) {
+          void salvarTurnoAtivo(obraResolvidaId, turnoInicial.nome, turnoInicial.id);
+        }
       } else {
         setTurno("");
       }
