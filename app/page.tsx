@@ -156,8 +156,9 @@ export default function Home() {
   }, [atividadesDaData, dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]);
 
   const recursosReaisPorFuncao = useMemo(() => {
-    const mapa = new Map<string, number>();
+    const mapa = new Map<string, { quantidade: number; hh: number }>();
     const atividadesIds = new Set(atividades.map((item) => item.id));
+    const atividadesPorId = new Map(atividades.map((item) => [item.id, item]));
 
     maoObraReal
       .filter((item) =>
@@ -174,7 +175,17 @@ export default function Home() {
         const funcao = item.funcao || "";
 
         if (funcao) {
-          mapa.set(funcao, (mapa.get(funcao) ?? 0) + Number(item.quantidade || 0));
+          const quantidade = Number(item.quantidade || 0);
+          const atividade = item.atividade_id
+            ? atividadesPorId.get(item.atividade_id)
+            : null;
+          const hh =
+            quantidade * Number(atividade?.tempo_previsto_horas || 0);
+          const atual = mapa.get(funcao) ?? { quantidade: 0, hh: 0 };
+
+          atual.quantidade += quantidade;
+          atual.hh += hh;
+          mapa.set(funcao, atual);
         }
       });
 
@@ -688,8 +699,9 @@ export default function Home() {
                         key={funcao}
                         nome={funcao}
                         previsto={previsto?.quantidade ?? 0}
-                        real={recursosReaisPorFuncao.get(funcao) ?? 0}
+                        real={recursosReaisPorFuncao.get(funcao)?.quantidade ?? 0}
                         hhDisponivel={previsto?.hh ?? 0}
+                        hhReal={recursosReaisPorFuncao.get(funcao)?.hh ?? 0}
                       />
                     );
                   })
@@ -1010,13 +1022,16 @@ function RecursoCard({
   previsto,
   real,
   hhDisponivel,
+  hhReal,
 }: {
   nome: string;
   previsto: number;
   real: number;
   hhDisponivel: number;
+  hhReal: number;
 }) {
-  const percentual = previsto > 0 ? Math.round((real / previsto) * 100) : 0;
+  const percentual =
+    hhDisponivel > 0 ? Math.round((hhReal / hhDisponivel) * 100) : 0;
 
   return (
     <div className="rounded-xl border border-slate-200 p-3">
@@ -1039,10 +1054,10 @@ function RecursoCard({
       </div>
 
       <p className="text-xs text-slate-500">
-        Prev {previsto} - Real {real}
+        Equipe prev {previsto} - Real {real}
       </p>
       <p className="mt-1 text-xs font-semibold text-teal-700">
-        HH disponivel: {formatarHoras(hhDisponivel)}
+        HH prev {formatarHoras(hhDisponivel)} - Real {formatarHoras(hhReal)}
       </p>
     </div>
   );
