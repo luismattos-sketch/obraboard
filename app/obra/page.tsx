@@ -213,7 +213,7 @@ export default function CadastroObraPage() {
     }
 
     function carregarCadastroLocal() {
-      if (modoObraRef.current === "editando") {
+      if (modoObraRef.current === "editando" || modoObraRef.current === "criando") {
         return;
       }
 
@@ -339,7 +339,7 @@ export default function CadastroObraPage() {
             ...cadastroAtual,
             logoUrl,
             obras: novasObras,
-            obraAtivaId: cadastroAtual.obraAtivaId,
+            obraAtivaId: obra.id,
           },
           obra.id,
           dadosDaObra
@@ -361,7 +361,7 @@ export default function CadastroObraPage() {
     setMensagem(
       editando
         ? "Obra atualizada."
-        : "Obra cadastrada. Selecione-a no menu lateral para torna-la ativa."
+        : "Obra cadastrada e selecionada como ativa."
     );
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
