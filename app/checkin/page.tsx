@@ -1092,9 +1092,28 @@ export default function CheckinPage() {
       return;
     }
 
+    if (recursosAtividade.length === 0) {
+      setErro("Informe ao menos um recurso previsto para a atividade.");
+      return;
+    }
+
+    const erroRecursos = validarLimiteRecursos(turno, recursosAtividade, tempo);
+
+    if (erroRecursos) {
+      setErro(erroRecursos);
+      return;
+    }
+
+    const hhEdicao =
+      tempo *
+      recursosAtividade.reduce(
+        (total, item) => total + Number(item.quantidade_prevista || 0),
+        0
+      );
+
     if (
       hhDisponivelTurno > 0 &&
-      hhCadastradoTurno - hhAtividadeEmEdicao + hhNovoAtividade >
+      hhCadastradoTurno - hhAtividadeEmEdicao + hhEdicao >
         hhDisponivelTurno
     ) {
       setErro("O HH cadastrado excede o HH disponivel no turno.");
@@ -1133,6 +1152,7 @@ export default function CheckinPage() {
       return;
     }
 
+    await salvarRecursosDaAtividade(id, recursosAtividade);
     await carregarAtividades(obraId);
     setAtividadeEditandoId(null);
     setAtividadeExcluindoId(null);
@@ -1899,14 +1919,74 @@ export default function CheckinPage() {
                         </td>
 
                         <td className="p-3 text-center">
-                          <div className="font-bold">
-                            {somarRecursosAtividade(item.id)}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {formatarRecursosAtividade(
-                              recursosPorAtividade[item.id] ?? []
-                            )}
-                          </div>
+                          {editando ? (
+                            <div className="min-w-[260px] space-y-2 text-left">
+                              <div className="grid grid-cols-[1fr_72px_auto] gap-2">
+                                <select
+                                  value={funcaoRecurso}
+                                  onChange={(e) => setFuncaoRecurso(e.target.value)}
+                                  className="rounded-lg border border-slate-300 bg-white p-2 text-xs"
+                                >
+                                  <option value="">Função</option>
+                                  {funcoesPrevistasCadastradas.map((funcaoItem) => (
+                                    <option key={funcaoItem.id} value={funcaoItem.nome}>
+                                      {funcaoItem.nome}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  value={quantidadeRecurso}
+                                  onChange={(e) => setQuantidadeRecurso(e.target.value)}
+                                  type="number"
+                                  min="0"
+                                  className="rounded-lg border border-slate-300 p-2 text-center text-xs"
+                                  placeholder="Qtd"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={adicionarRecursoDaAtividade}
+                                  className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-bold text-teal-700"
+                                >
+                                  Add
+                                </button>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1">
+                                {recursosAtividade.length === 0 ? (
+                                  <span className="text-xs font-semibold text-slate-500">
+                                    Sem recursos
+                                  </span>
+                                ) : (
+                                  recursosAtividade.map((recurso) => (
+                                    <span
+                                      key={recurso.id}
+                                      className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 text-xs font-semibold"
+                                    >
+                                      {recurso.funcao}: {recurso.quantidade_prevista}
+                                      <button
+                                        type="button"
+                                        onClick={() => removerRecursoDaAtividade(recurso.id)}
+                                        className="font-bold text-red-600"
+                                      >
+                                        x
+                                      </button>
+                                    </span>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="font-bold">
+                                {somarRecursosAtividade(item.id)}
+                              </div>
+                              <div className="mt-1 text-xs text-slate-500">
+                                {formatarRecursosAtividade(
+                                  recursosPorAtividade[item.id] ?? []
+                                )}
+                              </div>
+                            </>
+                          )}
                         </td>
 
                         <td className="p-3 text-center">
