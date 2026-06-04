@@ -255,7 +255,9 @@ export default function Home() {
   const executando = contarStatus(atividades, "Execução");
   const restricoes = contarStatus(atividades, "Restrição");
   const finalizadas = contarStatus(atividades, "Finalizada");
-  const parciais = contarStatus(atividades, "Parcial");
+  const parciais = atividades.filter(
+    (item) => Number(item.realizado || 0) < Number(item.previsto || 0)
+  ).length;
   const restricoesAtivas = useMemo(
     () =>
       historicoRestricoes.filter((item) =>
