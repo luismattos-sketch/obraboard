@@ -176,11 +176,13 @@ export default function CheckinPage() {
     [atividades, dataTurno, obraId, turno, turnoSelecionado]
   );
 
-  const recursosDisponiveisPorFuncao = useMemo(() => {
+  const hhDisponivelPorFuncao = useMemo(() => {
     const mapa = new Map<string, number>();
 
     recursosDisponiveis.forEach((item) => {
-      mapa.set(item.funcao, (mapa.get(item.funcao) ?? 0) + item.quantidade);
+      const hhDisponivel =
+        Number(item.quantidade || 0) * Number(item.cargaHoraria || 0);
+      mapa.set(item.funcao, (mapa.get(item.funcao) ?? 0) + hhDisponivel);
     });
 
     return mapa;
@@ -502,14 +504,18 @@ export default function CheckinPage() {
       return;
     }
 
-    const erroRecursos = validarLimiteRecursos(turno, recursosAtividade);
-
-    if (erroRecursos) {
-      setErro(erroRecursos);
-      return;
-    }
-
     if (atividadeEditandoId) {
+      const erroRecursos = validarLimiteRecursos(
+        turno,
+        recursosAtividade,
+        tempo
+      );
+
+      if (erroRecursos) {
+        setErro(erroRecursos);
+        return;
+      }
+
       await atualizarAtividadeEditando(atividadeEditandoId);
       return;
     }
@@ -541,9 +547,21 @@ export default function CheckinPage() {
         return;
       }
 
+      const erroRecursosTurnoAtual =
+        horasRestantes > 0
+          ? validarLimiteRecursos(turno, recursosAtividade, horasRestantes)
+          : "";
+
+      if (erroRecursosTurnoAtual) {
+        setErro(erroRecursosTurnoAtual);
+        return;
+      }
+
+      const horasExcedentes = tempo - horasRestantes;
       const erroRecursosProximoTurno = validarLimiteRecursos(
         proximoTurno.nome,
-        recursosAtividade
+        recursosAtividade,
+        horasExcedentes
       );
 
       if (erroRecursosProximoTurno) {
@@ -552,6 +570,13 @@ export default function CheckinPage() {
       }
 
       await salvarAtividadeComExcedente(horasRestantes, tempo, proximoTurno);
+      return;
+    }
+
+    const erroRecursos = validarLimiteRecursos(turno, recursosAtividade, tempo);
+
+    if (erroRecursos) {
+      setErro(erroRecursos);
       return;
     }
 
@@ -764,26 +789,37 @@ export default function CheckinPage() {
 
   function validarLimiteRecursos(
     turnoAlvo: string,
-    recursosNovos: RecursoFormulario[]
+    recursosNovos: RecursoFormulario[],
+    tempoAtividade: number
   ) {
-    for (const recurso of recursosNovos) {
-      const disponivel = recursosDisponiveisPorFuncao.get(recurso.funcao) ?? 0;
-      const usado = somarRecursoPorFuncao(turnoAlvo, recurso.funcao);
-      const recursoDaEdicao =
-        atividadeEditandoId && turnoAlvo === turno
-          ? somarRecursoDaAtividadePorFuncao(atividadeEditandoId, recurso.funcao)
-          : 0;
-      const total = usado - recursoDaEdicao + recurso.quantidade_prevista;
+    const hhNovoPorFuncao = recursosNovos.reduce<Map<string, number>>(
+      (mapa, recurso) => {
+        const hhNovo =
+          Number(recurso.quantidade_prevista || 0) * Number(tempoAtividade || 0);
+        mapa.set(recurso.funcao, (mapa.get(recurso.funcao) ?? 0) + hhNovo);
+        return mapa;
+      },
+      new Map()
+    );
 
-      if (total > disponivel) {
-        return `Quantidade de ${recurso.funcao} excede o total disponivel para esta obra/turno.`;
+    for (const [funcao, hhNovo] of hhNovoPorFuncao) {
+      const disponivel = hhDisponivelPorFuncao.get(funcao) ?? 0;
+      const usado = somarHhRecursoPorFuncao(turnoAlvo, funcao);
+      const hhDaEdicao =
+        atividadeEditandoId && turnoAlvo === turno
+          ? somarHhRecursoDaAtividadePorFuncao(atividadeEditandoId, funcao)
+          : 0;
+      const total = usado - hhDaEdicao + hhNovo;
+
+      if (disponivel > 0 && total > disponivel + 0.0001) {
+        return `HH de ${funcao} excede o total disponivel para esta obra/turno.`;
       }
     }
 
     return "";
   }
 
-  function somarRecursoPorFuncao(turnoAlvo: string, funcao: string) {
+  function somarHhRecursoPorFuncao(turnoAlvo: string, funcao: string) {
     return atividades
       .filter(
         (item) =>
@@ -795,15 +831,26 @@ export default function CheckinPage() {
           })
       )
       .reduce(
-        (total, item) => total + somarRecursoDaAtividadePorFuncao(item.id, funcao),
+        (total, item) =>
+          total + somarHhRecursoDaAtividadePorFuncao(item.id, funcao),
         0
       );
   }
 
-  function somarRecursoDaAtividadePorFuncao(atividadeId: number, funcao: string) {
+  function somarHhRecursoDaAtividadePorFuncao(
+    atividadeId: number,
+    funcao: string
+  ) {
+    const atividade = atividades.find((item) => item.id === atividadeId);
+    const tempoAtividade = Number(atividade?.tempo_previsto_horas || 0);
+
     return (recursosPorAtividade[atividadeId] ?? [])
       .filter((item) => item.funcao === funcao)
-      .reduce((total, item) => total + Number(item.quantidade_prevista || 0), 0);
+      .reduce(
+        (total, item) =>
+          total + Number(item.quantidade_prevista || 0) * tempoAtividade,
+        0
+      );
   }
 
   function somarRecursosAtividade(atividadeId: number) {
