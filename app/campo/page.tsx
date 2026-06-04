@@ -703,7 +703,10 @@ function CampoPageContent() {
     if (quantidadeRealizada !== undefined) {
       atualizacao.realizado = quantidadeRealizada;
       atualizacao.progresso = percentual;
-      atualizacao.status = definirStatusPorAvanco(previsto, quantidadeRealizada);
+      atualizacao.status =
+        status === "Finalizada"
+          ? status
+          : definirStatusPorAvanco(previsto, quantidadeRealizada);
 
       if (status === "Restrição") {
         atualizacao.status = "Restrição";
