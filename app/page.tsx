@@ -699,7 +699,6 @@ export default function Home() {
                         key={funcao}
                         nome={funcao}
                         previsto={previsto?.quantidade ?? 0}
-                        real={recursosReaisPorFuncao.get(funcao)?.quantidade ?? 0}
                         hhDisponivel={previsto?.hh ?? 0}
                         hhReal={recursosReaisPorFuncao.get(funcao)?.hh ?? 0}
                       />
@@ -1020,13 +1019,11 @@ function StatusBadge({ status }: { status: string }) {
 function RecursoCard({
   nome,
   previsto,
-  real,
   hhDisponivel,
   hhReal,
 }: {
   nome: string;
   previsto: number;
-  real: number;
   hhDisponivel: number;
   hhReal: number;
 }) {
@@ -1054,7 +1051,7 @@ function RecursoCard({
       </div>
 
       <p className="text-xs text-slate-500">
-        Equipe prev {previsto} - Real {real}
+        Previsto: {previsto}
       </p>
       <p className="mt-1 text-xs font-semibold text-teal-700">
         HH prev {formatarHoras(hhDisponivel)} - Real {formatarHoras(hhReal)}
