@@ -115,7 +115,6 @@ export default function CheckoutPage() {
       ),
     [atividadesBanco, dataTurnoAtual, obraId, turno, turnoSelecionado]
   );
-  const restricoes = atividades.filter((item) => item.status === "Restrição");
   const restricoesAtivas = useMemo(
     () =>
       restricoesHistorico.filter((item) =>
@@ -847,7 +846,7 @@ export default function CheckoutPage() {
           />
           <ResumoCard
             titulo="Restricoes"
-            valor={String(restricoes.length)}
+            valor={String(restricoesTratativa.length)}
             destaque="text-red-500"
           />
           <ResumoCard titulo="PPC" valor={`${ppc}%`} destaque="text-blue-600" />
@@ -1090,6 +1089,9 @@ export default function CheckoutPage() {
                   </div>
 
                   <h4 className="font-bold text-slate-900">{item.atividade}</h4>
+                  <p className="mt-2 rounded-lg border border-red-200 bg-white p-2 text-sm font-semibold text-red-700">
+                    Restricao: {restricao.texto || "Sem descricao"}
+                  </p>
                   <p className="mt-1 text-sm text-slate-600">
                     Responsável atual:{" "}
                     <span className="font-semibold text-red-600">
