@@ -854,6 +854,11 @@ function CampoPageContent() {
   }
 
   async function iniciarAtividade(id: number) {
+    if (!atividadeTemEquipeReal(id)) {
+      alert("Informe a equipe real antes de iniciar a atividade.");
+      return;
+    }
+
     setControles((atuais) => {
       const atual = atuais[id] ?? { elapsedMs: 0, runningSince: null };
 
@@ -873,6 +878,11 @@ function CampoPageContent() {
   }
 
   async function finalizarAtividade(atividade: Atividade) {
+    if (!atividadeFoiIniciada(atividade)) {
+      alert("Inicie a atividade antes de finalizar.");
+      return;
+    }
+
     const realizadoInformado = obterRealizadoInformado(
       atividade.id,
       realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0
@@ -940,8 +950,25 @@ function CampoPageContent() {
   }
 
   async function abrirRestricao(atividade: Atividade) {
+    if (!atividadeFoiIniciada(atividade)) {
+      alert("Inicie a atividade antes de cadastrar restricao.");
+      return;
+    }
+
     setRestricaoEditandoId(atividade.id);
     setRestricaoTexto("");
+  }
+
+  function atividadeTemEquipeReal(atividadeId: number) {
+    return maoObraReal.some(
+      (item) =>
+        Number(item.atividade_id) === Number(atividadeId) &&
+        Number(item.quantidade || 0) > 0
+    );
+  }
+
+  function atividadeFoiIniciada(atividade: Atividade) {
+    return atividade.status !== "Planejada";
   }
 
   async function salvarRestricao(id: number) {
@@ -1317,6 +1344,10 @@ function CampoPageContent() {
             );
             const recursosPlanejados = recursosPorAtividade[atividade.id] ?? [];
             const restricoesAtividade = restricoes[atividade.id] ?? [];
+            const temEquipeReal = recursosAtividade.some(
+              (item) => Number(item.quantidade || 0) > 0
+            );
+            const foiIniciada = atividadeFoiIniciada(atividade);
             const bloqueadaFinalizada =
               atividade.status === "Finalizada" && !atividadesEditaveis[atividade.id];
             const responsavelSelecionado = atividade.responsavel ?? "";
@@ -1502,22 +1533,25 @@ function CampoPageContent() {
                     Continuar
                   </button>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => iniciarAtividade(atividade.id)}
-                      className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+                      disabled={!temEquipeReal}
+                      className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Iniciar
                     </button>
                     <button
                       onClick={() => abrirRestricao(atividade)}
-                      className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+                      disabled={!foiIniciada}
+                      className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Restrição
                     </button>
                     <button
                       onClick={() => finalizarAtividade(atividade)}
-                      className="rounded-lg bg-green-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-green-700"
+                      disabled={!foiIniciada}
+                      className="rounded-lg bg-green-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Finalizar
                     </button>
