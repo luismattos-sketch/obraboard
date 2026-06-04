@@ -118,7 +118,7 @@ export default function CheckoutPage() {
   const restricoesAtivas = useMemo(
     () =>
       restricoesHistorico.filter((item) =>
-        ["aberta", "parada", "reprogramada"].includes(item.status)
+        ["aberta", "parada"].includes(item.status)
       ),
     [restricoesHistorico]
   );
@@ -643,24 +643,7 @@ export default function CheckoutPage() {
       }
 
       await registrarRestricaoHistoricoRemoto(
-        {
-          ...(atividadeOriginal ?? criarAtividadeBaseRestricao(restricao)),
-          id: nova.id,
-          prioridade: tratativa.prioridade,
-          disciplina: tratativa.disciplina,
-          atividade: tratativa.atividade,
-          local: tratativa.local,
-          responsavel: tratativa.responsavel,
-          previsto: previstoTratativa,
-          realizado: 0,
-          unidade: tratativa.unidade,
-          tempo_previsto_horas: tempoTratativa,
-          data_turno: dataTurnoDestino,
-          turno: proximoTurno.nome,
-          turno_id: proximoTurno.id,
-          status: "Planejada",
-          progresso: 0,
-        },
+        atividadeOriginal ?? criarAtividadeBaseRestricao(restricao),
         restricao.texto,
         "reprogramada",
         restricao.id

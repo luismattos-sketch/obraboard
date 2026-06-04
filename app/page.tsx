@@ -876,7 +876,7 @@ function contarStatus(atividades: Atividade[], status: string) {
 }
 
 function restricaoEstaAtivaNoTurno(status: string) {
-  return ["aberta", "parada", "reprogramada"].includes(status);
+  return ["aberta", "parada"].includes(status);
 }
 
 function obterDataTurnoAtual(
