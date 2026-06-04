@@ -676,7 +676,7 @@ export default function Home() {
             destaque="text-yellow-500"
           />
           <KpiCard
-            titulo="Validadas"
+            titulo="Finalizada"
             valor={String(finalizadas)}
             destaque="text-green-600"
           />
