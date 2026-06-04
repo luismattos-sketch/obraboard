@@ -827,7 +827,7 @@ function CampoPageContent() {
       );
       const todasFinalizadas =
         atividadesDoTurno.length > 0 &&
-        atividadesDoTurno.every((atividade) => atividade.status === "Finalizada");
+        atividadesDoTurno.every(atividadeEstaFinalizada);
 
       if (todasFinalizadas) {
         novosControles = pausarControleTurno(
@@ -1701,6 +1701,10 @@ function mesclarRestricoesAtividade(
 
 function restricaoEstaAtivaNoCampo(status: string) {
   return ["aberta", "parada", "reprogramada"].includes(status);
+}
+
+function atividadeEstaFinalizada(atividade: Pick<Atividade, "status">) {
+  return atividade.status === "Finalizada";
 }
 
 function normalizarTextoRestricao(texto: string) {
