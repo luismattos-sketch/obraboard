@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
 import { supabase } from "../../lib/supabase";
-import type { Atividade, AtividadeRecurso } from "../../lib/types";
+import type { Atividade, AtividadeRecurso, PrioridadeAtividade } from "../../lib/types";
 import {
   cadastroBaseEvento,
   cadastroDadosObraInicial,
@@ -28,6 +28,7 @@ import {
   turnoEstaEncerrado,
   type ControlesTurno,
   type FechamentosTurno,
+  type RestricaoHistorico,
 } from "../../lib/operacao";
 import {
   carregarControlesTurnoRemotos,
@@ -40,6 +41,18 @@ import {
 } from "../../lib/operacao-remota";
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
+const unidades = ["un", "m", "m2", "m3", "kg", "t", "peca", "suporte", "base", "equipamento", "linha", "lance"];
+
+type TratativaRestricao = {
+  prioridade: PrioridadeAtividade;
+  disciplina: string;
+  atividade: string;
+  local: string;
+  responsavel: string;
+  previsto: string;
+  unidade: string;
+  tempoPrevistoHoras: string;
+};
 
 export default function CheckoutPage() {
   const [obraId, setObraId] = useState<number | null>(null);
@@ -60,6 +73,10 @@ export default function CheckoutPage() {
   const [fechamentos, setFechamentos] = useState<FechamentosTurno>({});
   const [controlesTurno, setControlesTurno] = useState<ControlesTurno>({});
   const [agora, setAgora] = useState(() => new Date());
+  const [restricoesHistorico, setRestricoesHistorico] = useState<RestricaoHistorico[]>([]);
+  const [tratativasRestricoes, setTratativasRestricoes] = useState<
+    Record<string, TratativaRestricao>
+  >({});
   const [edicao, setEdicao] = useState({
     previsto: "",
     realizado: "",
@@ -99,6 +116,22 @@ export default function CheckoutPage() {
     [atividadesBanco, dataTurnoAtual, obraId, turno, turnoSelecionado]
   );
   const restricoes = atividades.filter((item) => item.status === "Restrição");
+  const restricoesAtivas = useMemo(
+    () =>
+      restricoesHistorico.filter((item) =>
+        ["aberta", "parada", "reprogramada"].includes(item.status)
+      ),
+    [restricoesHistorico]
+  );
+  const restricoesTratativa = useMemo(
+    () =>
+      restricoesAtivas.map((restricao) => ({
+        restricao,
+        atividade:
+          atividades.find((item) => item.id === restricao.atividadeId) ?? null,
+      })),
+    [atividades, restricoesAtivas]
+  );
   const farois = atividades.map((item) =>
     obterFarolOperacional(
       item.status,
@@ -250,6 +283,42 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  useEffect(() => {
+    async function carregarRestricoesCheckout() {
+      if (!obraId || !dataTurnoAtual || !turno) {
+        setRestricoesHistorico([]);
+        return;
+      }
+
+      setRestricoesHistorico(
+        await listarRestricoesHistoricoRemoto(
+          obraId,
+          dataTurnoAtual,
+          turno,
+          turnoSelecionado?.id ?? null
+        )
+      );
+    }
+
+    void carregarRestricoesCheckout();
+  }, [obraId, dataTurnoAtual, turno, turnoSelecionado]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setTratativasRestricoes((atuais) => {
+        const proximo = { ...atuais };
+
+        restricoesTratativa.forEach(({ restricao, atividade }) => {
+          if (!proximo[restricao.id]) {
+            proximo[restricao.id] = criarTratativaRestricao(restricao, atividade);
+          }
+        });
+
+        return proximo;
+      });
+    });
+  }, [restricoesTratativa]);
+
   async function recarregarAtividades() {
     if (!obraId) {
       return;
@@ -285,6 +354,20 @@ export default function CheckoutPage() {
       tempoPrevistoHoras: String(item.tempo_previsto_horas || ""),
       responsavel: item.responsavel || "",
     });
+  }
+
+  function atualizarTratativaRestricao(
+    restricaoId: string,
+    campo: keyof TratativaRestricao,
+    valor: string
+  ) {
+    setTratativasRestricoes((atuais) => ({
+      ...atuais,
+      [restricaoId]: {
+        ...atuais[restricaoId],
+        [campo]: valor,
+      } as TratativaRestricao,
+    }));
   }
 
   async function salvarEdicao(item: Atividade) {
@@ -477,6 +560,113 @@ export default function CheckoutPage() {
           )
         )
       );
+      criadas += 1;
+    }
+
+    for (const { restricao, atividade: atividadeOriginal } of restricoesTratativa) {
+      const tratativa = tratativasRestricoes[restricao.id];
+
+      if (!tratativa) {
+        continue;
+      }
+
+      const previstoTratativa = normalizarNumeroCheckout(tratativa.previsto);
+      const tempoTratativa = normalizarNumeroCheckout(tratativa.tempoPrevistoHoras);
+
+      if (
+        !tratativa.atividade ||
+        !tratativa.disciplina ||
+        !tratativa.local ||
+        !tratativa.responsavel ||
+        previstoTratativa <= 0 ||
+        tempoTratativa <= 0
+      ) {
+        setErro("Preencha todos os campos da tratativa de restricao antes de reprogramar.");
+        return;
+      }
+
+      const origemAtividadeId = atividadeOriginal?.id ?? restricao.atividadeId;
+      const { data: existente } = await supabase
+        .from("atividades")
+        .select("id")
+        .eq("obra_id", obraId)
+        .eq("origem_atividade_id", origemAtividadeId)
+        .eq("turno_id", proximoTurno.id)
+        .eq("turno", proximoTurno.nome)
+        .eq("data_turno", dataTurnoDestino)
+        .eq("atividade", tratativa.atividade)
+        .maybeSingle();
+
+      if (existente?.id) {
+        continue;
+      }
+
+      const { data: nova, error } = await supabase
+        .from("atividades")
+        .insert([
+          {
+            obra_id: obraId,
+            turno_id: proximoTurno.id,
+            prioridade: tratativa.prioridade,
+            disciplina: tratativa.disciplina,
+            atividade: tratativa.atividade,
+            local: tratativa.local,
+            responsavel: tratativa.responsavel,
+            previsto: previstoTratativa,
+            realizado: 0,
+            unidade: tratativa.unidade,
+            tempo_previsto_horas: tempoTratativa,
+            status: "Planejada",
+            progresso: 0,
+            turno: proximoTurno.nome,
+            data_turno: dataTurnoDestino,
+            origem_atividade_id: origemAtividadeId,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (error || !nova?.id) {
+        console.error(error);
+        setErro("Erro ao reprogramar tratativa de restricao.");
+        return;
+      }
+
+      const recursos = atividadeOriginal ? recursosPorAtividade[atividadeOriginal.id] ?? [] : [];
+      if (recursos.length > 0) {
+        await supabase.from("atividade_recursos").insert(
+          recursos.map((recurso) => ({
+            atividade_id: nova.id,
+            funcao: recurso.funcao,
+            quantidade_prevista: recurso.quantidade_prevista,
+          }))
+        );
+      }
+
+      await registrarRestricaoHistoricoRemoto(
+        {
+          ...(atividadeOriginal ?? criarAtividadeBaseRestricao(restricao)),
+          id: nova.id,
+          prioridade: tratativa.prioridade,
+          disciplina: tratativa.disciplina,
+          atividade: tratativa.atividade,
+          local: tratativa.local,
+          responsavel: tratativa.responsavel,
+          previsto: previstoTratativa,
+          realizado: 0,
+          unidade: tratativa.unidade,
+          tempo_previsto_horas: tempoTratativa,
+          data_turno: dataTurnoDestino,
+          turno: proximoTurno.nome,
+          turno_id: proximoTurno.id,
+          status: "Planejada",
+          progresso: 0,
+        },
+        restricao.texto,
+        "reprogramada",
+        restricao.id
+      );
+
       criadas += 1;
     }
 
@@ -871,20 +1061,28 @@ export default function CheckoutPage() {
             texto="Pendencias reais do turno atual"
           />
 
-          {restricoes.length === 0 ? (
+          {restricoesTratativa.length === 0 ? (
             <div className="pt-4">
               <EstadoVazio texto="Nenhuma restricao registrada para este turno." />
             </div>
           ) : (
             <div className="grid gap-4 pt-4 lg:grid-cols-2">
-              {restricoes.map((item) => (
+              {restricoesTratativa.map(({ restricao, atividade }) => {
+                const item = atividade ?? criarAtividadeBaseRestricao(restricao);
+                const tratativa = tratativasRestricoes[restricao.id];
+
+                if (!tratativa) {
+                  return null;
+                }
+
+                return (
                 <div
-                  key={item.id}
+                  key={restricao.id}
                   className="rounded-xl border border-red-200 bg-red-50 p-4"
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-bold text-red-700">
-                      R{item.id}
+                      R{restricao.atividadeId}
                     </span>
                     <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-700">
                       Impacto {item.prioridade === "A" ? "Alto" : "Médio"}
@@ -898,12 +1096,103 @@ export default function CheckoutPage() {
                       {item.responsavel}
                     </span>
                   </p>
-                  <textarea
-                    className="mt-3 min-h-[76px] w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
-                    placeholder="Descreva a tratativa definida no checkout..."
-                  />
+                  <div className="mt-4 grid gap-3 md:grid-cols-6">
+                    <label className="block text-xs font-bold uppercase text-slate-500 md:col-span-1">
+                      Pri
+                      <select
+                        value={tratativa.prioridade}
+                        onChange={(e) =>
+                          atualizarTratativaRestricao(
+                            restricao.id,
+                            "prioridade",
+                            e.target.value
+                          )
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm normal-case text-slate-700"
+                      >
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                      </select>
+                    </label>
+                    <CampoTratativa
+                      label="Disciplina"
+                      value={tratativa.disciplina}
+                      onChange={(valor) =>
+                        atualizarTratativaRestricao(restricao.id, "disciplina", valor)
+                      }
+                      className="md:col-span-2"
+                    />
+                    <CampoTratativa
+                      label="Atividade"
+                      value={tratativa.atividade}
+                      onChange={(valor) =>
+                        atualizarTratativaRestricao(restricao.id, "atividade", valor)
+                      }
+                      className="md:col-span-3"
+                    />
+                    <CampoTratativa
+                      label="Local"
+                      value={tratativa.local}
+                      onChange={(valor) =>
+                        atualizarTratativaRestricao(restricao.id, "local", valor)
+                      }
+                      className="md:col-span-2"
+                    />
+                    <CampoTratativa
+                      label="Responsavel"
+                      value={tratativa.responsavel}
+                      onChange={(valor) =>
+                        atualizarTratativaRestricao(restricao.id, "responsavel", valor)
+                      }
+                      className="md:col-span-2"
+                    />
+                    <CampoTratativa
+                      label="Previsao"
+                      value={tratativa.previsto}
+                      onChange={(valor) =>
+                        atualizarTratativaRestricao(restricao.id, "previsto", valor)
+                      }
+                      type="number"
+                      className="md:col-span-1"
+                    />
+                    <label className="block text-xs font-bold uppercase text-slate-500 md:col-span-1">
+                      Unidade
+                      <select
+                        value={tratativa.unidade}
+                        onChange={(e) =>
+                          atualizarTratativaRestricao(
+                            restricao.id,
+                            "unidade",
+                            e.target.value
+                          )
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm normal-case text-slate-700"
+                      >
+                        {unidades.map((unidade) => (
+                          <option key={unidade} value={unidade}>
+                            {unidade}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <CampoTratativa
+                      label="Tempo previsto"
+                      value={tratativa.tempoPrevistoHoras}
+                      onChange={(valor) =>
+                        atualizarTratativaRestricao(
+                          restricao.id,
+                          "tempoPrevistoHoras",
+                          valor
+                        )
+                      }
+                      type="number"
+                      className="md:col-span-1"
+                    />
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -942,6 +1231,72 @@ export default function CheckoutPage() {
       </div>
     </DesktopLayout>
   );
+}
+
+function CampoTratativa({
+  label,
+  value,
+  onChange,
+  className = "",
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  className?: string;
+  type?: "text" | "number";
+}) {
+  return (
+    <label className={`block text-xs font-bold uppercase text-slate-500 ${className}`}>
+      {label}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        type={type}
+        min={type === "number" ? "0" : undefined}
+        step={type === "number" ? "0.01" : undefined}
+        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm normal-case text-slate-700"
+      />
+    </label>
+  );
+}
+
+function criarTratativaRestricao(
+  restricao: RestricaoHistorico,
+  atividade: Atividade | null
+): TratativaRestricao {
+  return {
+    prioridade: atividade?.prioridade ?? "A",
+    disciplina: atividade?.disciplina ?? "",
+    atividade: `${atividade?.atividade ?? restricao.atividade} - tratativa`,
+    local: atividade?.local ?? "",
+    responsavel: atividade?.responsavel ?? restricao.responsavel ?? "",
+    previsto: String(atividade?.previsto || 1),
+    unidade: atividade?.unidade || "un",
+    tempoPrevistoHoras: String(atividade?.tempo_previsto_horas || 1),
+  };
+}
+
+function criarAtividadeBaseRestricao(restricao: RestricaoHistorico): Atividade {
+  return {
+    id: restricao.atividadeId,
+    obra_id: restricao.obraId,
+    prioridade: "A",
+    disciplina: "",
+    atividade: restricao.atividade,
+    local: "",
+    responsavel: restricao.responsavel,
+    previsto: 1,
+    realizado: 0,
+    unidade: "un",
+    tempo_previsto_horas: 1,
+    origem_atividade_id: null,
+    turno_id: restricao.turnoId,
+    status: "Planejada",
+    progresso: 0,
+    turno: restricao.turno,
+    data_turno: restricao.dataTurno,
+  };
 }
 
 function obterDataTurnoAtual(
