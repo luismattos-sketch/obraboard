@@ -22,12 +22,18 @@ import {
 import {
   calcularAvancoReal,
   definirStatusPorAvanco,
+  iniciarControleTurno,
+  obterControleTurno,
+  pausarControleTurno,
   pertenceAoTurno,
+  type ControlesTurno,
 } from "../../lib/operacao";
 import {
+  carregarControlesTurnoRemotos,
   descreverErroSupabase,
   listarRestricoesHistoricoRemoto,
   registrarRestricaoHistoricoRemoto,
+  salvarControleTurnoRemoto,
 } from "../../lib/operacao-remota";
 
 type FiltroStatus = "Todas" | "Pendentes" | "Execução" | "Restrição" | "Finalizada";
@@ -766,6 +772,11 @@ function CampoPageContent() {
           [id]: String(atualizacao.realizado ?? 0),
         }));
       }
+
+      await sincronizarControleTurnoPorAtividades(
+        atividadeAtualizada,
+        dataTurnoGravacao
+      );
     }
 
     try {
@@ -774,6 +785,72 @@ function CampoPageContent() {
       console.error("Atividade atualizada, mas a tela Campo nao recarregou.", error);
       alert("Avanco salvo. Recarregue a tela se os dados nao atualizarem.");
     }
+  }
+
+  async function sincronizarControleTurnoPorAtividades(
+    atividadeAtualizada: Atividade,
+    dataTurnoGravacao: string
+  ) {
+    if (!obraIdCampo || !turnoIdCampo || !turno || !dataTurnoGravacao) {
+      return;
+    }
+
+    const controlesTurno = await carregarControlesTurnoRemotos(
+      obraIdCampo,
+      dataTurnoGravacao,
+      turno
+    );
+
+    let novosControles: ControlesTurno | null = null;
+
+    if (atividadeAtualizada.status === "Execução") {
+      novosControles = iniciarControleTurno(
+        controlesTurno,
+        obraIdCampo,
+        dataTurnoGravacao,
+        turno
+      );
+    } else if (atividadeAtualizada.status === "Finalizada") {
+      const atividadesAtualizadas = atividades.map((atividade) =>
+        atividade.id === atividadeAtualizada.id ? atividadeAtualizada : atividade
+      );
+      const atividadesDoTurno = atividadesAtualizadas.filter((atividade) =>
+        pertenceAoTurno(atividade, {
+          obraId: obraIdCampo,
+          turnoId: turnoIdCampo,
+          turno,
+          dataTurno: dataTurnoGravacao,
+        })
+      );
+      const todasFinalizadas =
+        atividadesDoTurno.length > 0 &&
+        atividadesDoTurno.every((atividade) => atividade.status === "Finalizada");
+
+      if (todasFinalizadas) {
+        novosControles = pausarControleTurno(
+          controlesTurno,
+          obraIdCampo,
+          dataTurnoGravacao,
+          turno
+        );
+      }
+    }
+
+    const controle = novosControles
+      ? obterControleTurno(novosControles, obraIdCampo, dataTurnoGravacao, turno)
+      : null;
+
+    if (!controle) {
+      return;
+    }
+
+    await salvarControleTurnoRemoto(
+      obraIdCampo,
+      dataTurnoGravacao,
+      turno,
+      turnoIdCampo,
+      controle
+    );
   }
 
   async function iniciarAtividade(id: number) {
