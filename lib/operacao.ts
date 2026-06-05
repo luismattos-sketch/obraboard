@@ -112,6 +112,10 @@ export function obterFarolOperacional(status: string, avanco: number) {
   return "Pendente";
 }
 
+export function atividadeEncerraTurno(atividade: Pick<Atividade, "status">) {
+  return ["Finalizada", "Parcial", "Restrição"].includes(atividade.status);
+}
+
 export function pertenceAoTurno(
   item: {
     obra_id?: number | null;

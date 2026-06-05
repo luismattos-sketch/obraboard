@@ -403,7 +403,7 @@ export default function Home() {
     void carregarContextoRemoto();
     const intervaloAtualizacao = window.setInterval(() => {
       void carregarContextoRemoto();
-    }, 60000);
+    }, 5000);
     window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
 
     return () => {

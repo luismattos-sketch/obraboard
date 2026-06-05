@@ -21,10 +21,11 @@ import {
 } from "../../lib/cadastro-base";
 import {
   calcularAvancoReal,
+  atividadeEncerraTurno,
   definirStatusPorAvanco,
+  encerrarControleTurno,
   iniciarControleTurno,
   obterControleTurno,
-  pausarControleTurno,
   pertenceAoTurno,
   type ControlesTurno,
 } from "../../lib/operacao";
@@ -813,7 +814,7 @@ function CampoPageContent() {
         dataTurnoGravacao,
         turno
       );
-    } else if (atividadeAtualizada.status === "Finalizada") {
+    } else if (atividadeEncerraTurno(atividadeAtualizada)) {
       const atividadesAtualizadas = atividades.map((atividade) =>
         atividade.id === atividadeAtualizada.id ? atividadeAtualizada : atividade
       );
@@ -825,12 +826,12 @@ function CampoPageContent() {
           dataTurno: dataTurnoGravacao,
         })
       );
-      const todasFinalizadas =
+      const todasEncerradas =
         atividadesDoTurno.length > 0 &&
-        atividadesDoTurno.every(atividadeEstaFinalizada);
+        atividadesDoTurno.every(atividadeEncerraTurno);
 
-      if (todasFinalizadas) {
-        novosControles = pausarControleTurno(
+      if (todasEncerradas) {
+        novosControles = encerrarControleTurno(
           controlesTurno,
           obraIdCampo,
           dataTurnoGravacao,
@@ -1701,10 +1702,6 @@ function mesclarRestricoesAtividade(
 
 function restricaoEstaAtivaNoCampo(status: string) {
   return ["aberta", "parada", "reprogramada"].includes(status);
-}
-
-function atividadeEstaFinalizada(atividade: Pick<Atividade, "status">) {
-  return atividade.status === "Finalizada";
 }
 
 function normalizarTextoRestricao(texto: string) {
