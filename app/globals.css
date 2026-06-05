@@ -1,28 +1,189 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eef2f6;
+  --foreground: #263238;
+  --frentia-blue: #002f6c;
+  --frentia-blue-2: #0b4a8f;
+  --frentia-blue-deep: #041f49;
+  --frentia-orange: #ff6b00;
+  --frentia-orange-hover: #e65f00;
+  --frentia-graphite: #263238;
+  --frentia-bg-soft: #eef2f6;
+  --frentia-border: #d7dee8;
+  --frentia-success: #2e7d32;
+  --frentia-warning: #f9a825;
+  --frentia-danger: #c62828;
+  --frentia-shadow: 0 16px 36px rgba(4, 31, 73, 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: Inter, Arial, Helvetica, sans-serif;
   --font-mono: "Courier New", Courier, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #eef2f6;
+    --foreground: #263238;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .frentia-logo-img {
+    object-fit: contain;
+  }
+
+  .frentia-logo-img-invert {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .bg-slate-50 {
+    background-color: #f6f8fb !important;
+  }
+
+  .bg-slate-100 {
+    background-color: var(--frentia-bg-soft) !important;
+  }
+
+  .bg-slate-900 {
+    background-color: var(--frentia-blue) !important;
+  }
+
+  .bg-slate-950 {
+    background-color: var(--frentia-blue-deep) !important;
+  }
+
+  .bg-teal-50 {
+    background-color: #eaf2ff !important;
+  }
+
+  .bg-teal-100 {
+    background-color: #dceaff !important;
+  }
+
+  .bg-teal-500,
+  .bg-teal-600 {
+    background-color: var(--frentia-orange) !important;
+  }
+
+  .hover\:bg-teal-700:hover {
+    background-color: var(--frentia-orange-hover) !important;
+  }
+
+  .hover\:bg-teal-100:hover {
+    background-color: #dceaff !important;
+  }
+
+  .bg-blue-50,
+  .bg-blue-100 {
+    background-color: #eaf2ff !important;
+  }
+
+  .bg-green-50,
+  .bg-green-100 {
+    background-color: rgba(46, 125, 50, 0.1) !important;
+  }
+
+  .bg-green-500,
+  .bg-green-600 {
+    background-color: var(--frentia-success) !important;
+  }
+
+  .bg-yellow-50,
+  .bg-yellow-100 {
+    background-color: rgba(249, 168, 37, 0.15) !important;
+  }
+
+  .bg-yellow-500,
+  .bg-yellow-600 {
+    background-color: var(--frentia-warning) !important;
+  }
+
+  .bg-red-50,
+  .bg-red-100 {
+    background-color: rgba(198, 40, 40, 0.1) !important;
+  }
+
+  .bg-red-500,
+  .bg-red-600,
+  .bg-red-700 {
+    background-color: var(--frentia-danger) !important;
+  }
+
+  .text-slate-900,
+  .text-slate-950 {
+    color: var(--frentia-graphite) !important;
+  }
+
+  .text-slate-700,
+  .text-slate-600 {
+    color: #4d5a6d !important;
+  }
+
+  .text-slate-500,
+  .text-slate-400 {
+    color: #7b8794 !important;
+  }
+
+  .text-teal-600,
+  .text-teal-700,
+  .text-blue-600,
+  .text-blue-700 {
+    color: var(--frentia-blue-2) !important;
+  }
+
+  .text-green-600,
+  .text-green-700 {
+    color: var(--frentia-success) !important;
+  }
+
+  .text-yellow-500,
+  .text-yellow-700,
+  .text-amber-800 {
+    color: #a94700 !important;
+  }
+
+  .text-red-500,
+  .text-red-600,
+  .text-red-700 {
+    color: var(--frentia-danger) !important;
+  }
+
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300 {
+    border-color: var(--frentia-border) !important;
+  }
+
+  .border-slate-700,
+  .border-slate-800 {
+    border-color: rgba(255, 255, 255, 0.18) !important;
+  }
+
+  .border-teal-200,
+  .focus\:border-teal-500:focus {
+    border-color: var(--frentia-blue-2) !important;
+  }
+
+  .focus\:ring-teal-100:focus {
+    --tw-ring-color: rgba(11, 74, 143, 0.18) !important;
+  }
+
+  .shadow-sm,
+  .shadow-xl {
+    box-shadow: var(--frentia-shadow) !important;
+  }
 }
 
 .rdo-page {

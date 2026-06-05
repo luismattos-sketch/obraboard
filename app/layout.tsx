@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ObraBoard",
-  description: "Gestão operacional de obra",
+  title: "Frentia",
+  description: "Gestão de frentes, turnos e campo em tempo real",
 };
 
 export default function RootLayout({

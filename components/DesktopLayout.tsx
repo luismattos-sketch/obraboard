@@ -120,7 +120,12 @@ export default function DesktopLayout({
         <aside className="hidden w-60 shrink-0 flex-col justify-between bg-slate-950 p-4 text-white print:hidden lg:flex">
           <div>
             <div className="mb-8 border-b border-slate-800 pb-5">
-              <h1 className="text-2xl font-bold tracking-tight">ObraBoard</h1>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/frentia-logo.png"
+                alt="Frentia"
+                className="frentia-logo-img frentia-logo-img-invert h-9 w-auto"
+              />
               <p className="mt-1 text-xs text-slate-400">
                 Gestão operacional
               </p>
@@ -213,7 +218,12 @@ export default function DesktopLayout({
           <div className="mb-4 rounded-xl bg-slate-950 p-3 text-white shadow-sm print:hidden lg:hidden">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h1 className="text-lg font-bold tracking-tight">ObraBoard</h1>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/frentia-logo.png"
+                  alt="Frentia"
+                  className="frentia-logo-img frentia-logo-img-invert h-7 w-auto"
+                />
                 <p className="text-xs text-slate-400">Gestão operacional</p>
               </div>
 

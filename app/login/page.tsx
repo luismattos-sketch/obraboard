@@ -88,7 +88,12 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-slate-900">ObraBoard</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/frentia-logo.png"
+            alt="Frentia"
+            className="mx-auto h-16 w-auto object-contain"
+          />
           <p className="mt-2 text-slate-500">Gestão operacional de obra</p>
         </div>
 
