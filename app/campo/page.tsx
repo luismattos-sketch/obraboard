@@ -23,9 +23,9 @@ import {
   calcularAvancoReal,
   atividadeEncerraTurno,
   definirStatusPorAvanco,
-  encerrarControleTurno,
   iniciarControleTurno,
   obterControleTurno,
+  pausarControleTurno,
   pertenceAoTurno,
   type ControlesTurno,
 } from "../../lib/operacao";
@@ -698,7 +698,7 @@ function CampoPageContent() {
             : new Date().toISOString()
           : undefined,
       pausado_em: status === "Parcial" || status === "Restrição" ? new Date().toISOString() : undefined,
-      finalizado_em: status === "Finalizada" ? new Date().toISOString() : undefined,
+      finalizado_em: atividadeEncerraTurno({ status }) ? new Date().toISOString() : undefined,
     };
 
     if (quantidadeRealizada !== undefined) {
@@ -831,7 +831,7 @@ function CampoPageContent() {
         atividadesDoTurno.every(atividadeEncerraTurno);
 
       if (todasEncerradas) {
-        novosControles = encerrarControleTurno(
+        novosControles = pausarControleTurno(
           controlesTurno,
           obraIdCampo,
           dataTurnoGravacao,

@@ -16,6 +16,7 @@ import {
   type TurnoCadastrado,
 } from "../lib/cadastro-base";
 import {
+  atividadeEncerraTurno,
   calcularTempoTurno,
   pertenceAoTurno,
   type FechamentosTurno,
@@ -254,7 +255,7 @@ export default function Home() {
 
   const executando = contarStatus(atividades, "Execução");
   const restricoes = contarStatus(atividades, "Restrição");
-  const finalizadas = contarStatus(atividades, "Finalizada");
+  const finalizadas = atividades.filter(atividadeEncerraTurno).length;
   const parciais = atividades.filter(atividadeContaComoParcial).length;
   const restricoesAtivas = useMemo(
     () =>
@@ -1004,8 +1005,10 @@ function KpiCard({
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const finalizadaOperacionalmente = atividadeEncerraTurno({ status });
+  const texto = finalizadaOperacionalmente ? "Finalizada" : status;
   const classe =
-    status === "Finalizada"
+    finalizadaOperacionalmente
       ? "bg-green-100 text-green-700"
       : status === "Restrição"
       ? "bg-red-100 text-red-700"
@@ -1015,7 +1018,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`rounded-md px-2 py-1 text-xs font-semibold ${classe}`}>
-      {status}
+      {texto}
     </span>
   );
 }

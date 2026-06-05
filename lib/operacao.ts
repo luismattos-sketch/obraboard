@@ -112,7 +112,7 @@ export function obterFarolOperacional(status: string, avanco: number) {
   return "Pendente";
 }
 
-export function atividadeEncerraTurno(atividade: Pick<Atividade, "status">) {
+export function atividadeEncerraTurno(atividade: { status: string }) {
   return ["Finalizada", "Parcial", "Restrição"].includes(atividade.status);
 }
 
