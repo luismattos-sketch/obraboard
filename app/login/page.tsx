@@ -3,44 +3,23 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getContextoAtual, sincronizarCadastroBaseRemoto } from "../../lib/cadastro-base";
-import { criarRotaComObra, gerarCampoUrl } from "../../lib/rotas";
+import { criarRotaComObra } from "../../lib/rotas";
 import { supabase } from "../../lib/supabase";
 
-const perfis = ["Planejador", "Supervisor", "Fiscal", "Gestor"] as const;
-
-type PerfilLogin = (typeof perfis)[number];
 type ModoLogin = "entrar" | "cadastrar";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [perfil, setPerfil] = useState<PerfilLogin>("Planejador");
   const [modo, setModo] = useState<ModoLogin>("entrar");
   const [carregando, setCarregando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [cadastroDisponivel, setCadastroDisponivel] = useState(false);
 
-  async function irParaPerfil() {
+  async function irParaAplicativo() {
     const contexto = getContextoAtual(await sincronizarCadastroBaseRemoto());
-    const obraAtivaId = contexto.obraAtivaId;
-
-    if (perfil === "Planejador") {
-      router.push(criarRotaComObra("/checkin", obraAtivaId));
-      return;
-    }
-
-    if (perfil === "Supervisor") {
-      router.push(
-        gerarCampoUrl({
-          obraId: obraAtivaId,
-          turnoId: contexto.turnoAtivoId,
-        }) || criarRotaComObra("/checkin", obraAtivaId)
-      );
-      return;
-    }
-
-    router.push(criarRotaComObra("/", obraAtivaId));
+    router.push(criarRotaComObra("/", contexto.obraAtivaId));
   }
 
   async function enviarFormulario(event: FormEvent<HTMLFormElement>) {
@@ -74,7 +53,7 @@ export default function LoginPage() {
           return;
         }
 
-        await irParaPerfil();
+        await irParaAplicativo();
         return;
       }
 
@@ -91,7 +70,7 @@ export default function LoginPage() {
         return;
       }
 
-      await irParaPerfil();
+      await irParaAplicativo();
     } finally {
       setCarregando(false);
     }
@@ -161,21 +140,6 @@ export default function LoginPage() {
               placeholder="Sua senha"
               autoComplete={cadastrando ? "new-password" : "current-password"}
             />
-          </label>
-
-          <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">
-              Perfil
-            </span>
-            <select
-              value={perfil}
-              onChange={(event) => setPerfil(event.target.value as PerfilLogin)}
-              className="w-full rounded-xl border border-slate-300 p-4"
-            >
-              {perfis.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
           </label>
 
           {mensagem && (
