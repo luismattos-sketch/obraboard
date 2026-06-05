@@ -1005,10 +1005,8 @@ function KpiCard({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const finalizadaOperacionalmente = atividadeEncerraTurno({ status });
-  const texto = finalizadaOperacionalmente ? "Finalizada" : status;
   const classe =
-    finalizadaOperacionalmente
+    status === "Finalizada"
       ? "bg-green-100 text-green-700"
       : status === "Restrição"
       ? "bg-red-100 text-red-700"
@@ -1018,7 +1016,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`rounded-md px-2 py-1 text-xs font-semibold ${classe}`}>
-      {texto}
+      {status}
     </span>
   );
 }

@@ -22,7 +22,6 @@ import {
 import {
   calcularAvancoReal,
   atividadeEncerraTurno,
-  definirStatusPorAvanco,
   iniciarControleTurno,
   obterControleTurno,
   pausarControleTurno,
@@ -705,20 +704,6 @@ function CampoPageContent() {
     if (quantidadeRealizada !== undefined) {
       atualizacao.realizado = quantidadeRealizada;
       atualizacao.progresso = percentual;
-      atualizacao.status =
-        status === "Finalizada"
-          ? status
-          : definirStatusPorAvanco(previsto, quantidadeRealizada);
-
-      if (status === "Restrição") {
-        atualizacao.status = "Restrição";
-      }
-    }
-
-    if (
-      quantidadeRealizada !== undefined &&
-      (status === "Execução" || status === "Finalizada")
-    ) {
       atualizacao.status = status;
     }
 
