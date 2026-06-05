@@ -672,7 +672,8 @@ function CampoPageContent() {
     id: number,
     status: StatusAtividade,
     realizado?: number,
-    responsavel?: string
+    responsavel?: string,
+    pararTurnoSeTodasFinalizadas = false
   ) {
     const atividadeAtual = atividades.find((atividade) => atividade.id === id);
     const previsto = Number(atividadeAtual?.previsto || 0);
@@ -779,7 +780,8 @@ function CampoPageContent() {
 
       await sincronizarControleTurnoPorAtividades(
         atividadeAtualizada,
-        dataTurnoGravacao
+        dataTurnoGravacao,
+        pararTurnoSeTodasFinalizadas
       );
     }
 
@@ -793,7 +795,8 @@ function CampoPageContent() {
 
   async function sincronizarControleTurnoPorAtividades(
     atividadeAtualizada: Atividade,
-    dataTurnoGravacao: string
+    dataTurnoGravacao: string,
+    pararTurnoSeTodasFinalizadas = false
   ) {
     if (!obraIdCampo || !turnoIdCampo || !turno || !dataTurnoGravacao) {
       return;
@@ -814,7 +817,10 @@ function CampoPageContent() {
         dataTurnoGravacao,
         turno
       );
-    } else if (atividadeEncerraTurno(atividadeAtualizada)) {
+    } else if (
+      pararTurnoSeTodasFinalizadas &&
+      atividadeEncerraTurno(atividadeAtualizada)
+    ) {
       const atividadesAtualizadas = atividades.map((atividade) =>
         atividade.id === atividadeAtualizada.id ? atividadeAtualizada : atividade
       );
@@ -901,7 +907,8 @@ function CampoPageContent() {
       atividade.id,
       "Finalizada",
       realizadoInformado,
-      atividade.responsavel
+      atividade.responsavel,
+      true
     );
     setAtividadesEditaveis((atuais) => {
       const novos = { ...atuais };
