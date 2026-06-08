@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { obterEmpresaAtualId } from "./conta";
 
 export type SituacaoObra = "Planejamento" | "Mobilizacao" | "Execucao" | "Pausada";
 export type CriticidadeObra = "Baixa" | "Media" | "Alta";
@@ -126,11 +127,17 @@ export function apagarCadastroBase() {
 }
 
 export async function carregarCadastroBaseRemoto() {
+  const empresaId = await obterEmpresaAtualId();
+
+  if (!empresaId) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("cadastro_base")
     .select("dados")
-    .eq("id", cadastroBaseRemotoId)
-    .single();
+    .eq("id", `${empresaId}:${cadastroBaseRemotoId}`)
+    .maybeSingle();
 
   if (error) {
     console.error("Erro ao carregar cadastro_base remoto:", error);
@@ -138,8 +145,8 @@ export async function carregarCadastroBaseRemoto() {
   }
 
   if (!data?.dados) {
-    console.error("cadastro_base retornou vazio");
-    return null;
+    cadastroBaseMemoria = cadastroBaseInicial;
+    return cadastroBaseInicial;
   }
 
   const cadastro = normalizarCadastroBase(data.dados as Partial<CadastroBase>);
@@ -152,10 +159,16 @@ export async function sincronizarCadastroBaseRemoto() {
     return cadastroBaseInicial;
   }
 
+  const empresaId = await obterEmpresaAtualId();
+
+  if (!empresaId) {
+    return cadastroBaseInicial;
+  }
+
   const { data, error } = await supabase
     .from("cadastro_base")
     .select("dados")
-    .eq("id", cadastroBaseRemotoId)
+    .eq("id", `${empresaId}:${cadastroBaseRemotoId}`)
     .maybeSingle();
 
   if (error) {
@@ -466,8 +479,15 @@ export function notificarCadastroBaseAtualizado() {
 }
 
 async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
+  const empresaId = await obterEmpresaAtualId();
+
+  if (!empresaId) {
+    throw new Error("Conta autenticada não encontrada.");
+  }
+
   const { error } = await supabase.from("cadastro_base").upsert({
-    id: cadastroBaseRemotoId,
+    id: `${empresaId}:${cadastroBaseRemotoId}`,
+    empresa_id: empresaId,
     dados: cadastro,
     updated_at: new Date().toISOString(),
   });

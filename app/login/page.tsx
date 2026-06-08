@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getContextoAtual, sincronizarCadastroBaseRemoto } from "../../lib/cadastro-base";
 import { criarRotaComObra } from "../../lib/rotas";
 import { supabase } from "../../lib/supabase";
+import { garantirContaAtual } from "../../lib/conta";
 
 type ModoLogin = "entrar" | "cadastrar";
 
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [cadastroDisponivel, setCadastroDisponivel] = useState(false);
 
   async function irParaAplicativo() {
+    await garantirContaAtual();
     const contexto = getContextoAtual(await sincronizarCadastroBaseRemoto());
     router.push(criarRotaComObra("/", contexto.obraAtivaId));
   }
@@ -43,13 +45,18 @@ export default function LoginPage() {
 
     try {
       if (modo === "cadastrar") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: emailNormalizado,
           password: senha,
         });
 
         if (error) {
           setMensagem(descreverErroAutenticacao(error.message, "cadastro"));
+          return;
+        }
+
+        if (!data.session) {
+          setMensagem("Confirme o cadastro pelo email enviado antes de entrar.");
           return;
         }
 

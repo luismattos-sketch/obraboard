@@ -121,15 +121,6 @@ export default function Home() {
     return null;
   }, [atividadesDoTurnoAtual, turnoAtivoDados]);
 
-  const campoObraAtivaUrl =
-    clientePronto && obraAtivaId && turnoIdCampo && dataTurnoAtual
-      ? gerarCampoUrl({
-          obraId: obraAtivaId,
-          turnoId: turnoIdCampo,
-          dataTurno: dataTurnoAtual,
-        })
-      : null;
-
   const atividades = useMemo(() => {
     if (!turnoAtual) {
       return [];
@@ -226,6 +217,10 @@ export default function Home() {
     dataTurnoOperacional,
     turnoAtual || null
   );
+  const campoObraAtivaUrl =
+    clientePronto && controleTurno?.publicToken
+      ? gerarCampoUrl({ token: controleTurno.publicToken })
+      : null;
 
   const tempoDecorridoMs = calcularTempoTurno(controleTurno, agora.getTime());
 

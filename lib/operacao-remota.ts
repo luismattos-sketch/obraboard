@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Atividade } from "./types";
 import {
   chaveTurno,
@@ -22,6 +23,7 @@ type ControleTurnoLinha = {
   rdo_gerado_em?: string | null;
   tempo_acumulado_ms?: number | null;
   running_since?: string | null;
+  public_token?: string | null;
 };
 
 export function descreverErroSupabase(error: unknown, acao = "salvar") {
@@ -41,13 +43,14 @@ export function descreverErroSupabase(error: unknown, acao = "salvar") {
 export async function carregarControlesTurnoRemotos(
   obraId: number | null,
   dataTurno?: string | null,
-  turno?: string | null
+  turno?: string | null,
+  cliente: SupabaseClient = supabase
 ): Promise<ControlesTurno> {
   if (!obraId) {
     return {};
   }
 
-  let consulta = supabase.from("turnos_operacao").select("*").eq("obra_id", obraId);
+  let consulta = cliente.from("turnos_operacao").select("*").eq("obra_id", obraId);
 
   if (dataTurno) {
     consulta = consulta.eq("data_turno", dataTurno);
@@ -77,6 +80,7 @@ export async function carregarControlesTurnoRemotos(
         runningSince: item.running_since
           ? new Date(item.running_since).getTime()
           : null,
+        publicToken: item.public_token ?? undefined,
       };
       return mapa;
     },
@@ -89,28 +93,39 @@ export async function salvarControleTurnoRemoto(
   dataTurno: string,
   turno: string,
   turnoId: number | null,
-  controle: ControleTurno
+  controle: ControleTurno,
+  cliente: SupabaseClient = supabase,
+  somenteAtualizar = false
 ) {
-  const { error } = await supabase.from("turnos_operacao").upsert(
-    {
-      obra_id: obraId,
-      turno_id: turnoId,
-      data_turno: dataTurno,
-      turno,
-      status: controle.status,
-      publicado_em: controle.publicadoEm ?? null,
-      iniciado_em: controle.iniciadoEm ?? null,
-      pausado_em: controle.pausadoEm ?? null,
-      encerrado_em: controle.encerradoEm ?? null,
-      rdo_gerado_em: controle.rdoGeradoEm ?? null,
-      tempo_acumulado_ms: Math.round(Number(controle.elapsedMs || 0)),
-      running_since: controle.runningSince
-        ? new Date(controle.runningSince).toISOString()
-        : null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "obra_id,data_turno,turno" }
-  );
+  const payload = {
+    obra_id: obraId,
+    turno_id: turnoId,
+    data_turno: dataTurno,
+    turno,
+    status: controle.status,
+    publicado_em: controle.publicadoEm ?? null,
+    iniciado_em: controle.iniciadoEm ?? null,
+    pausado_em: controle.pausadoEm ?? null,
+    encerrado_em: controle.encerradoEm ?? null,
+    rdo_gerado_em: controle.rdoGeradoEm ?? null,
+    tempo_acumulado_ms: Math.round(Number(controle.elapsedMs || 0)),
+    running_since: controle.runningSince
+      ? new Date(controle.runningSince).toISOString()
+      : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const resultado = somenteAtualizar
+    ? await cliente
+        .from("turnos_operacao")
+        .update(payload)
+        .eq("obra_id", obraId)
+        .eq("data_turno", dataTurno)
+        .eq("turno", turno)
+    : await cliente
+        .from("turnos_operacao")
+        .upsert(payload, { onConflict: "obra_id,data_turno,turno" });
+  const { error } = resultado;
 
   if (error) {
     throw error;
@@ -192,7 +207,8 @@ export async function registrarRestricaoHistoricoRemoto(
   atividade: Atividade,
   texto: string,
   status: RestricaoStatus,
-  restricaoId?: string | null
+  restricaoId?: string | null,
+  cliente: SupabaseClient = supabase
 ): Promise<string | null> {
   const agora = new Date().toISOString();
   const textoNormalizado = texto.trim() || "Sem descrição";
@@ -213,7 +229,7 @@ export async function registrarRestricaoHistoricoRemoto(
   };
 
   if (status === "aberta") {
-    const { data: existente } = await supabase
+    const { data: existente } = await cliente
       .from("restricoes_historico")
       .select("id")
       .eq("atividade_id", atividade.id)
@@ -225,7 +241,7 @@ export async function registrarRestricaoHistoricoRemoto(
 
     if ((existente as { id?: string } | null)?.id) {
       const idExistente = (existente as { id: string }).id;
-      const { error } = await supabase
+      const { error } = await cliente
         .from("restricoes_historico")
         .update({
           ...payloadBase,
@@ -242,7 +258,7 @@ export async function registrarRestricaoHistoricoRemoto(
       return String(idExistente);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await cliente
       .from("restricoes_historico")
       .insert([
         {
@@ -266,7 +282,7 @@ export async function registrarRestricaoHistoricoRemoto(
     return idCriado === undefined || idCriado === null ? null : String(idCriado);
   }
 
-  let consultaExistente = supabase
+  let consultaExistente = cliente
     .from("restricoes_historico")
     .select("id,status,parada_em,retomada_em,registrada_em,aberta_em");
 
@@ -315,7 +331,7 @@ export async function registrarRestricaoHistoricoRemoto(
   };
 
   if (existenteTipado?.id) {
-    const { error } = await supabase
+    const { error } = await cliente
       .from("restricoes_historico")
       .update(payload)
       .eq("id", existenteTipado.id);
@@ -325,7 +341,7 @@ export async function registrarRestricaoHistoricoRemoto(
     return null;
   }
 
-  const { error } = await supabase.from("restricoes_historico").insert([
+  const { error } = await cliente.from("restricoes_historico").insert([
     {
       ...payload,
       registrada_em: agora,
@@ -344,13 +360,14 @@ export async function listarRestricoesHistoricoRemoto(
   obraId: number | null,
   dataTurno: string | null,
   turno: string | null,
-  turnoId?: number | null
+  turnoId?: number | null,
+  cliente: SupabaseClient = supabase
 ): Promise<RestricaoHistorico[]> {
   if (!obraId) {
     return [];
   }
 
-  let consulta = supabase
+  let consulta = cliente
     .from("restricoes_historico")
     .select("*")
     .eq("obra_id", obraId)

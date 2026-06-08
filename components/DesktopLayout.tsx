@@ -13,6 +13,7 @@ import {
   type ObraCadastrada,
 } from "../lib/cadastro-base";
 import { criarRotaComObra, gerarCampoUrl } from "../lib/rotas";
+import { supabase } from "../lib/supabase";
 
 interface Props {
   children: ReactNode;
@@ -47,9 +48,10 @@ export default function DesktopLayout({
   const [obras, setObras] = useState<ObraCadastrada[]>([]);
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivoId, setTurnoAtivoId] = useState<number | null>(null);
+  const [campoToken, setCampoToken] = useState<string | null>(null);
   const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
-  const campoHref = gerarCampoUrl({ obraId: obraAtivaId, turnoId: turnoAtivoId });
+  const campoHref = gerarCampoUrl({ token: campoToken });
   const itensMenu = menuItems.map((item) => ({
     ...item,
     href: criarRotaComObra(item.href, obraAtivaId),
@@ -88,6 +90,28 @@ export default function DesktopLayout({
       window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
     };
   }, [logoUrl]);
+
+  useEffect(() => {
+    if (!obraAtivaId || !turnoAtivoId) {
+      queueMicrotask(() => setCampoToken(null));
+      return;
+    }
+
+    void supabase
+      .from("turnos_operacao")
+      .select("public_token")
+      .eq("obra_id", obraAtivaId)
+      .eq("turno_id", turnoAtivoId)
+      .in("status", ["publicado", "em_andamento", "pausado"])
+      .order("publicado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        setCampoToken(
+          (data as { public_token?: string | null } | null)?.public_token ?? null
+        );
+      });
+  }, [obraAtivaId, turnoAtivoId]);
 
   function alterarObraAtiva(valor: string) {
     const novoId = valor ? Number(valor) : null;

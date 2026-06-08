@@ -14,29 +14,18 @@ export function criarRotaComObra(
 }
 
 export function gerarCampoUrl({
-  obraId,
-  turnoId,
-  dataTurno,
+  token,
 }: {
-  obraId: number | string | null | undefined;
-  turnoId: number | string | null | undefined;
-  dataTurno?: string | null | undefined;
+  token: string | null | undefined;
 }) {
-  const obra = String(obraId ?? "").trim();
-  const turno = String(turnoId ?? "").trim();
-  const data = String(dataTurno ?? "").trim();
+  const tokenPublico = String(token ?? "").trim();
 
-  if (!obra || !turno || typeof window === "undefined") {
+  if (!tokenPublico || typeof window === "undefined") {
     return null;
   }
 
   const params = new URLSearchParams();
-  params.set("obraId", obra);
-  params.set("turnoId", turno);
-
-  if (data) {
-    params.set("dataTurno", data);
-  }
+  params.set("token", tokenPublico);
 
   return `${window.location.origin}/campo?${params.toString()}`;
 }

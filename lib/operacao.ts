@@ -50,6 +50,7 @@ export type ControleTurno = {
   rdoGeradoEm?: string;
   elapsedMs: number;
   runningSince: number | null;
+  publicToken?: string;
 };
 export type ControlesTurno = Record<string, ControleTurno>;
 

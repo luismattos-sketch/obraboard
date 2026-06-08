@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { criarSupabaseCampo } from "../../lib/supabase";
 import type {
   Atividade,
   AtividadeRecurso,
@@ -10,11 +10,7 @@ import type {
 } from "../../lib/types";
 import {
   cadastroBaseEvento,
-  carregarCadastroBaseRemoto,
-  obterDadosObra,
-  obterTurnoPorId,
   normalizarObraId,
-  type CadastroBase,
   type FuncaoPrevistaCadastrada,
   type ObraCadastrada,
   type UsuarioCadastrado,
@@ -63,9 +59,7 @@ type MaoObraReal = {
 const mensagemLinkInvalido = "Link inválido ou turno não encontrado.";
 
 type ParametrosCampoUrl = {
-  obraId: string | null;
-  turnoId: string | null;
-  dataTurno: string | null;
+  token: string | null;
 };
 
 export default function CampoPage() {
@@ -74,9 +68,12 @@ export default function CampoPage() {
 
 function CampoPageContent() {
   const [parametrosUrl, setParametrosUrl] = useState<ParametrosCampoUrl | null>(null);
-  const obraIdParametro = normalizarObraId(parametrosUrl?.obraId ?? null);
-  const turnoIdParametro = normalizarIdParametro(parametrosUrl?.turnoId ?? null);
-  const dataTurnoParametro = parametrosUrl?.dataTurno ?? null;
+  const publicToken = parametrosUrl?.token?.trim() ?? "";
+  const supabaseCampo = useMemo(
+    () => criarSupabaseCampo(publicToken),
+    [publicToken]
+  );
+  const [dataTurnoParametro, setDataTurnoParametro] = useState<string | null>(null);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraIdCampo, setObraIdCampo] = useState<number | null>(null);
@@ -190,9 +187,7 @@ function CampoPageContent() {
       const params = new URLSearchParams(window.location.search);
 
       setParametrosUrl({
-        obraId: params.get("obraId"),
-        turnoId: params.get("turnoId"),
-        dataTurno: params.get("dataTurno"),
+        token: params.get("token"),
       });
       setStatusLinkCampo("carregando");
     }
@@ -217,7 +212,7 @@ function CampoPageContent() {
       return;
     }
 
-    let consulta = supabase
+    let consulta = supabaseCampo
       .from("atividades")
       .select("*")
       .eq("obra_id", obraAtualId)
@@ -230,7 +225,7 @@ function CampoPageContent() {
     let { data, error } = await consulta.order("id", { ascending: true });
 
     if (colunaInexistente(error, "turno_id")) {
-      let consultaSemTurnoId = supabase
+      let consultaSemTurnoId = supabaseCampo
         .from("atividades")
         .select("*")
         .eq("obra_id", obraAtualId)
@@ -270,7 +265,8 @@ function CampoPageContent() {
       obraAtualId,
       dataAtual,
       turnoAtualNome,
-      turnoAtualId
+      turnoAtualId,
+      supabaseCampo
     );
 
     setRestricoes(
@@ -328,7 +324,7 @@ function CampoPageContent() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseCampo
       .from("atividade_recursos")
       .select("*")
       .in("atividade_id", ids);
@@ -363,7 +359,7 @@ function CampoPageContent() {
       return;
     }
 
-    let { data, error } = await supabase
+    let { data, error } = await supabaseCampo
       .from("mao_obra")
       .select("*")
       .eq("obra_id", obraAtualId)
@@ -371,7 +367,7 @@ function CampoPageContent() {
       .order("id", { ascending: true });
 
     if (colunaInexistente(error, "turno_id")) {
-      const resultado = await supabase
+      const resultado = await supabaseCampo
         .from("mao_obra")
         .select("*")
         .eq("obra_id", obraAtualId)
@@ -422,15 +418,15 @@ function CampoPageContent() {
   ) {
     const [{ data: obraRemota }, { data: turnoRemoto }, { data: funcoes }, { data: usuarios }] =
       await Promise.all([
-        supabase.from("obras").select("*").eq("id", obraAtualId).maybeSingle(),
-        supabase
+        supabaseCampo.from("obras").select("*").eq("id", obraAtualId).maybeSingle(),
+        supabaseCampo
           .from("turnos")
           .select("*")
           .eq("id", turnoAtualId)
           .eq("obra_id", obraAtualId)
           .maybeSingle(),
-        supabase.from("funcoes_previstas").select("*").eq("obra_id", obraAtualId),
-        supabase.from("usuarios_operacionais").select("*").eq("obra_id", obraAtualId),
+        supabaseCampo.from("funcoes_previstas").select("*").eq("obra_id", obraAtualId),
+        supabaseCampo.from("usuarios_operacionais").select("*").eq("obra_id", obraAtualId),
       ]);
 
     if (!obraRemota || !turnoRemoto) {
@@ -475,7 +471,7 @@ function CampoPageContent() {
     obraAtualId: number,
     turnoAtualId: number
   ) {
-    let consulta = supabase
+    let consulta = supabaseCampo
       .from("atividades")
       .select("obra_id,turno_id,turno,data_turno")
       .eq("obra_id", obraAtualId)
@@ -523,87 +519,71 @@ function CampoPageContent() {
         return;
       }
 
-      console.log("URL Campo:", window.location.href);
-      console.log("Params Campo:", {
-        obraId: parametrosUrl.obraId,
-        turnoId: parametrosUrl.turnoId,
-      });
-
-      if (!parametrosUrl.obraId) {
-        limparCampoInvalido("obraId ausente");
+      if (!publicToken) {
+        limparCampoInvalido("token ausente");
         return;
       }
 
-      if (!parametrosUrl.turnoId) {
-        limparCampoInvalido("turnoId ausente");
+      const { data: turnoPublico, error } = await supabaseCampo
+        .from("turnos_operacao")
+        .select("obra_id,turno_id,data_turno,turno,status")
+        .eq("public_token", publicToken)
+        .in("status", ["publicado", "em_andamento", "pausado"])
+        .maybeSingle();
+
+      if (error || !turnoPublico) {
+        limparCampoInvalido("token invalido ou turno nao publicado");
         return;
       }
 
-      if (!obraIdParametro) {
-        limparCampoInvalido("obraId invalido");
-        return;
-      }
-
-      if (!turnoIdParametro) {
-        limparCampoInvalido("turnoId invalido");
-        return;
-      }
-
-      const cadastro = await carregarCadastroBaseRemoto();
-      console.log("Cadastro remoto carregado:", cadastro);
-      console.log("Chaves do cadastro:", Object.keys(cadastro || {}));
-
-      const obras = cadastro ? obterObrasCadastro(cadastro) : [];
-      const obraCadastro = obras.find((item) => String(item.id) === String(obraIdParametro));
-      const dadosObra = cadastro ? obterDadosObra(cadastro, obraIdParametro) : null;
-      const turnoCadastro = dadosObra
-        ? obterTurnoPorId(dadosObra.turnos, turnoIdParametro)
+      const obraIdToken = normalizarObraId(turnoPublico.obra_id);
+      const turnoIdToken = normalizarIdParametro(turnoPublico.turno_id);
+      const dataTurnoToken = turnoPublico.data_turno
+        ? String(turnoPublico.data_turno)
         : null;
 
-      console.log("Obras/frentes encontradas:", obras);
-      console.log("Obra encontrada:", obraCadastro);
-      console.log("Turnos da obra:", dadosObra?.turnos ?? []);
-      console.log("Turno encontrado:", turnoCadastro);
+      if (!obraIdToken || !turnoIdToken || !dataTurnoToken) {
+        limparCampoInvalido("token sem contexto operacional completo");
+        return;
+      }
+
+      setDataTurnoParametro(dataTurnoToken);
 
       const contextoDireto =
-        obraCadastro && turnoCadastro
-          ? null
-          : (await resolverContextoCampoPorTabelas(obraIdParametro, turnoIdParametro)) ??
-            (await resolverContextoCampoPorAtividades(obraIdParametro, turnoIdParametro));
+        (await resolverContextoCampoPorTabelas(obraIdToken, turnoIdToken)) ??
+        (await resolverContextoCampoPorAtividades(obraIdToken, turnoIdToken));
 
-      if (!obraCadastro && !contextoDireto?.obra) {
-        limparCampoInvalido("obra não encontrada no cadastro nem na tabela obras");
+      if (!contextoDireto?.obra || !contextoDireto.turno) {
+        limparCampoInvalido("obra ou turno nao encontrado para o token");
         return;
       }
-
-      if (!turnoCadastro && !contextoDireto?.turno) {
-        limparCampoInvalido("turno não encontrado no cadastro nem na tabela turnos");
-        return;
-      }
-
-      const obraResolvida = obraCadastro ?? contextoDireto?.obra;
-      const turnoResolvido = turnoCadastro ?? contextoDireto?.turno;
-      const dataTurnoDireta =
-        (contextoDireto as { dataTurno?: string | null } | null)?.dataTurno ?? null;
 
       setMensagemCampo(mensagemLinkInvalido);
       setStatusLinkCampo("valido");
-      setObraIdCampo(obraIdParametro);
-      setTurnoIdCampo(turnoIdParametro);
-      setDataTurnoCampo(dataTurnoParametro ?? dataTurnoDireta);
-      setObra(obraResolvida?.nome || obraResolvida?.codigo || "Obra sem nome");
+      setObraIdCampo(obraIdToken);
+      setTurnoIdCampo(turnoIdToken);
+      setDataTurnoCampo(dataTurnoToken);
+      setObra(
+        contextoDireto.obra.nome ||
+          contextoDireto.obra.codigo ||
+          "Obra sem nome"
+      );
       setAvisoObra("");
-      setFuncoesPrevistasCadastradas(dadosObra?.funcoesPrevistas ?? contextoDireto?.funcoes ?? []);
-      setUsuariosCadastrados(dadosObra?.usuarios ?? contextoDireto?.usuarios ?? []);
-      setTurno(turnoResolvido?.nome ?? "");
+      setFuncoesPrevistasCadastradas(contextoDireto.funcoes ?? []);
+      setUsuariosCadastrados(contextoDireto.usuarios ?? []);
+      setTurno(contextoDireto.turno.nome ?? String(turnoPublico.turno || ""));
 
       void carregarAtividades(
-        obraIdParametro,
-        turnoIdParametro,
-        turnoResolvido?.nome ?? "",
-        dataTurnoParametro ?? dataTurnoDireta
+        obraIdToken,
+        turnoIdToken,
+        contextoDireto.turno.nome ?? String(turnoPublico.turno || ""),
+        dataTurnoToken
       );
-      void carregarMaoObraReal(obraIdParametro, turnoIdParametro, turnoResolvido?.nome ?? "");
+      void carregarMaoObraReal(
+        obraIdToken,
+        turnoIdToken,
+        contextoDireto.turno.nome ?? String(turnoPublico.turno || "")
+      );
     }
 
     queueMicrotask(() => {
@@ -619,53 +599,24 @@ function CampoPageContent() {
     };
     // As cargas recebem os ids da URL explicitamente neste efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obraIdParametro, parametrosUrl, turnoIdParametro, dataTurnoParametro]);
+  }, [parametrosUrl, publicToken, supabaseCampo]);
 
   useEffect(() => {
     if (!obraIdCampo || !turnoIdCampo) {
       return;
     }
 
-    const canal = supabase
-      .channel(`campo-${obraIdCampo}-${turnoIdCampo}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "atividades",
-          filter: `obra_id=eq.${obraIdCampo}`,
-        },
-        () => void carregarAtividades()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "mao_obra",
-          filter: `obra_id=eq.${obraIdCampo}`,
-        },
-        () => void carregarMaoObraReal()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "restricoes_historico",
-          filter: `obra_id=eq.${obraIdCampo}`,
-        },
-        () => void carregarAtividades()
-      )
-      .subscribe();
+    const intervalo = window.setInterval(() => {
+      void carregarAtividades();
+      void carregarMaoObraReal();
+    }, 3000);
 
     return () => {
-      void supabase.removeChannel(canal);
+      window.clearInterval(intervalo);
     };
     // As funcoes usam o estado atual da tela Campo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obraIdCampo, turnoIdCampo, dataTurnoAtual, turno]);
+  }, [obraIdCampo, turnoIdCampo, dataTurnoAtual, turno, supabaseCampo]);
 
   async function atualizarAtividade(
     id: number,
@@ -718,13 +669,13 @@ function CampoPageContent() {
       return;
     }
 
-    let { error } = await supabase
+    let { error } = await supabaseCampo
       .from("atividades")
       .update(atualizacao)
       .eq("id", id);
 
     if (colunaInexistente(error, "turno_id")) {
-      const resultado = await supabase
+      const resultado = await supabaseCampo
         .from("atividades")
         .update(atualizacao)
         .eq("id", id);
@@ -733,7 +684,7 @@ function CampoPageContent() {
     }
 
     if (error) {
-      const resultado = await supabase
+      const resultado = await supabaseCampo
         .from("atividades")
         .update(atualizacao)
         .eq("id", id);
@@ -790,7 +741,8 @@ function CampoPageContent() {
     const controlesTurno = await carregarControlesTurnoRemotos(
       obraIdCampo,
       dataTurnoGravacao,
-      turno
+      turno,
+      supabaseCampo
     );
 
     let novosControles: ControlesTurno | null = null;
@@ -844,7 +796,9 @@ function CampoPageContent() {
       dataTurnoGravacao,
       turno,
       turnoIdCampo,
-      controle
+      controle,
+      supabaseCampo,
+      true
     );
   }
 
@@ -988,7 +942,9 @@ function CampoPageContent() {
         await registrarRestricaoHistoricoRemoto(
           atividade,
           texto,
-          "aberta"
+          "aberta",
+          undefined,
+          supabaseCampo
         );
         await atualizarAtividade(id, "Restrição");
       }
@@ -1016,7 +972,8 @@ function CampoPageContent() {
           atividade,
           atuaisTextoRestricao(restricaoAtual?.texto, restricaoTexto),
           "resolvida",
-          restricaoId
+          restricaoId,
+          supabaseCampo
         );
       }
       setRestricoes((atuais) => ({
@@ -1102,7 +1059,7 @@ function CampoPageContent() {
       data_turno: payload.data_turno,
     };
 
-    let consulta = await supabase
+    let consulta = await supabaseCampo
       .from("mao_obra")
       .select("id")
       .eq("atividade_id", payload.atividade_id)
@@ -1115,7 +1072,7 @@ function CampoPageContent() {
     const semColunaTurnoId = colunaInexistente(consulta.error, "turno_id");
 
     if (semColunaTurnoId) {
-      consulta = await supabase
+      consulta = await supabaseCampo
         .from("mao_obra")
         .select("id")
         .eq("atividade_id", payload.atividade_id)
@@ -1135,7 +1092,7 @@ function CampoPageContent() {
     );
 
     if (existentes.length === 0) {
-      const insercao = await supabase
+      const insercao = await supabaseCampo
         .from("mao_obra")
         .insert([semColunaTurnoId ? payloadSemTurnoId : payload]);
 
@@ -1143,7 +1100,7 @@ function CampoPageContent() {
     }
 
     const principalId = existentes[0].id;
-    const atualizacao = await supabase
+    const atualizacao = await supabaseCampo
       .from("mao_obra")
       .update(semColunaTurnoId ? payloadSemTurnoId : payload)
       .eq("id", principalId);
@@ -1155,7 +1112,7 @@ function CampoPageContent() {
     const duplicados = existentes.slice(1).map((item) => item.id);
 
     if (duplicados.length > 0) {
-      const remocao = await supabase.from("mao_obra").delete().in("id", duplicados);
+      const remocao = await supabaseCampo.from("mao_obra").delete().in("id", duplicados);
 
       if (remocao.error) {
         return { error: remocao.error };
@@ -1628,7 +1585,7 @@ function formatarDataTurno(dataTurno: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-function normalizarIdParametro(id: string | null) {
+function normalizarIdParametro(id: string | number | null) {
   if (!id) {
     return null;
   }
@@ -1636,22 +1593,6 @@ function normalizarIdParametro(id: string | null) {
   const numero = Number(id);
 
   return Number.isFinite(numero) && numero > 0 ? numero : null;
-}
-
-function obterObrasCadastro(cadastro: CadastroBase) {
-  const cadastroComAliases = cadastro as CadastroBase & {
-    frentes?: ObraCadastrada[];
-    works?: ObraCadastrada[];
-    projetos?: ObraCadastrada[];
-  };
-
-  return (
-    cadastroComAliases.obras ??
-    cadastroComAliases.frentes ??
-    cadastroComAliases.works ??
-    cadastroComAliases.projetos ??
-    []
-  );
 }
 
 function colunaInexistente(error: unknown, coluna: string) {
