@@ -251,7 +251,13 @@ as $$
       )
       and (p_data_turno is null or t.data_turno = p_data_turno)
       and (p_turno is null or lower(trim(t.turno)) = lower(trim(p_turno)))
-      and t.status in ('publicado', 'em_andamento', 'pausado')
+      and (
+        t.status in ('publicado', 'em_andamento', 'pausado')
+        or (
+          t.publicado_em is not null
+          and t.encerrado_em is null
+        )
+      )
   )
 $$;
 
@@ -280,7 +286,7 @@ set status = 'publicado',
 where public_token is not null
   and publicado_em is not null
   and encerrado_em is null
-  and status = 'planejado';
+  and status not in ('publicado', 'em_andamento', 'pausado');
 
 create or replace function public.campo_contexto_token(p_token text)
 returns jsonb
@@ -358,7 +364,13 @@ as $$
     limit 1
   ) t on true
   where op.public_token::text = p_token
-    and op.status in ('publicado', 'em_andamento', 'pausado')
+    and (
+      op.status in ('publicado', 'em_andamento', 'pausado')
+      or (
+        op.publicado_em is not null
+        and op.encerrado_em is null
+      )
+    )
   limit 1
 $$;
 
@@ -388,7 +400,13 @@ create policy "Campo token turnos operacao"
 on public.turnos_operacao for select to anon
 using (
   public_token::text = public.campo_token()
-  and status in ('publicado', 'em_andamento', 'pausado')
+  and (
+    status in ('publicado', 'em_andamento', 'pausado')
+    or (
+      publicado_em is not null
+      and encerrado_em is null
+    )
+  )
   and public.conta_esta_ativa(empresa_id)
 );
 
