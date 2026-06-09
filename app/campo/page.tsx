@@ -412,29 +412,27 @@ function CampoPageContent() {
     setUsuariosCadastrados([]);
   }
 
-  async function resolverContextoCampoPorTabelas(
-    obraAtualId: number,
-    turnoAtualId: number
-  ) {
-    const [{ data: obraRemota }, { data: turnoRemoto }, { data: funcoes }, { data: usuarios }] =
-      await Promise.all([
-        supabaseCampo.from("obras").select("*").eq("id", obraAtualId).maybeSingle(),
-        supabaseCampo
-          .from("turnos")
-          .select("*")
-          .eq("id", turnoAtualId)
-          .eq("obra_id", obraAtualId)
-          .maybeSingle(),
-        supabaseCampo.from("funcoes_previstas").select("*").eq("obra_id", obraAtualId),
-        supabaseCampo.from("usuarios_operacionais").select("*").eq("obra_id", obraAtualId),
-      ]);
+  async function resolverContextoCampoPorToken() {
+    const { data, error } = await supabaseCampo.rpc("campo_contexto_token", {
+      p_token: publicToken,
+    });
 
-    if (!obraRemota || !turnoRemoto) {
+    if (error || !data || typeof data !== "object") {
+      if (error) {
+        console.warn("Nao foi possivel carregar o contexto do Campo.", error);
+      }
       return null;
     }
 
-    const obraLinha = obraRemota as Record<string, unknown>;
-    const turnoLinha = turnoRemoto as Record<string, unknown>;
+    const contexto = data as Record<string, unknown>;
+    const obraLinha = contexto.obra as Record<string, unknown> | null;
+    const turnoLinha = contexto.turno as Record<string, unknown> | null;
+    const funcoes = Array.isArray(contexto.funcoes) ? contexto.funcoes : [];
+    const usuarios = Array.isArray(contexto.usuarios) ? contexto.usuarios : [];
+
+    if (!obraLinha || !turnoLinha) {
+      return null;
+    }
 
     return {
       obra: {
@@ -447,7 +445,7 @@ function CampoPageContent() {
         id: Number(turnoLinha.id),
         nome: String(turnoLinha.nome || ""),
       },
-      funcoes: ((funcoes || []) as Array<Record<string, unknown>>).map<FuncaoPrevistaCadastrada>(
+      funcoes: (funcoes as Array<Record<string, unknown>>).map<FuncaoPrevistaCadastrada>(
         (item) => ({
           id: Number(item.id),
           nome: String(item.nome || ""),
@@ -455,61 +453,15 @@ function CampoPageContent() {
           cargaHoraria: Number(item.carga_horaria || 0),
         })
       ),
-      usuarios: ((usuarios || []) as Array<Record<string, unknown>>).map<UsuarioCadastrado>(
+      usuarios: (usuarios as Array<Record<string, unknown>>).map<UsuarioCadastrado>(
         (item) => ({
           id: Number(item.id),
           nome: String(item.nome || ""),
           funcao: String(item.funcao || ""),
-          email: String(item.email || ""),
+          email: "",
           nivelAcesso: String(item.nivel_acesso || "Usuario") as UsuarioCadastrado["nivelAcesso"],
         })
       ),
-    };
-  }
-
-  async function resolverContextoCampoPorAtividades(
-    obraAtualId: number,
-    turnoAtualId: number
-  ) {
-    let consulta = supabaseCampo
-      .from("atividades")
-      .select("obra_id,turno_id,turno,data_turno")
-      .eq("obra_id", obraAtualId)
-      .eq("turno_id", turnoAtualId);
-
-    if (dataTurnoParametro) {
-      consulta = consulta.eq("data_turno", dataTurnoParametro);
-    }
-
-    const { data, error } = await consulta
-      .order("data_turno", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !data) {
-      if (error) {
-        console.warn("Não foi possível resolver Campo por atividades.", error);
-      }
-      return null;
-    }
-
-    const atividade = data as Record<string, unknown>;
-    const nomeTurno = String(atividade.turno || "");
-
-    return {
-      obra: {
-        id: obraAtualId,
-        nome: "Obra informada no link",
-        codigo: "",
-        logoUrl: "",
-      } as Pick<ObraCadastrada, "id" | "nome" | "codigo" | "logoUrl">,
-      turno: {
-        id: turnoAtualId,
-        nome: nomeTurno,
-      },
-      funcoes: [],
-      usuarios: [],
-      dataTurno: atividade.data_turno ? String(atividade.data_turno) : null,
     };
   }
 
@@ -559,9 +511,7 @@ function CampoPageContent() {
 
       setDataTurnoParametro(dataTurnoToken);
 
-      const contextoDireto =
-        (await resolverContextoCampoPorTabelas(obraIdToken, turnoIdToken)) ??
-        (await resolverContextoCampoPorAtividades(obraIdToken, turnoIdToken));
+      const contextoDireto = await resolverContextoCampoPorToken();
 
       if (!contextoDireto?.obra || !contextoDireto.turno) {
         limparCampoInvalido("obra ou turno nao encontrado para o token");
@@ -928,7 +878,18 @@ function CampoPageContent() {
   }
 
   function atividadeFoiIniciada(atividade: Atividade) {
-    return atividade.status !== "Planejada";
+    const registro = atividade as Atividade & {
+      iniciado_em?: string | null;
+      tempo_acumulado_ms?: number | null;
+    };
+    const controle = controles[atividade.id];
+
+    return Boolean(
+      registro.iniciado_em ||
+        Number(registro.tempo_acumulado_ms || 0) > 0 ||
+        controle?.runningSince ||
+        Number(controle?.elapsedMs || 0) > 0
+    );
   }
 
   async function salvarRestricao(id: number) {
@@ -1506,14 +1467,14 @@ function CampoPageContent() {
                     </button>
                     <button
                       onClick={() => abrirRestricao(atividade)}
-                      disabled={!foiIniciada}
+                      disabled={!temEquipeReal || !foiIniciada}
                       className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Restrição
                     </button>
                     <button
                       onClick={() => finalizarAtividade(atividade)}
-                      disabled={!foiIniciada}
+                      disabled={!temEquipeReal || !foiIniciada}
                       className="rounded-lg bg-green-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Finalizar
