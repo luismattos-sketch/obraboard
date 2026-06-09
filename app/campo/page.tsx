@@ -425,16 +425,29 @@ function CampoPageContent() {
     }
 
     const contexto = data as Record<string, unknown>;
+    const operacaoLinha = contexto.operacao as Record<string, unknown> | null;
     const obraLinha = contexto.obra as Record<string, unknown> | null;
     const turnoLinha = contexto.turno as Record<string, unknown> | null;
     const funcoes = Array.isArray(contexto.funcoes) ? contexto.funcoes : [];
     const usuarios = Array.isArray(contexto.usuarios) ? contexto.usuarios : [];
 
-    if (!obraLinha || !turnoLinha) {
+    if (!operacaoLinha || !obraLinha || !turnoLinha) {
       return null;
     }
 
     return {
+      operacao: {
+        obraId: normalizarObraId(
+          operacaoLinha.obra_id as string | number | null | undefined
+        ),
+        turnoId: normalizarIdParametro(
+          (operacaoLinha.turno_id as string | number | null | undefined) ?? null
+        ),
+        dataTurno: operacaoLinha.data_turno
+          ? String(operacaoLinha.data_turno)
+          : null,
+        turno: String(operacaoLinha.turno || ""),
+      },
       obra: {
         id: Number(obraLinha.id),
         nome: String(obraLinha.nome || obraLinha.codigo || "Obra sem nome"),
@@ -476,14 +489,9 @@ function CampoPageContent() {
         return;
       }
 
-      const { data: turnoPublico, error } = await supabaseCampo
-        .from("turnos_operacao")
-        .select("obra_id,turno_id,data_turno,turno,status")
-        .eq("public_token", publicToken)
-        .in("status", ["publicado", "em_andamento", "pausado"])
-        .maybeSingle();
+      const contextoDireto = await resolverContextoCampoPorToken();
 
-      if (error || !turnoPublico) {
+      if (!contextoDireto) {
         const { data: statusConta } = await supabaseCampo.rpc(
           "campo_status_token",
           { p_token: publicToken }
@@ -498,11 +506,9 @@ function CampoPageContent() {
         return;
       }
 
-      const obraIdToken = normalizarObraId(turnoPublico.obra_id);
-      const turnoIdToken = normalizarIdParametro(turnoPublico.turno_id);
-      const dataTurnoToken = turnoPublico.data_turno
-        ? String(turnoPublico.data_turno)
-        : null;
+      const obraIdToken = contextoDireto.operacao.obraId;
+      const turnoIdToken = contextoDireto.operacao.turnoId;
+      const dataTurnoToken = contextoDireto.operacao.dataTurno;
 
       if (!obraIdToken || !turnoIdToken || !dataTurnoToken) {
         limparCampoInvalido("token sem contexto operacional completo");
@@ -510,13 +516,6 @@ function CampoPageContent() {
       }
 
       setDataTurnoParametro(dataTurnoToken);
-
-      const contextoDireto = await resolverContextoCampoPorToken();
-
-      if (!contextoDireto?.obra || !contextoDireto.turno) {
-        limparCampoInvalido("obra ou turno nao encontrado para o token");
-        return;
-      }
 
       setMensagemCampo(mensagemLinkInvalido);
       setStatusLinkCampo("valido");
@@ -531,18 +530,18 @@ function CampoPageContent() {
       setAvisoObra("");
       setFuncoesPrevistasCadastradas(contextoDireto.funcoes ?? []);
       setUsuariosCadastrados(contextoDireto.usuarios ?? []);
-      setTurno(contextoDireto.turno.nome ?? String(turnoPublico.turno || ""));
+      setTurno(contextoDireto.turno.nome || contextoDireto.operacao.turno);
 
       void carregarAtividades(
         obraIdToken,
         turnoIdToken,
-        contextoDireto.turno.nome ?? String(turnoPublico.turno || ""),
+        contextoDireto.turno.nome || contextoDireto.operacao.turno,
         dataTurnoToken
       );
       void carregarMaoObraReal(
         obraIdToken,
         turnoIdToken,
-        contextoDireto.turno.nome ?? String(turnoPublico.turno || "")
+        contextoDireto.turno.nome || contextoDireto.operacao.turno
       );
     }
 

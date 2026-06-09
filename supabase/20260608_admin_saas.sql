@@ -274,6 +274,13 @@ stable
 set search_path = public
 as $$
   select jsonb_build_object(
+    'operacao', jsonb_build_object(
+      'obra_id', op.obra_id,
+      'turno_id', coalesce(t.id, op.turno_id),
+      'data_turno', op.data_turno,
+      'turno', op.turno,
+      'status', op.status
+    ),
     'obra', jsonb_build_object(
       'id', o.id,
       'nome', o.nome,
@@ -281,7 +288,7 @@ as $$
       'logo_url', o.logo_url
     ),
     'turno', jsonb_build_object(
-      'id', t.id,
+      'id', coalesce(t.id, op.turno_id),
       'nome', coalesce(nullif(t.nome, ''), op.turno)
     ),
     'funcoes', coalesce((
@@ -320,10 +327,21 @@ as $$
   join public.obras o
     on o.id = op.obra_id
    and o.empresa_id = op.empresa_id
-  join public.turnos t
-    on t.id = op.turno_id
-   and t.obra_id = op.obra_id
-   and t.empresa_id = op.empresa_id
+  left join lateral (
+    select tr.id, tr.nome
+    from public.turnos tr
+    where tr.obra_id = op.obra_id
+      and tr.empresa_id = op.empresa_id
+      and (
+        tr.id = op.turno_id
+        or (
+          op.turno_id is null
+          and lower(trim(tr.nome)) = lower(trim(op.turno))
+        )
+      )
+    order by (tr.id = op.turno_id) desc
+    limit 1
+  ) t on true
   where op.public_token::text = p_token
     and op.status in ('publicado', 'em_andamento', 'pausado')
   limit 1
