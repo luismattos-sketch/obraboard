@@ -114,8 +114,7 @@ export default function DesktopLayout({
       .select("public_token")
       .eq("obra_id", obraAtivaId)
       .eq("turno_id", turnoAtivoId)
-      .in("status", ["publicado", "em_andamento", "pausado"])
-      .order("publicado_em", { ascending: false })
+      .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {

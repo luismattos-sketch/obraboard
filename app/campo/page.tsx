@@ -547,12 +547,16 @@ function CampoPageContent() {
     queueMicrotask(() => {
       void carregarContextoObra();
     });
+    const intervaloContexto = window.setInterval(() => {
+      void carregarContextoObra();
+    }, 5000);
     const recarregarContextoRemoto = () => {
       void carregarContextoObra();
     };
     window.addEventListener(cadastroBaseEvento, recarregarContextoRemoto);
 
     return () => {
+      window.clearInterval(intervaloContexto);
       window.removeEventListener(cadastroBaseEvento, recarregarContextoRemoto);
     };
     // As cargas recebem os ids da URL explicitamente neste efeito.

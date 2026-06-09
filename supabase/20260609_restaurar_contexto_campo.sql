@@ -44,6 +44,26 @@ from campo_vinculos_obras v
 where u.obra_id = v.obra_id
   and u.empresa_id is distinct from v.empresa_id;
 
+create or replace function public.campo_empresa_token(p_token text)
+returns uuid
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select op.empresa_id
+  from public.turnos_operacao op
+  join public.empresas e
+    on e.id = op.empresa_id
+   and e.access_status = 'active'
+  where op.public_token::text = p_token
+  order by op.updated_at desc
+  limit 1
+$$;
+
+revoke all on function public.campo_empresa_token(text) from public;
+grant execute on function public.campo_empresa_token(text) to anon, authenticated;
+
 create or replace function public.campo_token_valido(
   p_empresa_id uuid,
   p_obra_id bigint,
@@ -57,27 +77,68 @@ security definer
 stable
 set search_path = public
 as $$
+  with token_base as (
+    select
+      op.empresa_id,
+      op.obra_id,
+      op.turno_id,
+      op.turno
+    from public.turnos_operacao op
+    where op.public_token::text = public.campo_token()
+    order by op.updated_at desc
+    limit 1
+  ),
+  contexto as (
+    select
+      tb.empresa_id,
+      coalesce(
+        nullif(cb.dados->>'obraAtivaId', '')::bigint,
+        tb.obra_id
+      ) as obra_id,
+      coalesce(
+        nullif(
+          cb.dados->'turnoAtivoIdPorObra'->>(
+            coalesce(nullif(cb.dados->>'obraAtivaId', '')::bigint, tb.obra_id)::text
+          ),
+          ''
+        )::bigint,
+        tb.turno_id
+      ) as turno_id,
+      coalesce(
+        nullif(
+          cb.dados->'turnoAtivoPorObra'->>(
+            coalesce(nullif(cb.dados->>'obraAtivaId', '')::bigint, tb.obra_id)::text
+          ),
+          ''
+        ),
+        tb.turno
+      ) as turno
+    from token_base tb
+    left join lateral (
+      select c.dados
+      from public.cadastro_base c
+      where c.empresa_id = tb.empresa_id
+      order by c.updated_at desc
+      limit 1
+    ) cb on true
+  )
   select exists (
     select 1
-    from public.turnos_operacao op
-    join public.empresas e on e.id = op.empresa_id
-    where op.public_token::text = public.campo_token()
-      and op.empresa_id = p_empresa_id
-      and e.access_status = 'active'
-      and op.obra_id = p_obra_id
+    from contexto c
+    join public.empresas e
+      on e.id = c.empresa_id
+     and e.access_status = 'active'
+    where c.empresa_id = p_empresa_id
+      and c.obra_id = p_obra_id
       and (
         p_turno_id is null
-        or op.turno_id = p_turno_id
-        or (
-          op.turno_id is null
-          and p_turno is not null
-          and lower(trim(op.turno)) = lower(trim(p_turno))
-        )
+        or c.turno_id is null
+        or c.turno_id = p_turno_id
       )
-      and (p_data_turno is null or op.data_turno = p_data_turno)
       and (
         p_turno is null
-        or lower(trim(op.turno)) = lower(trim(p_turno))
+        or c.turno is null
+        or lower(trim(c.turno)) = lower(trim(p_turno))
       )
   )
 $$;
@@ -89,13 +150,106 @@ security definer
 stable
 set search_path = public
 as $$
+  with token_base as (
+    select
+      op.empresa_id,
+      op.obra_id as token_obra_id,
+      op.turno_id as token_turno_id,
+      op.turno as token_turno
+    from public.turnos_operacao op
+    join public.empresas e
+      on e.id = op.empresa_id
+     and e.access_status = 'active'
+    where op.public_token::text = p_token
+    order by op.updated_at desc
+    limit 1
+  ),
+  selecao as (
+    select
+      tb.empresa_id,
+      coalesce(
+        nullif(cb.dados->>'obraAtivaId', '')::bigint,
+        tb.token_obra_id
+      ) as obra_id,
+      coalesce(
+        nullif(
+          cb.dados->'turnoAtivoIdPorObra'->>(
+            coalesce(
+              nullif(cb.dados->>'obraAtivaId', '')::bigint,
+              tb.token_obra_id
+            )::text
+          ),
+          ''
+        )::bigint,
+        tb.token_turno_id
+      ) as turno_id,
+      coalesce(
+        nullif(
+          cb.dados->'turnoAtivoPorObra'->>(
+            coalesce(
+              nullif(cb.dados->>'obraAtivaId', '')::bigint,
+              tb.token_obra_id
+            )::text
+          ),
+          ''
+        ),
+        tb.token_turno
+      ) as turno
+    from token_base tb
+    left join lateral (
+      select c.dados
+      from public.cadastro_base c
+      where c.empresa_id = tb.empresa_id
+      order by c.updated_at desc
+      limit 1
+    ) cb on true
+  ),
+  contexto as (
+    select
+      s.empresa_id,
+      s.obra_id,
+      coalesce(op.turno_id, a.turno_id, s.turno_id) as turno_id,
+      coalesce(nullif(s.turno, ''), op.turno, a.turno, t.nome) as turno,
+      coalesce(op.data_turno, a.data_turno) as data_turno,
+      coalesce(op.status, 'planejado') as status
+    from selecao s
+    left join lateral (
+      select linha.*
+      from public.turnos_operacao linha
+      where linha.empresa_id = s.empresa_id
+        and linha.obra_id = s.obra_id
+        and (
+          s.turno_id is null
+          or linha.turno_id = s.turno_id
+          or lower(trim(linha.turno)) = lower(trim(s.turno))
+        )
+      order by linha.data_turno desc, linha.updated_at desc
+      limit 1
+    ) op on true
+    left join lateral (
+      select linha.turno_id, linha.turno, linha.data_turno
+      from public.atividades linha
+      where linha.empresa_id = s.empresa_id
+        and linha.obra_id = s.obra_id
+        and (
+          s.turno_id is null
+          or linha.turno_id = s.turno_id
+          or lower(trim(linha.turno)) = lower(trim(s.turno))
+        )
+      order by linha.data_turno desc, linha.id desc
+      limit 1
+    ) a on true
+    left join public.turnos t
+      on t.id = s.turno_id
+     and t.obra_id = s.obra_id
+  )
   select jsonb_build_object(
     'operacao', jsonb_build_object(
-      'obra_id', op.obra_id,
-      'turno_id', coalesce(t.id, op.turno_id),
-      'data_turno', op.data_turno,
-      'turno', op.turno,
-      'status', op.status
+      'obra_id', c.obra_id,
+      'turno_id', c.turno_id,
+      'data_turno', c.data_turno,
+      'turno', c.turno,
+      'status', c.status
     ),
     'obra', jsonb_build_object(
       'id', o.id,
@@ -104,8 +258,8 @@ as $$
       'logo_url', o.logo_url
     ),
     'turno', jsonb_build_object(
-      'id', coalesce(t.id, op.turno_id),
-      'nome', coalesce(nullif(t.nome, ''), op.turno)
+      'id', c.turno_id,
+      'nome', coalesce(nullif(t.nome, ''), c.turno)
     ),
     'funcoes', coalesce((
       select jsonb_agg(
@@ -118,8 +272,8 @@ as $$
         order by f.nome
       )
       from public.funcoes_previstas f
-      where f.empresa_id = op.empresa_id
-        and f.obra_id = op.obra_id
+      where f.empresa_id = c.empresa_id
+        and f.obra_id = c.obra_id
     ), '[]'::jsonb),
     'usuarios', coalesce((
       select jsonb_agg(
@@ -132,32 +286,18 @@ as $$
         order by u.nome
       )
       from public.usuarios_operacionais u
-      where u.empresa_id = op.empresa_id
-        and u.obra_id = op.obra_id
+      where u.empresa_id = c.empresa_id
+        and u.obra_id = c.obra_id
     ), '[]'::jsonb)
   )
-  from public.turnos_operacao op
-  join public.empresas e
-    on e.id = op.empresa_id
-   and e.access_status = 'active'
+  from contexto c
   join public.obras o
-    on o.id = op.obra_id
-  left join lateral (
-    select tr.id, tr.nome
-    from public.turnos tr
-    where tr.obra_id = op.obra_id
-      and tr.empresa_id = op.empresa_id
-      and (
-        tr.id = op.turno_id
-        or (
-          op.turno_id is null
-          and lower(trim(tr.nome)) = lower(trim(op.turno))
-        )
-      )
-    order by (tr.id = op.turno_id) desc
-    limit 1
-  ) t on true
-  where op.public_token::text = p_token
+    on o.id = c.obra_id
+   and o.empresa_id = c.empresa_id
+  left join public.turnos t
+    on t.id = c.turno_id
+   and t.obra_id = c.obra_id
+   and t.empresa_id = c.empresa_id
   limit 1
 $$;
 
@@ -168,6 +308,49 @@ drop policy if exists "Campo token turnos operacao" on public.turnos_operacao;
 create policy "Campo token turnos operacao"
 on public.turnos_operacao for select to anon
 using (
-  public_token::text = public.campo_token()
-  and public.conta_esta_ativa(empresa_id)
+  public.campo_token_valido(
+    empresa_id, obra_id, turno_id, data_turno, turno
+  )
 );
+
+drop policy if exists "Campo token atualiza operacao" on public.turnos_operacao;
+create policy "Campo token atualiza operacao"
+on public.turnos_operacao for update to anon
+using (
+  public.campo_token_valido(
+    empresa_id, obra_id, turno_id, data_turno, turno
+  )
+)
+with check (
+  public.campo_token_valido(
+    empresa_id, obra_id, turno_id, data_turno, turno
+  )
+);
+
+create or replace function public.preencher_empresa_id()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_empresa_id uuid;
+begin
+  if new.empresa_id is not null then
+    return new;
+  end if;
+
+  if auth.uid() is not null then
+    select empresa_id into v_empresa_id
+    from public.empresa_usuarios
+    where user_id = auth.uid()
+    order by created_at
+    limit 1;
+  else
+    v_empresa_id := public.campo_empresa_token(public.campo_token());
+  end if;
+
+  new.empresa_id := v_empresa_id;
+  return new;
+end;
+$$;
