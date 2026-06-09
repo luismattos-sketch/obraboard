@@ -8,14 +8,14 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [autorizado, setAutorizado] = useState(
-    pathname === "/login" || pathname === "/campo"
+    rotaPublica(pathname)
   );
 
   useEffect(() => {
     let ativo = true;
-    const rotaPublica = pathname === "/login" || pathname === "/campo";
+    const paginaPublica = rotaPublica(pathname);
 
-    if (rotaPublica) {
+    if (paginaPublica) {
       queueMicrotask(() => {
         if (ativo) {
           setAutorizado(true);
@@ -50,4 +50,12 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   }
 
   return children;
+}
+
+function rotaPublica(pathname: string) {
+  return (
+    pathname === "/login" ||
+    pathname === "/campo" ||
+    pathname === "/auth/callback"
+  );
 }

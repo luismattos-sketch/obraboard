@@ -6,6 +6,7 @@ import { getContextoAtual, sincronizarCadastroBaseRemoto } from "../../lib/cadas
 import { criarRotaComObra } from "../../lib/rotas";
 import { supabase } from "../../lib/supabase";
 import { garantirContaAtual } from "../../lib/conta";
+import { obterAuthCallbackUrl } from "../../lib/app-url";
 
 type ModoLogin = "entrar" | "cadastrar";
 
@@ -48,6 +49,9 @@ export default function LoginPage() {
         const { data, error } = await supabase.auth.signUp({
           email: emailNormalizado,
           password: senha,
+          options: {
+            emailRedirectTo: obterAuthCallbackUrl(),
+          },
         });
 
         if (error) {
