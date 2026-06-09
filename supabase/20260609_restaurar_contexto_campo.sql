@@ -9,6 +9,41 @@ where public_token is not null
   and encerrado_em is null
   and status not in ('publicado', 'em_andamento', 'pausado');
 
+create temporary table if not exists campo_vinculos_obras
+on commit drop
+as
+select distinct on (obra_id)
+  obra_id,
+  empresa_id
+from public.turnos_operacao
+where obra_id is not null
+  and empresa_id is not null
+order by obra_id, updated_at desc nulls last, created_at desc nulls last;
+
+update public.obras o
+set empresa_id = v.empresa_id
+from campo_vinculos_obras v
+where o.id = v.obra_id
+  and o.empresa_id is distinct from v.empresa_id;
+
+update public.turnos t
+set empresa_id = v.empresa_id
+from campo_vinculos_obras v
+where t.obra_id = v.obra_id
+  and t.empresa_id is distinct from v.empresa_id;
+
+update public.funcoes_previstas f
+set empresa_id = v.empresa_id
+from campo_vinculos_obras v
+where f.obra_id = v.obra_id
+  and f.empresa_id is distinct from v.empresa_id;
+
+update public.usuarios_operacionais u
+set empresa_id = v.empresa_id
+from campo_vinculos_obras v
+where u.obra_id = v.obra_id
+  and u.empresa_id is distinct from v.empresa_id;
+
 create or replace function public.campo_token_valido(
   p_empresa_id uuid,
   p_obra_id bigint,
