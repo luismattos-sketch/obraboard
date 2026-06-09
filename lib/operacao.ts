@@ -227,6 +227,8 @@ export function iniciarControleTurno(
       ...atual,
       status: "em_andamento" as const,
       iniciadoEm: atual?.iniciadoEm ?? new Date().toISOString(),
+      pausadoEm: undefined,
+      encerradoEm: undefined,
       elapsedMs: atual?.elapsedMs ?? 0,
       runningSince: Date.now(),
     },

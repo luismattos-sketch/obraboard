@@ -17,7 +17,6 @@ import {
 } from "../../lib/cadastro-base";
 import {
   calcularAvancoReal,
-  atividadeEncerraTurno,
   iniciarControleTurno,
   obterControleTurno,
   pausarControleTurno,
@@ -608,7 +607,7 @@ function CampoPageContent() {
             : new Date().toISOString()
           : undefined,
       pausado_em: status === "Parcial" || status === "Restrição" ? new Date().toISOString() : undefined,
-      finalizado_em: atividadeEncerraTurno({ status }) ? new Date().toISOString() : undefined,
+      finalizado_em: status === "Finalizada" ? new Date().toISOString() : undefined,
     };
 
     if (quantidadeRealizada !== undefined) {
@@ -715,7 +714,7 @@ function CampoPageContent() {
       );
     } else if (
       pararTurnoSeTodasFinalizadas &&
-      atividadeEncerraTurno(atividadeAtualizada)
+      atividadeAtualizada.status === "Finalizada"
     ) {
       const atividadesAtualizadas = atividades.map((atividade) =>
         atividade.id === atividadeAtualizada.id ? atividadeAtualizada : atividade
@@ -730,7 +729,9 @@ function CampoPageContent() {
       );
       const todasEncerradas =
         atividadesDoTurno.length > 0 &&
-        atividadesDoTurno.every(atividadeEncerraTurno);
+        atividadesDoTurno.every(
+          (atividade) => atividade.status === "Finalizada"
+        );
 
       if (todasEncerradas) {
         novosControles = pausarControleTurno(

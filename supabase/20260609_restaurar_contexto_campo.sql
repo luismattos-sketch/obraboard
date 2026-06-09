@@ -44,13 +44,6 @@ as $$
         p_turno is null
         or lower(trim(op.turno)) = lower(trim(p_turno))
       )
-      and (
-        op.status in ('publicado', 'em_andamento', 'pausado')
-        or (
-          op.publicado_em is not null
-          and op.encerrado_em is null
-        )
-      )
   )
 $$;
 
@@ -130,13 +123,6 @@ as $$
     limit 1
   ) t on true
   where op.public_token::text = p_token
-    and (
-      op.status in ('publicado', 'em_andamento', 'pausado')
-      or (
-        op.publicado_em is not null
-        and op.encerrado_em is null
-      )
-    )
   limit 1
 $$;
 
@@ -148,12 +134,5 @@ create policy "Campo token turnos operacao"
 on public.turnos_operacao for select to anon
 using (
   public_token::text = public.campo_token()
-  and (
-    status in ('publicado', 'em_andamento', 'pausado')
-    or (
-      publicado_em is not null
-      and encerrado_em is null
-    )
-  )
   and public.conta_esta_ativa(empresa_id)
 );
