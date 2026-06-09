@@ -240,7 +240,15 @@ as $$
       and t.empresa_id = p_empresa_id
       and e.access_status = 'active'
       and t.obra_id = p_obra_id
-      and (p_turno_id is null or t.turno_id = p_turno_id)
+      and (
+        p_turno_id is null
+        or t.turno_id = p_turno_id
+        or (
+          t.turno_id is null
+          and p_turno is not null
+          and lower(trim(t.turno)) = lower(trim(p_turno))
+        )
+      )
       and (p_data_turno is null or t.data_turno = p_data_turno)
       and (p_turno is null or lower(trim(t.turno)) = lower(trim(p_turno)))
       and t.status in ('publicado', 'em_andamento', 'pausado')
@@ -265,6 +273,14 @@ $$;
 
 revoke all on function public.campo_status_token(text) from public;
 grant execute on function public.campo_status_token(text) to anon, authenticated;
+
+update public.turnos_operacao
+set status = 'publicado',
+    updated_at = now()
+where public_token is not null
+  and publicado_em is not null
+  and encerrado_em is null
+  and status = 'planejado';
 
 create or replace function public.campo_contexto_token(p_token text)
 returns jsonb
@@ -326,7 +342,6 @@ as $$
    and e.access_status = 'active'
   join public.obras o
     on o.id = op.obra_id
-   and o.empresa_id = op.empresa_id
   left join lateral (
     select tr.id, tr.nome
     from public.turnos tr

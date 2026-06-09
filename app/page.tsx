@@ -218,7 +218,9 @@ export default function Home() {
     turnoAtual || null
   );
   const campoObraAtivaUrl =
-    clientePronto && controleTurno?.publicToken
+    clientePronto &&
+    controleTurno?.publicToken &&
+    ["publicado", "em_andamento", "pausado"].includes(controleTurno.status)
       ? gerarCampoUrl({ token: controleTurno.publicToken })
       : null;
 

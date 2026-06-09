@@ -1,6 +1,53 @@
 -- Restaura o cadastro seguro usado pela tela Campo a partir do token do QR Code.
 -- A funcao retorna somente dados operacionais publicos e nunca expoe e-mail.
 
+update public.turnos_operacao
+set status = 'publicado',
+    updated_at = now()
+where public_token is not null
+  and publicado_em is not null
+  and encerrado_em is null
+  and status = 'planejado';
+
+create or replace function public.campo_token_valido(
+  p_empresa_id uuid,
+  p_obra_id bigint,
+  p_turno_id bigint,
+  p_data_turno date,
+  p_turno text
+)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.turnos_operacao op
+    join public.empresas e on e.id = op.empresa_id
+    where op.public_token::text = public.campo_token()
+      and op.empresa_id = p_empresa_id
+      and e.access_status = 'active'
+      and op.obra_id = p_obra_id
+      and (
+        p_turno_id is null
+        or op.turno_id = p_turno_id
+        or (
+          op.turno_id is null
+          and p_turno is not null
+          and lower(trim(op.turno)) = lower(trim(p_turno))
+        )
+      )
+      and (p_data_turno is null or op.data_turno = p_data_turno)
+      and (
+        p_turno is null
+        or lower(trim(op.turno)) = lower(trim(p_turno))
+      )
+      and op.status in ('publicado', 'em_andamento', 'pausado')
+  )
+$$;
+
 create or replace function public.campo_contexto_token(p_token text)
 returns jsonb
 language sql
@@ -61,7 +108,6 @@ as $$
    and e.access_status = 'active'
   join public.obras o
     on o.id = op.obra_id
-   and o.empresa_id = op.empresa_id
   left join lateral (
     select tr.id, tr.nome
     from public.turnos tr
@@ -84,3 +130,12 @@ $$;
 
 revoke all on function public.campo_contexto_token(text) from public;
 grant execute on function public.campo_contexto_token(text) to anon, authenticated;
+
+drop policy if exists "Campo token turnos operacao" on public.turnos_operacao;
+create policy "Campo token turnos operacao"
+on public.turnos_operacao for select to anon
+using (
+  public_token::text = public.campo_token()
+  and status in ('publicado', 'em_andamento', 'pausado')
+  and public.conta_esta_ativa(empresa_id)
+);
