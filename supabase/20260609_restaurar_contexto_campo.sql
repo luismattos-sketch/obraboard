@@ -64,6 +64,19 @@ $$;
 revoke all on function public.campo_empresa_token(text) from public;
 grant execute on function public.campo_empresa_token(text) to anon, authenticated;
 
+create or replace function public.campo_bigint_seguro(p_valor text)
+returns bigint
+language sql
+immutable
+set search_path = public
+as $$
+  select case
+    when trim(coalesce(p_valor, '')) ~ '^[0-9]+$'
+      then trim(p_valor)::bigint
+    else null
+  end
+$$;
+
 create or replace function public.campo_token_valido(
   p_empresa_id uuid,
   p_obra_id bigint,
@@ -92,22 +105,27 @@ as $$
     select
       tb.empresa_id,
       coalesce(
-        nullif(cb.dados->>'obraAtivaId', '')::bigint,
+        public.campo_bigint_seguro(cb.dados->>'obraAtivaId'),
         tb.obra_id
       ) as obra_id,
       coalesce(
-        nullif(
+        public.campo_bigint_seguro(
           cb.dados->'turnoAtivoIdPorObra'->>(
-            coalesce(nullif(cb.dados->>'obraAtivaId', '')::bigint, tb.obra_id)::text
-          ),
-          ''
-        )::bigint,
+            coalesce(
+              public.campo_bigint_seguro(cb.dados->>'obraAtivaId'),
+              tb.obra_id
+            )::text
+          )
+        ),
         tb.turno_id
       ) as turno_id,
       coalesce(
         nullif(
           cb.dados->'turnoAtivoPorObra'->>(
-            coalesce(nullif(cb.dados->>'obraAtivaId', '')::bigint, tb.obra_id)::text
+            coalesce(
+              public.campo_bigint_seguro(cb.dados->>'obraAtivaId'),
+              tb.obra_id
+            )::text
           ),
           ''
         ),
@@ -169,26 +187,25 @@ as $$
       tb.empresa_id,
       cb.dados,
       coalesce(
-        nullif(cb.dados->>'obraAtivaId', '')::bigint,
+        public.campo_bigint_seguro(cb.dados->>'obraAtivaId'),
         tb.token_obra_id
       ) as obra_id,
       coalesce(
-        nullif(
+        public.campo_bigint_seguro(
           cb.dados->'turnoAtivoIdPorObra'->>(
             coalesce(
-              nullif(cb.dados->>'obraAtivaId', '')::bigint,
+              public.campo_bigint_seguro(cb.dados->>'obraAtivaId'),
               tb.token_obra_id
             )::text
-          ),
-          ''
-        )::bigint,
+          )
+        ),
         tb.token_turno_id
       ) as turno_id,
       coalesce(
         nullif(
           cb.dados->'turnoAtivoPorObra'->>(
             coalesce(
-              nullif(cb.dados->>'obraAtivaId', '')::bigint,
+              public.campo_bigint_seguro(cb.dados->>'obraAtivaId'),
               tb.token_obra_id
             )::text
           ),
@@ -355,7 +372,7 @@ as $$
     from jsonb_array_elements(
       coalesce(c.dados->'obras', '[]'::jsonb)
     ) item
-    where nullif(item->>'id', '')::bigint = c.obra_id
+    where public.campo_bigint_seguro(item->>'id') = c.obra_id
     limit 1
   ) obra_cadastro on true
   left join lateral (
@@ -367,7 +384,7 @@ as $$
         '[]'::jsonb
       )
     ) item
-    where nullif(item->>'id', '')::bigint = c.turno_id
+    where public.campo_bigint_seguro(item->>'id') = c.turno_id
     limit 1
   ) turno_cadastro on true
   where c.obra_id is not null
