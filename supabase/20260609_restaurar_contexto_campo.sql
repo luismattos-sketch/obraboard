@@ -167,6 +167,7 @@ as $$
   selecao as (
     select
       tb.empresa_id,
+      cb.dados,
       coalesce(
         nullif(cb.dados->>'obraAtivaId', '')::bigint,
         tb.token_obra_id
@@ -207,6 +208,7 @@ as $$
   contexto as (
     select
       s.empresa_id,
+      s.dados,
       s.obra_id,
       coalesce(op.turno_id, a.turno_id, s.turno_id) as turno_id,
       coalesce(nullif(s.turno, ''), op.turno, a.turno, t.nome) as turno,
@@ -252,14 +254,32 @@ as $$
       'status', c.status
     ),
     'obra', jsonb_build_object(
-      'id', o.id,
-      'nome', o.nome,
-      'codigo', o.codigo,
-      'logo_url', o.logo_url
+      'id', c.obra_id,
+      'nome', coalesce(
+        nullif(o.nome, ''),
+        nullif(obra_cadastro.dados->>'nome', ''),
+        nullif(obra_cadastro.dados->>'codigo', ''),
+        'Obra sem nome'
+      ),
+      'codigo', coalesce(
+        nullif(o.codigo, ''),
+        obra_cadastro.dados->>'codigo',
+        ''
+      ),
+      'logo_url', coalesce(
+        nullif(o.logo_url, ''),
+        obra_cadastro.dados->>'logoUrl',
+        c.dados->>'logoUrl',
+        ''
+      )
     ),
     'turno', jsonb_build_object(
       'id', c.turno_id,
-      'nome', coalesce(nullif(t.nome, ''), c.turno)
+      'nome', coalesce(
+        nullif(t.nome, ''),
+        nullif(turno_cadastro.dados->>'nome', ''),
+        c.turno
+      )
     ),
     'funcoes', coalesce((
       select jsonb_agg(
@@ -274,6 +294,22 @@ as $$
       from public.funcoes_previstas f
       where f.empresa_id = c.empresa_id
         and f.obra_id = c.obra_id
+    ), (
+      select coalesce(jsonb_agg(
+        jsonb_build_object(
+          'id', item->>'id',
+          'nome', item->>'nome',
+          'quantidade', item->>'quantidade',
+          'carga_horaria', item->>'cargaHoraria'
+        )
+      ), '[]'::jsonb)
+      from jsonb_array_elements(
+        coalesce(
+          c.dados->'dadosPorObra'->(c.obra_id::text)->'funcoesPrevistas',
+          c.dados->'funcoesPrevistas',
+          '[]'::jsonb
+        )
+      ) item
     ), '[]'::jsonb),
     'usuarios', coalesce((
       select jsonb_agg(
@@ -288,16 +324,53 @@ as $$
       from public.usuarios_operacionais u
       where u.empresa_id = c.empresa_id
         and u.obra_id = c.obra_id
+    ), (
+      select coalesce(jsonb_agg(
+        jsonb_build_object(
+          'id', item->>'id',
+          'nome', item->>'nome',
+          'funcao', item->>'funcao',
+          'nivel_acesso', item->>'nivelAcesso'
+        )
+      ), '[]'::jsonb)
+      from jsonb_array_elements(
+        coalesce(
+          c.dados->'dadosPorObra'->(c.obra_id::text)->'usuarios',
+          c.dados->'usuarios',
+          '[]'::jsonb
+        )
+      ) item
     ), '[]'::jsonb)
   )
   from contexto c
-  join public.obras o
+  left join public.obras o
     on o.id = c.obra_id
    and o.empresa_id = c.empresa_id
   left join public.turnos t
     on t.id = c.turno_id
    and t.obra_id = c.obra_id
    and t.empresa_id = c.empresa_id
+  left join lateral (
+    select item as dados
+    from jsonb_array_elements(
+      coalesce(c.dados->'obras', '[]'::jsonb)
+    ) item
+    where nullif(item->>'id', '')::bigint = c.obra_id
+    limit 1
+  ) obra_cadastro on true
+  left join lateral (
+    select item as dados
+    from jsonb_array_elements(
+      coalesce(
+        c.dados->'dadosPorObra'->(c.obra_id::text)->'turnos',
+        c.dados->'turnos',
+        '[]'::jsonb
+      )
+    ) item
+    where nullif(item->>'id', '')::bigint = c.turno_id
+    limit 1
+  ) turno_cadastro on true
+  where c.obra_id is not null
   limit 1
 $$;
 
