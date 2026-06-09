@@ -26,7 +26,13 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
       };
     }
 
-    void supabase.auth.getUser().then(({ data }) => {
+    queueMicrotask(() => {
+      if (ativo) {
+        setAutorizado(false);
+      }
+    });
+
+    void supabase.auth.getUser().then(async ({ data }) => {
       if (!ativo) {
         return;
       }
@@ -35,6 +41,31 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         setAutorizado(false);
         router.replace("/login");
         return;
+      }
+
+      const { data: status } = await supabase.rpc("obter_status_acesso_atual");
+
+      if (!ativo) {
+        return;
+      }
+
+      if (status !== "active") {
+        await supabase.auth.signOut();
+        router.replace(`/acesso-bloqueado?status=${encodeURIComponent(status ?? "deleted")}`);
+        return;
+      }
+
+      if (pathname.startsWith("/admin")) {
+        const { data: admin } = await supabase.rpc("is_app_admin");
+
+        if (!ativo) {
+          return;
+        }
+
+        if (!admin) {
+          router.replace("/");
+          return;
+        }
       }
 
       setAutorizado(true);
@@ -56,6 +87,7 @@ function rotaPublica(pathname: string) {
   return (
     pathname === "/login" ||
     pathname === "/campo" ||
-    pathname === "/auth/callback"
+    pathname === "/auth/callback" ||
+    pathname === "/acesso-bloqueado"
   );
 }

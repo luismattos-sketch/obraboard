@@ -49,10 +49,16 @@ export default function DesktopLayout({
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivoId, setTurnoAtivoId] = useState<number | null>(null);
   const [campoToken, setCampoToken] = useState<string | null>(null);
+  const [appAdmin, setAppAdmin] = useState(false);
   const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
   const campoHref = gerarCampoUrl({ token: campoToken });
-  const itensMenu = menuItems.map((item) => ({
+  const itensMenu = [
+    ...menuItems,
+    ...(appAdmin
+      ? [{ href: "/admin/users", label: "Usuários", icon: "AD" }]
+      : []),
+  ].map((item) => ({
     ...item,
     href: criarRotaComObra(item.href, obraAtivaId),
   }));
@@ -63,6 +69,12 @@ export default function DesktopLayout({
       ? "bg-slate-200 text-slate-700"
       : "bg-green-100 text-green-700";
   const itensMobile = [...itensMenu, { href: campoHref, label: "Campo", icon: "CP" }];
+
+  useEffect(() => {
+    void supabase.rpc("is_app_admin").then(({ data }) => {
+      setAppAdmin(Boolean(data));
+    });
+  }, []);
 
   useEffect(() => {
     function carregarContexto(cadastro = carregarCadastroBase()) {

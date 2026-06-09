@@ -532,7 +532,17 @@ function CampoPageContent() {
         .maybeSingle();
 
       if (error || !turnoPublico) {
-        limparCampoInvalido("token invalido ou turno nao publicado");
+        const { data: statusConta } = await supabaseCampo.rpc(
+          "campo_status_token",
+          { p_token: publicToken }
+        );
+        const mensagemStatus = mensagemContaCampo(
+          typeof statusConta === "string" ? statusConta : "invalid"
+        );
+        limparCampoInvalido(
+          mensagemStatus ? "conta indisponivel" : "token invalido ou turno nao publicado",
+          mensagemStatus || mensagemLinkInvalido
+        );
         return;
       }
 
@@ -1607,6 +1617,18 @@ function atuaisTextoRestricao(textoSalvo: string | undefined, textoEditando: str
 
 function restricaoEstaVisivelNoCampo(status: string) {
   return ["aberta", "resolvida", "parada", "reprogramada"].includes(status);
+}
+
+function mensagemContaCampo(status: string) {
+  const mensagens: Record<string, string> = {
+    suspended: "Conta temporariamente suspensa.",
+    cancelled: "O acesso desta conta foi cancelado.",
+    banned: "Esta conta não está autorizada a operar.",
+    deleted_pending: "Conta indisponível.",
+    deleted: "Conta indisponível.",
+  };
+
+  return mensagens[status] ?? "";
 }
 
 function mesclarRestricoesAtividade(
