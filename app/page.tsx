@@ -579,7 +579,7 @@ export default function Home() {
 
   return (
     <DesktopLayout
-      titulo="Painel Check-in / Check-out"
+      titulo="Painel Frentia"
       subtitulo={`Frente: ${obraAtivaNome} - Turno ${turnoAtual || "-"} - Data: ${dataTurnoFormatada}`}
       status={indicadorTurnoExibido.texto}
       statusTom={indicadorTurnoExibido.tom}
