@@ -1277,6 +1277,13 @@ function CampoPageContent() {
               (item) => Number(item.quantidade || 0) > 0
             );
             const foiIniciada = atividadeFoiIniciada(atividade);
+            const iniciarInativo = !temEquipeReal;
+            const restricaoInativa =
+              !temEquipeReal ||
+              !foiIniciada ||
+              restricaoEditandoId === atividade.id ||
+              restricaoSalvandoId === atividade.id;
+            const finalizarInativo = !temEquipeReal || !foiIniciada;
             const bloqueadaFinalizada =
               atividade.status === "Finalizada" && !atividadesEditaveis[atividade.id];
             const responsavelSelecionado = atividade.responsavel ?? "";
@@ -1472,27 +1479,34 @@ function CampoPageContent() {
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => iniciarAtividade(atividade.id)}
-                      disabled={!temEquipeReal}
-                      className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      disabled={iniciarInativo}
+                      className={`rounded-lg px-3 py-3 text-sm font-bold text-white transition ${
+                        iniciarInativo
+                          ? "cursor-not-allowed bg-slate-300"
+                          : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                     >
                       Iniciar
                     </button>
                     <button
                       onClick={() => abrirRestricao(atividade)}
-                      disabled={
-                        !temEquipeReal ||
-                        !foiIniciada ||
-                        restricaoEditandoId === atividade.id ||
-                        restricaoSalvandoId === atividade.id
-                      }
-                      className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      disabled={restricaoInativa}
+                      className={`rounded-lg px-3 py-3 text-sm font-bold text-white transition ${
+                        restricaoInativa
+                          ? "cursor-not-allowed bg-slate-300"
+                          : "bg-red-600 hover:bg-red-700"
+                      }`}
                     >
                       Restrição
                     </button>
                     <button
                       onClick={() => finalizarAtividade(atividade)}
-                      disabled={!temEquipeReal || !foiIniciada}
-                      className="rounded-lg bg-green-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      disabled={finalizarInativo}
+                      className={`rounded-lg px-3 py-3 text-sm font-bold text-white transition ${
+                        finalizarInativo
+                          ? "cursor-not-allowed bg-slate-300"
+                          : "bg-green-600 hover:bg-green-700"
+                      }`}
                     >
                       Finalizar
                     </button>
