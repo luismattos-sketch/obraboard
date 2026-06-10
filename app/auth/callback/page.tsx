@@ -8,6 +8,7 @@ import { supabase } from "../../../lib/supabase";
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [mensagem, setMensagem] = useState("Confirmando seu e-mail...");
+  const [confirmado, setConfirmado] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -40,7 +41,8 @@ export default function AuthCallbackPage() {
         await garantirContaAtual();
 
         if (ativo) {
-          router.replace("/");
+          setMensagem("Cadastro confirmado com sucesso.");
+          setConfirmado(true);
         }
       } catch {
         if (ativo) {
@@ -66,6 +68,15 @@ export default function AuthCallbackPage() {
           className="mx-auto h-16 w-auto object-contain"
         />
         <p className="mt-6 font-semibold text-slate-700">{mensagem}</p>
+        {confirmado && (
+          <button
+            type="button"
+            onClick={() => router.replace("/")}
+            className="mt-6 w-full rounded-xl bg-[#ff6b00] px-4 py-3 font-bold text-white transition hover:bg-[#e55f00]"
+          >
+            Acessar o aplicativo
+          </button>
+        )}
       </section>
     </main>
   );
