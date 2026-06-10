@@ -1198,7 +1198,7 @@ export default function CheckoutPage() {
                 type="button"
                 onClick={reprogramarPendencias}
                 disabled={turnoEncerrado}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left font-semibold transition-colors hover:border-teal-600 hover:bg-teal-50 hover:text-teal-800 disabled:cursor-not-allowed disabled:hover:border-slate-300 disabled:hover:bg-transparent disabled:hover:text-inherit"
               >
                 Reprogramar para o próximo turno
               </button>
@@ -1206,7 +1206,7 @@ export default function CheckoutPage() {
                 type="button"
                 onClick={encerrarTurno}
                 disabled={turnoEncerrado}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-left font-bold text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:hover:bg-slate-400"
               >
                 {turnoEncerrado ? "Turno encerrado" : "Encerrar turno"}
               </button>
