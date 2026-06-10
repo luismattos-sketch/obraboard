@@ -12,6 +12,8 @@ type ModoLogin = "entrar" | "cadastrar";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [nome, setNome] = useState("");
+  const [funcao, setFuncao] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [modo, setModo] = useState<ModoLogin>("entrar");
@@ -29,9 +31,16 @@ export default function LoginPage() {
     event.preventDefault();
 
     const emailNormalizado = email.trim().toLowerCase();
+    const nomeNormalizado = nome.trim();
+    const funcaoNormalizada = funcao.trim();
 
     if (!emailNormalizado || !senha) {
       setMensagem("Informe email e senha.");
+      return;
+    }
+
+    if (modo === "cadastrar" && (!nomeNormalizado || !funcaoNormalizada)) {
+      setMensagem("Informe nome e função.");
       return;
     }
 
@@ -51,6 +60,11 @@ export default function LoginPage() {
           password: senha,
           options: {
             emailRedirectTo: obterAuthCallbackUrl(),
+            data: {
+              name: nomeNormalizado,
+              nome: nomeNormalizado,
+              funcao: funcaoNormalizada,
+            },
           },
         });
 
@@ -130,6 +144,38 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={enviarFormulario} className="space-y-4">
+          {cadastrando && (
+            <>
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-slate-700">
+                  Nome
+                </span>
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(event) => setNome(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-4"
+                  placeholder="Nome completo"
+                  autoComplete="name"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-slate-700">
+                  Função
+                </span>
+                <input
+                  type="text"
+                  value={funcao}
+                  onChange={(event) => setFuncao(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-4"
+                  placeholder="Ex.: Planejador"
+                  autoComplete="organization-title"
+                />
+              </label>
+            </>
+          )}
+
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">
               Email

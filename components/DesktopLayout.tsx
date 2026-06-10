@@ -50,8 +50,11 @@ export default function DesktopLayout({
   const [turnoAtivoId, setTurnoAtivoId] = useState<number | null>(null);
   const [campoToken, setCampoToken] = useState<string | null>(null);
   const [appAdmin, setAppAdmin] = useState(false);
+  const [usuarioNome, setUsuarioNome] = useState("Usuário");
+  const [usuarioFuncao, setUsuarioFuncao] = useState("Função não informada");
   const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
+  const usuarioIniciais = obterIniciaisUsuario(usuarioNome);
   const campoHref = gerarCampoUrl({ token: campoToken });
   const itensMenu = [
     ...menuItems,
@@ -74,6 +77,42 @@ export default function DesktopLayout({
     void supabase.rpc("is_app_admin").then(({ data }) => {
       setAppAdmin(Boolean(data));
     });
+  }, []);
+
+  useEffect(() => {
+    function atualizarUsuario(
+      usuario: {
+        email?: string | null;
+        user_metadata?: Record<string, unknown>;
+      } | null
+    ) {
+      const metadata = usuario?.user_metadata ?? {};
+      const nome =
+        obterTextoMetadata(metadata.nome) ||
+        obterTextoMetadata(metadata.name) ||
+        obterTextoMetadata(metadata.full_name) ||
+        usuario?.email?.split("@")[0] ||
+        "Usuário";
+      const funcao =
+        obterTextoMetadata(metadata.funcao) ||
+        obterTextoMetadata(metadata.function) ||
+        "Função não informada";
+
+      setUsuarioNome(nome);
+      setUsuarioFuncao(funcao);
+    }
+
+    void supabase.auth.getUser().then(({ data }) => {
+      atualizarUsuario(data.user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      atualizarUsuario(sessao?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -232,12 +271,12 @@ export default function DesktopLayout({
             <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-bold">
-                  LV
+                  {usuarioIniciais}
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold">Luis Villaca</p>
-                  <p className="text-xs text-slate-400">Planejador</p>
+                  <p className="text-sm font-semibold">{usuarioNome}</p>
+                  <p className="text-xs text-slate-400">{usuarioFuncao}</p>
                 </div>
               </div>
             </div>
@@ -431,4 +470,21 @@ function limparContextoNaUrl(pathname: string) {
 
   const query = params.toString();
   window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
+}
+
+function obterTextoMetadata(valor: unknown) {
+  return typeof valor === "string" ? valor.trim() : "";
+}
+
+function obterIniciaisUsuario(nome: string) {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+
+  if (partes.length === 0) {
+    return "US";
+  }
+
+  const primeira = partes[0][0] ?? "";
+  const ultima = partes.length > 1 ? partes.at(-1)?.[0] ?? "" : partes[0][1] ?? "";
+
+  return `${primeira}${ultima}`.toUpperCase();
 }
