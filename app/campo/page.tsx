@@ -885,15 +885,13 @@ function CampoPageContent() {
   }
 
   function atividadeFoiIniciada(atividade: Atividade) {
-    const registro = atividade as Atividade & {
-      iniciado_em?: string | null;
-      tempo_acumulado_ms?: number | null;
-    };
     const controle = controles[atividade.id];
+    const statusIniciado = ["Execução", "Parcial", "Restrição", "Finalizada"].includes(
+      atividade.status
+    );
 
     return Boolean(
-      registro.iniciado_em ||
-        Number(registro.tempo_acumulado_ms || 0) > 0 ||
+      statusIniciado ||
         controle?.runningSince ||
         Number(controle?.elapsedMs || 0) > 0
     );
