@@ -1474,14 +1474,19 @@ function CampoPageContent() {
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => iniciarAtividade(atividade.id)}
-                      disabled={!temEquipeReal || foiIniciada}
+                      disabled={!temEquipeReal}
                       className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Iniciar
                     </button>
                     <button
                       onClick={() => abrirRestricao(atividade)}
-                      disabled={!temEquipeReal || !foiIniciada}
+                      disabled={
+                        !temEquipeReal ||
+                        !foiIniciada ||
+                        restricaoEditandoId === atividade.id ||
+                        restricaoSalvandoId === atividade.id
+                      }
                       className="rounded-lg bg-red-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Restrição
