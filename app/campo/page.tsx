@@ -100,6 +100,7 @@ function CampoPageContent() {
   const [restricaoEditandoId, setRestricaoEditandoId] = useState<number | null>(null);
   const [restricaoSalvandoId, setRestricaoSalvandoId] = useState<number | null>(null);
   const restricaoSalvandoRef = useRef<number | null>(null);
+  const realizadoEditandoRef = useRef<Set<number>>(new Set());
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
@@ -306,9 +307,11 @@ function CampoPageContent() {
         return mapa;
       }, {})
     );
-    setRealizadoAtividade(
+    setRealizadoAtividade((atuais) =>
       carregadas.reduce<Record<number, string>>((mapa, atividade) => {
-        mapa[atividade.id] = String(atividade.realizado ?? 0);
+        mapa[atividade.id] = realizadoEditandoRef.current.has(atividade.id)
+          ? atuais[atividade.id] ?? String(atividade.realizado ?? 0)
+          : String(atividade.realizado ?? 0);
         return mapa;
       }, {})
     );
@@ -1350,6 +1353,9 @@ function CampoPageContent() {
                       data-realizado-atividade-id={atividade.id}
                       type="number"
                       value={realizadoAtividade[atividade.id] ?? String(realizado)}
+                      onFocus={() => {
+                        realizadoEditandoRef.current.add(atividade.id);
+                      }}
                       onChange={(e) => {
                         const valorDigitado = e.currentTarget.value;
                         setRealizadoAtividade((atuais) => ({
@@ -1359,18 +1365,22 @@ function CampoPageContent() {
                       }}
                       disabled={bloqueadaFinalizada}
                       className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-lg font-bold"
-                      onBlur={(e) => {
+                      onBlur={async (e) => {
                         const valor = normalizarNumeroOperacional(e.target.value);
                         setRealizadoAtividade((atuais) => ({
                           ...atuais,
                           [atividade.id]: String(valor),
                         }));
-                        void atualizarAtividade(
-                          atividade.id,
-                          atividade.status,
-                          valor,
-                          responsavelSelecionado
-                        );
+                        try {
+                          await atualizarAtividade(
+                            atividade.id,
+                            atividade.status,
+                            valor,
+                            responsavelSelecionado
+                          );
+                        } finally {
+                          realizadoEditandoRef.current.delete(atividade.id);
+                        }
                       }}
                     />
                   </div>
