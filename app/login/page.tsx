@@ -119,7 +119,7 @@ export default function LoginPage() {
             alt="Frentia"
             className="mx-auto h-16 w-auto object-contain"
           />
-          <p className="mt-2 text-slate-500">Gestão operacional de frente</p>
+          <p className="mt-2 text-slate-500">Gestão Operacional</p>
         </div>
 
         <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
