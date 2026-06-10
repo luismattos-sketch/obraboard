@@ -196,14 +196,15 @@ export default function DesktopLayout({
       <div className="flex h-screen print:block print:h-auto">
         <aside className="hidden w-60 shrink-0 flex-col justify-between bg-slate-950 p-4 text-white print:hidden lg:flex">
           <div>
-            <div className="mb-8 border-b border-slate-800 pb-5">
+            <div className="mb-8 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/frentia-logo.png"
                 alt="Frentia"
-                className="frentia-logo-img frentia-logo-img-invert h-9 w-auto"
+                className="frentia-logo-img frentia-logo-img-invert mx-auto h-14 w-auto"
               />
-              <p className="mt-1 text-xs text-slate-400">
+              <div className="mt-4 border-t border-slate-800" />
+              <p className="mt-3 text-xs text-slate-400">
                 Gestão operacional
               </p>
             </div>
