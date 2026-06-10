@@ -69,7 +69,14 @@ export default function LoginPage() {
         });
 
         if (error) {
-          setMensagem(descreverErroAutenticacao(error.message, "cadastro"));
+          setMensagem(
+            descreverErroAutenticacao(
+              error.message,
+              "cadastro",
+              error.code,
+              error.status
+            )
+          );
           return;
         }
 
@@ -227,7 +234,7 @@ export default function LoginPage() {
             {carregando
               ? "Aguarde..."
               : cadastrando
-              ? "Cadastrar e entrar"
+              ? "Cadastrar"
               : "Entrar"}
           </button>
         </form>
@@ -236,11 +243,46 @@ export default function LoginPage() {
   );
 }
 
-function descreverErroAutenticacao(mensagem: string, acao: "login" | "cadastro") {
-  const texto = mensagem.toLowerCase();
+function descreverErroAutenticacao(
+  mensagem: string,
+  acao: "login" | "cadastro",
+  codigo?: string,
+  status?: number
+) {
+  const texto = `${codigo ?? ""} ${mensagem}`.toLowerCase();
 
-  if (texto.includes("already") || texto.includes("registered")) {
+  if (
+    status === 429 ||
+    texto.includes("rate limit") ||
+    texto.includes("over_email_send_rate_limit")
+  ) {
+    return "O limite de envio de emails foi atingido. Aguarde e tente novamente mais tarde.";
+  }
+
+  if (
+    texto.includes("already") ||
+    texto.includes("registered") ||
+    texto.includes("user_already_exists")
+  ) {
     return "Este email já está cadastrado. Entre com a senha existente.";
+  }
+
+  if (
+    texto.includes("error sending confirmation email") ||
+    texto.includes("unexpected_failure")
+  ) {
+    return "O Supabase não conseguiu enviar o email de confirmação. Tente novamente mais tarde.";
+  }
+
+  if (texto.includes("signup_disabled")) {
+    return "O cadastro de novos usuários está desativado no Supabase.";
+  }
+
+  if (
+    texto.includes("email_address_invalid") ||
+    texto.includes("invalid email")
+  ) {
+    return "Informe um endereço de email válido.";
   }
 
   if (texto.includes("password")) {
