@@ -17,9 +17,9 @@ import {
 } from "../../lib/cadastro-base";
 import {
   calcularAvancoReal,
-  encerrarControleTurno,
   iniciarControleTurno,
   obterControleTurno,
+  pausarControleTurno,
   pertenceAoTurno,
   type ControlesTurno,
 } from "../../lib/operacao";
@@ -734,14 +734,14 @@ function CampoPageContent() {
           dataTurno: dataTurnoGravacao,
         })
       );
-      const todasEncerradas =
+      const todasFinalizadas =
         atividadesDoTurno.length > 0 &&
         atividadesDoTurno.every(
           (atividade) => atividade.status === "Finalizada"
         );
 
-      if (todasEncerradas) {
-        novosControles = encerrarControleTurno(
+      if (todasFinalizadas) {
+        novosControles = pausarControleTurno(
           controlesTurno,
           obraIdCampo,
           dataTurnoGravacao,
