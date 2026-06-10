@@ -17,9 +17,9 @@ import {
 } from "../../lib/cadastro-base";
 import {
   calcularAvancoReal,
+  encerrarControleTurno,
   iniciarControleTurno,
   obterControleTurno,
-  pausarControleTurno,
   pertenceAoTurno,
   type ControlesTurno,
 } from "../../lib/operacao";
@@ -738,7 +738,7 @@ function CampoPageContent() {
         );
 
       if (todasEncerradas) {
-        novosControles = pausarControleTurno(
+        novosControles = encerrarControleTurno(
           controlesTurno,
           obraIdCampo,
           dataTurnoGravacao,
@@ -1464,7 +1464,7 @@ function CampoPageContent() {
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => iniciarAtividade(atividade.id)}
-                      disabled={!temEquipeReal}
+                      disabled={!temEquipeReal || foiIniciada}
                       className="rounded-lg bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       Iniciar
