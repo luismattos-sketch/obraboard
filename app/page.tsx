@@ -52,7 +52,7 @@ const dataHoje = () => new Date().toISOString().slice(0, 10);
 export default function Home() {
   const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
-  const [obraAtivaNome, setObraAtivaNome] = useState("Sem obra selecionada");
+  const [obraAtivaNome, setObraAtivaNome] = useState("Sem frente selecionada");
   const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
   const [turnoAtivo, setTurnoAtivo] = useState("");
   const [turnoAtivoDados, setTurnoAtivoDados] = useState<TurnoCadastrado | null>(null);
@@ -377,7 +377,7 @@ export default function Home() {
 
       setObraAtivaNome(
         obraAtiva?.nome ||
-          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+          (obraResolvidaId ? "Frente informada no link" : "Sem frente selecionada")
       );
       setObraAtivaId(obraResolvidaId);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
@@ -580,7 +580,7 @@ export default function Home() {
   return (
     <DesktopLayout
       titulo="Painel Check-in / Check-out"
-      subtitulo={`Obra: ${obraAtivaNome} - Turno ${turnoAtual || "-"} - Data: ${dataTurnoFormatada}`}
+      subtitulo={`Frente: ${obraAtivaNome} - Turno ${turnoAtual || "-"} - Data: ${dataTurnoFormatada}`}
       status={indicadorTurnoExibido.texto}
       statusTom={indicadorTurnoExibido.tom}
       infoCentral={formatarRelogioTurno(agora)}
@@ -594,7 +594,7 @@ export default function Home() {
         )}
 
         {!obraAtivaId ? (
-          <EstadoVazio texto="Selecione uma obra no menu lateral para continuar." />
+          <EstadoVazio texto="Selecione uma frente no menu lateral para continuar." />
         ) : !turnoAtual ? (
           <EstadoVazio texto="Selecione ou publique um turno no Checkin para continuar." />
         ) : null}
@@ -685,7 +685,7 @@ export default function Home() {
 
               <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-4">
                 {funcoesRecursos.length === 0 ? (
-                  <EstadoVazio texto="Nenhum recurso previsto cadastrado para a obra ativa." />
+                  <EstadoVazio texto="Nenhum recurso previsto cadastrado para a frente ativa." />
                 ) : (
                   funcoesRecursos.map((funcao) => {
                     const previsto = recursosPrevistosPorFuncao.get(funcao);
@@ -712,7 +712,7 @@ export default function Home() {
 
               {atividades.length === 0 ? (
                 <div className="p-4">
-                  <EstadoVazio texto="Nenhuma atividade carregada para a obra, data e turno atuais." />
+                  <EstadoVazio texto="Nenhuma atividade carregada para a frente, data e turno atuais." />
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -789,7 +789,7 @@ export default function Home() {
 
           <div className="space-y-4">
             <section className="rounded-2xl bg-white p-4 shadow-sm">
-              <h3 className="text-xl font-bold">Campo da obra ativa</h3>
+              <h3 className="text-xl font-bold">Campo da frente ativa</h3>
               <p className="mb-4 text-sm text-slate-500">
                 Acesso direto para {obraAtivaNome}
                 {turnoAtual ? ` - Turno ${turnoAtual}` : ""}.
@@ -817,7 +817,7 @@ export default function Home() {
                 <EstadoVazio
                   texto={
                     !obraAtivaId
-                      ? "Selecione uma obra no menu lateral para continuar."
+                      ? "Selecione uma frente no menu lateral para continuar."
                       : "Selecione ou publique um turno no Checkin para gerar o acesso ao Campo."
                   }
                 />

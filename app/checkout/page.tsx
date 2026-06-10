@@ -56,7 +56,7 @@ type TratativaRestricao = {
 
 export default function CheckoutPage() {
   const [obraId, setObraId] = useState<number | null>(null);
-  const [obra, setObra] = useState("Sem obra selecionada");
+  const [obra, setObra] = useState("Sem frente selecionada");
   const [turnosCadastrados, setTurnosCadastrados] = useState<
     TurnoCadastrado[]
   >([]);
@@ -256,7 +256,7 @@ export default function CheckoutPage() {
       setObraId(obraResolvidaId);
       setObra(
         obraAtiva?.nome ??
-          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+          (obraResolvidaId ? "Frente informada no link" : "Sem frente selecionada")
       );
       setTurnosCadastrados(dadosObra.turnos);
       setTurno(contexto.turnoAtivo?.nome ?? "");
@@ -443,7 +443,7 @@ export default function CheckoutPage() {
     setErro("");
 
     if (!obraId || !dataTurnoAtual || !turno) {
-      setErro("Selecione obra, data e turno antes de reprogramar.");
+      setErro("Selecione frente, data e turno antes de reprogramar.");
       return;
     }
 
@@ -664,7 +664,7 @@ export default function CheckoutPage() {
     if (!obraId || !turno) {
       setErro(
         !obraId
-          ? "Selecione uma obra no menu lateral para continuar."
+          ? "Selecione uma frente no menu lateral para continuar."
           : "Selecione ou publique um turno no Checkin para continuar."
       );
       return;
@@ -739,7 +739,7 @@ export default function CheckoutPage() {
   return (
     <DesktopLayout
       titulo="Check-out do Turno"
-      subtitulo={`Obra: ${obra} - Turno ${turno || "-"} - Data: ${
+      subtitulo={`Frente: ${obra} - Turno ${turno || "-"} - Data: ${
         dataTurnoOperacional ? formatarDataTurno(dataTurnoOperacional) : "-"
       }`}
       status={statusTurno}
@@ -750,7 +750,7 @@ export default function CheckoutPage() {
       <div className="space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Obra ativa: {obra} · {statusTurno}
+            Frente ativa: {obra} · {statusTurno}
           </div>
 
           {mensagem && (
@@ -766,7 +766,7 @@ export default function CheckoutPage() {
           )}
 
           {!obraId && (
-            <EstadoVazio texto="Selecione uma obra no menu lateral para continuar." />
+            <EstadoVazio texto="Selecione uma frente no menu lateral para continuar." />
           )}
 
           {obraId && !turno && (
@@ -838,7 +838,7 @@ export default function CheckoutPage() {
         <section className="rounded-2xl bg-white shadow-sm">
           <CabecalhoSecao
             titulo="Validação das atividades"
-            texto="Atividades carregadas da obra ativa para o turno selecionado"
+            texto="Atividades carregadas da frente ativa para o turno selecionado"
           />
 
           {carregando ? (
@@ -847,7 +847,7 @@ export default function CheckoutPage() {
             </div>
           ) : atividades.length === 0 ? (
             <div className="p-4">
-              <EstadoVazio texto="Nenhuma atividade para fechar nesta obra e turno." />
+              <EstadoVazio texto="Nenhuma atividade para fechar nesta frente e turno." />
             </div>
           ) : (
             <div className="overflow-x-auto">

@@ -27,7 +27,7 @@ interface Props {
 }
 
 const menuItems = [
-  { href: "/obra", label: "Obra", icon: "OB" },
+  { href: "/obra", label: "Frente", icon: "OB" },
   { href: "/checkin", label: "Check-in", icon: "✓" },
   { href: "/", label: "Painel", icon: "▦" },
   { href: "/checkout", label: "Check-out", icon: "↗" },
@@ -223,7 +223,7 @@ export default function DesktopLayout({
             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-3">
               <label className="block">
                 <span className="mb-2 block text-[11px] font-bold uppercase text-slate-500">
-                  Obra ativa
+                  Frente ativa
                 </span>
                 <select
                   value={obraAtivaId ?? ""}
@@ -231,12 +231,12 @@ export default function DesktopLayout({
                   className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm font-semibold text-white"
                 >
                   <option value="">
-                    {obras.length === 0 ? "Cadastre uma obra" : "Selecionar obra"}
+                    {obras.length === 0 ? "Cadastre uma frente" : "Selecionar frente"}
                   </option>
 
                   {obras.map((obra) => (
                     <option key={obra.id} value={obra.id}>
-                      {obra.nome || obra.codigo || "Obra sem nome"}
+                      {obra.nome || obra.codigo || "Frente sem nome"}
                     </option>
                   ))}
                 </select>
@@ -313,7 +313,7 @@ export default function DesktopLayout({
 
             <label className="block">
               <span className="mb-1 block text-[11px] font-bold uppercase text-slate-500">
-                Obra ativa
+                Frente ativa
               </span>
               <select
                 value={obraAtivaId ?? ""}
@@ -321,12 +321,12 @@ export default function DesktopLayout({
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm font-semibold text-white"
               >
                 <option value="">
-                  {obras.length === 0 ? "Cadastre uma obra" : "Selecionar obra"}
+                  {obras.length === 0 ? "Cadastre uma frente" : "Selecionar frente"}
                 </option>
 
                 {obras.map((obra) => (
                   <option key={obra.id} value={obra.id}>
-                    {obra.nome || obra.codigo || "Obra sem nome"}
+                    {obra.nome || obra.codigo || "Frente sem nome"}
                   </option>
                 ))}
               </select>

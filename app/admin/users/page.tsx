@@ -254,7 +254,7 @@ export default function AdminUsersPage() {
                       </p>
                     </td>
                     <td className="p-3 text-xs text-slate-600">
-                      <p>{user.counts.obras} obras · {user.counts.turnos} turnos</p>
+                      <p>{user.counts.obras} frentes · {user.counts.turnos} turnos</p>
                       <p>{user.counts.atividades} atividades</p>
                       <p>{user.counts.restricoes} restrições · {user.counts.rdos} RDOs</p>
                     </td>
@@ -354,7 +354,7 @@ export default function AdminUsersPage() {
               <div className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-800">
                 <p className="font-bold">Esta ação é irreversível.</p>
                 <p className="mt-2">
-                  Serão removidos {modal.user.counts.obras} obras,{" "}
+                  Serão removidas {modal.user.counts.obras} frentes,{" "}
                   {modal.user.counts.turnos} turnos,{" "}
                   {modal.user.counts.atividades} atividades,{" "}
                   {modal.user.counts.restricoes} restrições e{" "}

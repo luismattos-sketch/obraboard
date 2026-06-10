@@ -77,7 +77,7 @@ function CampoPageContent() {
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [obraIdCampo, setObraIdCampo] = useState<number | null>(null);
   const [turnoIdCampo, setTurnoIdCampo] = useState<number | null>(null);
-  const [obra, setObra] = useState("Sem obra selecionada");
+  const [obra, setObra] = useState("Sem frente selecionada");
   const [avisoObra, setAvisoObra] = useState("");
   const [mensagemCampo, setMensagemCampo] = useState(mensagemLinkInvalido);
   const [statusLinkCampo, setStatusLinkCampo] = useState<
@@ -402,7 +402,7 @@ function CampoPageContent() {
     console.error("Link Campo invalido:", motivo);
     setObraIdCampo(null);
     setTurnoIdCampo(null);
-    setObra("Obra não encontrada");
+    setObra("Frente não encontrada");
     setTurno("");
     setAvisoObra(texto);
     setMensagemCampo(texto);
@@ -452,7 +452,7 @@ function CampoPageContent() {
       },
       obra: {
         id: Number(obraLinha.id),
-        nome: String(obraLinha.nome || obraLinha.codigo || "Obra sem nome"),
+        nome: String(obraLinha.nome || obraLinha.codigo || "Frente sem nome"),
         codigo: String(obraLinha.codigo || ""),
         logoUrl: String(obraLinha.logo_url || ""),
       } as Pick<ObraCadastrada, "id" | "nome" | "codigo" | "logoUrl">,
@@ -527,7 +527,7 @@ function CampoPageContent() {
       setObra(
         contextoDireto.obra.nome ||
           contextoDireto.obra.codigo ||
-          "Obra sem nome"
+          "Frente sem nome"
       );
       setAvisoObra("");
       setFuncoesPrevistasCadastradas(contextoDireto.funcoes ?? []);
@@ -992,7 +992,7 @@ function CampoPageContent() {
     }
 
     if (!obraIdCampo || !turnoIdCampo || !dataTurnoAtual || !turno) {
-      alert("A tela Campo precisa estar vinculada a obra, data e turno.");
+      alert("A tela Campo precisa estar vinculada a frente, data e turno.");
       return;
     }
 
@@ -1111,7 +1111,7 @@ function CampoPageContent() {
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
       <header className="mb-4 rounded-xl bg-slate-900 p-4 text-white">
-        <p className="text-xs font-semibold text-teal-200">Obra ativa: {obra}</p>
+        <p className="text-xs font-semibold text-teal-200">Frente ativa: {obra}</p>
         <h1 className="text-2xl font-bold">Minhas Atividades</h1>
         <p className="text-sm text-slate-300">Campo · Turno {turno || "-"}</p>
         {avisoObra && (
@@ -1122,7 +1122,7 @@ function CampoPageContent() {
 
         <div className="mt-3 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
-            <p className="text-xs font-bold uppercase text-slate-400">Obra</p>
+            <p className="text-xs font-bold uppercase text-slate-400">Frente</p>
             <p className="mt-1 text-sm font-semibold text-white">{obra}</p>
           </div>
 

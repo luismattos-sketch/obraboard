@@ -299,7 +299,7 @@ export default function CadastroObraPage() {
     const obraId = editando ? obraEditandoId : gerarIdTemporario();
 
     if (!obraId) {
-      setMensagem("Não foi possível identificar a obra para salvar.");
+      setMensagem("Não foi possível identificar a frente para salvar.");
       return;
     }
 
@@ -346,9 +346,9 @@ export default function CadastroObraPage() {
         )
       );
     } catch (error) {
-      console.error("Erro ao salvar obra no Supabase.", error);
+      console.error("Erro ao salvar frente no Supabase.", error);
       setMensagem(
-        `Erro ao salvar obra no Supabase: ${obterMensagemErro(error)}`
+        `Erro ao salvar frente no Supabase: ${obterMensagemErro(error)}`
       );
       return;
     }
@@ -360,8 +360,8 @@ export default function CadastroObraPage() {
     atualizarObraIdNaUrl(obra.id);
     setMensagem(
       editando
-        ? "Obra atualizada."
-        : "Obra cadastrada e selecionada como ativa."
+        ? "Frente atualizada."
+        : "Frente cadastrada e selecionada como ativa."
     );
     queueMicrotask(notificarCadastroBaseAtualizado);
   }
@@ -380,7 +380,7 @@ export default function CadastroObraPage() {
     setDisciplinas([]);
     setFuncoesPrevistas([]);
     setTurnos([]);
-    setMensagem("Formulario pronto para nova obra.");
+    setMensagem("Formulario pronto para nova frente.");
   }
 
   function editarObra(obra: ObraCadastrada) {
@@ -480,7 +480,7 @@ export default function CadastroObraPage() {
       limparObra();
     }
     queueMicrotask(notificarCadastroBaseAtualizado);
-    setMensagem("Obra excluída.");
+    setMensagem("Frente excluída.");
   }
 
   function salvarUsuario() {
@@ -791,7 +791,7 @@ export default function CadastroObraPage() {
 
   return (
     <DesktopLayout
-      titulo="Cadastro da Obra"
+      titulo="Cadastro da Frente"
       subtitulo="Dados base para planejamento, check-in e acompanhamento"
       status={statusCadastro}
       logoUrl={logoUrl || undefined}
@@ -806,10 +806,10 @@ export default function CadastroObraPage() {
         <section className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div className="w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs font-bold uppercase text-slate-500">
-              Obra ativa
+              Frente ativa
             </p>
             <p className="mt-1 font-semibold text-slate-900">
-              {obraSelecionada?.nome || obraSelecionada?.codigo || "Selecione uma obra no menu lateral"}
+              {obraSelecionada?.nome || obraSelecionada?.codigo || "Selecione uma frente no menu lateral"}
             </p>
           </div>
 
@@ -818,7 +818,7 @@ export default function CadastroObraPage() {
             onClick={cadastrarNovaObra}
             className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
           >
-            Cadastrar nova obra
+            Cadastrar nova frente
           </button>
         </section>
 
@@ -827,11 +827,11 @@ export default function CadastroObraPage() {
             <section className="rounded-2xl bg-white p-4 shadow-sm">
               <SecaoTitulo
                 titulo="Informações gerais"
-                descricao="Identifique a obra e o contrato que será acompanhado."
+                descricao="Identifique a frente e o contrato que será acompanhado."
               />
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-                <CampoRotulado label="Nome da obra" className="md:col-span-3">
+                <CampoRotulado label="Nome da frente" className="md:col-span-3">
                   <input
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
@@ -960,7 +960,7 @@ export default function CadastroObraPage() {
                     onChange={(e) => setEscopo(e.target.value)}
                     disabled={bloqueiaFormularioObra}
                     className={`min-h-[110px] w-full rounded-lg border border-slate-300 p-4 ${classeCampoBloqueavel}`}
-                    placeholder="Descreva o escopo principal da obra..."
+                    placeholder="Descreva o escopo principal da frente..."
                   />
                 </CampoRotulado>
 
@@ -979,13 +979,13 @@ export default function CadastroObraPage() {
 
           <aside className="space-y-4">
             <section className="rounded-2xl bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold">Resumo da obra</h2>
+              <h2 className="text-lg font-bold">Resumo da frente</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Conferência antes de salvar.
               </p>
 
               <div className="mt-4 space-y-3">
-                <ResumoLinha label="Obra" valor={valorOuTraco(nome)} />
+                <ResumoLinha label="Frente" valor={valorOuTraco(nome)} />
                 <ResumoLinha label="Cliente" valor={valorOuTraco(cliente)} />
                 <ResumoLinha
                   label="Orçamento"
@@ -1003,7 +1003,7 @@ export default function CadastroObraPage() {
                 disabled={bloqueiaFormularioObra}
                 className={`mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold transition ${classeBotaoPrimario}`}
               >
-                {obraEditandoId ? "Salvar edição" : "Salvar obra"}
+                {obraEditandoId ? "Salvar edição" : "Salvar frente"}
               </button>
 
               {bloqueiaFormularioObra && obraSelecionada && (
@@ -1012,7 +1012,7 @@ export default function CadastroObraPage() {
                   onClick={editarObraSelecionada}
                   className="mt-3 w-full rounded-xl border border-teal-600 px-4 py-3 text-sm font-bold text-teal-700 transition hover:bg-teal-50"
                 >
-                  Editar obra
+                  Editar frente
                 </button>
               )}
 
@@ -1080,7 +1080,7 @@ export default function CadastroObraPage() {
                 Publicar turnos e atividades
               </h2>
               <p className="mt-2 text-xs leading-5 text-slate-300">
-                Depois do cadastro, use o check-in para montar o turno da obra e
+                Depois do cadastro, use o check-in para montar o turno da frente e
                 acompanhar recursos, frentes e restrições.
               </p>
             </section>
@@ -1454,7 +1454,7 @@ export default function CadastroObraPage() {
             <div className="mb-4 flex items-center justify-between">
               <SecaoTitulo
                 titulo="Funções disponíveis"
-                descricao="Cadastre apenas os cargos usados no planejamento da obra."
+                descricao="Cadastre apenas os cargos usados no planejamento da frente."
               />
 
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
@@ -1531,27 +1531,27 @@ export default function CadastroObraPage() {
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold">Obras cadastradas</h2>
+              <h2 className="text-lg font-bold">Frentes cadastradas</h2>
               <p className="text-sm text-slate-500">
                 Registros criados nesta sessão.
               </p>
             </div>
 
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              {obras.length} obras
+              {obras.length} frentes
             </span>
           </div>
 
           {obras.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm font-semibold text-slate-500">
-              Nenhuma obra cadastrada ainda.
+              Nenhuma frente cadastrada ainda.
             </div>
           ) : (
             <table className="w-full">
               <thead className="bg-slate-100">
                 <tr>
                   <th className="p-3 text-left">Código</th>
-                  <th className="p-3 text-left">Obra</th>
+                  <th className="p-3 text-left">Frente</th>
                   <th className="p-3 text-left">Cliente</th>
                   <th className="p-3 text-left">Contrato</th>
                   <th className="p-3 text-center">Período</th>

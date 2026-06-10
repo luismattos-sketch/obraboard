@@ -53,7 +53,7 @@ type RestricaoResumo = {
 export default function RdoPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [obraId, setObraId] = useState<number | null>(null);
-  const [obra, setObra] = useState("Sem obra selecionada");
+  const [obra, setObra] = useState("Sem frente selecionada");
   const [turno, setTurno] = useState("");
   const [turnosCadastrados, setTurnosCadastrados] = useState<TurnoCadastrado[]>([]);
   const [dataTurnoSelecionada, setDataTurnoSelecionada] = useState("");
@@ -348,7 +348,7 @@ export default function RdoPage() {
       setObraId(obraResolvidaId);
       setObra(
         obraAtiva?.nome ??
-          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+          (obraResolvidaId ? "Frente informada no link" : "Sem frente selecionada")
       );
       setTurnosCadastrados(contexto.dadosObra.turnos);
       setTurno(contexto.turnoAtivo?.nome ?? "");
@@ -386,19 +386,19 @@ export default function RdoPage() {
   }, [obraId, dataTurnoAtual, turno, turnoSelecionado]);
 
   return (
-    <DesktopLayout titulo="RDO" subtitulo="Relatório Diário de Obra">
+    <DesktopLayout titulo="RDO" subtitulo="Relatório Diário de Frente">
       <div className="space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-sm print:hidden">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-slate-900">Histórico de RDOs</h2>
             <p className="text-sm text-slate-500">
-              Resumo dos RDOs da obra/frente selecionada.
+              Resumo dos RDOs da frente selecionada.
             </p>
           </div>
 
           {historicoRdos.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
-              Nenhum RDO encontrado para a obra/frente selecionada.
+              Nenhum RDO encontrado para a frente selecionada.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -451,7 +451,7 @@ export default function RdoPage() {
         </section>
         <section className="mx-auto w-full max-w-[794px] rounded-2xl bg-white p-4 shadow-sm print:hidden">
           <div className="mb-4 flex flex-col gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 sm:flex-row sm:items-center sm:justify-between">
-            <span>Obra ativa: {obra}</span>
+            <span>Frente ativa: {obra}</span>
             <button
               type="button"
               onClick={() => window.print()}
@@ -462,7 +462,7 @@ export default function RdoPage() {
           </div>
           {!obraId && (
             <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
-              Selecione uma obra no menu lateral para continuar.
+              Selecione uma frente no menu lateral para continuar.
             </p>
           )}
           {obraId && !turno && (
@@ -485,10 +485,10 @@ export default function RdoPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-slate-900">
-                    Relatório Diário de Obra
+                    Relatório Diário de Frente
                   </h1>
                   <p className="mt-1 text-sm text-slate-500">
-                    Consolidado operacional da obra/frente selecionada
+                    Consolidado operacional da frente selecionada
                   </p>
                 </div>
 
@@ -504,7 +504,7 @@ export default function RdoPage() {
             </header>
 
             <section className="mb-8 grid grid-cols-2 gap-4">
-              <InfoCard label="Obra" value={obra} />
+              <InfoCard label="Frente" value={obra} />
               <InfoCard label="Data" value={dataTurnoAtual ? formatarDataTurno(dataTurnoAtual) : "-"} />
               <InfoCard label="Turno" value={turno || "-"} />
               <InfoCard label="Atividades" value={String(atividades.length)} />
@@ -516,7 +516,7 @@ export default function RdoPage() {
               <h2 className="mb-3 text-lg font-bold text-slate-900">Resumo do Turno</h2>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-700">
                 {atividades.length === 0
-                  ? "Nenhuma atividade registrada para a obra/frente, turno e data selecionados."
+                  ? "Nenhuma atividade registrada para a frente, turno e data selecionados."
                   : `${finalizadas} de ${atividades.length} atividades finalizadas. ${restricoesDoRdo.length} restrições registradas no campo.`}
               </div>
             </section>

@@ -86,7 +86,7 @@ function criarIdTemporario() {
 
 export default function CheckinPage() {
   const [obraId, setObraId] = useState<number | null>(null);
-  const [obra, setObra] = useState("Sem obra selecionada");
+  const [obra, setObra] = useState("Sem frente selecionada");
   const [dataTurno, setDataTurno] = useState(dataHoje);
   const [turno, setTurno] = useState("");
   const [planejador, setPlanejador] = useState("Luis Villaca");
@@ -392,7 +392,7 @@ export default function CheckinPage() {
       setObraId(obraResolvidaId);
       setObra(
         obraAtiva?.nome ??
-          (obraResolvidaId ? "Obra informada no link" : "Sem obra selecionada")
+          (obraResolvidaId ? "Frente informada no link" : "Sem frente selecionada")
       );
       setTurnosCadastrados(dadosObra.turnos);
       setDisciplinasCadastradas(dadosObra.disciplinas);
@@ -468,7 +468,7 @@ export default function CheckinPage() {
     }
 
     if (!obraId) {
-      setErro("Selecione uma obra ativa antes de cadastrar atividades.");
+      setErro("Selecione uma frente ativa antes de cadastrar atividades.");
       return;
     }
 
@@ -687,7 +687,7 @@ export default function CheckinPage() {
     origemAtividadeId: number | null;
   }) {
     if (!obraId) {
-      throw new Error("Obra ativa não definida.");
+      throw new Error("Frente ativa não definida.");
     }
 
     const turnoDestinoId = obterTurnoIdPorNome(turnoDestino);
@@ -812,7 +812,7 @@ export default function CheckinPage() {
       const total = usado - hhDaEdicao + hhNovo;
 
       if (disponivel > 0 && total > disponivel + 0.0001) {
-        return `HH de ${funcao} excede o total disponível para esta obra/turno.`;
+        return `HH de ${funcao} excede o total disponível para esta frente/turno.`;
       }
     }
 
@@ -931,7 +931,7 @@ export default function CheckinPage() {
     }
 
     if (!obraId || !dataTurno || !turno || !turnoSelecionado) {
-      setErro("Selecione obra, data e turno antes de cadastrar recursos.");
+      setErro("Selecione frente, data e turno antes de cadastrar recursos.");
       return;
     }
 
@@ -1236,7 +1236,7 @@ export default function CheckinPage() {
     setErro("");
 
     if (!obraId || !dataTurno || !planejador) {
-      setErro("Complete obra, data e planejador antes de publicar.");
+      setErro("Complete frente, data e planejador antes de publicar.");
       return;
     }
 
@@ -1303,7 +1303,7 @@ export default function CheckinPage() {
 
         {!obraId && (
           <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center text-sm font-semibold text-slate-500">
-            Selecione uma obra no menu lateral para continuar.
+            Selecione uma frente no menu lateral para continuar.
           </p>
         )}
 
@@ -1333,12 +1333,12 @@ export default function CheckinPage() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <CampoRotulado label="Obra">
+            <CampoRotulado label="Frente">
               <input
                 value={obra}
                 readOnly
                 className="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-600"
-                placeholder="Obra"
+                placeholder="Frente"
               />
             </CampoRotulado>
 
@@ -1358,7 +1358,7 @@ export default function CheckinPage() {
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               >
                 {turnosCadastrados.length === 0 ? (
-                  <option value="">Cadastre turnos na obra</option>
+                  <option value="">Cadastre turnos na frente</option>
                 ) : (
                   turnosCadastrados.map((item) => (
                     <option key={item.id} value={item.nome}>
@@ -1722,7 +1722,7 @@ export default function CheckinPage() {
             <div>
               <h2 className="text-lg font-bold">Atividades do turno</h2>
               <p className="text-sm text-slate-500">
-                Lista filtrada pela obra ativa, data e turno selecionados.
+                Lista filtrada pela frente ativa, data e turno selecionados.
               </p>
             </div>
 
@@ -1738,7 +1738,7 @@ export default function CheckinPage() {
               </div>
             ) : atividadesTurno.length === 0 ? (
               <div className="m-5 rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm font-semibold text-slate-500">
-                Nenhuma atividade cadastrada para esta obra e turno.
+                Nenhuma atividade cadastrada para esta frente e turno.
               </div>
             ) : (
               <table className="w-full min-w-[1120px]">
