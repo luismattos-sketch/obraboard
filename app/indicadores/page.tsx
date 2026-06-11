@@ -501,7 +501,7 @@ export default function IndicadoresPage() {
               <Kpi titulo="Restrições resolvidas" valor={String(resumo.restricoesResolvidas)} tom="verde" />
             </section>
 
-            <section className="grid gap-3 xl:grid-cols-2">
+            <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
               <Bloco titulo="Planejado x Real">
                 <GraficoBarras dados={planejadoReal} chaves={[{ chave: "planejado", nome: "Planejado" }, { chave: "realizado", nome: "Realizado", cor: "#ff6b00" }]} />
               </Bloco>
