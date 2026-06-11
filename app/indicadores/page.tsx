@@ -72,7 +72,7 @@ export default function IndicadoresPage() {
   const [dados, setDados] = useState<DadosIndicadores>(dadosVazios);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
-  const [agora, setAgora] = useState(() => Date.now());
+  const [agora] = useState(() => Date.now());
 
   const carregarDados = useCallback(async (id: number | null) => {
     if (!id) {
@@ -154,23 +154,6 @@ export default function IndicadoresPage() {
 
     return () => window.removeEventListener(cadastroBaseEvento, atualizar);
   }, [carregarDados]);
-
-  useEffect(() => {
-    if (!obraId) {
-      return;
-    }
-
-    const intervalo = window.setInterval(() => {
-      void carregarDados(obraId);
-    }, 15_000);
-
-    return () => window.clearInterval(intervalo);
-  }, [carregarDados, obraId]);
-
-  useEffect(() => {
-    const intervalo = window.setInterval(() => setAgora(Date.now()), 60_000);
-    return () => window.clearInterval(intervalo);
-  }, []);
 
   const turnosDisponiveis = useMemo(() => {
     const mapa = new Map<string, TurnoOperacaoIndicador>();
@@ -361,7 +344,7 @@ export default function IndicadoresPage() {
       subtitulo="Painel visual de produtividade, HH, avanço físico e restrições da frente."
       status={obraNome || "Frente ativa"}
     >
-      <div className="space-y-5 pb-10">
+      <div className="space-y-3 pb-6">
         <button
           type="button"
           onClick={() => setFiltrosAbertos((valor) => !valor)}
@@ -371,9 +354,9 @@ export default function IndicadoresPage() {
         </button>
 
         <section
-          className={`${filtrosAbertos ? "block" : "hidden"} rounded-2xl bg-white p-4 shadow-sm lg:block`}
+          className={`${filtrosAbertos ? "block" : "hidden"} rounded-xl bg-white p-3 shadow-sm lg:block`}
         >
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
             <Filtro label="Tipo de visão">
               <select
                 value={tipoVisao}
@@ -472,7 +455,7 @@ export default function IndicadoresPage() {
               </select>
             </Filtro>
           </div>
-          <div className="mt-4 flex justify-end">
+          <div className="mt-3 flex justify-end">
             <button
               type="button"
               onClick={limparFiltros}
@@ -503,7 +486,7 @@ export default function IndicadoresPage() {
           />
         ) : (
           <>
-            <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <section className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-6">
               <Kpi titulo="Status" valor={resumo.status} tom="azul" />
               <Kpi titulo="Tempo decorrido" valor={formatarDuracao(resumo.tempoDecorridoMs)} />
               <Kpi titulo="Tempo produtivo" valor={formatarDuracao(resumo.tempoProdutivoMs)} tom="verde" />
@@ -518,7 +501,7 @@ export default function IndicadoresPage() {
               <Kpi titulo="Restrições resolvidas" valor={String(resumo.restricoesResolvidas)} tom="verde" />
             </section>
 
-            <section className="grid gap-5 xl:grid-cols-2">
+            <section className="grid gap-3 xl:grid-cols-2">
               <Bloco titulo="Planejado x Real">
                 <GraficoBarras dados={planejadoReal} chaves={[{ chave: "planejado", nome: "Planejado" }, { chave: "realizado", nome: "Realizado", cor: "#ff6b00" }]} />
               </Bloco>
@@ -558,14 +541,14 @@ export default function IndicadoresPage() {
               </Bloco>
             </section>
 
-            <section className="grid gap-5 xl:grid-cols-2">
+            <section className="grid gap-3 xl:grid-cols-2">
               <Bloco titulo="Restrições Abertas">
                 {restricoesAbertas.length === 0 ? (
                   <EstadoInterno texto="Nenhuma restrição aberta no momento." />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {restricoesAbertas.slice(0, 8).map((item) => (
-                      <div key={item.id} className="rounded-xl border border-red-100 bg-red-50 p-4">
+                      <div key={item.id} className="rounded-xl border border-red-100 bg-red-50 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-bold text-slate-900">{item.atividade}</p>
@@ -585,9 +568,9 @@ export default function IndicadoresPage() {
               </Bloco>
 
               <Bloco titulo={tipoVisao === "turno-atual" ? "Alertas do Turno" : "Alertas da Análise"}>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {alertas.map((item) => (
-                    <div key={item.texto} className={`rounded-xl border p-4 text-sm font-semibold ${item.classe}`}>
+                    <div key={item.texto} className={`rounded-xl border p-3 text-sm font-semibold ${item.classe}`}>
                       {item.texto}
                     </div>
                   ))}
@@ -596,10 +579,10 @@ export default function IndicadoresPage() {
             </section>
 
             <Bloco titulo="Linha do Tempo">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {montarTimeline(dadosVisao).slice(0, 18).map((evento) => (
-                  <div key={evento.id} className="relative rounded-xl border border-slate-200 bg-slate-50 p-4 pl-6">
-                    <span className="absolute left-0 top-4 h-8 w-1 rounded-r bg-teal-600" />
+                  <div key={evento.id} className="relative rounded-xl border border-slate-200 bg-slate-50 p-3 pl-5">
+                    <span className="absolute left-0 top-3 h-7 w-1 rounded-r bg-teal-600" />
                     <p className="text-xs font-bold uppercase text-slate-500">{evento.data}</p>
                     <p className="mt-1 font-bold text-slate-900">{evento.titulo}</p>
                     <p className="mt-1 text-sm text-slate-600">{evento.descricao}</p>
@@ -645,7 +628,7 @@ export default function IndicadoresPage() {
               </div>
               <div className="space-y-3 md:hidden">
                 {resumo.linhas.map((linha) => (
-                  <div key={linha.atividade.id} className="rounded-xl border border-slate-200 p-4">
+                  <div key={linha.atividade.id} className="rounded-xl border border-slate-200 p-3">
                     <div className="flex justify-between gap-3">
                       <p className="font-bold">{linha.atividade.atividade}</p>
                       <span className="text-xs font-bold text-blue-700">{normalizarStatus(linha.atividade)}</span>
@@ -694,17 +677,17 @@ function Kpi({
     vermelho: "border-red-100 bg-red-50",
   };
   return (
-    <article className={`min-h-28 rounded-2xl border p-4 shadow-sm ${tons[tom]}`}>
+    <article className={`min-h-20 rounded-xl border p-3 shadow-sm ${tons[tom]}`}>
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{titulo}</p>
-      <p className="mt-3 break-words text-2xl font-black text-slate-900">{valor}</p>
+      <p className="mt-2 break-words text-xl font-black text-slate-900">{valor}</p>
     </article>
   );
 }
 
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <section className="min-w-0 rounded-2xl bg-white p-4 shadow-sm lg:p-5">
-      <h3 className="mb-4 text-lg font-bold text-slate-900">{titulo}</h3>
+    <section className="min-w-0 rounded-xl bg-white p-3 shadow-sm">
+      <h3 className="mb-2 text-base font-bold text-slate-900">{titulo}</h3>
       {children}
     </section>
   );
@@ -712,7 +695,7 @@ function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode
 
 function EstadoVazio({ texto }: { texto: string }) {
   return (
-    <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
+    <div className="rounded-xl bg-white p-8 text-center shadow-sm">
       <p className="font-semibold text-slate-500">{texto}</p>
     </div>
   );
@@ -726,7 +709,7 @@ function Skeleton() {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       {Array.from({ length: 12 }).map((_, indice) => (
-        <div key={indice} className="h-28 animate-pulse rounded-2xl bg-white shadow-sm" />
+        <div key={indice} className="h-20 animate-pulse rounded-xl bg-white shadow-sm" />
       ))}
     </div>
   );

@@ -32,7 +32,7 @@ export function GraficoBarras({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={240}>
       <BarChart
         data={dados}
         layout={layout}
@@ -80,15 +80,15 @@ export function GraficoRosca({
   }
 
   return (
-    <div className="relative h-[300px]">
+    <div className="relative h-[240px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={ativos}
             dataKey="valor"
             nameKey="nome"
-            innerRadius={70}
-            outerRadius={105}
+            innerRadius={52}
+            outerRadius={82}
             paddingAngle={3}
           >
             {ativos.map((item, indice) => (
@@ -122,7 +122,7 @@ export function GraficoLinha({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={240}>
       <LineChart data={dados} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="nome" tick={{ fontSize: 11 }} />
@@ -144,7 +144,7 @@ export function GraficoLinha({
 
 function EstadoGrafico({ texto = "Dados insuficientes para gerar este gráfico." }) {
   return (
-    <div className="flex h-[300px] items-center justify-center rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">
+    <div className="flex h-[240px] items-center justify-center rounded-xl bg-slate-50 p-4 text-center text-sm text-slate-500">
       {texto}
     </div>
   );
