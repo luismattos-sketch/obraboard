@@ -31,6 +31,7 @@ const menuItems = [
   { href: "/checkin", label: "Check-in", icon: "✓" },
   { href: "/", label: "Painel", icon: "▦" },
   { href: "/checkout", label: "Check-out", icon: "↗" },
+  { href: "/indicadores", label: "Indicadores", icon: "▥" },
   { href: "/rdo", label: "RDO", icon: "▤" },
 ];
 

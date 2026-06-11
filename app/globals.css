@@ -37,6 +37,21 @@ body {
   font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
+.campo-filtro {
+  width: 100%;
+  border: 1px solid var(--frentia-border);
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.7rem 0.8rem;
+  color: var(--frentia-graphite);
+  font-size: 0.875rem;
+}
+
+.campo-filtro:focus {
+  border-color: var(--frentia-blue-2);
+  outline: 3px solid rgba(11, 74, 143, 0.12);
+}
+
 @layer utilities {
   .frentia-logo-img {
     object-fit: contain;
