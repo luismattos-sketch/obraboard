@@ -224,7 +224,7 @@ export function GraficoGantt({
   }
 
   const duracao = fim - inicio;
-  const larguraRotulo = 150;
+  const larguraRotulo = 175;
   const larguraGrafico = 900;
   const alturaLinha = 30;
   const altura = 34 + linhas.length * alturaLinha;
@@ -271,17 +271,26 @@ export function GraficoGantt({
 
         {linhas.map((linha, indice) => {
           const y = 25 + indice * alturaLinha;
+          const linhasRotulo = quebrarTexto(linha.nome, 25);
           return (
             <g key={linha.id}>
               <text
                 x={larguraRotulo - 10}
-                y={y + 13}
+                y={y + (linhasRotulo.length === 1 ? 12 : 8)}
                 textAnchor="end"
                 fontSize="7.5"
                 fontWeight="400"
                 fill="#334155"
               >
-                {abreviarTexto(linha.nome, 22)}
+                {linhasRotulo.map((texto, linhaIndice) => (
+                  <tspan
+                    key={`${linha.id}-rotulo-${linhaIndice}`}
+                    x={larguraRotulo - 10}
+                    dy={linhaIndice === 0 ? 0 : 8}
+                  >
+                    {texto}
+                  </tspan>
+                ))}
               </text>
               <line
                 x1={larguraRotulo}
@@ -333,7 +342,7 @@ export function GraficoGantt({
           );
         })}
       </svg>
-      <div className="mt-1 flex flex-wrap justify-center gap-2.5 text-[8px] font-normal text-slate-600">
+      <div className="mt-2 flex flex-wrap justify-center gap-3 text-[10px] font-medium text-slate-600">
         <Legenda cor="#2e7d32" texto="Atividade ativa" />
         <Legenda cor="#c62828" texto="Em restrição" />
         <Legenda cor="#f9a825" texto="Parada" marcador />
@@ -353,9 +362,9 @@ function Legenda({
   marcador?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-1">
+    <span className="flex items-center gap-1.5">
       <span
-        className={marcador ? "h-2.5 w-0.5 rounded-full" : "h-1.5 w-4 rounded"}
+        className={marcador ? "h-3 w-1 rounded-full" : "h-2 w-5 rounded"}
         style={{ backgroundColor: cor }}
       />
       {texto}
@@ -371,8 +380,31 @@ function formatarEixoTempo(instante: number, duracao: number) {
   }).format(new Date(instante));
 }
 
-function abreviarTexto(texto: string, limite: number) {
-  return texto.length > limite ? `${texto.slice(0, limite - 1)}…` : texto;
+function quebrarTexto(texto: string, limite: number) {
+  if (texto.length <= limite) {
+    return [texto];
+  }
+
+  const palavras = texto.split(/\s+/).filter(Boolean);
+  const linhas = ["", ""];
+
+  palavras.forEach((palavra) => {
+    const primeiraAceita =
+      linhas[0].length === 0 || `${linhas[0]} ${palavra}`.length <= limite;
+
+    if (primeiraAceita) {
+      linhas[0] = [linhas[0], palavra].filter(Boolean).join(" ");
+      return;
+    }
+
+    linhas[1] = [linhas[1], palavra].filter(Boolean).join(" ");
+  });
+
+  if (linhas[1].length > limite + 8) {
+    linhas[1] = `${linhas[1].slice(0, limite + 7)}…`;
+  }
+
+  return linhas.filter(Boolean);
 }
 
 function EstadoGrafico({ texto = "Dados insuficientes para gerar este gráfico." }) {
