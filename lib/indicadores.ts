@@ -113,7 +113,15 @@ export function calcularResumoIndicadores(
     0
   );
   const tempoParadoMs = tempoRestricaoMs;
-  const tempoProdutivoMs = Math.max(0, tempoDecorridoMs - tempoParadoMs);
+  const hhProdutivo = somar(
+    linhas
+      .filter(
+        (item) =>
+          item.atividade.status !== "Planejada" && item.hhConsumido > 0
+      )
+      .map((item) => item.hhConsumido)
+  );
+  const tempoProdutivoMs = hhProdutivo * 3_600_000;
   const hhPlanejado = somar(linhas.map((item) => item.hhPlanejado));
   const hhConsumido = somar(linhas.map((item) => item.hhConsumido));
   const hhPerdido = dados.restricoes.reduce((total, restricao) => {
@@ -147,7 +155,7 @@ export function calcularResumoIndicadores(
     tempoRestricaoMs,
     hhPlanejado,
     hhConsumido,
-    hhProdutivo: Math.max(0, hhConsumido - hhPerdido),
+    hhProdutivo,
     hhPerdido,
     avancoReal:
       totalPlanejado > 0
