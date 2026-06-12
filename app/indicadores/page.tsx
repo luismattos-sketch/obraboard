@@ -5,7 +5,7 @@ import DesktopLayout from "../../components/DesktopLayout";
 import {
   GraficoBarras,
   GraficoLinha,
-  GraficoLinhaTempo,
+  GraficoGantt,
   GraficoMedidor,
   GraficoRosca,
 } from "../../components/IndicadoresCharts";
@@ -636,7 +636,7 @@ export default function IndicadoresPage() {
             </section>
 
             <Bloco titulo="Linha do Tempo">
-              <GraficoLinhaTempo eventos={montarTimeline(dadosEscopo)} />
+              <GraficoGantt {...montarGantt(dadosEscopo, agora)} />
             </Bloco>
 
             <Bloco titulo="Atividades Detalhadas">
@@ -972,129 +972,157 @@ function montarProdutividadeResponsavel(
   })).sort((a, b) => b.produtividade - a.produtividade);
 }
 
-function montarTimeline(dados: DadosIndicadores) {
-  const eventos: Array<{
-    id: string;
-    data: string;
-    titulo: string;
-    descricao: string;
-    ordem: number;
-    tipo: "Turno" | "Atividade" | "Restrição";
-    faixa: number;
-    cor: string;
-  }> = [];
-  dados.turnos.forEach((turno) => {
-    adicionarEvento(
-      eventos,
-      `${turno.id}-iniciado`,
-      turno.iniciado_em,
-      "Turno iniciado",
-      turno.turno,
-      "Turno"
-    );
-    adicionarEvento(
-      eventos,
-      `${turno.id}-pausado`,
-      turno.pausado_em,
-      "Turno pausado",
-      turno.turno,
-      "Turno"
-    );
-    adicionarEvento(
-      eventos,
-      `${turno.id}-encerrado`,
-      turno.encerrado_em,
-      "Turno encerrado",
-      turno.turno,
-      "Turno"
-    );
-  });
-  dados.atividades.forEach((atividade) => {
-    adicionarEvento(
-      eventos,
-      `${atividade.id}-iniciada`,
-      atividade.iniciado_em,
-      "Atividade iniciada",
-      atividade.atividade,
-      "Atividade"
-    );
-    adicionarEvento(
-      eventos,
-      `${atividade.id}-finalizada`,
-      atividade.finalizado_em,
-      "Atividade finalizada",
-      atividade.atividade,
-      "Atividade"
-    );
-  });
-  dados.restricoes.forEach((item) => {
-    if (item.abertaEm || item.registradaEm) {
-      const data = item.abertaEm || item.registradaEm;
-      adicionarEvento(
-        eventos,
-        `${item.id}-aberta`,
-        data,
-        "Restrição aberta",
-        `${item.atividade}: ${item.texto}`,
-        "Restrição"
-      );
-    }
-    if (item.resolvidaEm) {
-      adicionarEvento(
-        eventos,
-        `${item.id}-resolvida`,
-        item.resolvidaEm,
-        "Restrição resolvida",
-        item.atividade,
-        "Restrição"
-      );
-    }
-  });
-  const ordenados = eventos.sort((a, b) => a.ordem - b.ordem);
-  const inicio = ordenados[0]?.ordem ?? 0;
+function montarGantt(dados: DadosIndicadores, agora: number) {
+  const linhas = dados.atividades
+    .map((atividade) => {
+      const inicio = atividade.iniciado_em
+        ? new Date(atividade.iniciado_em).getTime()
+        : null;
 
-  return ordenados.map((evento) => ({
-    ...evento,
-    tempoHoras: arredondar((evento.ordem - inicio) / 3_600_000),
-  }));
+      if (!inicio) {
+        return null;
+      }
+
+      const restricoes = dados.restricoes
+        .filter((item) => item.atividadeId === atividade.id)
+        .map((item) => {
+          const inicioRestricao = item.abertaEm || item.registradaEm;
+          const fimRestricao =
+            item.resolvidaEm || item.encerradaEm || new Date(agora).toISOString();
+
+          return {
+            inicio: new Date(inicioRestricao).getTime(),
+            fim: new Date(fimRestricao).getTime(),
+            texto: item.texto || "Restrição",
+            resolvida: Boolean(item.resolvidaEm || item.encerradaEm),
+          };
+        })
+        .filter(
+          (item) =>
+            Number.isFinite(item.inicio) &&
+            Number.isFinite(item.fim) &&
+            item.fim >= item.inicio
+        );
+      const fimRegistrado =
+        atividade.finalizado_em ||
+        atividade.pausado_em ||
+        (atividade.status === "Execução" || atividade.status === "Restrição"
+          ? new Date(agora).toISOString()
+          : null);
+      const maiorFimRestricao = restricoes.reduce(
+        (maior, item) => Math.max(maior, item.fim),
+        inicio
+      );
+      const fim = Math.max(
+        inicio,
+        fimRegistrado ? new Date(fimRegistrado).getTime() : inicio,
+        maiorFimRestricao
+      );
+
+      if (fim <= inicio) {
+        return null;
+      }
+
+      return {
+        id: String(atividade.id),
+        nome: atividade.atividade,
+        inicio,
+        fim,
+        segmentos: criarSegmentosGantt(inicio, fim, restricoes),
+        marcadores: [
+          ...restricoes.flatMap((item) => [
+            {
+              instante: item.inicio,
+              tipo: "restricao" as const,
+              descricao: `Restrição aberta: ${item.texto}`,
+            },
+            ...(item.resolvida
+              ? [
+                  {
+                    instante: item.fim,
+                    tipo: "resolucao" as const,
+                    descricao: `Restrição resolvida: ${item.texto}`,
+                  },
+                ]
+              : []),
+          ]),
+          ...(atividade.pausado_em
+            ? [
+                {
+                  instante: new Date(atividade.pausado_em).getTime(),
+                  tipo: "pausa" as const,
+                  descricao: "Atividade parada",
+                },
+              ]
+            : []),
+        ].filter(
+          (item) => item.instante >= inicio && item.instante <= fim
+        ),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => a.inicio - b.inicio);
+
+  return {
+    linhas,
+    inicio: linhas.length > 0 ? Math.min(...linhas.map((item) => item.inicio)) : 0,
+    fim: linhas.length > 0 ? Math.max(...linhas.map((item) => item.fim)) : 0,
+  };
 }
 
-function adicionarEvento(
-  eventos: Array<{
-    id: string;
-    data: string;
-    titulo: string;
-    descricao: string;
-    ordem: number;
-    tipo: "Turno" | "Atividade" | "Restrição";
-    faixa: number;
-    cor: string;
-  }>,
-  id: string,
-  data: string | null | undefined,
-  titulo: string,
-  descricao: string,
-  tipo: "Turno" | "Atividade" | "Restrição"
+function criarSegmentosGantt(
+  inicio: number,
+  fim: number,
+  restricoes: Array<{ inicio: number; fim: number; texto: string }>
 ) {
-  if (!data) {
-    return;
+  const intervalos = restricoes
+    .map((item) => ({
+      inicio: Math.max(inicio, item.inicio),
+      fim: Math.min(fim, item.fim),
+      texto: item.texto,
+    }))
+    .filter((item) => item.fim > item.inicio)
+    .sort((a, b) => a.inicio - b.inicio);
+  const segmentos: Array<{
+    inicio: number;
+    fim: number;
+    tipo: "ativa" | "restricao";
+    descricao: string;
+  }> = [];
+  let cursor = inicio;
+
+  intervalos.forEach((intervalo) => {
+    if (intervalo.inicio > cursor) {
+      segmentos.push({
+        inicio: cursor,
+        fim: intervalo.inicio,
+        tipo: "ativa",
+        descricao: "Atividade ativa",
+      });
+    }
+
+    const inicioRestricao = Math.max(cursor, intervalo.inicio);
+    if (intervalo.fim > inicioRestricao) {
+      segmentos.push({
+        inicio: inicioRestricao,
+        fim: intervalo.fim,
+        tipo: "restricao",
+        descricao: `Em restrição: ${intervalo.texto}`,
+      });
+      cursor = Math.max(cursor, intervalo.fim);
+    }
+  });
+
+  if (cursor < fim) {
+    segmentos.push({
+      inicio: cursor,
+      fim,
+      tipo: "ativa",
+      descricao: "Atividade ativa",
+    });
   }
 
-  eventos.push({
-    id,
-    data: formatarDataHora(data),
-    titulo,
-    descricao,
-    ordem: new Date(data).getTime(),
-    tipo,
-    faixa: tipo === "Turno" ? 1 : tipo === "Atividade" ? 2 : 3,
-    cor:
-      tipo === "Turno"
-        ? "#0b4a8f"
-        : tipo === "Atividade"
-          ? "#2e7d32"
-          : "#c62828",
-  });
+  return segmentos;
 }
 
 function montarAlertas(
@@ -1118,10 +1146,6 @@ function montarAlertas(
 function formatarData(valor: string | null | undefined) {
   if (!valor) return "—";
   return new Intl.DateTimeFormat("pt-BR").format(new Date(`${valor}T12:00:00`));
-}
-
-function formatarDataHora(valor: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(valor));
 }
 
 function abreviar(valor: string) {

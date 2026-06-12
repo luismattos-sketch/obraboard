@@ -11,8 +11,6 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
-  Scatter,
-  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
@@ -198,87 +196,183 @@ export function GraficoMedidor({
   );
 }
 
-export function GraficoLinhaTempo({
-  eventos,
+export function GraficoGantt({
+  linhas,
+  inicio,
+  fim,
 }: {
-  eventos: Array<{
+  linhas: Array<{
     id: string;
-    tempoHoras: number;
-    faixa: number;
-    tipo: string;
-    titulo: string;
-    descricao: string;
-    data: string;
-    cor: string;
+    nome: string;
+    segmentos: Array<{
+      inicio: number;
+      fim: number;
+      tipo: "ativa" | "restricao";
+      descricao: string;
+    }>;
+    marcadores: Array<{
+      instante: number;
+      tipo: "restricao" | "resolucao" | "pausa";
+      descricao: string;
+    }>;
   }>;
+  inicio: number;
+  fim: number;
 }) {
-  if (eventos.length === 0) {
-    return <EstadoGrafico texto="Nenhum evento registrado nesta análise." />;
+  if (linhas.length === 0 || fim <= inicio) {
+    return <EstadoGrafico texto="Nenhuma atividade com período registrado nesta análise." />;
   }
 
+  const duracao = fim - inicio;
+  const larguraRotulo = 170;
+  const larguraGrafico = 900;
+  const alturaLinha = 42;
+  const altura = 42 + linhas.length * alturaLinha;
+  const escalaX = (instante: number) =>
+    larguraRotulo + ((instante - inicio) / duracao) * (larguraGrafico - larguraRotulo - 20);
+  const marcasTempo = Array.from({ length: 6 }, (_, indice) => {
+    const instante = inicio + (duracao * indice) / 5;
+    return {
+      instante,
+      x: escalaX(instante),
+      rotulo: formatarEixoTempo(instante, duracao),
+    };
+  });
+
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <ScatterChart margin={{ top: 12, right: 24, bottom: 20, left: 16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis
-          type="number"
-          dataKey="tempoHoras"
-          name="Tempo decorrido"
-          unit="h"
-          tick={{ fontSize: 11 }}
-          label={{
-            value: "Horas decorridas desde o primeiro evento",
-            position: "insideBottom",
-            offset: -12,
-            fontSize: 11,
-          }}
-        />
-        <YAxis
-          type="number"
-          dataKey="faixa"
-          domain={[0.5, 3.5]}
-          ticks={[1, 2, 3]}
-          tickFormatter={(valor) =>
-            ({ 1: "Turno", 2: "Atividade", 3: "Restrição" })[
-              valor as 1 | 2 | 3
-            ]
-          }
-          width={72}
-          tick={{ fontSize: 11 }}
-        />
-        <Tooltip
-          cursor={{ strokeDasharray: "3 3" }}
-          content={({ active, payload }) => {
-            const evento = payload?.[0]?.payload as
-              | (typeof eventos)[number]
-              | undefined;
+    <div className="overflow-x-auto">
+      <svg
+        viewBox={`0 0 ${larguraGrafico} ${altura}`}
+        className="min-w-[760px]"
+        role="img"
+        aria-label="Gráfico Gantt das atividades"
+      >
+        {marcasTempo.map((marca) => (
+          <g key={marca.instante}>
+            <line
+              x1={marca.x}
+              y1={26}
+              x2={marca.x}
+              y2={altura - 8}
+              stroke="#dbe3ee"
+              strokeDasharray="3 3"
+            />
+            <text
+              x={marca.x}
+              y={16}
+              textAnchor="middle"
+              fontSize="10"
+              fill="#64748b"
+            >
+              {marca.rotulo}
+            </text>
+          </g>
+        ))}
 
-            if (!active || !evento) {
-              return null;
-            }
-
-            return (
-              <div className="max-w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-xl">
-                <p className="font-bold text-slate-900">{evento.titulo}</p>
-                <p className="mt-1 text-slate-600">{evento.descricao}</p>
-                <p className="mt-2 font-semibold text-blue-700">{evento.data}</p>
-                <p className="text-slate-500">
-                  {evento.tempoHoras.toLocaleString("pt-BR", {
-                    maximumFractionDigits: 1,
-                  })}h decorridas
-                </p>
-              </div>
-            );
-          }}
-        />
-        <Scatter data={eventos} shape="circle">
-          {eventos.map((evento) => (
-            <Cell key={evento.id} fill={evento.cor} />
-          ))}
-        </Scatter>
-      </ScatterChart>
-    </ResponsiveContainer>
+        {linhas.map((linha, indice) => {
+          const y = 32 + indice * alturaLinha;
+          return (
+            <g key={linha.id}>
+              <text
+                x={larguraRotulo - 10}
+                y={y + 18}
+                textAnchor="end"
+                fontSize="11"
+                fontWeight="600"
+                fill="#334155"
+              >
+                {abreviarTexto(linha.nome, 24)}
+              </text>
+              <line
+                x1={larguraRotulo}
+                y1={y + 12}
+                x2={larguraGrafico - 20}
+                y2={y + 12}
+                stroke="#eef2f6"
+                strokeWidth="14"
+                strokeLinecap="round"
+              />
+              {linha.segmentos.map((segmento, segmentoIndice) => (
+                <rect
+                  key={`${linha.id}-${segmentoIndice}`}
+                  x={escalaX(segmento.inicio)}
+                  y={y + 5}
+                  width={Math.max(3, escalaX(segmento.fim) - escalaX(segmento.inicio))}
+                  height={14}
+                  rx={5}
+                  fill={segmento.tipo === "ativa" ? "#2e7d32" : "#c62828"}
+                >
+                  <title>{segmento.descricao}</title>
+                </rect>
+              ))}
+              {linha.marcadores.map((marcador, marcadorIndice) => {
+                const x = escalaX(marcador.instante);
+                const cor =
+                  marcador.tipo === "restricao"
+                    ? "#c62828"
+                    : marcador.tipo === "resolucao"
+                      ? "#0b4a8f"
+                      : "#f9a825";
+                return (
+                  <g key={`${linha.id}-marcador-${marcadorIndice}`}>
+                    <line
+                      x1={x}
+                      y1={y}
+                      x2={x}
+                      y2={y + 24}
+                      stroke={cor}
+                      strokeWidth="2"
+                    />
+                    <circle cx={x} cy={y + 2} r={4} fill={cor}>
+                      <title>{marcador.descricao}</title>
+                    </circle>
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="mt-2 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-600">
+        <Legenda cor="#2e7d32" texto="Atividade ativa" />
+        <Legenda cor="#c62828" texto="Em restrição" />
+        <Legenda cor="#f9a825" texto="Parada" marcador />
+        <Legenda cor="#0b4a8f" texto="Restrição resolvida" marcador />
+      </div>
+    </div>
   );
+}
+
+function Legenda({
+  cor,
+  texto,
+  marcador = false,
+}: {
+  cor: string;
+  texto: string;
+  marcador?: boolean;
+}) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span
+        className={marcador ? "h-3 w-1 rounded-full" : "h-2.5 w-5 rounded"}
+        style={{ backgroundColor: cor }}
+      />
+      {texto}
+    </span>
+  );
+}
+
+function formatarEixoTempo(instante: number, duracao: number) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    ...(duracao >= 86_400_000 ? { day: "2-digit", month: "2-digit" } : {}),
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(instante));
+}
+
+function abreviarTexto(texto: string, limite: number) {
+  return texto.length > limite ? `${texto.slice(0, limite - 1)}…` : texto;
 }
 
 function EstadoGrafico({ texto = "Dados insuficientes para gerar este gráfico." }) {
