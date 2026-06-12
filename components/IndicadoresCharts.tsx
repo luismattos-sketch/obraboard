@@ -224,10 +224,10 @@ export function GraficoGantt({
   }
 
   const duracao = fim - inicio;
-  const larguraRotulo = 170;
+  const larguraRotulo = 150;
   const larguraGrafico = 900;
-  const alturaLinha = 42;
-  const altura = 42 + linhas.length * alturaLinha;
+  const alturaLinha = 30;
+  const altura = 34 + linhas.length * alturaLinha;
   const escalaX = (instante: number) =>
     larguraRotulo + ((instante - inicio) / duracao) * (larguraGrafico - larguraRotulo - 20);
   const marcasTempo = Array.from({ length: 6 }, (_, indice) => {
@@ -243,7 +243,7 @@ export function GraficoGantt({
     <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${larguraGrafico} ${altura}`}
-        className="min-w-[760px]"
+        className="min-w-[680px]"
         role="img"
         aria-label="Gráfico Gantt das atividades"
       >
@@ -251,7 +251,7 @@ export function GraficoGantt({
           <g key={marca.instante}>
             <line
               x1={marca.x}
-              y1={26}
+              y1={22}
               x2={marca.x}
               y2={altura - 8}
               stroke="#dbe3ee"
@@ -259,9 +259,9 @@ export function GraficoGantt({
             />
             <text
               x={marca.x}
-              y={16}
+              y={13}
               textAnchor="middle"
-              fontSize="8.5"
+              fontSize="7"
               fill="#64748b"
             >
               {marca.rotulo}
@@ -270,26 +270,26 @@ export function GraficoGantt({
         ))}
 
         {linhas.map((linha, indice) => {
-          const y = 32 + indice * alturaLinha;
+          const y = 25 + indice * alturaLinha;
           return (
             <g key={linha.id}>
               <text
                 x={larguraRotulo - 10}
-                y={y + 18}
+                y={y + 13}
                 textAnchor="end"
-                fontSize="9"
-                fontWeight="500"
+                fontSize="7.5"
+                fontWeight="400"
                 fill="#334155"
               >
-                {abreviarTexto(linha.nome, 24)}
+                {abreviarTexto(linha.nome, 22)}
               </text>
               <line
                 x1={larguraRotulo}
-                y1={y + 12}
+                y1={y + 9}
                 x2={larguraGrafico - 20}
-                y2={y + 12}
+                y2={y + 9}
                 stroke="#eef2f6"
-                strokeWidth="14"
+                strokeWidth="8"
                 strokeLinecap="round"
               />
               {linha.segmentos.map((segmento, segmentoIndice) => (
@@ -298,8 +298,8 @@ export function GraficoGantt({
                   x={escalaX(segmento.inicio)}
                   y={y + 5}
                   width={Math.max(3, escalaX(segmento.fim) - escalaX(segmento.inicio))}
-                  height={14}
-                  rx={5}
+                  height={8}
+                  rx={3}
                   fill={segmento.tipo === "ativa" ? "#2e7d32" : "#c62828"}
                 >
                   <title>{segmento.descricao}</title>
@@ -319,11 +319,11 @@ export function GraficoGantt({
                       x1={x}
                       y1={y}
                       x2={x}
-                      y2={y + 24}
+                      y2={y + 17}
                       stroke={cor}
-                      strokeWidth="2"
+                      strokeWidth="1.5"
                     />
-                    <circle cx={x} cy={y + 2} r={4} fill={cor}>
+                    <circle cx={x} cy={y + 2} r={2.75} fill={cor}>
                       <title>{marcador.descricao}</title>
                     </circle>
                   </g>
@@ -333,7 +333,7 @@ export function GraficoGantt({
           );
         })}
       </svg>
-      <div className="mt-2 flex flex-wrap justify-center gap-3 text-[10px] font-medium text-slate-600">
+      <div className="mt-1 flex flex-wrap justify-center gap-2.5 text-[8px] font-normal text-slate-600">
         <Legenda cor="#2e7d32" texto="Atividade ativa" />
         <Legenda cor="#c62828" texto="Em restrição" />
         <Legenda cor="#f9a825" texto="Parada" marcador />
@@ -353,9 +353,9 @@ function Legenda({
   marcador?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center gap-1">
       <span
-        className={marcador ? "h-3 w-1 rounded-full" : "h-2.5 w-5 rounded"}
+        className={marcador ? "h-2.5 w-0.5 rounded-full" : "h-1.5 w-4 rounded"}
         style={{ backgroundColor: cor }}
       />
       {texto}
