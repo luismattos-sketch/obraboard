@@ -227,7 +227,7 @@ export function GraficoGantt({
   const larguraRotulo = 175;
   const larguraGrafico = 900;
   const alturaLinha = 30;
-  const altura = 34 + linhas.length * alturaLinha;
+  const altura = 27 + linhas.length * alturaLinha;
   const escalaX = (instante: number) =>
     larguraRotulo + ((instante - inicio) / duracao) * (larguraGrafico - larguraRotulo - 20);
   const marcasTempo = Array.from({ length: 6 }, (_, indice) => {
@@ -251,7 +251,7 @@ export function GraficoGantt({
           <g key={marca.instante}>
             <line
               x1={marca.x}
-              y1={22}
+              y1={16}
               x2={marca.x}
               y2={altura - 8}
               stroke="#dbe3ee"
@@ -259,7 +259,7 @@ export function GraficoGantt({
             />
             <text
               x={marca.x}
-              y={13}
+              y={8}
               textAnchor="middle"
               fontSize="7"
               fill="#64748b"
@@ -270,7 +270,7 @@ export function GraficoGantt({
         ))}
 
         {linhas.map((linha, indice) => {
-          const y = 25 + indice * alturaLinha;
+          const y = 18 + indice * alturaLinha;
           const linhasRotulo = quebrarTexto(linha.nome, 25);
           return (
             <g key={linha.id}>
@@ -342,7 +342,7 @@ export function GraficoGantt({
           );
         })}
       </svg>
-      <div className="mt-2 flex flex-wrap justify-center gap-3 text-[10px] font-medium text-slate-600">
+      <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs font-medium text-slate-600">
         <Legenda cor="#2e7d32" texto="Atividade ativa" />
         <Legenda cor="#c62828" texto="Em restrição" />
         <Legenda cor="#f9a825" texto="Parada" marcador />
