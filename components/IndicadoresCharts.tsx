@@ -261,7 +261,7 @@ export function GraficoGantt({
               x={marca.x}
               y={16}
               textAnchor="middle"
-              fontSize="10"
+              fontSize="8.5"
               fill="#64748b"
             >
               {marca.rotulo}
@@ -277,8 +277,8 @@ export function GraficoGantt({
                 x={larguraRotulo - 10}
                 y={y + 18}
                 textAnchor="end"
-                fontSize="11"
-                fontWeight="600"
+                fontSize="9"
+                fontWeight="500"
                 fill="#334155"
               >
                 {abreviarTexto(linha.nome, 24)}
@@ -333,7 +333,7 @@ export function GraficoGantt({
           );
         })}
       </svg>
-      <div className="mt-2 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-600">
+      <div className="mt-2 flex flex-wrap justify-center gap-3 text-[10px] font-medium text-slate-600">
         <Legenda cor="#2e7d32" texto="Atividade ativa" />
         <Legenda cor="#c62828" texto="Em restrição" />
         <Legenda cor="#f9a825" texto="Parada" marcador />
