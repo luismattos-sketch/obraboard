@@ -224,7 +224,7 @@ export function GraficoGantt({
   }
 
   const duracao = fim - inicio;
-  const larguraRotulo = 175;
+  const larguraRotulo = 120;
   const larguraGrafico = 900;
   const alturaLinha = 30;
   const altura = 27 + linhas.length * alturaLinha;
