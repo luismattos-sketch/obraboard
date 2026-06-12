@@ -600,8 +600,8 @@ function CampoPageContent() {
         : Math.min(100, Math.round((quantidadeRealizada / previsto) * 100));
     const controleAtual = controles[id];
     const tempoAcumulado =
-      controleAtual?.elapsedMs && controleAtual.runningSince
-        ? controleAtual.elapsedMs + agora - controleAtual.runningSince
+      controleAtual?.runningSince
+        ? Number(controleAtual.elapsedMs || 0) + agora - controleAtual.runningSince
         : controleAtual?.elapsedMs ?? 0;
     const atualizacao: AtualizacaoAtividade &
       Record<string, string | number | null | undefined> = {

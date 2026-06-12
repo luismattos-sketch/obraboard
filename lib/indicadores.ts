@@ -80,7 +80,17 @@ export function calcularResumoIndicadores(
   const maoObraPorAtividade = agruparMaoObra(dados.maoObra);
   const restricoesAbertas = dados.restricoes.filter(restricaoAberta);
   const linhas = dados.atividades.map<LinhaAtividadeIndicador>((atividade) => {
-    const horas = obterHorasAtividade(atividade, agora);
+    const tempoRestricaoAtividade = dados.restricoes
+      .filter((item) => item.atividadeId === atividade.id)
+      .reduce(
+        (total, item) => total + calcularDuracaoRestricao(item, agora),
+        0
+      );
+    const horas = obterHorasAtividade(
+      atividade,
+      agora,
+      tempoRestricaoAtividade
+    );
     const pessoasPlanejadas = somarQuantidade(
       recursosPorAtividade.get(atividade.id) ?? [],
       "quantidade_prevista"
@@ -239,13 +249,40 @@ export function formatarNumero(valor: number, casas = 1) {
   }).format(Number.isFinite(valor) ? valor : 0);
 }
 
-function obterHorasAtividade(atividade: AtividadeIndicador, agora: number) {
+function obterHorasAtividade(
+  atividade: AtividadeIndicador,
+  agora: number,
+  tempoRestricaoMs: number
+) {
   const acumulado = Number(atividade.tempo_acumulado_ms || 0);
   const adicional =
     atividade.status === "Execução" && atividade.iniciado_em
       ? Math.max(0, agora - new Date(atividade.iniciado_em).getTime())
       : 0;
-  return Math.max(0, acumulado + adicional) / 3_600_000;
+
+  if (acumulado > 0 || adicional > 0) {
+    return Math.max(0, acumulado + adicional) / 3_600_000;
+  }
+
+  if (!atividade.iniciado_em) {
+    return 0;
+  }
+
+  const fim =
+    atividade.finalizado_em ||
+    atividade.pausado_em ||
+    (atividade.status === "Execução" ? new Date(agora).toISOString() : null);
+
+  if (!fim) {
+    return 0;
+  }
+
+  const duracaoHistorica =
+    new Date(fim).getTime() -
+    new Date(atividade.iniciado_em).getTime() -
+    (atividade.finalizado_em ? tempoRestricaoMs : 0);
+
+  return Math.max(0, duracaoHistorica) / 3_600_000;
 }
 
 function calcularTempoTotal(
