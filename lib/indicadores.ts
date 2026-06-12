@@ -121,7 +121,17 @@ export function calcularResumoIndicadores(
       )
       .map((item) => item.hhConsumido)
   );
-  const tempoProdutivoMs = hhProdutivo * 3_600_000;
+  const tempoProdutivoMs =
+    somar(
+      linhas
+        .filter(
+          (item) =>
+            item.atividade.status !== "Planejada" &&
+            item.hhConsumido > 0 &&
+            item.pessoasReais > 0
+        )
+        .map((item) => item.hhConsumido / item.pessoasReais)
+    ) * 3_600_000;
   const hhPlanejado = somar(linhas.map((item) => item.hhPlanejado));
   const hhConsumido = somar(linhas.map((item) => item.hhConsumido));
   const hhPerdido = dados.restricoes.reduce((total, restricao) => {
