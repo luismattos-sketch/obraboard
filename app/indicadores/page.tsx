@@ -5,6 +5,7 @@ import DesktopLayout from "../../components/DesktopLayout";
 import {
   GraficoBarras,
   GraficoLinha,
+  GraficoMedidor,
   GraficoRosca,
 } from "../../components/IndicadoresCharts";
 import {
@@ -311,14 +312,6 @@ export default function IndicadoresPage() {
       planejado: Number(item.atividade.previsto || 0),
       realizado: Number(item.atividade.realizado || 0),
     }));
-  const hhAtividade = resumoHistorico.linhas
-    .filter((item) => item.hhConsumido > 0)
-    .sort((a, b) => b.hhConsumido - a.hhConsumido)
-    .slice(0, 10)
-    .map((item) => ({
-      nome: abreviar(item.atividade.atividade),
-      hh: arredondar(item.hhConsumido),
-    }));
   const statusAtividades = agruparQuantidade(
     dadosEscopo.atividades.map((atividade) =>
       dadosEscopo.restricoes.some(
@@ -338,11 +331,30 @@ export default function IndicadoresPage() {
   const produtividadeResponsavel = montarProdutividadeResponsavel(
     resumoHistorico.linhas
   );
-  const restricoesPorDia = agruparQuantidade(
-    dadosEscopo.restricoes.map((item) =>
-      (item.abertaEm || item.registradaEm || "").slice(0, 10)
-    )
-  );
+  const produtividadePlanejada =
+    resumoHistorico.hhPlanejado > 0
+      ? resumoHistorico.linhas.reduce(
+          (total, item) => total + Number(item.atividade.previsto || 0),
+          0
+        ) / resumoHistorico.hhPlanejado
+      : 0;
+  const percentualTempoProdutivo =
+    resumoHistorico.tempoDecorridoMs > 0
+      ? Math.min(
+          100,
+          (resumoHistorico.tempoProdutivoMs /
+            resumoHistorico.tempoDecorridoMs) *
+            100
+        )
+      : 0;
+  const percentualFinalizadas =
+    dadosEscopo.atividades.length > 0
+      ? (dadosEscopo.atividades.filter(
+          (item) => item.status === "Finalizada"
+        ).length /
+          dadosEscopo.atividades.length) *
+        100
+      : 0;
   const restricoesAbertas = dadosVisao.restricoes.filter(restricaoAberta);
   const alertas = montarAlertas(resumo, dadosVisao.atividades);
 
@@ -536,18 +548,27 @@ export default function IndicadoresPage() {
               </Bloco>
               <Bloco titulo="Distribuição do Tempo">
                 <GraficoRosca
-                  total={formatarDuracao(resumoHistorico.tempoDecorridoMs)}
+                  total={`${formatarNumero(percentualTempoProdutivo, 0)}%`}
                   dados={[
                     { nome: "Produtivo", valor: resumoHistorico.tempoProdutivoMs / 3_600_000, cor: "#2e7d32" },
                     { nome: "Parado por restrição", valor: resumoHistorico.tempoParadoMs / 3_600_000, cor: "#c62828" },
                   ]}
                 />
               </Bloco>
-              <Bloco titulo="HH Consumido por Atividade">
-                <GraficoBarras dados={hhAtividade} chaves={[{ chave: "hh", nome: "HH consumido", cor: "#ff6b00" }]} layout="vertical" />
+              <Bloco titulo="Produtividade do Turno">
+                <GraficoMedidor
+                  valor={resumoHistorico.produtividade}
+                  referencia={produtividadePlanejada}
+                />
               </Bloco>
               <Bloco titulo="Status das Atividades">
-                <GraficoRosca dados={statusAtividades.map((item) => ({ ...item, valor: item.quantidade }))} />
+                <GraficoRosca
+                  total={`${formatarNumero(percentualFinalizadas, 0)}%`}
+                  dados={statusAtividades.map((item) => ({
+                    ...item,
+                    valor: item.quantidade,
+                  }))}
+                />
               </Bloco>
               <Bloco titulo="Restrições por Motivo">
                 <GraficoBarras dados={restricoesMotivo.map((item) => ({ nome: item.nome, quantidade: item.quantidade }))} chaves={[{ chave: "quantidade", nome: "Restrições", cor: "#c62828" }]} layout="vertical" />
@@ -563,9 +584,6 @@ export default function IndicadoresPage() {
               </Bloco>
               <Bloco titulo="Produtividade por Responsável">
                 <GraficoBarras dados={produtividadeResponsavel} chaves={[{ chave: "produtividade", nome: "Produtividade", cor: "#2e7d32" }]} layout="vertical" />
-              </Bloco>
-              <Bloco titulo="Restrições por Dia">
-                <GraficoBarras dados={restricoesPorDia.map((item) => ({ nome: formatarData(item.nome), quantidade: item.quantidade }))} chaves={[{ chave: "quantidade", nome: "Restrições", cor: "#c62828" }]} />
               </Bloco>
             </section>
 

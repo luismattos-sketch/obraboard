@@ -142,6 +142,60 @@ export function GraficoLinha({
   );
 }
 
+export function GraficoMedidor({
+  valor,
+  referencia,
+}: {
+  valor: number;
+  referencia: number;
+}) {
+  if (valor <= 0 && referencia <= 0) {
+    return <EstadoGrafico />;
+  }
+
+  const percentual =
+    referencia > 0 ? Math.max(0, (valor / referencia) * 100) : 0;
+  const preenchimento = Math.min(100, percentual);
+  const dados = [
+    { nome: "Produtividade", valor: preenchimento, cor: "#2e7d32" },
+    { nome: "Restante", valor: Math.max(0, 100 - preenchimento), cor: "#e2e8f0" },
+  ];
+
+  return (
+    <div className="relative h-[240px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={dados}
+            dataKey="valor"
+            nameKey="nome"
+            startAngle={180}
+            endAngle={0}
+            cx="50%"
+            cy="68%"
+            innerRadius={72}
+            outerRadius={100}
+            stroke="none"
+          >
+            {dados.map((item) => (
+              <Cell key={item.nome} fill={item.cor} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="pointer-events-none absolute inset-x-0 bottom-8 text-center">
+        <p className="text-3xl font-black text-slate-900">
+          {valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+        </p>
+        <p className="text-xs font-bold uppercase text-slate-500">unidade / HH</p>
+        <p className="mt-1 text-sm font-semibold text-green-700">
+          {percentual.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}% do planejado
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function EstadoGrafico({ texto = "Dados insuficientes para gerar este gráfico." }) {
   return (
     <div className="flex h-[240px] items-center justify-center rounded-xl bg-slate-50 p-4 text-center text-sm text-slate-500">
