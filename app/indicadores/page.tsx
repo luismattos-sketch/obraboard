@@ -722,13 +722,66 @@ function Kpi({
     amarelo: "border-yellow-100 bg-yellow-50",
     vermelho: "border-red-100 bg-red-50",
   };
+  const nota = notasKpi[titulo];
+
   return (
-    <article className={`min-h-20 rounded-xl border p-3 shadow-sm ${tons[tom]}`}>
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{titulo}</p>
+    <article
+      tabIndex={0}
+      className={`group relative min-h-20 rounded-xl border p-3 shadow-sm outline-none focus:ring-2 focus:ring-blue-200 ${tons[tom]}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+          {titulo}
+        </p>
+        {nota && (
+          <span
+            aria-hidden="true"
+            className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-black text-slate-500"
+          >
+            i
+          </span>
+        )}
+      </div>
       <p className="mt-2 break-words text-xl font-black text-slate-900">{valor}</p>
+      {nota && (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-30 hidden w-64 -translate-x-1/2 rounded-xl bg-slate-950 p-3 text-left text-xs font-medium normal-case leading-relaxed text-white shadow-xl group-hover:block group-focus:block"
+        >
+          {nota}
+          <span className="absolute left-1/2 top-full -translate-x-1/2 border-x-8 border-t-8 border-x-transparent border-t-slate-950" />
+        </div>
+      )}
     </article>
   );
 }
+
+const notasKpi: Record<string, string> = {
+  Status:
+    "Situação do turno operacional selecionado: não iniciado, em andamento, parado, encerrado ou consolidado.",
+  "Tempo decorrido":
+    "Soma do tempo acumulado nos turnos analisados, incluindo o período em andamento.",
+  "Tempo produtivo":
+    "Soma, por atividade iniciada, executada ou em execução, do HH real dividido pela quantidade real de pessoas.",
+  "Tempo parado":
+    "Soma da duração de todas as restrições registradas no período analisado.",
+  "HH planejado":
+    "Soma da quantidade planejada de pessoas multiplicada pela duração planejada de cada atividade.",
+  "HH consumido":
+    "Soma da quantidade real de pessoas multiplicada pelo tempo real registrado em cada atividade.",
+  "HH perdido":
+    "Soma das pessoas impactadas multiplicada pela duração de cada restrição.",
+  "Avanço real":
+    "Soma dos quantitativos executados dividida pela soma dos quantitativos planejados.",
+  PPC:
+    "Atividades finalizadas com executado maior ou igual ao planejado divididas pelo total de atividades.",
+  "Restrições abertas":
+    "Quantidade de restrições com status aberta, parada ou reprogramada.",
+  "Produtividade real":
+    "Soma dos quantitativos executados dividida pelo HH real consumido.",
+  "Restrições resolvidas":
+    "Quantidade de restrições registradas com status resolvida.",
+};
 
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
