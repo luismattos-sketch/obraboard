@@ -108,18 +108,12 @@ export function calcularResumoIndicadores(
   });
 
   const tempoDecorridoMs = calcularTempoTotal(dados.turnos, linhas, agora);
-  const tempoProdutivoMs = linhas.reduce(
-    (total, linha) => total + linha.horas * 3_600_000,
-    0
-  );
   const tempoRestricaoMs = dados.restricoes.reduce(
     (total, item) => total + calcularDuracaoRestricao(item, agora),
     0
   );
-  const tempoParadoMs = Math.max(
-    0,
-    tempoDecorridoMs - Math.min(tempoDecorridoMs, tempoProdutivoMs)
-  );
+  const tempoParadoMs = tempoRestricaoMs;
+  const tempoProdutivoMs = Math.max(0, tempoDecorridoMs - tempoParadoMs);
   const hhPlanejado = somar(linhas.map((item) => item.hhPlanejado));
   const hhConsumido = somar(linhas.map((item) => item.hhConsumido));
   const hhPerdido = dados.restricoes.reduce((total, restricao) => {

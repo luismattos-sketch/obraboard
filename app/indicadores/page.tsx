@@ -192,7 +192,7 @@ export default function IndicadoresPage() {
     [dataFinal, dataInicial, tipoVisao]
   );
 
-  const dadosVisao = useMemo(() => {
+  const dadosEscopo = useMemo(() => {
     let atividades = [...dados.atividades];
     let turnos = [...dados.turnos];
     const turnoEscolhido =
@@ -216,13 +216,37 @@ export default function IndicadoresPage() {
       );
     }
 
+    const ids = new Set(atividades.map((item) => item.id));
+    return {
+      atividades,
+      turnos,
+      restricoes: dados.restricoes.filter((item) => ids.has(item.atividadeId)),
+      maoObra: dados.maoObra.filter(
+        (item) => item.atividade_id && ids.has(item.atividade_id)
+      ),
+      recursosPlanejados: dados.recursosPlanejados.filter((item) =>
+        ids.has(item.atividade_id)
+      ),
+    } satisfies DadosIndicadores;
+  }, [
+    dados,
+    periodo,
+    tipoVisao,
+    turnoPadrao,
+    turnoSelecionado,
+    turnosDisponiveis,
+  ]);
+
+  const dadosVisao = useMemo(() => {
+    let atividades = [...dadosEscopo.atividades];
+
     if (responsavel) {
       atividades = atividades.filter((item) => item.responsavel === responsavel);
     }
     if (status) {
       if (status === "Reprogramadas") {
         const reprogramadas = new Set(
-          dados.restricoes
+          dadosEscopo.restricoes
             .filter((item) => item.status === "reprogramada")
             .map((item) => item.atividadeId)
         );
@@ -233,7 +257,9 @@ export default function IndicadoresPage() {
     }
 
     const ids = new Set(atividades.map((item) => item.id));
-    let restricoes = dados.restricoes.filter((item) => ids.has(item.atividadeId));
+    let restricoes = dadosEscopo.restricoes.filter((item) =>
+      ids.has(item.atividadeId)
+    );
     if (tipoRestricao) {
       restricoes = restricoes.filter(
         (item) => obterMotivoRestricao(item.texto) === tipoRestricao
@@ -245,30 +271,29 @@ export default function IndicadoresPage() {
     const idsFinais = new Set(atividades.map((item) => item.id));
     return {
       atividades,
-      turnos,
+      turnos: dadosEscopo.turnos,
       restricoes: restricoes.filter((item) => idsFinais.has(item.atividadeId)),
-      maoObra: dados.maoObra.filter(
+      maoObra: dadosEscopo.maoObra.filter(
         (item) => item.atividade_id && idsFinais.has(item.atividade_id)
       ),
-      recursosPlanejados: dados.recursosPlanejados.filter((item) =>
+      recursosPlanejados: dadosEscopo.recursosPlanejados.filter((item) =>
         idsFinais.has(item.atividade_id)
       ),
     } satisfies DadosIndicadores;
   }, [
-    dados,
-    periodo,
+    dadosEscopo,
     responsavel,
     status,
     tipoRestricao,
-    tipoVisao,
-    turnoPadrao,
-    turnoSelecionado,
-    turnosDisponiveis,
   ]);
 
   const resumo = useMemo(
     () => calcularResumoIndicadores(dadosVisao, agora),
     [agora, dadosVisao]
+  );
+  const resumoHistorico = useMemo(
+    () => calcularResumoIndicadores(dadosEscopo, agora),
+    [agora, dadosEscopo]
   );
   const responsaveis = useMemo(
     () =>
@@ -277,7 +302,7 @@ export default function IndicadoresPage() {
       ).sort(),
     [dados.atividades]
   );
-  const planejadoReal = resumo.linhas
+  const planejadoReal = resumoHistorico.linhas
     .slice()
     .sort((a, b) => Number(b.atividade.previsto) - Number(a.atividade.previsto))
     .slice(0, 10)
@@ -286,7 +311,7 @@ export default function IndicadoresPage() {
       planejado: Number(item.atividade.previsto || 0),
       realizado: Number(item.atividade.realizado || 0),
     }));
-  const hhAtividade = resumo.linhas
+  const hhAtividade = resumoHistorico.linhas
     .filter((item) => item.hhConsumido > 0)
     .sort((a, b) => b.hhConsumido - a.hhConsumido)
     .slice(0, 10)
@@ -295,8 +320,8 @@ export default function IndicadoresPage() {
       hh: arredondar(item.hhConsumido),
     }));
   const statusAtividades = agruparQuantidade(
-    dadosVisao.atividades.map((atividade) =>
-      dadosVisao.restricoes.some(
+    dadosEscopo.atividades.map((atividade) =>
+      dadosEscopo.restricoes.some(
         (item) =>
           item.atividadeId === atividade.id && item.status === "reprogramada"
       )
@@ -305,12 +330,16 @@ export default function IndicadoresPage() {
     )
   );
   const restricoesMotivo = agruparQuantidade(
-    dadosVisao.restricoes.map((item) => obterMotivoRestricao(item.texto))
+    dadosEscopo.restricoes.map(
+      (item) => item.texto.trim() || "Sem descrição"
+    )
   );
-  const ppcPorTurno = montarPpcPorTurno(dadosVisao.atividades);
-  const produtividadeResponsavel = montarProdutividadeResponsavel(resumo.linhas);
+  const ppcPorTurno = montarPpcPorTurno(dadosEscopo.atividades);
+  const produtividadeResponsavel = montarProdutividadeResponsavel(
+    resumoHistorico.linhas
+  );
   const restricoesPorDia = agruparQuantidade(
-    dadosVisao.restricoes.map((item) =>
+    dadosEscopo.restricoes.map((item) =>
       (item.abertaEm || item.registradaEm || "").slice(0, 10)
     )
   );
@@ -507,11 +536,10 @@ export default function IndicadoresPage() {
               </Bloco>
               <Bloco titulo="Distribuição do Tempo">
                 <GraficoRosca
-                  total={formatarDuracao(resumo.tempoDecorridoMs)}
+                  total={formatarDuracao(resumoHistorico.tempoDecorridoMs)}
                   dados={[
-                    { nome: "Produtivo", valor: resumo.tempoProdutivoMs / 3_600_000, cor: "#2e7d32" },
-                    { nome: "Parado", valor: resumo.tempoParadoMs / 3_600_000, cor: "#f9a825" },
-                    { nome: "Restrição", valor: resumo.tempoRestricaoMs / 3_600_000, cor: "#c62828" },
+                    { nome: "Produtivo", valor: resumoHistorico.tempoProdutivoMs / 3_600_000, cor: "#2e7d32" },
+                    { nome: "Parado por restrição", valor: resumoHistorico.tempoParadoMs / 3_600_000, cor: "#c62828" },
                   ]}
                 />
               </Bloco>
@@ -525,13 +553,13 @@ export default function IndicadoresPage() {
                 <GraficoBarras dados={restricoesMotivo.map((item) => ({ nome: item.nome, quantidade: item.quantidade }))} chaves={[{ chave: "quantidade", nome: "Restrições", cor: "#c62828" }]} layout="vertical" />
               </Bloco>
               <Bloco titulo="HH Planejado x HH Consumido">
-                <GraficoBarras dados={resumo.linhas.slice(0, 10).map((item) => ({ nome: abreviar(item.atividade.atividade), planejado: arredondar(item.hhPlanejado), consumido: arredondar(item.hhConsumido) }))} chaves={[{ chave: "planejado", nome: "HH planejado" }, { chave: "consumido", nome: "HH consumido", cor: "#ff6b00" }]} />
+                <GraficoBarras dados={resumoHistorico.linhas.slice(0, 10).map((item) => ({ nome: abreviar(item.atividade.atividade), planejado: arredondar(item.hhPlanejado), consumido: arredondar(item.hhConsumido) }))} chaves={[{ chave: "planejado", nome: "HH planejado" }, { chave: "consumido", nome: "HH consumido", cor: "#ff6b00" }]} />
               </Bloco>
               <Bloco titulo="PPC por Turno">
                 <GraficoLinha dados={ppcPorTurno} chave="ppc" nome="PPC (%)" />
               </Bloco>
               <Bloco titulo="Avanço Acumulado">
-                <GraficoLinha dados={montarAvancoPorData(dadosVisao.atividades)} chave="avanco" nome="Avanço (%)" />
+                <GraficoLinha dados={montarAvancoPorData(dadosEscopo.atividades)} chave="avanco" nome="Avanço (%)" />
               </Bloco>
               <Bloco titulo="Produtividade por Responsável">
                 <GraficoBarras dados={produtividadeResponsavel} chaves={[{ chave: "produtividade", nome: "Produtividade", cor: "#2e7d32" }]} layout="vertical" />
