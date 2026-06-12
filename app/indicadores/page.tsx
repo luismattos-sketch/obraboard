@@ -5,6 +5,7 @@ import DesktopLayout from "../../components/DesktopLayout";
 import {
   GraficoBarras,
   GraficoLinha,
+  GraficoLinhaTempo,
   GraficoMedidor,
   GraficoRosca,
 } from "../../components/IndicadoresCharts";
@@ -16,6 +17,7 @@ import {
 } from "../../lib/cadastro-base";
 import {
   calcularResumoIndicadores,
+  calcularDuracaoRestricao,
   formatarDuracao,
   formatarNumero,
   obterMotivoRestricao,
@@ -322,10 +324,9 @@ export default function IndicadoresPage() {
         : normalizarStatus(atividade)
     )
   );
-  const restricoesMotivo = agruparQuantidade(
-    dadosEscopo.restricoes.map(
-      (item) => item.texto.trim() || "Sem descrição"
-    )
+  const restricoesMotivo = agruparDuracaoRestricoes(
+    dadosEscopo.restricoes,
+    agora
   );
   const ppcPorTurno = montarPpcPorTurno(dadosEscopo.atividades);
   const produtividadeResponsavel = montarProdutividadeResponsavel(
@@ -571,7 +572,17 @@ export default function IndicadoresPage() {
                 />
               </Bloco>
               <Bloco titulo="Restrições por Motivo">
-                <GraficoBarras dados={restricoesMotivo.map((item) => ({ nome: item.nome, quantidade: item.quantidade }))} chaves={[{ chave: "quantidade", nome: "Restrições", cor: "#c62828" }]} layout="vertical" />
+                <GraficoBarras
+                  dados={restricoesMotivo}
+                  chaves={[
+                    {
+                      chave: "horas",
+                      nome: "Tempo de restrição (h)",
+                      cor: "#c62828",
+                    },
+                  ]}
+                  layout="vertical"
+                />
               </Bloco>
               <Bloco titulo="HH Planejado x HH Consumido">
                 <GraficoBarras dados={resumoHistorico.linhas.slice(0, 10).map((item) => ({ nome: abreviar(item.atividade.atividade), planejado: arredondar(item.hhPlanejado), consumido: arredondar(item.hhConsumido) }))} chaves={[{ chave: "planejado", nome: "HH planejado" }, { chave: "consumido", nome: "HH consumido", cor: "#ff6b00" }]} />
@@ -625,16 +636,7 @@ export default function IndicadoresPage() {
             </section>
 
             <Bloco titulo="Linha do Tempo">
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {montarTimeline(dadosVisao).slice(0, 18).map((evento) => (
-                  <div key={evento.id} className="relative rounded-xl border border-slate-200 bg-slate-50 p-3 pl-5">
-                    <span className="absolute left-0 top-3 h-7 w-1 rounded-r bg-teal-600" />
-                    <p className="text-xs font-bold uppercase text-slate-500">{evento.data}</p>
-                    <p className="mt-1 font-bold text-slate-900">{evento.titulo}</p>
-                    <p className="mt-1 text-sm text-slate-600">{evento.descricao}</p>
-                  </div>
-                ))}
-              </div>
+              <GraficoLinhaTempo eventos={montarTimeline(dadosEscopo)} />
             </Bloco>
 
             <Bloco titulo="Atividades Detalhadas">
@@ -891,6 +893,24 @@ function agruparQuantidade(valores: string[]) {
   return Array.from(mapa, ([nome, quantidade]) => ({ nome, quantidade }));
 }
 
+function agruparDuracaoRestricoes(
+  restricoes: RestricaoHistorico[],
+  agora: number
+) {
+  const mapa = new Map<string, number>();
+
+  restricoes.forEach((item) => {
+    const nome = item.texto.trim() || "Sem descrição";
+    const horas = calcularDuracaoRestricao(item, agora) / 3_600_000;
+    mapa.set(nome, (mapa.get(nome) || 0) + horas);
+  });
+
+  return Array.from(mapa, ([nome, horas]) => ({
+    nome: abreviar(nome),
+    horas: arredondar(horas),
+  })).sort((a, b) => b.horas - a.horas);
+}
+
 function montarPpcPorTurno(atividades: AtividadeIndicador[]) {
   const mapa = new Map<string, AtividadeIndicador[]>();
   atividades.forEach((item) => {
@@ -953,28 +973,40 @@ function montarProdutividadeResponsavel(
 }
 
 function montarTimeline(dados: DadosIndicadores) {
-  const eventos: Array<{ id: string; data: string; titulo: string; descricao: string; ordem: number }> = [];
+  const eventos: Array<{
+    id: string;
+    data: string;
+    titulo: string;
+    descricao: string;
+    ordem: number;
+    tipo: "Turno" | "Atividade" | "Restrição";
+    faixa: number;
+    cor: string;
+  }> = [];
   dados.turnos.forEach((turno) => {
     adicionarEvento(
       eventos,
       `${turno.id}-iniciado`,
       turno.iniciado_em,
       "Turno iniciado",
-      turno.turno
+      turno.turno,
+      "Turno"
     );
     adicionarEvento(
       eventos,
       `${turno.id}-pausado`,
       turno.pausado_em,
       "Turno pausado",
-      turno.turno
+      turno.turno,
+      "Turno"
     );
     adicionarEvento(
       eventos,
       `${turno.id}-encerrado`,
       turno.encerrado_em,
       "Turno encerrado",
-      turno.turno
+      turno.turno,
+      "Turno"
     );
   });
   dados.atividades.forEach((atividade) => {
@@ -983,26 +1015,48 @@ function montarTimeline(dados: DadosIndicadores) {
       `${atividade.id}-iniciada`,
       atividade.iniciado_em,
       "Atividade iniciada",
-      atividade.atividade
+      atividade.atividade,
+      "Atividade"
     );
     adicionarEvento(
       eventos,
       `${atividade.id}-finalizada`,
       atividade.finalizado_em,
       "Atividade finalizada",
-      atividade.atividade
+      atividade.atividade,
+      "Atividade"
     );
   });
   dados.restricoes.forEach((item) => {
     if (item.abertaEm || item.registradaEm) {
       const data = item.abertaEm || item.registradaEm;
-      eventos.push({ id: `${item.id}-aberta`, data: formatarDataHora(data), titulo: "Restrição aberta", descricao: `${item.atividade}: ${item.texto}`, ordem: new Date(data).getTime() });
+      adicionarEvento(
+        eventos,
+        `${item.id}-aberta`,
+        data,
+        "Restrição aberta",
+        `${item.atividade}: ${item.texto}`,
+        "Restrição"
+      );
     }
     if (item.resolvidaEm) {
-      eventos.push({ id: `${item.id}-resolvida`, data: formatarDataHora(item.resolvidaEm), titulo: "Restrição resolvida", descricao: item.atividade, ordem: new Date(item.resolvidaEm).getTime() });
+      adicionarEvento(
+        eventos,
+        `${item.id}-resolvida`,
+        item.resolvidaEm,
+        "Restrição resolvida",
+        item.atividade,
+        "Restrição"
+      );
     }
   });
-  return eventos.sort((a, b) => b.ordem - a.ordem);
+  const ordenados = eventos.sort((a, b) => a.ordem - b.ordem);
+  const inicio = ordenados[0]?.ordem ?? 0;
+
+  return ordenados.map((evento) => ({
+    ...evento,
+    tempoHoras: arredondar((evento.ordem - inicio) / 3_600_000),
+  }));
 }
 
 function adicionarEvento(
@@ -1012,11 +1066,15 @@ function adicionarEvento(
     titulo: string;
     descricao: string;
     ordem: number;
+    tipo: "Turno" | "Atividade" | "Restrição";
+    faixa: number;
+    cor: string;
   }>,
   id: string,
   data: string | null | undefined,
   titulo: string,
-  descricao: string
+  descricao: string,
+  tipo: "Turno" | "Atividade" | "Restrição"
 ) {
   if (!data) {
     return;
@@ -1028,6 +1086,14 @@ function adicionarEvento(
     titulo,
     descricao,
     ordem: new Date(data).getTime(),
+    tipo,
+    faixa: tipo === "Turno" ? 1 : tipo === "Atividade" ? 2 : 3,
+    cor:
+      tipo === "Turno"
+        ? "#0b4a8f"
+        : tipo === "Atividade"
+          ? "#2e7d32"
+          : "#c62828",
   });
 }
 

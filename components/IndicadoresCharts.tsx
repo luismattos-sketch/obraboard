@@ -11,6 +11,8 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
@@ -193,6 +195,89 @@ export function GraficoMedidor({
         </p>
       </div>
     </div>
+  );
+}
+
+export function GraficoLinhaTempo({
+  eventos,
+}: {
+  eventos: Array<{
+    id: string;
+    tempoHoras: number;
+    faixa: number;
+    tipo: string;
+    titulo: string;
+    descricao: string;
+    data: string;
+    cor: string;
+  }>;
+}) {
+  if (eventos.length === 0) {
+    return <EstadoGrafico texto="Nenhum evento registrado nesta análise." />;
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <ScatterChart margin={{ top: 12, right: 24, bottom: 20, left: 16 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis
+          type="number"
+          dataKey="tempoHoras"
+          name="Tempo decorrido"
+          unit="h"
+          tick={{ fontSize: 11 }}
+          label={{
+            value: "Horas decorridas desde o primeiro evento",
+            position: "insideBottom",
+            offset: -12,
+            fontSize: 11,
+          }}
+        />
+        <YAxis
+          type="number"
+          dataKey="faixa"
+          domain={[0.5, 3.5]}
+          ticks={[1, 2, 3]}
+          tickFormatter={(valor) =>
+            ({ 1: "Turno", 2: "Atividade", 3: "Restrição" })[
+              valor as 1 | 2 | 3
+            ]
+          }
+          width={72}
+          tick={{ fontSize: 11 }}
+        />
+        <Tooltip
+          cursor={{ strokeDasharray: "3 3" }}
+          content={({ active, payload }) => {
+            const evento = payload?.[0]?.payload as
+              | (typeof eventos)[number]
+              | undefined;
+
+            if (!active || !evento) {
+              return null;
+            }
+
+            return (
+              <div className="max-w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-xl">
+                <p className="font-bold text-slate-900">{evento.titulo}</p>
+                <p className="mt-1 text-slate-600">{evento.descricao}</p>
+                <p className="mt-2 font-semibold text-blue-700">{evento.data}</p>
+                <p className="text-slate-500">
+                  {evento.tempoHoras.toLocaleString("pt-BR", {
+                    maximumFractionDigits: 1,
+                  })}h decorridas
+                </p>
+              </div>
+            );
+          }}
+        />
+        <Scatter data={eventos} shape="circle">
+          {eventos.map((evento) => (
+            <Cell key={evento.id} fill={evento.cor} />
+          ))}
+        </Scatter>
+      </ScatterChart>
+    </ResponsiveContainer>
   );
 }
 
