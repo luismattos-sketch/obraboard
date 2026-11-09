@@ -66,7 +66,7 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
                     {a.local && <p className="text-xs text-texto-suave">{a.local}</p>}
                   </td>
                   <td className="whitespace-nowrap py-2 pr-3 text-right">{numeroBR(a.qtd_planejada)} {a.unidade}</td>
-                  <td className="whitespace-nowrap py-2 pr-3 text-right">{numeroBR(a.qtd_realizada ?? 0)} {a.unidade}</td>
+                  <td className="whitespace-nowrap py-2 pr-3 text-right">{a.qtd_realizada === null ? "—" : `${numeroBR(a.qtd_realizada)} ${a.unidade}`}</td>
                   <td className="py-2"><Selo tom={TOM[a.status]}>{ROTULO_STATUS_ATIVIDADE[a.status]}</Selo></td>
                 </tr>
               ))}
