@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { criarEmpresaDoDono } from "@/lib/db/empresas";
+import { criarEmpresaDoDono, deveRemoverUsuario } from "@/lib/db/empresas";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { caminhoSeguro } from "@/lib/dominio/caminho";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -41,9 +41,11 @@ export async function cadastrar(_: Estado, form: FormData): Promise<Retorno> {
 
   const r = await criarEmpresaDoDono(data.user.id, empresa);
   if (!r.ok) {
-    // r.ok false implica que não havia vínculo prévio: só então removemos o usuário.
-    const { error: eDel } = await criarClienteAdmin().auth.admin.deleteUser(data.user.id);
-    if (eDel) console.error("cadastrar: falha ao remover usuário órfão", data.user.id, eDel.message);
+    // Falha na consulta de vínculo: o usuário pode já ter empresa, não remover.
+    if (deveRemoverUsuario(r)) {
+      const { error: eDel } = await criarClienteAdmin().auth.admin.deleteUser(data.user.id);
+      if (eDel) console.error("cadastrar: falha ao remover usuário órfão", data.user.id, eDel.message);
+    }
     return falha("Não foi possível concluir o cadastro. Tente novamente.");
   }
   return ok({ mensagem });

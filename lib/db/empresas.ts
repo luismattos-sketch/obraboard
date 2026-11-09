@@ -1,11 +1,23 @@
 import "server-only";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { falha, ok, type Resultado } from "./resultado";
+
+export type EtapaFalha = "consulta" | "criacao";
+
+export type ResultadoEmpresa =
+  | { ok: true; dados: { empresaId: string; criada: boolean } }
+  | { ok: false; erro: string; etapa: EtapaFalha };
+
+/** Só remove o usuário se a consulta funcionou (sem vínculo) e a criação falhou. */
+export function deveRemoverUsuario(r: ResultadoEmpresa): boolean {
+  return !r.ok && r.etapa === "criacao";
+}
+
+const falhar = (erro: string, etapa: EtapaFalha): ResultadoEmpresa => ({ ok: false, erro, etapa });
 
 export async function criarEmpresaDoDono(
   userId: string,
   nome: string,
-): Promise<Resultado<{ empresaId: string; criada: boolean }>> {
+): Promise<ResultadoEmpresa> {
   const admin = criarClienteAdmin();
   // Idempotente: se o usuário já é membro, devolve a empresa existente.
   const { data: existente, error: ee } = await admin
@@ -13,9 +25,9 @@ export async function criarEmpresaDoDono(
     .select("empresa_id")
     .eq("user_id", userId)
     .limit(1);
-  if (ee) return falha("Não foi possível criar a empresa.");
+  if (ee) return falhar("Não foi possível criar a empresa.", "consulta");
   if (existente && existente.length > 0) {
-    return ok({ empresaId: existente[0].empresa_id as string, criada: false });
+    return { ok: true, dados: { empresaId: existente[0].empresa_id as string, criada: false } };
   }
 
   const { data: emp, error } = await admin
@@ -23,14 +35,14 @@ export async function criarEmpresaDoDono(
     .insert({ nome })
     .select("id")
     .single();
-  if (error || !emp) return falha("Não foi possível criar a empresa.");
+  if (error || !emp) return falhar("Não foi possível criar a empresa.", "criacao");
 
   const { error: em } = await admin
     .from("membros")
     .insert({ empresa_id: emp.id, user_id: userId, papel: "dono" });
   if (em) {
     await admin.from("empresas").delete().eq("id", emp.id);
-    return falha("Não foi possível vincular o usuário à empresa.");
+    return falhar("Não foi possível vincular o usuário à empresa.", "criacao");
   }
-  return ok({ empresaId: emp.id, criada: true });
+  return { ok: true, dados: { empresaId: emp.id, criada: true } };
 }
