@@ -2,7 +2,7 @@ import type { Periodo, StatusTurno } from "./tipos";
 import type { Tom } from "@/components/ui/tons";
 
 /** "2026-11-08" -> "08/11/2026" */
-export function dataBR(iso: string): string {
+export function formatarData(iso: string): string {
   const [a, m, d] = iso.split("-");
   return `${d}/${m}/${a}`;
 }
@@ -20,3 +20,6 @@ export const numeroBR = (n: number) => n.toLocaleString("pt-BR", { maximumFracti
 
 /** "07:00:00" -> "07:00" */
 export const horaCurta = (h: string | null) => (h ? h.slice(0, 5) : "");
+
+/** 0.25 -> "25%"; null -> "—" */
+export const formatarPercentual = (x: number | null): string => (x === null ? "—" : `${Math.round(x * 100)}%`);

@@ -12,6 +12,8 @@ type Props = {
   inicial: Clima[];
   somenteLeitura?: boolean;
   salvar: (dados: Dados) => Promise<Resultado<unknown>>;
+  /** Apaga o registro do período (escolha "—" depois de um valor salvo). */
+  limpar: (periodo: PeriodoClima) => Promise<Resultado<unknown>>;
 };
 const PERIODOS: { id: PeriodoClima; rotulo: string }[] = [
   { id: "manha", rotulo: "Manhã" },
@@ -19,7 +21,7 @@ const PERIODOS: { id: PeriodoClima; rotulo: string }[] = [
   { id: "noite", rotulo: "Noite" },
 ];
 
-export function BlocoClima({ inicial, somenteLeitura, salvar }: Props) {
+export function BlocoClima({ inicial, somenteLeitura, salvar, limpar }: Props) {
   return (
     <section aria-labelledby="titulo-clima" className="flex flex-col gap-3">
       <h2 id="titulo-clima" className="text-lg font-semibold">Clima</h2>
@@ -31,6 +33,7 @@ export function BlocoClima({ inicial, somenteLeitura, salvar }: Props) {
           inicial={inicial.find((c) => c.periodo === p.id)}
           somenteLeitura={somenteLeitura}
           salvar={salvar}
+          limpar={limpar}
         />
       ))}
     </section>
@@ -43,17 +46,19 @@ function LinhaClima({
   inicial,
   somenteLeitura,
   salvar,
+  limpar,
 }: {
   periodo: PeriodoClima;
   rotulo: string;
   inicial?: Clima;
   somenteLeitura?: boolean;
   salvar: Props["salvar"];
+  limpar: Props["limpar"];
 }) {
   const [condicao, setCondicao] = useState<CondicaoClima | "">(inicial?.condicao ?? "");
   const [impediu, setImpediu] = useState(inicial?.impediu ?? false);
   const estado = useAutoSalvar(async () => {
-    if (!condicao) return { ok: true as const, dados: undefined };
+    if (!condicao) return limpar(periodo);
     return salvar({ periodo, condicao, impediu });
   }, [condicao, impediu]);
 
@@ -66,7 +71,11 @@ function LinhaClima({
           className="min-h-12 flex-1 rounded-lg border border-borda bg-superficie px-3 text-base disabled:opacity-70"
           value={condicao}
           disabled={somenteLeitura}
-          onChange={(e) => setCondicao(e.target.value as CondicaoClima | "")}
+          onChange={(e) => {
+            const v = e.target.value as CondicaoClima | "";
+            setCondicao(v);
+            if (!v) setImpediu(false);
+          }}
         >
           <option value="">—</option>
           {(Object.keys(CONDICOES) as CondicaoClima[]).map((k) => (

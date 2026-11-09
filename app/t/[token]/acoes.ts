@@ -2,6 +2,7 @@
 
 import {
   enviarTurnoCampo,
+  removerClima as dbRemoverClima,
   salvarClima as dbSalvarClima,
   salvarEfetivo as dbSalvarEfetivo,
   salvarExecucao as dbSalvarExecucao,
@@ -28,6 +29,10 @@ export async function salvarClima(
   dados: { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean },
 ) {
   return dbSalvarClima(token, dados);
+}
+
+export async function limparClima(token: string, periodo: PeriodoClima) {
+  return dbRemoverClima(token, periodo);
 }
 
 export async function salvarHorarioReal(

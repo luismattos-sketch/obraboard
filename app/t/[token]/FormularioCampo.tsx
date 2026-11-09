@@ -8,11 +8,12 @@ import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import type { AtividadeExec, StatusTurno } from "@/lib/dominio/tipos";
-import { enviarTurno, salvarClima, salvarEfetivo, salvarExecucao, salvarHorarioReal } from "./acoes";
-import { BlocoAtividades } from "./BlocoAtividades";
-import { BlocoClima } from "./BlocoClima";
-import { BlocoEfetivo } from "./BlocoEfetivo";
-import { BlocoHorario } from "./BlocoHorario";
+import { enviarTurno, limparClima, salvarClima, salvarEfetivo, salvarExecucao, salvarHorarioReal } from "./acoes";
+import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
+import { BlocoAtividades } from "@/components/execucao/BlocoAtividades";
+import { BlocoClima } from "@/components/execucao/BlocoClima";
+import { BlocoEfetivo } from "@/components/execucao/BlocoEfetivo";
+import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 
 export type DadosTurnoCampo = {
   status: StatusTurno;
@@ -27,6 +28,7 @@ export function FormularioCampo({ token, turno }: { token: string; turno: DadosT
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
   const [atividades, setAtividades] = useState<AtividadeExec[]>(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
+  const { ocupado: salvando, registrar } = useRastreioSalvamento();
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
 
@@ -48,6 +50,7 @@ export function FormularioCampo({ token, turno }: { token: string; turno: DadosT
   }
 
   return (
+    <ProvedorSalvamento registrar={registrar}>
     <div className="flex flex-col gap-8">
       <BlocoHorario
         inicio={horaCurta(turno.hora_inicio_real)}
@@ -67,7 +70,9 @@ export function FormularioCampo({ token, turno }: { token: string; turno: DadosT
         somenteLeitura={somenteLeitura}
         salvar={(l) => salvarEfetivo(token, l)}
       />
-      <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)} />
+      <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
+        limpar={(p) => limparClima(token, p)}
+      />
 
       {!somenteLeitura && (
         <section className="flex flex-col gap-3 pb-8">
@@ -85,11 +90,12 @@ export function FormularioCampo({ token, turno }: { token: string; turno: DadosT
           {status === "enviado" && (
             <Aviso tom="sucesso">Turno enviado ✓ — você ainda pode corrigir até o planejador fechar</Aviso>
           )}
-          <Botao type="button" onClick={enviar} disabled={pendentes.length > 0} carregando={enviando}>
-            {status === "enviado" ? "Reenviar turno" : "Enviar turno"}
+          <Botao type="button" onClick={enviar} disabled={pendentes.length > 0 || salvando} carregando={enviando}>
+            {salvando ? "Salvando…" : status === "enviado" ? "Reenviar turno" : "Enviar turno"}
           </Botao>
         </section>
       )}
     </div>
+    </ProvedorSalvamento>
   );
 }

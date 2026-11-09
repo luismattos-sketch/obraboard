@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
 import { ERRO_LINK, obterTurnoPorToken } from "@/lib/db/campo";
-import { dataBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
+import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 
 // Página de token: nunca cacheada, nunca indexada, sem vazar o link por Referer.
@@ -30,7 +30,7 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
       <header>
         <h1 className="text-xl font-semibold">{turno.obra.nome}</h1>
         <p className="text-sm text-slate-600">
-          {dataBR(turno.data)} · {ROTULO_PERIODO[turno.periodo]}
+          {formatarData(turno.data)} · {ROTULO_PERIODO[turno.periodo]}
         </p>
       </header>
       {turno.status === "fechado" && <Aviso tom="info">Turno fechado pelo planejador</Aviso>}

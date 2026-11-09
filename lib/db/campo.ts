@@ -1,10 +1,11 @@
 import "server-only";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { hashToken } from "@/lib/dominio/token";
-import { CAUSAS, CONDICOES, type Causa, type CondicaoClima, type PeriodoClima, type StatusTurno } from "@/lib/dominio/tipos";
+import type { Causa, CondicaoClima, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { falha, ok, type Resultado } from "./resultado";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
+import { camposExecucao, validarClima, validarEfetivo, validarExecucao, validarHorario, validarPeriodoClima } from "./validacao";
 
 /**
  * Acesso do encarregado por link secreto. Usa o cliente admin (ignora RLS):
@@ -17,8 +18,6 @@ export const ERRO_ATIVIDADE = "Esta atividade foi removida pelo planejador. Reca
 const ERRO_GENERICO = "Não foi possível salvar. Tente novamente.";
 
 const TOKEN_FORMATO = /^[A-Za-z0-9_-]{43}$/;
-const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
-const PERIODOS_CLIMA: PeriodoClima[] = ["manha", "tarde", "noite"];
 
 /** Resolve o id/status do turno do token; nunca confia em ids vindos do cliente. */
 async function resolverTurno(token: string): Promise<{ id: string; status: StatusTurno } | null> {
@@ -54,16 +53,8 @@ export async function salvarExecucao(
   atividadeId: string,
   dados: { qtd_realizada: number | null; causa: Causa | null; observacao: string | null },
 ): Promise<Resultado> {
-  const q = dados.qtd_realizada;
-  if (q !== null && !(typeof q === "number" && Number.isFinite(q) && q >= 0 && q < 1e12)) {
-    return falha("Quantidade realizada inválida");
-  }
-  if (dados.causa !== null && !(typeof dados.causa === "string" && Object.hasOwn(CAUSAS, dados.causa))) {
-    return falha("Causa inválida");
-  }
-  if (dados.observacao !== null && (typeof dados.observacao !== "string" || dados.observacao.length > 500)) {
-    return falha("Observação deve ter no máximo 500 caracteres");
-  }
+  const v = validarExecucao(dados);
+  if (!v.ok) return v;
 
   const t = await turnoAberto(token);
   if (!t.ok) return t;
@@ -81,15 +72,10 @@ export async function salvarExecucao(
   }
   if (!at) return falha(ERRO_ATIVIDADE);
 
-  const concluida = statusAtividade(Number(at.qtd_planejada), q) === "concluida";
-  const observacao = dados.observacao?.trim() ? dados.observacao.trim() : null;
+  const concluida = statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
   const { data, error } = await admin
     .from("atividades")
-    .update({
-      qtd_realizada: q,
-      causa: concluida ? null : dados.causa,
-      observacao: concluida ? null : observacao,
-    })
+    .update(camposExecucao(concluida, dados))
     .eq("id", atividadeId)
     .eq("turno_id", t.dados.id)
     .select("id");
@@ -105,16 +91,9 @@ export async function salvarEfetivo(
   token: string,
   linhas: { funcao: string; quantidade: number }[],
 ): Promise<Resultado> {
-  if (!Array.isArray(linhas) || linhas.length > 50) return falha("Efetivo inválido");
-  const limpas: { funcao: string; quantidade: number }[] = [];
-  for (const l of linhas) {
-    const funcao = typeof l?.funcao === "string" ? l.funcao.trim() : "";
-    if (!funcao || funcao.length > 60) return falha("Informe a função (até 60 caracteres)");
-    if (!Number.isInteger(l.quantidade) || l.quantidade < 1 || l.quantidade > 999) {
-      return falha("Quantidade deve ser um número inteiro entre 1 e 999");
-    }
-    limpas.push({ funcao, quantidade: l.quantidade });
-  }
+  const v = validarEfetivo(linhas);
+  if (!v.ok) return v;
+  const limpas = v.dados;
 
   const t = await turnoAberto(token);
   if (!t.ok) return t;
@@ -127,8 +106,9 @@ export async function salvarEfetivo(
   if (limpas.length === 0) return ok(undefined);
   const { error: ei } = await admin.from("efetivo").insert(limpas.map((l) => ({ ...l, turno_id: t.dados.id })));
   if (ei) {
+    // O efetivo já foi apagado: lançar para o cliente repetir o envio (rede) em vez de mostrar "salvo".
     console.error("salvarEfetivo (insert):", ei.message);
-    return falha(ERRO_GENERICO);
+    throw new Error("salvarEfetivo: falha ao gravar o efetivo");
   }
   return ok(undefined);
 }
@@ -137,10 +117,8 @@ export async function salvarClima(
   token: string,
   dados: { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean },
 ): Promise<Resultado> {
-  if (!PERIODOS_CLIMA.includes(dados.periodo)) return falha("Período do clima inválido");
-  if (typeof dados.condicao !== "string" || !Object.hasOwn(CONDICOES, dados.condicao)) {
-    return falha("Condição do clima inválida");
-  }
+  const v = validarClima(dados);
+  if (!v.ok) return v;
   const t = await turnoAberto(token);
   if (!t.ok) return t;
   const { error } = await criarClienteAdmin()
@@ -156,13 +134,25 @@ export async function salvarClima(
   return ok(undefined);
 }
 
+export async function removerClima(token: string, periodo: PeriodoClima): Promise<Resultado> {
+  const v = validarPeriodoClima(periodo);
+  if (!v.ok) return v;
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  const { error } = await criarClienteAdmin().from("clima").delete().eq("turno_id", t.dados.id).eq("periodo", periodo);
+  if (error) {
+    console.error("removerClima:", error.message);
+    return falha(ERRO_GENERICO);
+  }
+  return ok(undefined);
+}
+
 export async function salvarHorarioReal(
   token: string,
   dados: { hora_inicio_real: string | null; hora_fim_real: string | null },
 ): Promise<Resultado> {
-  for (const h of [dados.hora_inicio_real, dados.hora_fim_real]) {
-    if (h !== null && !(typeof h === "string" && HORA.test(h))) return falha("Horário inválido");
-  }
+  const v = validarHorario(dados);
+  if (!v.ok) return v;
   const t = await turnoAberto(token);
   if (!t.ok) return t;
   const { error } = await criarClienteAdmin()

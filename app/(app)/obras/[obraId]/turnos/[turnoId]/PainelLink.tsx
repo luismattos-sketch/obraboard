@@ -4,13 +4,12 @@ import { useActionState, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
-import { dataBR } from "@/lib/dominio/formato";
+import { formatarData } from "@/lib/dominio/formato";
 import { urlCampo } from "@/lib/dominio/link";
 import { gerarNovoLinkAcao, liberarTurnoAcao, type EstadoLink } from "./acoes";
 
 type Props = {
   turnoId: string;
-  obraId: string;
   obraNome: string;
   data: string;
   periodo: string;
@@ -21,12 +20,28 @@ type Props = {
  * Fica sempre na mesma posição da página para manter o estado (e o token em claro)
  * quando o turno passa de planejado para em campo após a revalidação.
  */
-export function PainelLink({ turnoId, obraId, obraNome, data, periodo, status }: Props) {
+export function PainelLink({ turnoId, obraNome, data, periodo, status }: Props) {
   const [estado, action, pendente] = useActionState<EstadoLink, FormData>(gerarNovoLinkAcao, null);
   const [estadoLiberar, liberar, liberando] = useActionState<EstadoLink, FormData>(liberarTurnoAcao, null);
   const [copia, setCopia] = useState<string | null>(null);
-  const ultimo = estado ?? estadoLiberar;
-  const token = ultimo?.ok ? ultimo.dados.token : undefined;
+  // Último token válido, guardado à parte do último erro: uma falha ao gerar novo link não esconde o link ainda válido.
+  const [token, setToken] = useState<string | undefined>(undefined);
+  const [vistoGerar, setVistoGerar] = useState<EstadoLink>(null);
+  const [vistoLiberar, setVistoLiberar] = useState<EstadoLink>(null);
+  if (estado !== vistoGerar) {
+    setVistoGerar(estado);
+    if (estado?.ok && estado.dados.token) {
+      setToken(estado.dados.token);
+      setCopia(null);
+    }
+  }
+  if (estadoLiberar !== vistoLiberar) {
+    setVistoLiberar(estadoLiberar);
+    if (estadoLiberar?.ok && estadoLiberar.dados.token) {
+      setToken(estadoLiberar.dados.token);
+      setCopia(null);
+    }
+  }
 
   async function copiar(url: string) {
     try {
@@ -38,13 +53,12 @@ export function PainelLink({ turnoId, obraId, obraNome, data, periodo, status }:
   }
 
   const url = token ? urlCampo(token) : null;
-  const texto = url ? `Turno ${dataBR(data)} ${periodo} — ${obraNome}: ${url}` : "";
+  const texto = url ? `Turno ${formatarData(data)} ${periodo} — ${obraNome}: ${url}` : "";
 
   if (status === "planejado") {
     return (
       <form action={liberar} className="flex flex-col gap-2">
         <input type="hidden" name="turno_id" value={turnoId} />
-        <input type="hidden" name="obra_id" value={obraId} />
         <Botao type="submit" carregando={liberando}>
           Liberar para campo
         </Botao>
@@ -81,12 +95,11 @@ export function PainelLink({ turnoId, obraId, obraNome, data, periodo, status }:
       )}
       <form action={action}>
         <input type="hidden" name="turno_id" value={turnoId} />
-        <input type="hidden" name="obra_id" value={obraId} />
         <Botao type="submit" variante="secundario" carregando={pendente}>
           Gerar novo link
         </Botao>
       </form>
-      {ultimo && !ultimo.ok && <Aviso tom="alerta">{ultimo.erro}</Aviso>}
+      {estado && !estado.ok && <Aviso tom="alerta">{estado.erro}</Aviso>}
     </Cartao>
   );
 }

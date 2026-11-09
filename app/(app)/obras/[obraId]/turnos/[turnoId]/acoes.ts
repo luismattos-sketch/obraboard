@@ -1,5 +1,6 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import {
   adicionarAtividade,
@@ -95,24 +96,48 @@ export async function trazerPendentesAcao(_: EstadoAcao, form: FormData): Promis
 }
 
 export type EstadoLink = Resultado<{ token?: string }> | null;
+export type EstadoFechamento = Resultado<undefined> | null;
 
-function atualizarTurno(obraId: string, turnoId: string) {
+/** O obra_id vem sempre do turno (RLS), nunca do formulário, para revalidar o caminho certo. */
+async function atualizarTurno(c: SupabaseClient, turnoId: string) {
+  const { data } = await c.from("turnos").select("obra_id").eq("id", turnoId).maybeSingle();
+  const obraId = (data as { obra_id: string } | null)?.obra_id;
+  if (!obraId) return;
   revalidatePath(`/obras/${obraId}/turnos/${turnoId}`);
   revalidatePath(`/obras/${obraId}`);
 }
 
 export async function liberarTurnoAcao(_: EstadoLink, form: FormData): Promise<EstadoLink> {
   const turnoId = texto(form, "turno_id");
-  const r = await aplicarAcao(await criarClienteServidor(), turnoId, "liberar");
+  const c = await criarClienteServidor();
+  const r = await aplicarAcao(c, turnoId, "liberar");
   if (!r.ok) return falha(r.erro);
-  atualizarTurno(texto(form, "obra_id"), turnoId);
+  await atualizarTurno(c, turnoId);
   return ok({ token: r.dados.token });
 }
 
 export async function gerarNovoLinkAcao(_: EstadoLink, form: FormData): Promise<EstadoLink> {
   const turnoId = texto(form, "turno_id");
-  const r = await gerarNovoLink(await criarClienteServidor(), turnoId);
+  const c = await criarClienteServidor();
+  const r = await gerarNovoLink(c, turnoId);
   if (!r.ok) return falha(r.erro);
-  atualizarTurno(texto(form, "obra_id"), turnoId);
+  await atualizarTurno(c, turnoId);
   return ok({ token: r.dados.token });
+}
+
+async function mudarStatus(form: FormData, acao: "fechar" | "reabrir"): Promise<EstadoFechamento> {
+  const turnoId = texto(form, "turno_id");
+  const c = await criarClienteServidor();
+  const r = await aplicarAcao(c, turnoId, acao);
+  if (!r.ok) return falha(r.erro);
+  await atualizarTurno(c, turnoId);
+  return ok(undefined);
+}
+
+export async function fecharTurnoAcao(_: EstadoFechamento, form: FormData): Promise<EstadoFechamento> {
+  return mudarStatus(form, "fechar");
+}
+
+export async function reabrirTurnoAcao(_: EstadoFechamento, form: FormData): Promise<EstadoFechamento> {
+  return mudarStatus(form, "reabrir");
 }

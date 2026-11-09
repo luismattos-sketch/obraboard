@@ -6,7 +6,7 @@ import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
 import { listarTurnosComAtividades } from "@/lib/db/turnos";
 import { percentualCumprimento } from "@/lib/dominio/calculos";
-import { dataBR, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
+import { formatarData, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -43,7 +43,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
                 >
                   <Cartao className="flex items-center justify-between gap-3 transition-colors hover:bg-primaria-clara">
                     <div>
-                      <p className="font-semibold text-texto">{dataBR(t.data)}</p>
+                      <p className="font-semibold text-texto">{formatarData(t.data)}</p>
                       <p className="text-sm text-texto-suave">{ROTULO_PERIODO[t.periodo]}</p>
                     </div>
                     <div className="flex items-center gap-3">

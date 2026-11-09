@@ -5,11 +5,13 @@ import { adicionarAtividade } from "@/lib/db/atividades";
 import {
   enviarTurnoCampo,
   obterTurnoPorToken,
+  removerClima,
   salvarClima,
   salvarEfetivo,
   salvarExecucao,
   salvarHorarioReal,
 } from "@/lib/db/campo";
+import { hashToken } from "@/lib/dominio/token";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
@@ -113,9 +115,27 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect(await obterTurnoPorToken(C.token)).toMatchObject({ status: "fechado" });
   });
 
-  it("turno planejado (sem token) e não liberado", { timeout: 60_000 }, async () => {
+  it("turno planejado, mesmo com token_hash, não aceita lançamentos", { timeout: 60_000 }, async () => {
     const t = await criarTurno(u.cliente, { obra_id: obraId, data: "2026-12-04", periodo: "diurno" });
     if (!t.ok) throw new Error(t.erro);
     expect(t.dados.token_hash).toBeNull();
+    const token = "p".repeat(43);
+    const { error } = await criarClienteAdmin().from("turnos").update({ token_hash: hashToken(token) }).eq("id", t.dados.id);
+    expect(error).toBeNull();
+    expect(await salvarClima(token, { periodo: "manha", condicao: "bom", impediu: false })).toEqual({ ok: false, erro: FECHADO });
+    expect(await salvarEfetivo(token, [])).toEqual({ ok: false, erro: FECHADO });
+    expect(await removerClima(token, "manha")).toEqual({ ok: false, erro: FECHADO });
+  });
+
+  it("removerClima apaga só o período do turno do token", { timeout: 60_000 }, async () => {
+    const A = await turnoLiberado("2026-12-05", [4]);
+    const B = await turnoLiberado("2026-12-06", [4]);
+    await salvarClima(A.token, { periodo: "manha", condicao: "bom", impediu: false });
+    await salvarClima(A.token, { periodo: "tarde", condicao: "bom", impediu: false });
+    await salvarClima(B.token, { periodo: "manha", condicao: "bom", impediu: false });
+    expect((await removerClima(A.token, "manha")).ok).toBe(true);
+    expect((await obterTurnoPorToken(A.token))?.clima.map((c) => c.periodo)).toEqual(["tarde"]);
+    expect((await obterTurnoPorToken(B.token))?.clima).toHaveLength(1);
+    expect(await removerClima(A.token, "dia" as never)).toMatchObject({ ok: false });
   });
 });
