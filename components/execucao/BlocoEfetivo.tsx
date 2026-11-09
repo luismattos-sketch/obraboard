@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { Resultado } from "@/lib/db/resultado";
 import { tuplaEfetivo } from "@/lib/dominio/assinatura";
 import { FUNCOES_SUGERIDAS } from "@/lib/dominio/tipos";
+import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
 import { Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
@@ -38,11 +39,18 @@ function Efetivo({ inicial, somenteLeitura, salvar }: Props) {
   const validas = linhas
     .map((l) => ({ funcao: l.funcao.trim(), quantidade: Number(l.quantidade) }))
     .filter((l) => l.funcao && Number.isInteger(l.quantidade) && l.quantidade > 0);
-  const estado = useAutoSalvar(async () => {
-    const r = await salvar(validas, esperado.current);
-    if (r.ok) esperado.current = validas;
-    return r;
-  }, [tuplaEfetivo(validas)]);
+  // Em série: o próximo salvamento só lê `esperado` depois que o anterior gravou (senão, um
+  // salvamento disparado durante outro lento iria com o esperado velho e daria conflito falso).
+  const [fila] = useState(criarFila);
+  const estado = useAutoSalvar(
+    () =>
+      fila(async () => {
+        const r = await salvar(validas, esperado.current);
+        if (r.ok) esperado.current = validas;
+        return r;
+      }),
+    [tuplaEfetivo(validas)],
+  );
 
   const mudar = (chave: number, p: Partial<Linha>) =>
     setLinhas((ls) => ls.map((l) => (l.chave === chave ? { ...l, ...p } : l)));
