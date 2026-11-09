@@ -1,0 +1,249 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { saldoPendente, statusAtividade } from "@/lib/dominio/calculos";
+import { compararTurnos } from "@/lib/dominio/regras";
+import { CAUSAS, type AtividadeExec, type Causa } from "@/lib/dominio/tipos";
+import { falha, ok, type Resultado } from "./resultado";
+import { COLUNAS_TURNO, type Turno } from "./turnos";
+
+export type Atividade = AtividadeExec & {
+  turno_id: string;
+  ordem: number;
+  local: string | null;
+  unidade: string;
+  origem_id: string | null;
+};
+
+const COLUNAS =
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id";
+const ERRO_FECHADO = "Turno fechado: reabra para editar";
+
+export function normalizarAtividade(r: Record<string, unknown>): Atividade {
+  return {
+    id: r.id as string,
+    turno_id: r.turno_id as string,
+    ordem: Number(r.ordem),
+    descricao: r.descricao as string,
+    local: (r.local as string | null) ?? null,
+    unidade: (r.unidade as string | null) ?? "",
+    qtd_planejada: Number(r.qtd_planejada),
+    qtd_realizada: r.qtd_realizada === null || r.qtd_realizada === undefined ? null : Number(r.qtd_realizada),
+    causa: (r.causa as Causa | null) ?? null,
+    observacao: (r.observacao as string | null) ?? null,
+    origem_id: (r.origem_id as string | null) ?? null,
+  };
+}
+
+const vazioParaNull = (s: string | null | undefined) => (s?.trim() ? s.trim() : null);
+
+/** Lê o turno (via RLS) e confirma que existe e não está fechado. */
+async function turnoEditavel(c: SupabaseClient, turnoId: string): Promise<Resultado<Turno>> {
+  const { data, error } = await c.from("turnos").select(COLUNAS_TURNO).eq("id", turnoId).maybeSingle();
+  if (error || !data) {
+    if (error && error.code !== "22P02") console.error("turnoEditavel:", error.message);
+    return falha("Turno não encontrado");
+  }
+  if ((data as Turno).status === "fechado") return falha(ERRO_FECHADO);
+  return ok(data as Turno);
+}
+
+async function atividadeEditavel(c: SupabaseClient, atividadeId: string): Promise<Resultado<Atividade>> {
+  const { data, error } = await c.from("atividades").select(COLUNAS).eq("id", atividadeId).maybeSingle();
+  if (error || !data) {
+    if (error && error.code !== "22P02") console.error("atividadeEditavel:", error.message);
+    return falha("Atividade não encontrada");
+  }
+  const at = normalizarAtividade(data);
+  const t = await turnoEditavel(c, at.turno_id);
+  if (!t.ok) return t;
+  return ok(at);
+}
+
+export async function adicionarAtividade(
+  c: SupabaseClient,
+  turnoId: string,
+  dados: { descricao: string; local?: string | null; unidade: string; qtd_planejada: number },
+): Promise<Resultado<Atividade>> {
+  const descricao = dados.descricao.trim();
+  const unidade = dados.unidade.trim();
+  if (!descricao) return falha("Informe a descrição");
+  if (!unidade) return falha("Informe a unidade");
+  if (!(dados.qtd_planejada > 0)) return falha("Quantidade deve ser maior que zero");
+  const t = await turnoEditavel(c, turnoId);
+  if (!t.ok) return t;
+
+  const { data: ult, error: eo } = await c
+    .from("atividades")
+    .select("ordem")
+    .eq("turno_id", turnoId)
+    .order("ordem", { ascending: false })
+    .limit(1);
+  if (eo) {
+    console.error("adicionarAtividade (ordem):", eo.message);
+    return falha("Não foi possível adicionar a atividade.");
+  }
+  const ordem = ult && ult.length > 0 ? Number(ult[0].ordem) + 1 : 0;
+
+  const { data, error } = await c
+    .from("atividades")
+    .insert({
+      turno_id: turnoId,
+      ordem,
+      descricao,
+      local: vazioParaNull(dados.local),
+      unidade,
+      qtd_planejada: dados.qtd_planejada,
+    })
+    .select(COLUNAS)
+    .single();
+  if (error || !data) {
+    console.error("adicionarAtividade:", error?.message);
+    return falha("Não foi possível adicionar a atividade.");
+  }
+  return ok(normalizarAtividade(data));
+}
+
+export type CamposEditaveis = Partial<
+  Pick<Atividade, "descricao" | "local" | "unidade" | "qtd_planejada" | "qtd_realizada" | "causa" | "observacao">
+>;
+
+export async function editarAtividade(
+  c: SupabaseClient,
+  atividadeId: string,
+  campos: CamposEditaveis,
+): Promise<Resultado> {
+  // Whitelist: nunca repassar o objeto recebido (ex.: origem_id, turno_id, ordem).
+  const upd: Record<string, unknown> = {};
+  if (campos.descricao !== undefined) {
+    if (!campos.descricao.trim()) return falha("Informe a descrição");
+    upd.descricao = campos.descricao.trim();
+  }
+  if (campos.unidade !== undefined) {
+    if (!campos.unidade.trim()) return falha("Informe a unidade");
+    upd.unidade = campos.unidade.trim();
+  }
+  if (campos.local !== undefined) upd.local = vazioParaNull(campos.local);
+  if (campos.qtd_planejada !== undefined) {
+    if (!(campos.qtd_planejada > 0)) return falha("Quantidade deve ser maior que zero");
+    upd.qtd_planejada = campos.qtd_planejada;
+  }
+  if (campos.qtd_realizada !== undefined) {
+    if (campos.qtd_realizada !== null && !(campos.qtd_realizada >= 0)) return falha("Quantidade realizada inválida");
+    upd.qtd_realizada = campos.qtd_realizada;
+  }
+  if (campos.causa !== undefined) {
+    if (campos.causa !== null && !(campos.causa in CAUSAS)) return falha("Causa inválida");
+    upd.causa = campos.causa;
+  }
+  if (campos.observacao !== undefined) upd.observacao = vazioParaNull(campos.observacao);
+  if (Object.keys(upd).length === 0) return ok(undefined);
+
+  const a = await atividadeEditavel(c, atividadeId);
+  if (!a.ok) return a;
+  const { error } = await c.from("atividades").update(upd).eq("id", atividadeId);
+  if (error) {
+    console.error("editarAtividade:", error.message);
+    return falha("Não foi possível salvar a atividade.");
+  }
+  return ok(undefined);
+}
+
+export async function removerAtividade(c: SupabaseClient, atividadeId: string): Promise<Resultado> {
+  const a = await atividadeEditavel(c, atividadeId);
+  if (!a.ok) return a;
+  const { error } = await c.from("atividades").delete().eq("id", atividadeId);
+  if (error) {
+    console.error("removerAtividade:", error.message);
+    return falha("Não foi possível remover a atividade.");
+  }
+  return ok(undefined);
+}
+
+export async function moverAtividade(
+  c: SupabaseClient,
+  atividadeId: string,
+  direcao: "cima" | "baixo",
+): Promise<Resultado> {
+  const a = await atividadeEditavel(c, atividadeId);
+  if (!a.ok) return a;
+  const { data, error } = await c
+    .from("atividades")
+    .select("id, ordem")
+    .eq("turno_id", a.dados.turno_id)
+    .order("ordem")
+    .order("created_at");
+  if (error || !data) {
+    console.error("moverAtividade:", error?.message);
+    return falha("Não foi possível reordenar.");
+  }
+  const lista = data.map((r) => ({ id: r.id as string }));
+  const i = lista.findIndex((r) => r.id === atividadeId);
+  const j = direcao === "cima" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= lista.length) return ok(undefined);
+  [lista[i], lista[j]] = [lista[j], lista[i]];
+  // Posições i e j recebem ordem = índice (robusto a ordens duplicadas vindas do passado).
+  for (const k of [i, j]) {
+    const { error: eu } = await c.from("atividades").update({ ordem: k }).eq("id", lista[k].id);
+    if (eu) {
+      console.error("moverAtividade (update):", eu.message);
+      return falha("Não foi possível reordenar.");
+    }
+  }
+  return ok(undefined);
+}
+
+export async function trazerPendentes(
+  c: SupabaseClient,
+  turnoId: string,
+): Promise<Resultado<{ adicionadas: number }>> {
+  const t = await turnoEditavel(c, turnoId);
+  if (!t.ok) return t;
+  const atual = t.dados;
+
+  const { data: irmaos, error: et } = await c.from("turnos").select(COLUNAS_TURNO).eq("obra_id", atual.obra_id);
+  if (et) {
+    console.error("trazerPendentes (turnos):", et.message);
+    return falha("Não foi possível trazer pendentes.");
+  }
+  const anterior = ((irmaos ?? []) as Turno[])
+    .filter((x) => compararTurnos(x, atual) < 0)
+    .sort((a, b) => compararTurnos(b, a))[0];
+  if (!anterior) return falha("Não há turno anterior nesta obra");
+
+  const { data: ant, error: ea } = await c
+    .from("atividades")
+    .select(COLUNAS)
+    .eq("turno_id", anterior.id)
+    .order("ordem")
+    .order("created_at");
+  const { data: nesse, error: en } = await c.from("atividades").select("origem_id, ordem").eq("turno_id", turnoId);
+  if (ea || en) {
+    console.error("trazerPendentes (atividades):", (ea ?? en)?.message);
+    return falha("Não foi possível trazer pendentes.");
+  }
+
+  const jaTrazidas = new Set((nesse ?? []).map((r) => r.origem_id as string | null).filter(Boolean));
+  let ordem = (nesse ?? []).reduce((m, r) => Math.max(m, Number(r.ordem)), -1) + 1;
+  const novas = (ant ?? [])
+    .map(normalizarAtividade)
+    .filter((a) => statusAtividade(a.qtd_planejada, a.qtd_realizada) !== "concluida" && !jaTrazidas.has(a.id))
+    .map((a) => ({
+      turno_id: turnoId,
+      ordem: ordem++,
+      descricao: a.descricao,
+      local: a.local,
+      unidade: a.unidade || null,
+      qtd_planejada: saldoPendente(a.qtd_planejada, a.qtd_realizada),
+      qtd_realizada: null,
+      causa: null,
+      observacao: null,
+      origem_id: a.id,
+    }));
+  if (novas.length === 0) return ok({ adicionadas: 0 });
+
+  const { error } = await c.from("atividades").insert(novas);
+  if (error) {
+    console.error("trazerPendentes (insert):", error.message);
+    return falha("Não foi possível trazer pendentes.");
+  }
+  return ok({ adicionadas: novas.length });
+}

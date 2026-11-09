@@ -20,7 +20,11 @@ export async function listarObras(cliente: SupabaseClient): Promise<Obra[]> {
 
 export async function obterObra(cliente: SupabaseClient, id: string): Promise<Obra | null> {
   const { data, error } = await cliente.from("obras").select(COLUNAS).eq("id", id).maybeSingle();
-  if (error) return null;
+  if (error) {
+    if (error.code === "22P02") return null; // UUID inválido
+    console.error("obterObra:", error.message);
+    throw new Error(`obterObra: ${error.message}`);
+  }
   return (data as Obra | null) ?? null;
 }
 
@@ -40,7 +44,10 @@ export async function criarObra(
     .select("empresa_id")
     .eq("user_id", userId)
     .limit(1);
-  if (em) return falha("Não foi possível criar a obra.");
+  if (em) {
+    console.error("criarObra (membros):", em.message);
+    return falha("Não foi possível criar a obra.");
+  }
   if (!m || m.length === 0) return falha("Sua conta não está vinculada a uma empresa.");
 
   const { data, error } = await cliente
@@ -53,6 +60,9 @@ export async function criarObra(
     })
     .select(COLUNAS)
     .single();
-  if (error || !data) return falha("Não foi possível criar a obra.");
+  if (error || !data) {
+    console.error("criarObra:", error?.message);
+    return falha("Não foi possível criar a obra.");
+  }
   return ok(data as Obra);
 }

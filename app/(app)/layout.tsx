@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Botao } from "@/components/ui/Botao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -9,7 +10,8 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
   const supabase = await criarClienteServidor();
   const { data } = await supabase.auth.getUser();
   const user = data.user;
-  const nome = (user?.user_metadata?.nome as string | undefined) || user?.email || "";
+  if (!user) redirect("/login");
+  const nome = (user.user_metadata?.nome as string | undefined) || user.email || "";
 
   return (
     <div className="flex min-h-screen flex-col">
