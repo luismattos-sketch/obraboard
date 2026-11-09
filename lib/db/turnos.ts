@@ -4,7 +4,9 @@ import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
+import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
+import { validarHorariosPrevistos } from "./validacao";
 
 export type Turno = {
   id: string;
@@ -85,35 +87,93 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   return { ...t, atividades, efetivo: t.efetivo ?? [], clima: t.clima ?? [] };
 }
 
-export async function criarTurno(
-  c: SupabaseClient,
-  dados: {
-    obra_id: string;
-    data: string;
-    periodo: Periodo;
-    hora_inicio_prevista?: string | null;
-    hora_fim_prevista?: string | null;
-  },
-): Promise<Resultado<Turno>> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dados.data)) return falha("Informe a data");
+export type DadosTurno = {
+  data: string;
+  periodo: Periodo;
+  hora_inicio_prevista?: string | null;
+  hora_fim_prevista?: string | null;
+};
+
+/** Valida e normaliza data/período/horários previstos (criação e edição). */
+function lerDadosTurno(dados: DadosTurno): Resultado<Required<DadosTurno>> {
+  if (typeof dados.data !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dados.data)) return falha("Informe a data");
   if (dados.periodo !== "diurno" && dados.periodo !== "noturno") return falha("Período inválido");
+  const h = validarHorariosPrevistos(dados);
+  if (!h.ok) return h;
+  return ok({
+    data: dados.data,
+    periodo: dados.periodo,
+    hora_inicio_prevista: dados.hora_inicio_prevista || null,
+    hora_fim_prevista: dados.hora_fim_prevista || null,
+  });
+}
+
+const duplicado = (periodo: Periodo) => falha(`Já existe um turno ${periodo} nesse dia`);
+
+export async function criarTurno(c: SupabaseClient, dados: DadosTurno & { obra_id: string }): Promise<Resultado<Turno>> {
+  const d = lerDadosTurno(dados);
+  if (!d.ok) return d;
   const { data, error } = await c
     .from("turnos")
-    .insert({
-      obra_id: dados.obra_id,
-      data: dados.data,
-      periodo: dados.periodo,
-      hora_inicio_prevista: dados.hora_inicio_prevista || null,
-      hora_fim_prevista: dados.hora_fim_prevista || null,
-    })
+    .insert({ obra_id: dados.obra_id, ...d.dados })
     .select(COLUNAS_TURNO)
     .single();
   if (error) {
-    if (error.code === "23505") return falha(`Já existe um turno ${dados.periodo} nesse dia`);
+    if (error.code === "23505") return duplicado(d.dados.periodo);
     console.error("criarTurno:", error.message);
     return falha("Não foi possível criar o turno.");
   }
   return ok(data as Turno);
+}
+
+/** Status atual do turno (via RLS); null se não existe ou não é visível. */
+async function lerStatus(c: SupabaseClient, turnoId: string, contexto: string): Promise<Resultado<StatusTurno | null>> {
+  const { data, error } = await c.from("turnos").select("status").eq("id", turnoId).maybeSingle();
+  if (error && error.code !== UUID_INVALIDO) {
+    console.error(`${contexto}:`, error.message);
+    return falha("Não foi possível atualizar o turno.");
+  }
+  return ok(data ? (data as { status: StatusTurno }).status : null);
+}
+
+/** Altera data, período e horários previstos. Só enquanto planejado. */
+export async function editarTurno(c: SupabaseClient, turnoId: string, dados: DadosTurno): Promise<Resultado<Turno>> {
+  const d = lerDadosTurno(dados);
+  if (!d.ok) return d;
+  const s = await lerStatus(c, turnoId, "editarTurno");
+  if (!s.ok) return s;
+  if (s.dados === null) return falha("Turno não encontrado");
+  if (s.dados !== "planejado") return falha(ERRO_SO_PLANEJADO);
+
+  const { data, error } = await c
+    .from("turnos")
+    .update(d.dados)
+    .eq("id", turnoId)
+    .eq("status", "planejado")
+    .select(COLUNAS_TURNO);
+  if (error) {
+    if (error.code === "23505") return duplicado(d.dados.periodo);
+    console.error("editarTurno:", error.message);
+    return falha("Não foi possível alterar o turno.");
+  }
+  if (!data || data.length === 0) return falha(ERRO_SO_PLANEJADO); // mudou de status no meio
+  return ok(data[0] as Turno);
+}
+
+/** Exclui o turno e suas atividades (cascata). Só enquanto planejado. */
+export async function removerTurno(c: SupabaseClient, turnoId: string): Promise<Resultado> {
+  const s = await lerStatus(c, turnoId, "removerTurno");
+  if (!s.ok) return s;
+  if (s.dados === null) return falha("Turno não encontrado");
+  if (s.dados !== "planejado") return falha(ERRO_SO_PLANEJADO);
+
+  const { data, error } = await c.from("turnos").delete().eq("id", turnoId).eq("status", "planejado").select("id");
+  if (error) {
+    console.error("removerTurno:", error.message);
+    return falha("Não foi possível excluir o turno.");
+  }
+  if (!data || data.length === 0) return falha(ERRO_SO_PLANEJADO);
+  return ok(undefined);
 }
 
 const MSG_CONCORRENCIA = "O turno foi alterado por outra pessoa. Recarregue a página.";
@@ -126,7 +186,7 @@ export async function aplicarAcao(
 ): Promise<Resultado<{ status: StatusTurno; token?: string }>> {
   const turno = await obterTurnoCompleto(c, turnoId);
   if (!turno) return falha("Turno não encontrado");
-  const t = transicaoTurno(turno.status, acao, { atividades: turno.atividades });
+  const t = transicaoTurno(turno.status, acao, { atividades: turno.atividades, horario: turno });
   if (!t.ok) return falha(t.erro);
 
   const mudancas: Record<string, unknown> = { status: t.novo };
@@ -141,6 +201,10 @@ export async function aplicarAcao(
 
   const { data, error } = await c.from("turnos").update(mudancas).eq("id", turnoId).eq("status", turno.status).select("id");
   if (error) {
+    // Triggers do banco (corrida entre a leitura acima e a gravação).
+    const b = erroBanco(error);
+    if (b === "causa_pendente") return falha(ERRO_CAUSA_PENDENTE);
+    if (b === "turno_fechado") return falha(ERRO_FECHADO_PLANEJADOR);
     console.error("aplicarAcao:", error.message);
     return falha("Não foi possível atualizar o turno.");
   }

@@ -1,4 +1,6 @@
 export type Periodo = "diurno" | "noturno";
+/** Tom visual de selos e avisos. */
+export type Tom = "neutro" | "info" | "sucesso" | "alerta" | "perigo";
 export type StatusTurno = "planejado" | "em_campo" | "enviado" | "fechado";
 export type StatusAtividade = "concluida" | "parcial" | "nao_iniciada";
 export type Causa =
@@ -26,6 +28,13 @@ export const CAUSAS: Record<Causa, string> = {
 
 export type PeriodoClima = "manha" | "tarde" | "noite";
 export type CondicaoClima = "bom" | "chuva_leve" | "chuva_forte";
+
+/** Períodos do clima na ordem de exibição (tela, formulário e RDO). */
+export const PERIODOS_CLIMA: readonly { id: PeriodoClima; rotulo: string }[] = [
+  { id: "manha", rotulo: "Manhã" },
+  { id: "tarde", rotulo: "Tarde" },
+  { id: "noite", rotulo: "Noite" },
+];
 
 export const CONDICOES: Record<CondicaoClima, string> = {
   bom: "Bom",
@@ -66,3 +75,6 @@ export type AtividadeExec = {
   causa: Causa | null;
   observacao: string | null;
 };
+
+/** Lançamento de execução de uma atividade (encarregado e planejador). */
+export type DadosExecucao = { qtd_realizada: number | null; causa: Causa | null; observacao: string | null };

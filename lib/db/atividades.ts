@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { saldoPendente, statusAtividade } from "@/lib/dominio/calculos";
 import { compararTurnos } from "@/lib/dominio/regras";
-import { CAUSAS, type AtividadeExec, type Causa } from "@/lib/dominio/tipos";
+import type { AtividadeExec, Causa } from "@/lib/dominio/tipos";
+import { ERRO_FECHADO_PLANEJADOR, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { COLUNAS_TURNO, type Turno } from "./turnos";
+import { causaValida, errosDeTamanho, falhaCampos, LIMITES, QTD_PLANEJADA_MAX } from "./validacao";
 
 export type Atividade = AtividadeExec & {
   turno_id: string;
@@ -15,7 +17,27 @@ export type Atividade = AtividadeExec & {
 
 const COLUNAS =
   "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id";
-const ERRO_FECHADO = "Turno fechado: reabra para editar";
+const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
+const UNICIDADE = "23505";
+const ERRO_QTD_MAX = "Quantidade deve ser no máximo 1.000.000.000";
+
+/** Erro do banco: turno fechado (trigger) vira a mensagem do planejador; o resto, a mensagem padrão. */
+function erroGravacao(error: { code?: string; message?: string }, padrao: string): Resultado<never> {
+  return falha(erroBanco(error) === "turno_fechado" ? ERRO_FECHADO : padrao);
+}
+
+function validarPlanejamento(d: { descricao?: string; local?: string | null; unidade?: string; qtd_planejada?: number }) {
+  if (d.qtd_planejada !== undefined && d.qtd_planejada > QTD_PLANEJADA_MAX) {
+    return falha(ERRO_QTD_MAX, { qtd_planejada: ERRO_QTD_MAX });
+  }
+  return falhaCampos(
+    errosDeTamanho({
+      descricao: { valor: d.descricao, max: LIMITES.descricao },
+      local: { valor: d.local, max: LIMITES.local },
+      unidade: { valor: d.unidade, max: LIMITES.unidade },
+    }),
+  );
+}
 
 export function normalizarAtividade(r: Record<string, unknown>): Atividade {
   return {
@@ -68,6 +90,8 @@ export async function adicionarAtividade(
   if (!descricao) return falha("Informe a descrição");
   if (!unidade) return falha("Informe a unidade");
   if (!(dados.qtd_planejada > 0)) return falha("Quantidade deve ser maior que zero");
+  const tamanho = validarPlanejamento(dados);
+  if (tamanho) return tamanho;
   const t = await turnoEditavel(c, turnoId);
   if (!t.ok) return t;
 
@@ -97,7 +121,7 @@ export async function adicionarAtividade(
     .single();
   if (error || !data) {
     console.error("adicionarAtividade:", error?.message);
-    return falha("Não foi possível adicionar a atividade.");
+    return error ? erroGravacao(error, "Não foi possível adicionar a atividade.") : falha("Não foi possível adicionar a atividade.");
   }
   return ok(normalizarAtividade(data));
 }
@@ -131,10 +155,12 @@ export async function editarAtividade(
     upd.qtd_realizada = campos.qtd_realizada;
   }
   if (campos.causa !== undefined) {
-    if (campos.causa !== null && !(campos.causa in CAUSAS)) return falha("Causa inválida");
+    if (campos.causa !== null && !causaValida(campos.causa)) return falha("Causa inválida");
     upd.causa = campos.causa;
   }
   if (campos.observacao !== undefined) upd.observacao = vazioParaNull(campos.observacao);
+  const tamanho = validarPlanejamento(campos);
+  if (tamanho) return tamanho;
   if (Object.keys(upd).length === 0) return ok(undefined);
 
   const a = await atividadeEditavel(c, atividadeId);
@@ -142,7 +168,7 @@ export async function editarAtividade(
   const { error } = await c.from("atividades").update(upd).eq("id", atividadeId);
   if (error) {
     console.error("editarAtividade:", error.message);
-    return falha("Não foi possível salvar a atividade.");
+    return erroGravacao(error, "Não foi possível salvar a atividade.");
   }
   return ok(undefined);
 }
@@ -153,7 +179,7 @@ export async function removerAtividade(c: SupabaseClient, atividadeId: string): 
   const { error } = await c.from("atividades").delete().eq("id", atividadeId);
   if (error) {
     console.error("removerAtividade:", error.message);
-    return falha("Não foi possível remover a atividade.");
+    return erroGravacao(error, "Não foi possível remover a atividade.");
   }
   return ok(undefined);
 }
@@ -186,7 +212,7 @@ export async function moverAtividade(
     const { error: eu } = await c.from("atividades").update({ ordem: k }).eq("id", lista[k].id);
     if (eu) {
       console.error("moverAtividade (update):", eu.message);
-      return falha("Não foi possível reordenar.");
+      return erroGravacao(eu, "Não foi possível reordenar.");
     }
   }
   return ok(undefined);
@@ -242,9 +268,20 @@ export async function trazerPendentes(
   if (novas.length === 0) return ok({ adicionadas: 0 });
 
   const { error } = await c.from("atividades").insert(novas);
-  if (error) {
+  if (!error) return ok({ adicionadas: novas.length });
+  if (error.code !== UNICIDADE) {
     console.error("trazerPendentes (insert):", error.message);
-    return falha("Não foi possível trazer pendentes.");
+    return erroGravacao(error, "Não foi possível trazer pendentes.");
   }
-  return ok({ adicionadas: novas.length });
+  // Corrida com outro "trazer pendentes": insere uma a uma e pula as já presentes (índice turno_id+origem_id).
+  let adicionadas = 0;
+  for (const nova of novas) {
+    const { error: e1 } = await c.from("atividades").insert(nova);
+    if (!e1) adicionadas++;
+    else if (e1.code !== UNICIDADE) {
+      console.error("trazerPendentes (insert 1 a 1):", e1.message);
+      return erroGravacao(e1, "Não foi possível trazer pendentes.");
+    }
+  }
+  return ok({ adicionadas });
 }

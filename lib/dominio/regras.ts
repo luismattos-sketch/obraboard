@@ -15,12 +15,27 @@ export function errosDeCausa(atividades: AtividadeExec[]): Record<string, string
   return erros;
 }
 
+export const ERRO_CAUSA_PENDENTE = "Há atividades sem causa informada";
+
 export type AcaoTurno = "liberar" | "enviar" | "fechar" | "reabrir";
+
+export type HorarioTurno = {
+  hora_inicio_prevista: string | null;
+  hora_fim_prevista: string | null;
+  hora_inicio_real: string | null;
+  hora_fim_real: string | null;
+};
+
+/** O RDO precisa de um horário completo: o real (início e fim) ou o previsto (início e fim). */
+export function temHorarioCompleto(h: HorarioTurno | undefined): boolean {
+  if (!h) return false;
+  return (!!h.hora_inicio_real && !!h.hora_fim_real) || (!!h.hora_inicio_prevista && !!h.hora_fim_prevista);
+}
 
 export function transicaoTurno(
   atual: StatusTurno,
   acao: AcaoTurno,
-  dados: { atividades: AtividadeExec[] },
+  dados: { atividades: AtividadeExec[]; horario?: HorarioTurno },
 ): { ok: true; novo: StatusTurno } | { ok: false; erro: string } {
   const semCausa = () => Object.keys(errosDeCausa(dados.atividades)).length > 0;
 
@@ -29,11 +44,12 @@ export function transicaoTurno(
     return { ok: true, novo: "em_campo" };
   }
   if (acao === "enviar" && atual === "em_campo") {
-    if (semCausa()) return { ok: false, erro: "Há atividades sem causa informada" };
+    if (semCausa()) return { ok: false, erro: ERRO_CAUSA_PENDENTE };
     return { ok: true, novo: "enviado" };
   }
   if (acao === "fechar" && (atual === "em_campo" || atual === "enviado")) {
-    if (semCausa()) return { ok: false, erro: "Há atividades sem causa informada" };
+    if (semCausa()) return { ok: false, erro: ERRO_CAUSA_PENDENTE };
+    if (!temHorarioCompleto(dados.horario)) return { ok: false, erro: "Informe o horário do turno antes de fechar" };
     return { ok: true, novo: "fechado" };
   }
   if (acao === "reabrir" && atual === "fechado") {

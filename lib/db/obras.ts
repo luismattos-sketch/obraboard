@@ -1,5 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { falha, ok, type Resultado } from "./resultado";
+import { errosDeTamanho, falhaCampos, LIMITES } from "./validacao";
+
+/** Limites de nome/cliente/endereço da obra, por campo. */
+export function errosObra(d: { nome?: string; cliente?: string; endereco?: string }): Record<string, string> {
+  return errosDeTamanho({
+    nome: { valor: d.nome, max: LIMITES.obraNome },
+    cliente: { valor: d.cliente, max: LIMITES.obraCliente },
+    endereco: { valor: d.endereco, max: LIMITES.obraEndereco },
+  });
+}
 
 export type Obra = {
   id: string;
@@ -34,6 +44,8 @@ export async function criarObra(
 ): Promise<Resultado<Obra>> {
   const nome = dados.nome.trim();
   if (!nome) return falha("Informe o nome da obra");
+  const tamanho = falhaCampos(errosObra(dados));
+  if (tamanho) return tamanho;
 
   // MVP: cada usuário pertence a exatamente uma empresa.
   const { data: auth } = await cliente.auth.getUser();

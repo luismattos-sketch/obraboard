@@ -33,7 +33,13 @@ describe.skipIf(!ligado)("campo (token)", () => {
   });
 
   async function turnoLiberado(data: string, qtds: number[]) {
-    const t = await criarTurno(u.cliente, { obra_id: obraId, data, periodo: "diurno" });
+    const t = await criarTurno(u.cliente, {
+      obra_id: obraId,
+      data,
+      periodo: "diurno",
+      hora_inicio_prevista: "07:00",
+      hora_fim_prevista: "17:00",
+    });
     if (!t.ok) throw new Error(t.erro);
     const ids: string[] = [];
     for (const q of qtds) {
@@ -94,10 +100,11 @@ describe.skipIf(!ligado)("campo (token)", () => {
 
   it("fechado bloqueia; efetivo substitui", { timeout: 60_000 }, async () => {
     const C = await turnoLiberado("2026-12-03", [4]);
-    expect((await salvarEfetivo(C.token, [{ funcao: "Pedreiro", quantidade: 4 }])).ok).toBe(true);
-    expect((await salvarEfetivo(C.token, [{ funcao: "Pedreiro", quantidade: 4 }])).ok).toBe(true);
-    expect(await salvarEfetivo(C.token, [{ funcao: " ", quantidade: 4 }])).toMatchObject({ ok: false });
-    expect(await salvarEfetivo(C.token, [{ funcao: "X", quantidade: 1.5 }])).toMatchObject({ ok: false });
+    const pedreiro = [{ funcao: "Pedreiro", quantidade: 4 }];
+    expect((await salvarEfetivo(C.token, pedreiro, [])).ok).toBe(true);
+    expect((await salvarEfetivo(C.token, pedreiro, pedreiro)).ok).toBe(true);
+    expect(await salvarEfetivo(C.token, [{ funcao: " ", quantidade: 4 }], pedreiro)).toMatchObject({ ok: false });
+    expect(await salvarEfetivo(C.token, [{ funcao: "X", quantidade: 1.5 }], pedreiro)).toMatchObject({ ok: false });
     const t = await obterTurnoPorToken(C.token);
     expect(t?.efetivo).toHaveLength(1);
 
@@ -111,7 +118,7 @@ describe.skipIf(!ligado)("campo (token)", () => {
     const f = await aplicarAcao(u.cliente, C.turnoId, "fechar");
     expect(f.ok).toBe(true);
     expect(await salvarClima(C.token, { periodo: "tarde", condicao: "bom", impediu: false })).toEqual({ ok: false, erro: FECHADO });
-    expect(await salvarEfetivo(C.token, [])).toEqual({ ok: false, erro: FECHADO });
+    expect(await salvarEfetivo(C.token, [], pedreiro)).toEqual({ ok: false, erro: FECHADO });
     expect(await obterTurnoPorToken(C.token)).toMatchObject({ status: "fechado" });
   });
 
@@ -123,7 +130,7 @@ describe.skipIf(!ligado)("campo (token)", () => {
     const { error } = await criarClienteAdmin().from("turnos").update({ token_hash: hashToken(token) }).eq("id", t.dados.id);
     expect(error).toBeNull();
     expect(await salvarClima(token, { periodo: "manha", condicao: "bom", impediu: false })).toEqual({ ok: false, erro: FECHADO });
-    expect(await salvarEfetivo(token, [])).toEqual({ ok: false, erro: FECHADO });
+    expect(await salvarEfetivo(token, [], [])).toEqual({ ok: false, erro: FECHADO });
     expect(await removerClima(token, "manha")).toEqual({ ok: false, erro: FECHADO });
   });
 

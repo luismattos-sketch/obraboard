@@ -1,11 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import type { PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_PLANEJADOR, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import {
   camposExecucao,
   validarClima,
   validarEfetivo,
+  validarEfetivoEsperado,
   validarExecucao,
   validarHorario,
   validarPeriodoClima,
@@ -20,8 +22,12 @@ import {
  * e recusam turno fechado. Mesmas validações do encarregado (validacao.ts).
  */
 
-const ERRO_FECHADO = "Turno fechado: reabra para editar";
+const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const ERRO_GENERICO = "Não foi possível salvar. Tente novamente.";
+
+/** Turno fechado entre a checagem e a gravação (trigger do banco) vira a mensagem do planejador. */
+const erroGravacao = (error: { code?: string; message?: string }) =>
+  falha(erroBanco(error) === "turno_fechado" ? ERRO_FECHADO : ERRO_GENERICO);
 
 async function turnoAbertoParaCorrecao(c: SupabaseClient, turnoId: string): Promise<Resultado> {
   const { data, error } = await c.from("turnos").select("status").eq("id", turnoId).maybeSingle();
@@ -67,28 +73,30 @@ export async function salvarExecucaoPlanejador(
     .select("id");
   if (error) {
     console.error("salvarExecucaoPlanejador:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   if (!data || data.length === 0) return falha("Atividade não encontrada");
   return ok(undefined);
 }
 
-export async function salvarEfetivoPlanejador(c: SupabaseClient, turnoId: string, linhas: LinhaEfetivo[]): Promise<Resultado> {
+/** Substituição atômica com checagem otimista (ver salvarEfetivo em campo.ts). */
+export async function salvarEfetivoPlanejador(
+  c: SupabaseClient,
+  turnoId: string,
+  linhas: LinhaEfetivo[],
+  esperado: LinhaEfetivo[],
+): Promise<Resultado> {
   const v = validarEfetivo(linhas);
   if (!v.ok) return v;
+  const e = validarEfetivoEsperado(esperado);
+  if (!e.ok) return e;
   const t = await turnoAbertoParaCorrecao(c, turnoId);
   if (!t.ok) return t;
-  const { error: ed } = await c.from("efetivo").delete().eq("turno_id", turnoId);
-  if (ed) {
-    console.error("salvarEfetivoPlanejador (delete):", ed.message);
-    return falha(ERRO_GENERICO);
-  }
-  if (v.dados.length === 0) return ok(undefined);
-  const { error: ei } = await c.from("efetivo").insert(v.dados.map((l) => ({ ...l, turno_id: turnoId })));
-  if (ei) {
-    // Efetivo já apagado: lançar para o cliente repetir o envio (ver campo.ts).
-    console.error("salvarEfetivoPlanejador (insert):", ei.message);
-    throw new Error("salvarEfetivoPlanejador: falha ao gravar o efetivo");
+  const { error } = await c.rpc("substituir_efetivo", { p_turno_id: turnoId, p_esperado: e.dados, p_linhas: v.dados });
+  if (error) {
+    if (erroBanco(error) === "efetivo_conflito") return falha(ERRO_EFETIVO_CONFLITO);
+    console.error("salvarEfetivoPlanejador:", error.message);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }
@@ -106,7 +114,7 @@ export async function salvarClimaPlanejador(c: SupabaseClient, turnoId: string, 
     );
   if (error) {
     console.error("salvarClimaPlanejador:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }
@@ -119,7 +127,7 @@ export async function removerClimaPlanejador(c: SupabaseClient, turnoId: string,
   const { error } = await c.from("clima").delete().eq("turno_id", turnoId).eq("periodo", periodo);
   if (error) {
     console.error("removerClimaPlanejador:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }
@@ -136,7 +144,7 @@ export async function salvarHorarioPlanejador(c: SupabaseClient, turnoId: string
     .select("id");
   if (error) {
     console.error("salvarHorarioPlanejador:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   if (!data || data.length === 0) return falha("Turno não encontrado");
   return ok(undefined);

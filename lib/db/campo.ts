@@ -1,11 +1,21 @@
 import "server-only";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { hashToken } from "@/lib/dominio/token";
-import type { Causa, CondicaoClima, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_CAMPO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
-import { camposExecucao, validarClima, validarEfetivo, validarExecucao, validarHorario, validarPeriodoClima } from "./validacao";
+import {
+  camposExecucao,
+  validarClima,
+  validarEfetivo,
+  validarEfetivoEsperado,
+  validarExecucao,
+  validarHorario,
+  validarPeriodoClima,
+  type LinhaEfetivo,
+} from "./validacao";
 
 /**
  * Acesso do encarregado por link secreto. Usa o cliente admin (ignora RLS):
@@ -13,9 +23,13 @@ import { camposExecucao, validarClima, validarEfetivo, validarExecucao, validarH
  */
 
 export const ERRO_LINK = "Link inválido ou substituído. Peça um novo link ao planejador.";
-export const ERRO_FECHADO = "Este turno não está aberto para lançamentos.";
+export const ERRO_FECHADO = ERRO_FECHADO_CAMPO;
 export const ERRO_ATIVIDADE = "Esta atividade foi removida pelo planejador. Recarregue a página.";
 const ERRO_GENERICO = "Não foi possível salvar. Tente novamente.";
+
+/** Turno fechado entre a checagem e a gravação (trigger do banco) vira a mensagem do encarregado. */
+const erroGravacao = (error: { code?: string; message?: string }) =>
+  falha(erroBanco(error) === "turno_fechado" ? ERRO_FECHADO : ERRO_GENERICO);
 
 const TOKEN_FORMATO = /^[A-Za-z0-9_-]{43}$/;
 
@@ -51,7 +65,7 @@ export async function obterTurnoPorToken(token: string): Promise<TurnoCompleto |
 export async function salvarExecucao(
   token: string,
   atividadeId: string,
-  dados: { qtd_realizada: number | null; causa: Causa | null; observacao: string | null },
+  dados: DadosExecucao,
 ): Promise<Resultado> {
   const v = validarExecucao(dados);
   if (!v.ok) return v;
@@ -81,34 +95,33 @@ export async function salvarExecucao(
     .select("id");
   if (error) {
     console.error("salvarExecucao:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   if (!data || data.length === 0) return falha(ERRO_ATIVIDADE);
   return ok(undefined);
 }
 
-export async function salvarEfetivo(
-  token: string,
-  linhas: { funcao: string; quantidade: number }[],
-): Promise<Resultado> {
+/**
+ * Substitui o efetivo do turno de forma atômica. `esperado` é o efetivo que o cliente leu/salvou
+ * por último: se o banco tiver outro, ninguém sobrescreve ninguém (efetivo_conflito, sem repetir).
+ */
+export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]): Promise<Resultado> {
   const v = validarEfetivo(linhas);
   if (!v.ok) return v;
-  const limpas = v.dados;
+  const e = validarEfetivoEsperado(esperado);
+  if (!e.ok) return e;
 
   const t = await turnoAberto(token);
   if (!t.ok) return t;
-  const admin = criarClienteAdmin();
-  const { error: ed } = await admin.from("efetivo").delete().eq("turno_id", t.dados.id);
-  if (ed) {
-    console.error("salvarEfetivo (delete):", ed.message);
-    return falha(ERRO_GENERICO);
-  }
-  if (limpas.length === 0) return ok(undefined);
-  const { error: ei } = await admin.from("efetivo").insert(limpas.map((l) => ({ ...l, turno_id: t.dados.id })));
-  if (ei) {
-    // O efetivo já foi apagado: lançar para o cliente repetir o envio (rede) em vez de mostrar "salvo".
-    console.error("salvarEfetivo (insert):", ei.message);
-    throw new Error("salvarEfetivo: falha ao gravar o efetivo");
+  const { error } = await criarClienteAdmin().rpc("substituir_efetivo", {
+    p_turno_id: t.dados.id,
+    p_esperado: e.dados,
+    p_linhas: v.dados,
+  });
+  if (error) {
+    if (erroBanco(error) === "efetivo_conflito") return falha(ERRO_EFETIVO_CONFLITO);
+    console.error("salvarEfetivo:", error.message);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }
@@ -129,7 +142,7 @@ export async function salvarClima(
     );
   if (error) {
     console.error("salvarClima:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }
@@ -142,7 +155,7 @@ export async function removerClima(token: string, periodo: PeriodoClima): Promis
   const { error } = await criarClienteAdmin().from("clima").delete().eq("turno_id", t.dados.id).eq("periodo", periodo);
   if (error) {
     console.error("removerClima:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }
@@ -161,7 +174,7 @@ export async function salvarHorarioReal(
     .eq("id", t.dados.id);
   if (error) {
     console.error("salvarHorarioReal:", error.message);
-    return falha(ERRO_GENERICO);
+    return erroGravacao(error);
   }
   return ok(undefined);
 }

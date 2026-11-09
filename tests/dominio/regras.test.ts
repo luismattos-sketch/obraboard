@@ -31,6 +31,9 @@ describe("errosDeCausa", () => {
   });
 });
 
+const semHorario = { hora_inicio_prevista: null, hora_fim_prevista: null, hora_inicio_real: null, hora_fim_real: null };
+const previsto = { ...semHorario, hora_inicio_prevista: "07:00:00", hora_fim_prevista: "17:00:00" };
+
 describe("transicaoTurno", () => {
   it("liberar exige ao menos uma atividade", () => {
     expect(transicaoTurno("planejado", "liberar", { atividades: [] })).toEqual({
@@ -49,15 +52,39 @@ describe("transicaoTurno", () => {
     ).toEqual({ ok: false, erro: "Há atividades sem causa informada" });
   });
   it("fechar a partir de enviado", () => {
-    expect(transicaoTurno("enviado", "fechar", { atividades: [a({})] })).toEqual({
+    expect(transicaoTurno("enviado", "fechar", { atividades: [a({})], horario: previsto })).toEqual({
       ok: true,
       novo: "fechado",
     });
   });
   it("fechar a partir de em_campo", () => {
-    expect(transicaoTurno("em_campo", "fechar", { atividades: [a({})] })).toEqual({
+    expect(transicaoTurno("em_campo", "fechar", { atividades: [a({})], horario: previsto })).toEqual({
       ok: true,
       novo: "fechado",
+    });
+  });
+  it("fechar exige horário completo (real ou previsto)", () => {
+    const erro = { ok: false, erro: "Informe o horário do turno antes de fechar" };
+    expect(transicaoTurno("enviado", "fechar", { atividades: [a({})] })).toEqual(erro);
+    expect(transicaoTurno("enviado", "fechar", { atividades: [a({})], horario: semHorario })).toEqual(erro);
+    // só o início real e só o fim previsto: nenhum par completo
+    expect(
+      transicaoTurno("enviado", "fechar", {
+        atividades: [a({})],
+        horario: { ...semHorario, hora_inicio_real: "07:00:00", hora_fim_prevista: "17:00:00" },
+      }),
+    ).toEqual(erro);
+    expect(
+      transicaoTurno("enviado", "fechar", {
+        atividades: [a({})],
+        horario: { ...semHorario, hora_inicio_real: "07:00:00", hora_fim_real: "16:00:00" },
+      }),
+    ).toEqual({ ok: true, novo: "fechado" });
+  });
+  it("fechar: causa pendente tem prioridade sobre horário", () => {
+    expect(transicaoTurno("enviado", "fechar", { atividades: [a({ qtd_realizada: 1 })] })).toEqual({
+      ok: false,
+      erro: "Há atividades sem causa informada",
     });
   });
   it("reabrir leva fechado a enviado", () => {

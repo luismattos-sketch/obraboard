@@ -19,7 +19,7 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
   });
 
   const novoTurno = async (data: string) => {
-    const r = await criarTurno(u.cliente, { obra_id: obraId, data, periodo: "diurno" });
+    const r = await criarTurno(u.cliente, { obra_id: obraId, data, periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "17:00" });
     if (!r.ok) throw new Error(r.erro);
     return r.dados;
   };

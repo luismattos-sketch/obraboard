@@ -70,7 +70,10 @@ describe.skipIf(!ligado)("turnos e atividades", () => {
     expect(lista.map((t) => t.id)).toEqual([b.id, a.id]);
 
     // turno fechado bloqueia edição
-    await u.cliente.from("turnos").update({ status: "fechado" }).eq("id", b.id);
+    // (com causa informada: o trigger causa_pendente recusa fechar com atividade sem causa)
+    await u.cliente.from("atividades").update({ causa: "material" }).eq("turno_id", b.id);
+    const { error: ef } = await u.cliente.from("turnos").update({ status: "fechado" }).eq("id", b.id);
+    expect(ef).toBeNull();
     expect(await removerAtividade(u.cliente, zb.id)).toEqual({ ok: false, erro: "Turno fechado: reabra para editar" });
   });
 

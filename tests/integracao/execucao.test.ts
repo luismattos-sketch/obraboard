@@ -31,7 +31,7 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
   });
 
   async function turnoEmCampo(data: string) {
-    const t = await criarTurno(u.cliente, { obra_id: obraId, data, periodo: "diurno" });
+    const t = await criarTurno(u.cliente, { obra_id: obraId, data, periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "17:00" });
     if (!t.ok) throw new Error(t.erro);
     const a = await adicionarAtividade(u.cliente, t.dados.id, { descricao: "A", unidade: "m", qtd_planejada: 10 });
     if (!a.ok) throw new Error(a.erro);
@@ -52,9 +52,11 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: -1, causa: null, observacao: null })).toMatchObject({ ok: false });
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: "zz" as never, observacao: null })).toMatchObject({ ok: false });
 
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, [{ funcao: "Pedreiro", quantidade: 3 }])).ok).toBe(true);
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, [{ funcao: "Servente", quantidade: 2 }])).ok).toBe(true);
-    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, [{ funcao: "", quantidade: 2 }])).toMatchObject({ ok: false });
+    const pedreiro = [{ funcao: "Pedreiro", quantidade: 3 }];
+    const servente = [{ funcao: "Servente", quantidade: 2 }];
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, pedreiro, [])).ok).toBe(true);
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, servente, pedreiro)).ok).toBe(true);
+    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, [{ funcao: "", quantidade: 2 }], servente)).toMatchObject({ ok: false });
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo.map((e) => e.funcao)).toEqual(["Servente"]);
 
     expect((await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "chuva_leve", impediu: true })).ok).toBe(true);
@@ -73,12 +75,12 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     expect((await aplicarAcao(u.cliente, turnoId, "fechar")).ok).toBe(true);
     const e = { ok: false, erro: FECHADO };
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: null, observacao: null })).toEqual(e);
-    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, [])).toEqual(e);
+    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, [], [])).toEqual(e);
     expect(await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "bom", impediu: false })).toEqual(e);
     expect(await removerClimaPlanejador(u.cliente, turnoId, "manha")).toEqual(e);
     expect(await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: null, hora_fim_real: null })).toEqual(e);
     expect((await aplicarAcao(u.cliente, turnoId, "reabrir")).ok).toBe(true);
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, [])).ok).toBe(true);
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, [], [])).ok).toBe(true);
   });
 
   it("outra empresa não altera nada (RLS)", { timeout: 60_000 }, async () => {

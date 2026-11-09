@@ -1,5 +1,4 @@
-import type { Periodo, StatusTurno } from "./tipos";
-import type { Tom } from "@/components/ui/tons";
+import type { Periodo, StatusTurno, Tom } from "./tipos";
 
 /** "2026-11-08" -> "08/11/2026" */
 export function formatarData(iso: string): string {

@@ -1,12 +1,64 @@
-import { CAUSAS, CONDICOES, type Causa, type CondicaoClima, type PeriodoClima } from "@/lib/dominio/tipos";
+import {
+  CAUSAS,
+  CONDICOES,
+  PERIODOS_CLIMA,
+  type CondicaoClima,
+  type DadosExecucao,
+  type PeriodoClima,
+} from "@/lib/dominio/tipos";
 import { falha, ok, type Resultado } from "./resultado";
 
-/** Validação de entrada compartilhada entre o encarregado (campo.ts) e o planejador (execucao.ts). */
+/** Validação de entrada compartilhada (encarregado, planejador e cadastros). */
+
+export type { DadosExecucao };
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
-const PERIODOS_CLIMA: PeriodoClima[] = ["manha", "tarde", "noite"];
 
-export type DadosExecucao = { qtd_realizada: number | null; causa: Causa | null; observacao: string | null };
+/** "HH:MM" (00:00–23:59). */
+export const horaValida = (h: unknown): h is string => typeof h === "string" && HORA.test(h);
+
+/** Limites de tamanho dos textos do planejador. */
+export const LIMITES = {
+  descricao: 200,
+  local: 100,
+  unidade: 20,
+  obraNome: 120,
+  obraCliente: 120,
+  obraEndereco: 200,
+  empresa: 120,
+  nome: 120,
+} as const;
+export const QTD_PLANEJADA_MAX = 1e9;
+
+export const mensagemMaximo = (max: number) => `Máximo de ${max} caracteres`;
+
+/** Erros por campo para textos acima do limite: { campo: "Máximo de N caracteres" }. */
+export function errosDeTamanho(campos: Record<string, { valor: string | null | undefined; max: number }>): Record<string, string> {
+  const erros: Record<string, string> = {};
+  for (const [k, { valor, max }] of Object.entries(campos)) {
+    if (typeof valor === "string" && valor.trim().length > max) erros[k] = mensagemMaximo(max);
+  }
+  return erros;
+}
+
+/** Falha com a primeira mensagem como erro geral e todas as mensagens por campo. */
+export function falhaCampos(erros: Record<string, string>): Resultado<never> | null {
+  const primeira = Object.values(erros)[0];
+  return primeira ? falha(primeira, erros) : null;
+}
+
+export const causaValida = (c: unknown) => typeof c === "string" && Object.hasOwn(CAUSAS, c);
+
+/** Horários previstos opcionais ("" / null = não informado). */
+export function validarHorariosPrevistos(dados: {
+  hora_inicio_prevista?: string | null;
+  hora_fim_prevista?: string | null;
+}): Resultado {
+  for (const h of [dados.hora_inicio_prevista, dados.hora_fim_prevista]) {
+    if (h !== null && h !== undefined && h !== "" && !horaValida(h)) return falha("Horário inválido");
+  }
+  return ok(undefined);
+}
 export type LinhaEfetivo = { funcao: string; quantidade: number };
 export type DadosClima = { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
 export type DadosHorario = { hora_inicio_real: string | null; hora_fim_real: string | null };
@@ -16,7 +68,7 @@ export function validarExecucao(dados: DadosExecucao): Resultado {
   if (q !== null && !(typeof q === "number" && Number.isFinite(q) && q >= 0 && q < 1e12)) {
     return falha("Quantidade realizada inválida");
   }
-  if (dados.causa !== null && !(typeof dados.causa === "string" && Object.hasOwn(CAUSAS, dados.causa))) {
+  if (dados.causa !== null && !causaValida(dados.causa)) {
     return falha("Causa inválida");
   }
   if (dados.observacao !== null && (typeof dados.observacao !== "string" || dados.observacao.length > 500)) {
@@ -49,8 +101,19 @@ export function validarEfetivo(linhas: LinhaEfetivo[]): Resultado<LinhaEfetivo[]
   return ok(limpas);
 }
 
+/** Efetivo que o cliente leu/salvou por último (checagem otimista); só formato, sem regras de negócio. */
+export function validarEfetivoEsperado(linhas: LinhaEfetivo[]): Resultado<LinhaEfetivo[]> {
+  if (!Array.isArray(linhas) || linhas.length > 200) return falha("Efetivo inválido");
+  const limpas: LinhaEfetivo[] = [];
+  for (const l of linhas) {
+    if (typeof l?.funcao !== "string" || !Number.isInteger(l.quantidade)) return falha("Efetivo inválido");
+    limpas.push({ funcao: l.funcao, quantidade: l.quantidade });
+  }
+  return ok(limpas);
+}
+
 export function validarPeriodoClima(periodo: PeriodoClima): Resultado {
-  return PERIODOS_CLIMA.includes(periodo) ? ok(undefined) : falha("Período do clima inválido");
+  return PERIODOS_CLIMA.some((p) => p.id === periodo) ? ok(undefined) : falha("Período do clima inválido");
 }
 
 export function validarClima(dados: DadosClima): Resultado {
@@ -64,7 +127,7 @@ export function validarClima(dados: DadosClima): Resultado {
 
 export function validarHorario(dados: DadosHorario): Resultado {
   for (const h of [dados.hora_inicio_real, dados.hora_fim_real]) {
-    if (h !== null && !(typeof h === "string" && HORA.test(h))) return falha("Horário inválido");
+    if (h !== null && !horaValida(h)) return falha("Horário inválido");
   }
   return ok(undefined);
 }
