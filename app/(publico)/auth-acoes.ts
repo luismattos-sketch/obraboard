@@ -41,7 +41,9 @@ export async function cadastrar(_: Estado, form: FormData): Promise<Retorno> {
 
   const r = await criarEmpresaDoDono(data.user.id, empresa);
   if (!r.ok) {
-    await criarClienteAdmin().auth.admin.deleteUser(data.user.id);
+    // r.ok false implica que não havia vínculo prévio: só então removemos o usuário.
+    const { error: eDel } = await criarClienteAdmin().auth.admin.deleteUser(data.user.id);
+    if (eDel) console.error("cadastrar: falha ao remover usuário órfão", data.user.id, eDel.message);
     return falha("Não foi possível concluir o cadastro. Tente novamente.");
   }
   return ok({ mensagem });

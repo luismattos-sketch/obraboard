@@ -33,4 +33,25 @@ describe.skipIf(!ligado)("cadastro: criarEmpresaDoDono", () => {
     expect(ms![0].papel).toBe("dono");
     if (r.ok) expect(ms![0].empresa_id).toBe(r.dados.empresaId);
   });
+
+  it("é idempotente: duas chamadas geram 1 vínculo e mesma empresa", async () => {
+    const admin = criarClienteAdmin();
+    const { data, error } = await admin.auth.admin.createUser({
+      email: `teste+${crypto.randomUUID().slice(0, 12)}@frentia.test`,
+      password: `Senha-${crypto.randomUUID()}`,
+      email_confirm: true,
+    });
+    if (error || !data.user) throw new Error(error?.message);
+    const id = data.user.id;
+    try {
+      const a = await criarEmpresaDoDono(id, "Empresa A");
+      const b = await criarEmpresaDoDono(id, "Empresa B");
+      expect(a.ok && b.ok).toBe(true);
+      if (a.ok && b.ok) expect(b.dados.empresaId).toBe(a.dados.empresaId);
+      const { data: ms } = await admin.from("membros").select("empresa_id").eq("user_id", id);
+      expect(ms).toHaveLength(1);
+    } finally {
+      await removerUsuarioTeste(id);
+    }
+  });
 });

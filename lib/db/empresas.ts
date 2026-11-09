@@ -5,8 +5,19 @@ import { falha, ok, type Resultado } from "./resultado";
 export async function criarEmpresaDoDono(
   userId: string,
   nome: string,
-): Promise<Resultado<{ empresaId: string }>> {
+): Promise<Resultado<{ empresaId: string; criada: boolean }>> {
   const admin = criarClienteAdmin();
+  // Idempotente: se o usuário já é membro, devolve a empresa existente.
+  const { data: existente, error: ee } = await admin
+    .from("membros")
+    .select("empresa_id")
+    .eq("user_id", userId)
+    .limit(1);
+  if (ee) return falha("Não foi possível criar a empresa.");
+  if (existente && existente.length > 0) {
+    return ok({ empresaId: existente[0].empresa_id as string, criada: false });
+  }
+
   const { data: emp, error } = await admin
     .from("empresas")
     .insert({ nome })
@@ -21,5 +32,5 @@ export async function criarEmpresaDoDono(
     await admin.from("empresas").delete().eq("id", emp.id);
     return falha("Não foi possível vincular o usuário à empresa.");
   }
-  return ok({ empresaId: emp.id });
+  return ok({ empresaId: emp.id, criada: true });
 }
