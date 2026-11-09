@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import type { Atividade } from "@/lib/db/atividades";
@@ -21,6 +21,8 @@ function BotaoAcao({
   children,
   variante = "secundario",
   desabilitado,
+  confirmar,
+  aoErro,
 }: {
   acao: (p: EstadoAcao, f: FormData) => Promise<EstadoAcao>;
   atividadeId: string;
@@ -29,23 +31,31 @@ function BotaoAcao({
   children: React.ReactNode;
   variante?: "secundario" | "perigo";
   desabilitado?: boolean;
+  confirmar?: string;
+  aoErro: (mensagem: string) => void;
 }) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(acao, null);
+  useEffect(() => {
+    if (estado && !estado.ok) aoErro(estado.erro);
+  }, [estado, aoErro]);
   return (
-    <form action={action}>
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (confirmar && !window.confirm(confirmar)) e.preventDefault();
+      }}
+    >
       <input type="hidden" name="atividade_id" value={atividadeId} />
       {direcao && <input type="hidden" name="direcao" value={direcao} />}
       <Botao
         type="submit"
         variante={variante}
         aria-label={rotulo}
-        title={estado && !estado.ok ? estado.erro : rotulo}
         disabled={desabilitado || pendente}
         className="min-h-10 px-3 text-sm"
       >
         {children}
       </Botao>
-      {estado && !estado.ok && <span role="alert" className="sr-only">{estado.erro}</span>}
     </form>
   );
 }
@@ -60,7 +70,7 @@ export function ItemAtividade({
   ultima: boolean;
 }) {
   const [editando, setEditando] = useState(false);
-  const [estadoEdicao, setEstadoEdicao] = useState<EstadoAcao>(null);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
 
   if (editando) {
     return (
@@ -70,7 +80,6 @@ export function ItemAtividade({
           acao={async (prev, form) => {
             const r = await editarAtividadeAcao(prev, form);
             if (r?.ok) setEditando(false);
-            setEstadoEdicao(r);
             return r;
           }}
           aoCancelar={() => setEditando(false)}
@@ -89,18 +98,21 @@ export function ItemAtividade({
           {a.origem_id ? " · pendente do turno anterior" : ""}
         </p>
       </div>
-      {estadoEdicao && !estadoEdicao.ok && <Aviso tom="perigo">{estadoEdicao.erro}</Aviso>}
+      {erroAcao && <Aviso tom="perigo">{erroAcao}</Aviso>}
       <div className="flex flex-wrap gap-2">
-        <BotaoAcao acao={moverAtividadeAcao} atividadeId={a.id} direcao="cima" rotulo="Subir" desabilitado={primeira}>
+        <BotaoAcao acao={moverAtividadeAcao} atividadeId={a.id} direcao="cima" rotulo="Subir" desabilitado={primeira} aoErro={setErroAcao}>
           ↑
         </BotaoAcao>
-        <BotaoAcao acao={moverAtividadeAcao} atividadeId={a.id} direcao="baixo" rotulo="Descer" desabilitado={ultima}>
+        <BotaoAcao acao={moverAtividadeAcao} atividadeId={a.id} direcao="baixo" rotulo="Descer" desabilitado={ultima} aoErro={setErroAcao}>
           ↓
         </BotaoAcao>
-        <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={() => setEditando(true)}>
+        <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={() => {
+            setErroAcao(null);
+            setEditando(true);
+          }}>
           Editar
         </Botao>
-        <BotaoAcao acao={removerAtividadeAcao} atividadeId={a.id} rotulo="Remover" variante="perigo">
+        <BotaoAcao acao={removerAtividadeAcao} atividadeId={a.id} rotulo="Remover" variante="perigo" confirmar="Remover esta atividade?" aoErro={setErroAcao}>
           Remover
         </BotaoAcao>
       </div>

@@ -17,22 +17,28 @@ type Props = {
 
 export function FormAtividade({ turnoId, atividade, acao, aoCancelar }: Props) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(acao ?? adicionarAtividadeAcao, null);
-  const erro = estado && !estado.ok ? estado.erro : null;
+  const falhou = estado && !estado.ok ? estado : null;
+  const erro = falhou && !falhou.campos ? falhou.erro : null;
+  const campos = falhou?.campos;
+  const v = falhou?.valores;
+  const inicial = {
+    descricao: v?.descricao ?? atividade?.descricao ?? "",
+    local: v?.local ?? atividade?.local ?? "",
+    qtd: v?.qtd_planejada ?? (atividade ? String(atividade.qtd_planejada).replace(".", ",") : ""),
+    unidade: v?.unidade ?? atividade?.unidade ?? "",
+  };
   return (
     <form action={action} className="flex flex-col gap-3">
       {turnoId && <input type="hidden" name="turno_id" value={turnoId} />}
       {atividade && <input type="hidden" name="atividade_id" value={atividade.id} />}
-      <Campo rotulo="Descrição" name="descricao" required defaultValue={atividade?.descricao} />
-      <Campo rotulo="Local (opcional)" name="local" defaultValue={atividade?.local ?? ""} />
-      <div className="grid grid-cols-2 gap-3">
-        <Campo
-          rotulo="Quantidade"
-          name="qtd_planejada"
-          inputMode="decimal"
-          required
-          defaultValue={atividade ? String(atividade.qtd_planejada).replace(".", ",") : ""}
-        />
-        <Campo rotulo="Unidade" name="unidade" required placeholder="m², m³, un" defaultValue={atividade?.unidade} />
+      {/* key muda a cada envio com falha: remonta os campos com os valores devolvidos */}
+      <div key={falhou?.envio ?? 0} className="flex flex-col gap-3">
+        <Campo rotulo="Descrição" name="descricao" defaultValue={inicial.descricao} erro={campos?.descricao} />
+        <Campo rotulo="Local (opcional)" name="local" defaultValue={inicial.local} />
+        <div className="grid grid-cols-2 gap-3">
+          <Campo rotulo="Quantidade" name="qtd_planejada" inputMode="decimal" defaultValue={inicial.qtd} erro={campos?.qtd_planejada} />
+          <Campo rotulo="Unidade" name="unidade" placeholder="m², m³, un" defaultValue={inicial.unidade} erro={campos?.unidade} />
+        </div>
       </div>
       {erro && <Aviso tom="perigo">{erro}</Aviso>}
       <div className="flex gap-2">

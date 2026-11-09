@@ -74,6 +74,23 @@ describe.skipIf(!ligado)("turnos e atividades", () => {
     expect(await removerAtividade(u.cliente, zb.id)).toEqual({ ok: false, erro: "Turno fechado: reabra para editar" });
   });
 
+  it("mover com lacunas de ordem (após remoções) mantém a sequência esperada", { timeout: 60_000 }, async () => {
+    const t = await novoTurno("2026-12-01", "diurno");
+    const [a, b, , d, e] = [
+      await novaAtiv(t.id, "A", 1),
+      await novaAtiv(t.id, "B", 1),
+      await novaAtiv(t.id, "C", 1),
+      await novaAtiv(t.id, "D", 1),
+      await novaAtiv(t.id, "E", 1),
+    ];
+    expect((await removerAtividade(u.cliente, a.id)).ok).toBe(true);
+    expect((await removerAtividade(u.cliente, b.id)).ok).toBe(true);
+    expect((await moverAtividade(u.cliente, e.id, "cima")).ok).toBe(true);
+    expect((await obterTurnoCompleto(u.cliente, t.id))!.atividades.map((x) => x.descricao)).toEqual(["C", "E", "D"]);
+    expect((await moverAtividade(u.cliente, d.id, "cima")).ok).toBe(true);
+    expect((await obterTurnoCompleto(u.cliente, t.id))!.atividades.map((x) => x.descricao)).toEqual(["C", "D", "E"]);
+  });
+
   it("obterTurnoCompleto devolve null para id inválido ou inexistente", async () => {
     expect(await obterTurnoCompleto(u.cliente, "nao-e-uuid")).toBeNull();
     expect(await obterTurnoCompleto(u.cliente, crypto.randomUUID())).toBeNull();

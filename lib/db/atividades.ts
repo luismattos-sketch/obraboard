@@ -175,13 +175,14 @@ export async function moverAtividade(
     console.error("moverAtividade:", error?.message);
     return falha("Não foi possível reordenar.");
   }
-  const lista = data.map((r) => ({ id: r.id as string }));
+  const lista = data.map((r) => ({ id: r.id as string, ordem: Number(r.ordem) }));
   const i = lista.findIndex((r) => r.id === atividadeId);
   const j = direcao === "cima" ? i - 1 : i + 1;
   if (i < 0 || j < 0 || j >= lista.length) return ok(undefined);
   [lista[i], lista[j]] = [lista[j], lista[i]];
-  // Posições i e j recebem ordem = índice (robusto a ordens duplicadas vindas do passado).
-  for (const k of [i, j]) {
+  // Renumera a lista inteira para 0..n-1 (corrige lacunas e duplicatas), gravando só o que mudou.
+  for (let k = 0; k < lista.length; k++) {
+    if (lista[k].ordem === k) continue;
     const { error: eu } = await c.from("atividades").update({ ordem: k }).eq("id", lista[k].id);
     if (eu) {
       console.error("moverAtividade (update):", eu.message);
