@@ -3,7 +3,7 @@ import { obterEmpresaAtualId } from "./conta";
 
 export type SituacaoObra = "Planejamento" | "Mobilizacao" | "Execucao" | "Pausada";
 export type CriticidadeObra = "Baixa" | "Media" | "Alta";
-export type NivelAcesso = "Planejador" | "Usuario" | "Visitante";
+export type NivelAcesso = "Administrador" | "Planejador" | "Usuario" | "Visitante";
 
 export type ObraCadastrada = {
   id: number;
@@ -27,6 +27,8 @@ export type UsuarioCadastrado = {
   funcao: string;
   email: string;
   nivelAcesso: NivelAcesso;
+  protegido?: boolean;
+  origem?: "owner";
 };
 
 export type DisciplinaCadastrada = {
@@ -485,11 +487,8 @@ async function salvarCadastroBaseRemoto(cadastro: CadastroBase) {
     throw new Error("Conta autenticada não encontrada.");
   }
 
-  const { error } = await supabase.from("cadastro_base").upsert({
-    id: `${empresaId}:${cadastroBaseRemotoId}`,
-    empresa_id: empresaId,
-    dados: cadastro,
-    updated_at: new Date().toISOString(),
+  const { error } = await supabase.rpc("salvar_cadastro_base_atual", {
+    p_dados: cadastro,
   });
 
   if (error) {

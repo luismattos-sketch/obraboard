@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import DesktopLayout from "../../components/DesktopLayout";
 import { supabase } from "../../lib/supabase";
-import type { Atividade, RecursoDisponivelTurno } from "../../lib/types";
+import type {
+  Atividade,
+  FotoAtividade,
+  RecursoDisponivelTurno,
+} from "../../lib/types";
 import {
   cadastroBaseEvento,
   carregarCadastroBase,
@@ -50,6 +54,8 @@ type RestricaoResumo = {
   encerradaEm?: string | null;
 };
 
+const bucketFotosAtividades = "atividade-fotos";
+
 export default function RdoPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [obraId, setObraId] = useState<number | null>(null);
@@ -62,6 +68,7 @@ export default function RdoPage() {
   const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
   const [restricoesHistorico, setRestricoesHistorico] = useState<RestricaoHistorico[]>([]);
   const [fechamentos, setFechamentos] = useState<FechamentosTurno>({});
+  const [fotosBanco, setFotosBanco] = useState<FotoAtividade[]>([]);
 
   const turnoSelecionado = useMemo(
     () => turnosCadastrados.find((item) => item.nome === turno) ?? null,
@@ -147,6 +154,16 @@ export default function RdoPage() {
 
     return [...historico, ...ativas];
   }, [dataTurnoAtual, restricoes, restricoesHistorico, turno, turnoSelecionado]);
+  const fotosDoRdo = useMemo(
+    () =>
+      fotosBanco.filter(
+        (foto) =>
+          idsAtividades.has(foto.atividade_id) &&
+          (!dataTurnoAtual || foto.data_turno === dataTurnoAtual) &&
+          (!turno || foto.turno === turno)
+      ),
+    [dataTurnoAtual, fotosBanco, idsAtividades, turno]
+  );
 
   const historicoRdos = useMemo(() => {
     const grupos = new Map<string, Atividade[]>();
@@ -259,16 +276,57 @@ export default function RdoPage() {
     if (!obraAtualId) {
       setAtividadesBanco([]);
       setMaoObraReal([]);
+      setFotosBanco([]);
       return;
     }
 
-    const [{ data: atividades }, { data: maoObra }] = await Promise.all([
-      supabase.from("atividades").select("*").eq("obra_id", obraAtualId).order("id", { ascending: true }),
+    const [
+      { data: atividades },
+      { data: maoObra },
+      { data: fotos, error: erroFotos },
+    ] = await Promise.all([
+      supabase
+        .from("atividades")
+        .select("*")
+        .eq("obra_id", obraAtualId)
+        .order("id", { ascending: true }),
       supabase.from("mao_obra").select("*").eq("obra_id", obraAtualId),
+      supabase
+        .from("atividade_fotos")
+        .select("*")
+        .eq("obra_id", obraAtualId)
+        .order("created_at", { ascending: true }),
     ]);
 
     setAtividadesBanco((atividades || []) as Atividade[]);
     setMaoObraReal((maoObra || []) as MaoObraReal[]);
+    if (erroFotos) {
+      console.warn("Não foi possível carregar as fotos do RDO.", erroFotos);
+      setFotosBanco([]);
+    } else {
+      const fotosCarregadas = (fotos || []) as FotoAtividade[];
+      const caminhos = fotosCarregadas.map((foto) => foto.storage_path);
+      const { data: urlsAssinadas, error: erroUrls } =
+        caminhos.length > 0
+          ? await supabase.storage
+              .from(bucketFotosAtividades)
+              .createSignedUrls(caminhos, 60 * 60)
+          : { data: [], error: null };
+
+      if (erroUrls) {
+        console.warn("Não foi possível assinar as fotos do RDO.", erroUrls);
+      }
+
+      const urlsPorCaminho = new Map(
+        (urlsAssinadas || []).map((item) => [item.path, item.signedUrl])
+      );
+      setFotosBanco(
+        fotosCarregadas.map((foto) => ({
+          ...foto,
+          url: urlsPorCaminho.get(foto.storage_path) || "",
+        }))
+      );
+    }
     setRestricoesHistorico(await listarRestricoesHistoricoRemoto(obraAtualId, null, null));
     setFechamentos(await carregarFechamentosTurnoRemotos(obraAtualId));
   }
@@ -652,6 +710,31 @@ export default function RdoPage() {
               </table>
             </section>
 
+            <section className="mb-10">
+              <h2 className="mb-3 text-lg font-bold">Registro Fotográfico</h2>
+              {fotosDoRdo.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
+                  Nenhuma foto registrada para as atividades deste turno.
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  {atividades
+                    .filter((atividade) =>
+                      fotosDoRdo.some((foto) => foto.atividade_id === atividade.id)
+                    )
+                    .map((atividade) => (
+                      <GaleriaFotosAtividade
+                        key={atividade.id}
+                        atividade={atividade}
+                        fotos={fotosDoRdo.filter(
+                          (foto) => foto.atividade_id === atividade.id
+                        )}
+                      />
+                    ))}
+                </div>
+              )}
+            </section>
+
             <footer className="mt-16 grid grid-cols-2 gap-10 text-sm">
               <div className="border-t border-slate-400 pt-2 text-center">
                 Responsável pelo fechamento
@@ -665,6 +748,84 @@ export default function RdoPage() {
       </div>
     </DesktopLayout>
   );
+}
+
+function GaleriaFotosAtividade({
+  atividade,
+  fotos,
+}: {
+  atividade: Atividade;
+  fotos: FotoAtividade[];
+}) {
+  const inicio = fotos.find((foto) => foto.tipo === "inicio");
+  const fim = [...fotos].reverse().find((foto) => foto.tipo === "fim");
+  const intermediarias = fotos.filter((foto) => foto.tipo === "durante");
+
+  return (
+    <div className="rdo-fotos rounded-xl border border-slate-200 p-4">
+      <h3 className="mb-3 font-bold text-slate-900">
+        R{atividade.id} - {atividade.atividade}
+      </h3>
+      <div className="grid grid-cols-2 gap-4">
+        <FotoRdo foto={inicio} legenda="Antes - início do turno" />
+        <FotoRdo foto={fim} legenda="Depois - fim da atividade" />
+      </div>
+      {intermediarias.length > 0 && (
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          {intermediarias.map((foto, indice) => (
+            <FotoRdo
+              key={foto.id}
+              foto={foto}
+              legenda={`Acompanhamento ${indice + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FotoRdo({
+  foto,
+  legenda,
+}: {
+  foto: FotoAtividade | undefined;
+  legenda: string;
+}) {
+  return (
+    <figure className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+      {foto?.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={foto.url}
+          alt={legenda}
+          className="h-52 w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-52 items-center justify-center p-4 text-center text-sm font-semibold text-slate-400">
+          Foto não registrada
+        </div>
+      )}
+      <figcaption className="border-t border-slate-200 bg-white px-3 py-2 text-center text-xs font-bold text-slate-700">
+        {legenda}
+        {foto?.created_at ? ` - ${formatarDataHoraFoto(foto.created_at)}` : ""}
+      </figcaption>
+    </figure>
+  );
+}
+
+function formatarDataHoraFoto(valor: string) {
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) {
+    return "";
+  }
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function checkoutEncerrado(

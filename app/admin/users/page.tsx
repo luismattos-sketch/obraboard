@@ -15,6 +15,9 @@ type AccessStatus =
 type AdminUser = {
   userId: string;
   accountId: string | null;
+  ownerId: string | null;
+  ownerEmail: string | null;
+  isAccountOwner: boolean;
   name: string;
   email: string;
   createdAt: string;
@@ -51,6 +54,13 @@ type ModalState = {
 } | null;
 
 const planos = ["free", "trial", "basic", "premium", "enterprise"];
+const rotulosPlano: Record<string, string> = {
+  free: "free / Starter",
+  trial: "trial / Starter 30 dias",
+  basic: "Starter",
+  premium: "Profissional",
+  enterprise: "Empresarial",
+};
 const assinaturas = ["inactive", "trialing", "active", "past_due", "cancelled"];
 
 export default function AdminUsersPage() {
@@ -64,6 +74,7 @@ export default function AdminUsersPage() {
   const [modal, setModal] = useState<ModalState>(null);
   const [motivo, setMotivo] = useState("");
   const [confirmacaoEmail, setConfirmacaoEmail] = useState("");
+  const [novoDonoEmail, setNovoDonoEmail] = useState("");
   const [plano, setPlano] = useState("free");
   const [assinatura, setAssinatura] = useState("inactive");
 
@@ -117,6 +128,7 @@ export default function AdminUsersPage() {
     setModal({ action, user });
     setMotivo("");
     setConfirmacaoEmail("");
+    setNovoDonoEmail("");
     setPlano(user.plan);
     setAssinatura(user.subscriptionStatus);
     setMensagem("");
@@ -139,6 +151,7 @@ export default function AdminUsersPage() {
         email: modal.user.email,
         reason: motivo,
         confirmationEmail: confirmacaoEmail,
+        newOwnerEmail: modal.action === "owner" ? novoDonoEmail : undefined,
         plan: modal.action === "billing" ? plano : undefined,
         subscriptionStatus:
           modal.action === "billing" ? assinatura : undefined,
@@ -226,6 +239,19 @@ export default function AdminUsersPage() {
                       <p className="mt-1 text-xs text-slate-400">
                         {user.accountName || "Conta sem nome"}
                       </p>
+                      {user.ownerEmail && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Dono:{" "}
+                          <span className="font-semibold">
+                            {user.ownerEmail}
+                          </span>
+                          {user.isAccountOwner ? (
+                            <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 font-bold text-blue-700">
+                              dono
+                            </span>
+                          ) : null}
+                        </p>
+                      )}
                     </td>
                     <td className="max-w-72 p-3 font-mono text-[11px] text-slate-500">
                       <p className="break-all">user: {user.userId}</p>
@@ -248,7 +274,9 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="p-3">
-                      <p className="font-bold text-slate-800">{user.plan}</p>
+                      <p className="font-bold text-slate-800">
+                        {rotulosPlano[user.plan] ?? user.plan}
+                      </p>
                       <p className="text-xs text-slate-500">
                         {user.subscriptionStatus}
                       </p>
@@ -286,6 +314,9 @@ export default function AdminUsersPage() {
                         )}
                         <Acao onClick={() => abrirModal("billing", user)}>
                           Plano
+                        </Acao>
+                        <Acao onClick={() => abrirModal("owner", user)}>
+                          Dono
                         </Acao>
                         <Acao
                           danger
@@ -375,7 +406,9 @@ export default function AdminUsersPage() {
                     className="w-full rounded-xl border border-slate-300 p-3"
                   >
                     {planos.map((item) => (
-                      <option key={item}>{item}</option>
+                      <option key={item} value={item}>
+                        {rotulosPlano[item] ?? item}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -392,6 +425,46 @@ export default function AdminUsersPage() {
                       <option key={item}>{item}</option>
                     ))}
                   </select>
+                </label>
+              </div>
+            ) : modal.action === "owner" ? (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">
+                  <p className="font-bold">Trocar dono da conta</p>
+                  <p className="mt-2">
+                    Informe o e-mail de um usuÃ¡rio que jÃ¡ tenha cadastro no
+                    Frentia. Ele serÃ¡ definido como Administrador protegido da
+                    conta.
+                  </p>
+                  {modal.user.ownerEmail && (
+                    <p className="mt-2 text-blue-800">
+                      Dono atual: {modal.user.ownerEmail}
+                    </p>
+                  )}
+                </div>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                    E-mail do novo dono
+                  </span>
+                  <input
+                    value={novoDonoEmail}
+                    onChange={(event) => setNovoDonoEmail(event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 p-3"
+                    placeholder="email@empresa.com"
+                    type="email"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                    Motivo
+                  </span>
+                  <textarea
+                    value={motivo}
+                    onChange={(event) => setMotivo(event.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl border border-slate-300 p-3"
+                    placeholder="Registre o motivo da troca de dono"
+                  />
                 </label>
               </div>
             ) : (
@@ -438,7 +511,8 @@ export default function AdminUsersPage() {
                   processando ||
                   (modal.action === "delete" &&
                     confirmacaoEmail.trim().toLowerCase() !==
-                      modal.user.email.toLowerCase())
+                      modal.user.email.toLowerCase()) ||
+                  (modal.action === "owner" && !novoDonoEmail.trim())
                 }
                 className={`rounded-xl px-5 py-3 font-bold text-white disabled:bg-slate-400 ${
                   modal.action === "delete" ? "bg-red-600" : "bg-teal-600"
@@ -561,6 +635,7 @@ function tituloModal(action: string) {
     ban: "Banir e-mail",
     unban: "Remover banimento",
     billing: "Plano e assinatura",
+    owner: "Alterar dono da conta",
     delete: "Deletar conta",
   };
   return titulos[action] ?? "Ação administrativa";
@@ -573,6 +648,7 @@ function rotuloAcao(action: string) {
     subscription_status_changed: "Assinatura alterada",
     email_banned: "E-mail banido",
     email_unbanned: "Banimento removido",
+    owner_changed: "Dono da conta alterado",
     account_deleted: "Conta deletada",
   };
   return rotulos[action] ?? action;

@@ -20,10 +20,20 @@ import {
   type FuncaoPrevistaCadastrada,
   type NivelAcesso,
   type ObraCadastrada,
+  type CadastroBase,
   type SituacaoObra,
   type TurnoCadastrado,
   type UsuarioCadastrado,
 } from "../../lib/cadastro-base";
+import {
+  listarStatusConvitesAcesso,
+  obterAdministradorContaAtual,
+  sincronizarConvitesUsuarios,
+  usuarioTemLogin,
+  type StatusConviteAcesso,
+} from "../../lib/acessos";
+import { descreverLimite, obterPlanoContaAtual, type PlanoComercial } from "../../lib/planos";
+import { supabase } from "../../lib/supabase";
 
 const situacoes: SituacaoObra[] = [
   "Planejamento",
@@ -33,8 +43,18 @@ const situacoes: SituacaoObra[] = [
 ];
 
 const criticidades: CriticidadeObra[] = ["Baixa", "Media", "Alta"];
-const niveisAcesso: NivelAcesso[] = ["Planejador", "Usuario", "Visitante"];
+const niveisAcesso: NivelAcesso[] = [
+  "Administrador",
+  "Planejador",
+  "Usuario",
+  "Visitante",
+];
 type ModoObra = "criando" | "editando" | "visualizando";
+type UsuarioAdministradorConta = {
+  nome: string;
+  funcao: string;
+  email: string;
+};
 
 const dataHoje = () => new Date().toISOString().slice(0, 10);
 let sequenciaIdTemporario = 0;
@@ -66,9 +86,16 @@ export default function CadastroObraPage() {
   const [usuarioEmail, setUsuarioEmail] = useState("");
   const [usuarioNivel, setUsuarioNivel] = useState<NivelAcesso>("Usuario");
   const [usuarios, setUsuarios] = useState<UsuarioCadastrado[]>([]);
+  const [statusConvites, setStatusConvites] = useState<StatusConviteAcesso[]>([]);
+  const [statusConvitesCarregados, setStatusConvitesCarregados] =
+    useState(false);
   const [usuarioEditandoId, setUsuarioEditandoId] = useState<number | null>(
     null
   );
+  const [usuarioAdministradorConta, setUsuarioAdministradorConta] =
+    useState<UsuarioAdministradorConta | null>(null);
+  const [appAdmin, setAppAdmin] = useState(false);
+  const [planoAtual, setPlanoAtual] = useState<PlanoComercial | null>(null);
 
   const [disciplinaCodigo, setDisciplinaCodigo] = useState("");
   const [disciplinaNome, setDisciplinaNome] = useState("");
@@ -93,6 +120,7 @@ export default function CadastroObraPage() {
   const [mensagem, setMensagem] = useState("");
   const [modoObra, setModoObra] = useState<ModoObra>("criando");
   const modoObraRef = useRef<ModoObra>("criando");
+  const carregamentoRemotoInicialRef = useRef(false);
   const obraSelecionada = useMemo(
     () => obras.find((obra) => obra.id === obraAtivaId) ?? null,
     [obraAtivaId, obras]
@@ -116,6 +144,9 @@ export default function CadastroObraPage() {
   const classeBotaoTurno = podeEditarDadosObra && !bloqueiaTurnos
     ? "bg-teal-600 text-white hover:bg-teal-700"
     : "cursor-not-allowed bg-slate-300 text-slate-500";
+  const niveisAcessoFormulario = appAdmin
+    ? niveisAcesso
+    : niveisAcesso.filter((nivel) => nivel !== "Administrador");
 
   const horasTurnoAtual = calcularHorasTrabalho(
     turnoHoraInicio,
@@ -174,6 +205,61 @@ export default function CadastroObraPage() {
   }, [modoObra]);
 
   useEffect(() => {
+    let ativo = true;
+
+    async function carregarUsuarioAdministrador() {
+      const [{ data: isAdmin }, administrador] = await Promise.all([
+        supabase.rpc("is_app_admin"),
+        obterAdministradorContaAtual().catch(() => null),
+      ]);
+
+      if (!ativo) {
+        return;
+      }
+
+      setAppAdmin(Boolean(isAdmin));
+      setUsuarioAdministradorConta(
+        administrador?.email
+          ? {
+              nome: administrador.nome,
+              funcao: administrador.funcao,
+              email: administrador.email,
+            }
+          : null
+      );
+    }
+
+    void carregarUsuarioAdministrador();
+    void listarStatusConvitesAcesso()
+      .then((status) => {
+        if (ativo) {
+          setStatusConvites(status);
+        }
+      })
+      .catch((error) =>
+        console.warn("Nao foi possivel carregar status dos convites.", error)
+      )
+      .finally(() => {
+        if (ativo) {
+          setStatusConvitesCarregados(true);
+        }
+      });
+    void obterPlanoContaAtual()
+      .then((plano) => {
+        if (ativo) {
+          setPlanoAtual(plano);
+        }
+      })
+      .catch((error) =>
+        console.warn("Nao foi possivel carregar plano atual.", error)
+      );
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  useEffect(() => {
     function carregarCadastro(cadastro = carregarCadastroBase()) {
       const obraParam = new URLSearchParams(window.location.search).get("obraId");
       const obraResolvida = resolverObraPorParametro(cadastro, obraParam);
@@ -201,11 +287,63 @@ export default function CadastroObraPage() {
         setModoObra("criando");
       }
 
-      setUsuarios(dadosObra.usuarios);
+      const cadastroComAdministrador = garantirAdministradorEmTodasFrentes(
+        cadastro,
+        usuarioAdministradorConta
+      );
+      const usuariosDaConta = coletarUsuariosLoginConta(
+        cadastroComAdministrador,
+        statusConvitesCarregados ? usuariosDeStatusConvites(statusConvites) : []
+      );
+      const usuariosComAdministrador = mesclarUsuariosContaNaFrente(
+        dadosObra.usuarios,
+        usuariosDaConta,
+        usuarioAdministradorConta
+      );
+      setUsuarios(usuariosComAdministrador);
       setDisciplinas(dadosObra.disciplinas);
       setFuncoesPrevistas(dadosObra.funcoesPrevistas);
       setTurnos(dadosObra.turnos);
       setCadastroCarregado(true);
+      if (statusConvitesCarregados) {
+        void sincronizarConvitesUsuarios(usuariosDaConta)
+          .then(() => listarStatusConvitesAcesso())
+          .then(setStatusConvites)
+          .catch((error) =>
+            console.warn("Nao foi possivel sincronizar convites de usuarios.", error)
+          );
+      }
+
+      if (
+        statusConvitesCarregados &&
+        usuarioAdministradorConta &&
+        ativoId &&
+        usuariosComAdministrador !== dadosObra.usuarios
+      ) {
+        const cadastroPersistido = atualizarUsuariosGlobaisConta(
+          definirDadosObra(
+            cadastroComAdministrador,
+            ativoId,
+            {
+              usuarios: filtrarUsuariosOperacionais(usuariosComAdministrador),
+              disciplinas: dadosObra.disciplinas,
+              funcoesPrevistas: dadosObra.funcoesPrevistas,
+              turnos: dadosObra.turnos,
+            }
+          ),
+          usuariosComAdministrador,
+          usuarioAdministradorConta
+        );
+
+        void salvarCadastroBase(cadastroPersistido);
+      } else if (statusConvitesCarregados && cadastroComAdministrador !== cadastro) {
+        const cadastroPersistido = atualizarUsuariosGlobaisConta(
+          cadastroComAdministrador,
+          usuariosComAdministrador,
+          usuarioAdministradorConta
+        );
+        void salvarCadastroBase(cadastroPersistido);
+      }
     }
 
     async function carregarCadastroRemoto() {
@@ -221,14 +359,22 @@ export default function CadastroObraPage() {
     }
 
     queueMicrotask(() => {
-      void carregarCadastroRemoto();
+      if (!carregamentoRemotoInicialRef.current) {
+        carregamentoRemotoInicialRef.current = true;
+        void carregarCadastroRemoto();
+        return;
+      }
+
+      if (modoObraRef.current === "visualizando") {
+        carregarCadastro();
+      }
     });
     window.addEventListener(cadastroBaseEvento, carregarCadastroLocal);
 
     return () => {
       window.removeEventListener(cadastroBaseEvento, carregarCadastroLocal);
     };
-  }, []);
+  }, [statusConvites, statusConvitesCarregados, usuarioAdministradorConta]);
 
   useEffect(() => {
     if (!cadastroCarregado) {
@@ -244,20 +390,24 @@ export default function CadastroObraPage() {
     const cadastroAtual = carregarCadastroBase();
 
     void salvarCadastroBase(
-      definirDadosObra(
-        {
-          ...cadastroAtual,
-          logoUrl,
-          obras,
-          obraAtivaId: cadastroAtual.obraAtivaId,
-        },
-        obraDestinoId,
-        {
-          usuarios,
-          disciplinas,
-          funcoesPrevistas,
-          turnos,
-        }
+      atualizarUsuariosGlobaisConta(
+        definirDadosObra(
+          {
+            ...cadastroAtual,
+            logoUrl,
+            obras,
+            obraAtivaId: cadastroAtual.obraAtivaId,
+          },
+          obraDestinoId,
+          {
+            usuarios: filtrarUsuariosOperacionais(usuarios),
+            disciplinas,
+            funcoesPrevistas,
+            turnos,
+          }
+        ),
+        usuarios,
+        usuarioAdministradorConta
       )
     );
   }, [
@@ -270,6 +420,7 @@ export default function CadastroObraPage() {
     obraEmTrabalhoId,
     obras,
     turnos,
+    usuarioAdministradorConta,
     usuarios,
   ]);
 
@@ -324,31 +475,52 @@ export default function CadastroObraPage() {
       editando || obraJaExiste
         ? obras.map((item) => (item.id === obra.id ? obra : item))
         : [obra, ...obras];
-    const dadosDaObra = {
+    const erroLimiteFrentes = validarLimiteFrentesAtivas(
+      novasObras,
+      planoAtual
+    );
+
+    if (erroLimiteFrentes) {
+      setMensagem(erroLimiteFrentes);
+      return;
+    }
+
+    const cadastroAtual = carregarCadastroBase();
+    const usuariosDaObra = mesclarUsuariosContaNaFrente(
       usuarios,
+      coletarUsuariosLoginConta(cadastroAtual, usuarios),
+      usuarioAdministradorConta
+    );
+    const dadosDaObra = {
+      usuarios: filtrarUsuariosOperacionais(usuariosDaObra),
       disciplinas,
       funcoesPrevistas,
       turnos,
     };
 
-    const cadastroAtual = carregarCadastroBase();
     try {
       await salvarCadastroBase(
-        definirDadosObra(
-          {
-            ...cadastroAtual,
-            logoUrl,
-            obras: novasObras,
-            obraAtivaId: obra.id,
-          },
-          obra.id,
-          dadosDaObra
+        atualizarUsuariosGlobaisConta(
+          definirDadosObra(
+            {
+              ...cadastroAtual,
+              logoUrl,
+              obras: novasObras,
+              obraAtivaId: obra.id,
+            },
+            obra.id,
+            dadosDaObra
+          ),
+          usuariosDaObra,
+          usuarioAdministradorConta
         )
       );
     } catch (error) {
       console.error("Erro ao salvar frente no Supabase.", error);
       setMensagem(
-        `Erro ao salvar frente no Supabase: ${obterMensagemErro(error)}`
+        erroEhLimitePlano(error)
+          ? obterMensagemErro(error)
+          : `Erro ao salvar frente no Supabase: ${obterMensagemErro(error)}`
       );
       return;
     }
@@ -367,6 +539,13 @@ export default function CadastroObraPage() {
   }
 
   function cadastrarNovaObra() {
+    const erroLimiteFrentes = validarLimiteNovaFrenteAtiva(obras, planoAtual);
+
+    if (erroLimiteFrentes) {
+      setMensagem(erroLimiteFrentes);
+      return;
+    }
+
     atualizarObraIdNaUrl(null);
     limparObra();
     limparUsuario();
@@ -376,7 +555,13 @@ export default function CadastroObraPage() {
     setObraAtivaId(null);
     setObraEditandoId(null);
     setModoObra("criando");
-    setUsuarios([]);
+    setUsuarios(
+      mesclarUsuariosContaNaFrente(
+        [],
+        coletarUsuariosLoginConta(carregarCadastroBase(), []),
+        usuarioAdministradorConta
+      )
+    );
     setDisciplinas([]);
     setFuncoesPrevistas([]);
     setTurnos([]);
@@ -389,7 +574,13 @@ export default function CadastroObraPage() {
 
     preencherFormularioObra(obra);
     setObraAtivaId(obra.id);
-    setUsuarios(dadosObra.usuarios);
+    setUsuarios(
+      mesclarUsuariosContaNaFrente(
+        dadosObra.usuarios,
+        coletarUsuariosLoginConta(cadastroAtual, []),
+        usuarioAdministradorConta
+      )
+    );
     setDisciplinas(dadosObra.disciplinas);
     setFuncoesPrevistas(dadosObra.funcoesPrevistas);
     setTurnos(dadosObra.turnos);
@@ -424,7 +615,13 @@ export default function CadastroObraPage() {
     if (!obraParaRestaurar) {
       limparObra();
       setObraAtivaId(null);
-      setUsuarios([]);
+      setUsuarios(
+        mesclarUsuariosContaNaFrente(
+          [],
+          coletarUsuariosLoginConta(cadastroAtual, []),
+          usuarioAdministradorConta
+        )
+      );
       setDisciplinas([]);
       setFuncoesPrevistas([]);
       setTurnos([]);
@@ -440,7 +637,13 @@ export default function CadastroObraPage() {
     setObraAtivaId(obraParaRestaurar.id);
     setObraEditandoId(null);
     setModoObra("visualizando");
-    setUsuarios(dadosObra.usuarios);
+    setUsuarios(
+      mesclarUsuariosContaNaFrente(
+        dadosObra.usuarios,
+        coletarUsuariosLoginConta(cadastroAtual, []),
+        usuarioAdministradorConta
+      )
+    );
     setDisciplinas(dadosObra.disciplinas);
     setFuncoesPrevistas(dadosObra.funcoesPrevistas);
     setTurnos(dadosObra.turnos);
@@ -483,8 +686,67 @@ export default function CadastroObraPage() {
     setMensagem("Frente excluída.");
   }
 
+  async function sincronizarAcessosDaConta(proximosUsuarios: UsuarioCadastrado[]) {
+    try {
+      await sincronizarConvitesUsuarios(
+        coletarUsuariosLoginConta(carregarCadastroBase(), proximosUsuarios)
+      );
+      await carregarStatusConvites();
+    } catch (error) {
+      console.warn("Nao foi possivel sincronizar convites de usuarios.", error);
+      setMensagem(
+        `UsuÃ¡rio salvo, mas o acesso de login nÃ£o foi sincronizado: ${obterMensagemErro(error)}`
+      );
+    }
+  }
+
+  async function carregarStatusConvites() {
+    try {
+      setStatusConvites(await listarStatusConvitesAcesso());
+    } catch (error) {
+      console.warn("Nao foi possivel carregar status dos convites.", error);
+    }
+  }
+
+  async function salvarUsuariosDaTela(proximosUsuarios: UsuarioCadastrado[]) {
+    const cadastroAtual = carregarCadastroBase();
+    const obraDestinoId = obraEmTrabalhoId;
+    const cadastroBase =
+      obraDestinoId
+        ? definirDadosObra(cadastroAtual, obraDestinoId, {
+            usuarios: filtrarUsuariosOperacionais(proximosUsuarios),
+            disciplinas,
+            funcoesPrevistas,
+            turnos,
+          })
+        : cadastroAtual;
+
+    await salvarCadastroBase(
+      atualizarUsuariosGlobaisConta(
+        cadastroBase,
+        proximosUsuarios,
+        usuarioAdministradorConta
+      )
+    );
+    await sincronizarAcessosDaConta(proximosUsuarios);
+  }
+
   function salvarUsuario() {
     if (bloqueiaFormularioObra) {
+      return;
+    }
+
+    const usuarioProtegidoEmEdicao = usuarios.find(
+      (item) => item.id === usuarioEditandoId && usuarioEhAdministradorProtegido(item)
+    );
+
+    if (usuarioProtegidoEmEdicao && !appAdmin) {
+      setMensagem("O administrador da conta não pode ser alterado por usuários da empresa.");
+      return;
+    }
+
+    if (usuarioNivel === "Administrador" && !appAdmin && !usuarioProtegidoEmEdicao) {
+      setMensagem("Somente o administrador global pode cadastrar outro administrador.");
       return;
     }
 
@@ -494,13 +756,25 @@ export default function CadastroObraPage() {
       funcao: usuarioFuncao,
       email: usuarioEmail,
       nivelAcesso: usuarioNivel,
+      protegido: usuarioProtegidoEmEdicao?.protegido,
+      origem: usuarioProtegidoEmEdicao?.origem,
     };
 
-    setUsuarios((atuais) =>
-      usuarioEditandoId
-        ? atuais.map((item) => (item.id === usuarioEditandoId ? usuario : item))
-        : [...atuais, usuario]
+    const proximosUsuarios = usuarioEditandoId
+      ? usuarios.map((item) => (item.id === usuarioEditandoId ? usuario : item))
+      : [...usuarios, usuario];
+    const erroLimiteUsuarios = validarLimiteUsuariosPlano(
+      proximosUsuarios,
+      planoAtual
     );
+
+    if (erroLimiteUsuarios) {
+      setMensagem(erroLimiteUsuarios);
+      return;
+    }
+
+    setUsuarios(proximosUsuarios);
+    void salvarUsuariosDaTela(proximosUsuarios);
     limparUsuario();
     setMensagem(usuarioEditandoId ? "Usuário atualizado." : "Usuário cadastrado.");
   }
@@ -514,6 +788,11 @@ export default function CadastroObraPage() {
   }
 
   function editarUsuario(usuario: UsuarioCadastrado) {
+    if (usuarioEhAdministradorProtegido(usuario) && !appAdmin) {
+      setMensagem("O administrador da conta só pode ser alterado pelo suporte Frentia.");
+      return;
+    }
+
     tornarObraAtualAtivaParaEdicao();
     setUsuarioNome(usuario.nome);
     setUsuarioFuncao(usuario.funcao);
@@ -527,7 +806,16 @@ export default function CadastroObraPage() {
       return;
     }
 
-    setUsuarios((atuais) => atuais.filter((item) => item.id !== id));
+    const usuario = usuarios.find((item) => item.id === id);
+
+    if (usuario && usuarioEhAdministradorProtegido(usuario) && !appAdmin) {
+      setMensagem("O administrador da conta não pode ser excluído pela empresa.");
+      return;
+    }
+
+    const proximosUsuarios = usuarios.filter((item) => item.id !== id);
+    setUsuarios(proximosUsuarios);
+    void salvarUsuariosDaTela(proximosUsuarios);
     if (usuarioEditandoId === id) {
       limparUsuario();
     }
@@ -685,11 +973,33 @@ export default function CadastroObraPage() {
       return;
     }
 
-    setUsuarios((atuais) =>
-      atuais.map((usuario) =>
-        usuario.id === id ? { ...usuario, nivelAcesso } : usuario
-      )
+    const usuario = usuarios.find((item) => item.id === id);
+
+    if (usuario && usuarioEhAdministradorProtegido(usuario) && !appAdmin) {
+      setMensagem("O nível do administrador da conta só pode ser alterado pelo suporte Frentia.");
+      return;
+    }
+
+    if (nivelAcesso === "Administrador" && !appAdmin) {
+      setMensagem("Somente o administrador global pode definir outro administrador.");
+      return;
+    }
+
+    const proximosUsuarios = usuarios.map((usuario) =>
+      usuario.id === id ? { ...usuario, nivelAcesso } : usuario
     );
+    const erroLimiteUsuarios = validarLimiteUsuariosPlano(
+      proximosUsuarios,
+      planoAtual
+    );
+
+    if (erroLimiteUsuarios) {
+      setMensagem(erroLimiteUsuarios);
+      return;
+    }
+
+    setUsuarios(proximosUsuarios);
+    void salvarUsuariosDaTela(proximosUsuarios);
   }
 
   function salvarDisciplina() {
@@ -798,7 +1108,13 @@ export default function CadastroObraPage() {
     >
       <div className="space-y-4">
         {mensagem && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+              mensagemEhAviso(mensagem)
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-green-200 bg-green-50 text-green-700"
+            }`}
+          >
             {mensagem}
           </div>
         )}
@@ -1138,7 +1454,7 @@ export default function CadastroObraPage() {
                 disabled={bloqueiaFormularioObra}
                 className={`w-full rounded-lg border border-slate-300 bg-white p-3 ${classeCampoBloqueavel}`}
               >
-                {niveisAcesso.map((nivel) => (
+                {niveisAcessoFormulario.map((nivel) => (
                   <option key={nivel} value={nivel}>
                     {nivel === "Usuario" ? "Usuário" : nivel}
                   </option>
@@ -1179,6 +1495,7 @@ export default function CadastroObraPage() {
                   <th className="p-3 text-left">Nome</th>
                   <th className="p-3 text-left">Função</th>
                   <th className="p-3 text-left">E-mail</th>
+                  <th className="p-3 text-center">Status</th>
                   <th className="p-3 text-left">Permissão</th>
                   <th className="p-3 text-center">Nível de acesso</th>
                   <th className="p-3 text-right">Ações</th>
@@ -1186,13 +1503,32 @@ export default function CadastroObraPage() {
               </thead>
 
               <tbody>
-                {usuarios.map((usuario) => (
+                {usuarios.map((usuario) => {
+                  const usuarioProtegido =
+                    usuarioEhAdministradorProtegido(usuario) && !appAdmin;
+                  const niveisLinha =
+                    appAdmin || usuario.nivelAcesso === "Administrador"
+                      ? niveisAcesso
+                      : niveisAcessoFormulario;
+                  const statusUsuario = obterStatusUsuario(usuario, statusConvites);
+
+                  return (
                   <tr key={usuario.id} className="border-t text-sm hover:bg-slate-50">
                     <td className="p-3 font-semibold">
-                      {valorOuTraco(usuario.nome)}
+                      <div className="flex flex-col gap-1">
+                        <span>{valorOuTraco(usuario.nome)}</span>
+                        {usuarioEhAdministradorProtegido(usuario) && (
+                          <span className="w-fit rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
+                            Dono da conta
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3">{valorOuTraco(usuario.funcao)}</td>
                     <td className="p-3">{valorOuTraco(usuario.email)}</td>
+                    <td className="p-3 text-center">
+                      <StatusUsuarioBadge ativo={statusUsuario === "Ativo"} />
+                    </td>
                     <td className="p-3 text-slate-600">
                       {permissaoPorNivel(usuario.nivelAcesso)}
                     </td>
@@ -1205,10 +1541,10 @@ export default function CadastroObraPage() {
                             e.target.value as NivelAcesso
                           )
                         }
-                        disabled={bloqueiaFormularioObra}
+                        disabled={bloqueiaFormularioObra || usuarioProtegido}
                         className={`rounded-lg border border-slate-300 bg-white p-2 text-sm font-semibold ${classeCampoBloqueavel}`}
                       >
-                        {niveisAcesso.map((nivel) => (
+                        {niveisLinha.map((nivel) => (
                           <option key={nivel} value={nivel}>
                             {nivel === "Usuario" ? "Usuário" : nivel}
                           </option>
@@ -1219,11 +1555,12 @@ export default function CadastroObraPage() {
                       <AcoesLinha
                         onEditar={() => editarUsuario(usuario)}
                         onExcluir={() => excluirUsuario(usuario.id)}
-                        desabilitado={bloqueiaFormularioObra}
+                        desabilitado={bloqueiaFormularioObra || usuarioProtegido}
                       />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -1693,15 +2030,363 @@ function rotuloCriticidade(criticidade: CriticidadeObra) {
 }
 
 function permissaoPorNivel(nivel: NivelAcesso) {
+  if (nivel === "Administrador") {
+    return "Acesso completo à conta";
+  }
+
   if (nivel === "Planejador") {
     return "Acesso a todas as telas";
   }
 
   if (nivel === "Visitante") {
-    return "Acesso somente ao Painel";
+    return "Visualiza Check-in, Painel, Check-out e Indicadores";
   }
 
-  return "Acesso apenas à tela Campo";
+  return "Responsavel operacional, sem login no sistema";
+}
+
+function validarLimiteFrentesAtivas(
+  obras: ObraCadastrada[],
+  plano: PlanoComercial | null
+) {
+  if (!plano) {
+    return "";
+  }
+
+  const limite = plano.limites.frentesAtivas;
+
+  if (limite === null) {
+    return "";
+  }
+
+  const frentesAtivas = obras.filter((obra) => obra.situacao !== "Pausada").length;
+
+  if (frentesAtivas <= limite) {
+    return "";
+  }
+
+  return criarMensagemLimitePlano(
+    plano,
+    `${descreverLimite(limite)} frente(s) ativa(s)`
+  );
+}
+
+function validarLimiteNovaFrenteAtiva(
+  obras: ObraCadastrada[],
+  plano: PlanoComercial | null
+) {
+  if (!plano) {
+    return "";
+  }
+
+  const limite = plano.limites.frentesAtivas;
+
+  if (limite === null) {
+    return "";
+  }
+
+  const frentesAtivas = obras.filter((obra) => obra.situacao !== "Pausada").length;
+
+  if (frentesAtivas < limite) {
+    return "";
+  }
+
+  return criarMensagemLimitePlano(
+    plano,
+    `${descreverLimite(limite)} frente(s) ativa(s)`
+  );
+}
+
+function validarLimiteUsuariosPlano(
+  usuarios: UsuarioCadastrado[],
+  plano: PlanoComercial | null
+) {
+  if (!plano) {
+    return "";
+  }
+
+  const planejadores = contarUsuariosPorNivel(usuarios, "Planejador");
+  const visitantes = contarUsuariosPorNivel(usuarios, "Visitante");
+  const limitePlanejadores = plano.limites.planejadores;
+  const limiteVisitantes = plano.limites.visitantes;
+
+  if (limitePlanejadores !== null && planejadores > limitePlanejadores) {
+    return criarMensagemLimitePlano(
+      plano,
+      `${descreverLimite(limitePlanejadores)} planejador(es)`
+    );
+  }
+
+  if (limiteVisitantes !== null && visitantes > limiteVisitantes) {
+    return criarMensagemLimitePlano(
+      plano,
+      `${descreverLimite(limiteVisitantes)} visitante(s)`
+    );
+  }
+
+  return "";
+}
+
+function criarMensagemLimitePlano(plano: PlanoComercial, limite: string) {
+  const proximoPlano = obterProximoPlano(plano);
+  const sugestao = proximoPlano
+    ? ` Atualize para o plano ${proximoPlano} para ampliar esse limite.`
+    : " Esse plano nao possui limite superior disponivel.";
+
+  return `Limite de cadastro atingido no plano ${plano.nome}: permite ate ${limite}.${sugestao}`;
+}
+
+function obterProximoPlano(plano: PlanoComercial) {
+  if (plano.codigo === "enterprise") {
+    return "";
+  }
+
+  if (plano.codigo === "premium") {
+    return "Empresarial";
+  }
+
+  return "Profissional";
+}
+
+function mensagemEhAviso(mensagem: string) {
+  return (
+    mensagem.includes("Limite de cadastro atingido") ||
+    mensagem.includes("Limite do plano atingido")
+  );
+}
+
+function contarUsuariosPorNivel(
+  usuarios: UsuarioCadastrado[],
+  nivel: NivelAcesso
+) {
+  const emails = new Set<string>();
+
+  for (const usuario of usuarios) {
+    if (usuario.nivelAcesso !== nivel) {
+      continue;
+    }
+
+    const email = usuario.email.trim().toLowerCase();
+    emails.add(email || String(usuario.id));
+  }
+
+  return emails.size;
+}
+
+function garantirAdministradorConta(
+  usuarios: UsuarioCadastrado[],
+  administrador: UsuarioAdministradorConta | null
+) {
+  if (!administrador?.email) {
+    return usuarios;
+  }
+
+  const emailAdministrador = administrador.email.trim().toLowerCase();
+  const existente = usuarios.find(
+    (usuario) => usuario.email.trim().toLowerCase() === emailAdministrador
+  );
+
+  if (!existente) {
+    return [
+      criarUsuarioAdministradorConta(administrador),
+      ...usuarios,
+    ];
+  }
+
+  const atualizado: UsuarioCadastrado = {
+    ...existente,
+    nome: existente.nome || administrador.nome,
+    funcao: existente.funcao || administrador.funcao,
+    email: administrador.email,
+    nivelAcesso: "Administrador",
+    protegido: true,
+    origem: "owner",
+  };
+
+  if (
+    existente.nome === atualizado.nome &&
+    existente.funcao === atualizado.funcao &&
+    existente.email === atualizado.email &&
+    existente.nivelAcesso === atualizado.nivelAcesso &&
+    existente.protegido === atualizado.protegido &&
+    existente.origem === atualizado.origem
+  ) {
+    return usuarios;
+  }
+
+  return usuarios.map((usuario) =>
+    usuario.id === existente.id ? atualizado : usuario
+  );
+}
+
+function mesclarUsuariosContaNaFrente(
+  usuariosFrente: UsuarioCadastrado[],
+  usuariosConta: UsuarioCadastrado[],
+  administrador: UsuarioAdministradorConta | null
+) {
+  const usuariosGlobais = garantirAdministradorConta(
+    usuariosConta.filter(usuarioEhGlobalDaConta),
+    administrador
+  );
+  const emailsGlobais = new Set(
+    usuariosGlobais.map((usuario) => normalizarEmailUsuario(usuario))
+  );
+  const operacionais = usuariosFrente.filter((usuario) => {
+    const email = normalizarEmailUsuario(usuario);
+    return !usuarioEhGlobalDaConta(usuario) && (!email || !emailsGlobais.has(email));
+  });
+
+  return [...usuariosGlobais, ...operacionais];
+}
+
+function filtrarUsuariosOperacionais(usuarios: UsuarioCadastrado[]) {
+  return usuarios.filter((usuario) => !usuarioEhGlobalDaConta(usuario));
+}
+
+function atualizarUsuariosGlobaisConta(
+  cadastro: CadastroBase,
+  usuariosTela: UsuarioCadastrado[],
+  administrador: UsuarioAdministradorConta | null
+) {
+  const usuariosGlobais = garantirAdministradorConta(
+    coletarUsuariosLoginConta(cadastro, usuariosTela),
+    administrador
+  );
+  const dadosPorObra = Object.fromEntries(
+    Object.entries(cadastro.dadosPorObra).map(([obraId, dados]) => [
+      obraId,
+      {
+        ...dados,
+        usuarios: filtrarUsuariosOperacionais(dados.usuarios),
+      },
+    ])
+  );
+
+  return {
+    ...cadastro,
+    usuarios: usuariosGlobais,
+    dadosPorObra,
+  };
+}
+
+function garantirAdministradorEmTodasFrentes(
+  cadastro: CadastroBase,
+  administrador: UsuarioAdministradorConta | null
+) {
+  if (!administrador?.email) {
+    return cadastro;
+  }
+
+  let alterou = false;
+  const dadosPorObra = Object.fromEntries(
+    Object.entries(cadastro.dadosPorObra).map(([obraId, dados]) => {
+      const usuariosAtualizados = garantirAdministradorConta(
+        dados.usuarios,
+        administrador
+      );
+
+      if (usuariosAtualizados !== dados.usuarios) {
+        alterou = true;
+        return [obraId, { ...dados, usuarios: usuariosAtualizados }];
+      }
+
+      return [obraId, dados];
+    })
+  );
+
+  const usuariosRaiz = garantirAdministradorConta(
+    cadastro.usuarios,
+    administrador
+  );
+
+  if (usuariosRaiz !== cadastro.usuarios) {
+    alterou = true;
+  }
+
+  return alterou
+    ? {
+        ...cadastro,
+        usuarios: usuariosRaiz,
+        dadosPorObra,
+      }
+    : cadastro;
+}
+
+function coletarUsuariosLoginConta(
+  cadastro: CadastroBase,
+  usuariosAtuais: UsuarioCadastrado[]
+) {
+  const porEmail = new Map<string, UsuarioCadastrado>();
+  const listas = [
+    cadastro.usuarios,
+    usuariosAtuais,
+    ...Object.values(cadastro.dadosPorObra).map((dados) => dados.usuarios),
+  ];
+
+  for (const lista of listas) {
+    for (const usuario of lista) {
+      const email = usuario.email.trim().toLowerCase();
+
+      if (!email || !usuarioEhGlobalDaConta(usuario) || porEmail.has(email)) {
+        continue;
+      }
+
+      porEmail.set(email, { ...usuario, email });
+    }
+  }
+
+  return Array.from(porEmail.values());
+}
+
+function usuariosDeStatusConvites(statusConvites: StatusConviteAcesso[]) {
+  return statusConvites
+    .filter(
+      (status) =>
+        status.nivelAcesso === "Planejador" ||
+        status.nivelAcesso === "Visitante"
+    )
+    .map<UsuarioCadastrado>((status, indice) => ({
+      id: -100_000 - indice,
+      nome:
+        status.nome.trim() ||
+        status.email.split("@")[0] ||
+        status.nivelAcesso,
+      funcao: status.funcao.trim() || status.nivelAcesso,
+      email: status.email,
+      nivelAcesso: status.nivelAcesso as NivelAcesso,
+    }));
+}
+
+function usuarioEhGlobalDaConta(usuario: UsuarioCadastrado) {
+  return (
+    usuario.nivelAcesso === "Administrador" || usuarioTemLogin(usuario.nivelAcesso)
+  );
+}
+
+function normalizarEmailUsuario(usuario: UsuarioCadastrado) {
+  return usuario.email.trim().toLowerCase();
+}
+
+function criarUsuarioAdministradorConta(
+  administrador: UsuarioAdministradorConta
+): UsuarioCadastrado {
+  return {
+    id: -1,
+    nome: administrador.nome,
+    funcao: administrador.funcao,
+    email: administrador.email,
+    nivelAcesso: "Administrador",
+    protegido: true,
+    origem: "owner",
+  };
+}
+
+function usuarioEhAdministradorProtegido(usuario: UsuarioCadastrado) {
+  return (
+    usuario.nivelAcesso === "Administrador" &&
+    usuario.protegido === true &&
+    usuario.origem === "owner"
+  );
 }
 
 function valorOuTraco(valor: string) {
@@ -1711,6 +2396,10 @@ function valorOuTraco(valor: string) {
 function obterMensagemErro(error: unknown) {
   const erro = error as { message?: string } | null;
   return erro?.message ?? "verifique as policies e tabelas no Supabase.";
+}
+
+function erroEhLimitePlano(error: unknown) {
+  return obterMensagemErro(error).includes("Limite do plano atingido");
 }
 
 function atualizarObraIdNaUrl(obraId: number | null) {
@@ -1813,4 +2502,35 @@ function AcoesLinha({
       </button>
     </div>
   );
+}
+
+function StatusUsuarioBadge({ ativo }: { ativo: boolean }) {
+  return (
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-bold ${
+        ativo
+          ? "bg-green-100 text-green-700"
+          : "bg-slate-100 text-slate-600"
+      }`}
+    >
+      {ativo ? "Ativo" : "Inativo"}
+    </span>
+  );
+}
+
+function obterStatusUsuario(
+  usuario: UsuarioCadastrado,
+  statusConvites: StatusConviteAcesso[]
+) {
+  if (
+    usuario.nivelAcesso === "Administrador" ||
+    !usuarioTemLogin(usuario.nivelAcesso)
+  ) {
+    return "Ativo";
+  }
+
+  const email = usuario.email.trim().toLowerCase();
+  const convite = statusConvites.find((item) => item.email === email);
+
+  return convite?.ativo ? "Ativo" : "Inativo";
 }

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /painel
+Disallow: /campo
+Disallow: /login
+Disallow: /cadastro
+
+Sitemap: https://www.frentia.com.br/sitemap.xml

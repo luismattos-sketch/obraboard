@@ -2,6 +2,7 @@ import {
   autenticarAppAdmin,
   contextoEhResposta,
 } from "../../../../lib/admin-server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
@@ -104,12 +105,16 @@ export async function GET(request: Request) {
     const membership = memberships.get(usuario.id);
     const accountId = membership ? String(membership.empresa_id) : null;
     const account = accountId ? accounts.get(accountId) : null;
+    const ownerId = account?.owner_id ? String(account.owner_id) : null;
     const email = usuario.email ?? String(profile?.email ?? "");
     const ban = banned.get(email.toLowerCase());
 
     return {
       userId: usuario.id,
       accountId,
+      ownerId,
+      ownerEmail: ownerId ? usuariosPorId.get(ownerId) ?? null : null,
+      isAccountOwner: ownerId === usuario.id,
       name:
         String(profile?.name ?? "") ||
         String(usuario.user_metadata?.name ?? ""),
@@ -160,6 +165,7 @@ export async function POST(request: Request) {
     email?: string;
     reason?: string;
     confirmationEmail?: string;
+    newOwnerEmail?: string;
     plan?: string;
     subscriptionStatus?: string;
   };
@@ -173,9 +179,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Dados administrativos incompletos." }, { status: 400 });
   }
 
-  if (email === "luismattos@gmail.com" && action !== "billing") {
+  if (email === "luismattos@gmail.com" && !["billing", "owner"].includes(action)) {
     return Response.json(
-      { error: "A conta proprietária não pode ser bloqueada ou removida." },
+      { error: "A conta proprietÃ¡ria nÃ£o pode ser bloqueada ou removida." },
       { status: 400 }
     );
   }
@@ -223,6 +229,108 @@ export async function POST(request: Request) {
         p_reason: reason,
       });
       if (error) throw error;
+    } else if (action === "owner") {
+      const newOwnerEmail = body.newOwnerEmail?.trim().toLowerCase() ?? "";
+      if (!newOwnerEmail) {
+        return Response.json(
+          { error: "Informe o e-mail do novo dono da conta." },
+          { status: 400 }
+        );
+      }
+
+      const { data: authData, error: authError } =
+        await service.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (authError) throw authError;
+
+      const newOwner = authData.users.find(
+        (usuario) => usuario.email?.trim().toLowerCase() === newOwnerEmail
+      );
+      if (!newOwner?.email) {
+        return Response.json(
+          {
+            error:
+              "Novo dono nÃƒÂ£o encontrado. O e-mail precisa ter cadastro/login no Frentia.",
+          },
+          { status: 404 }
+        );
+      }
+
+      const { data: account, error: accountError } = await service
+        .from("empresas")
+        .select("id,owner_id,nome")
+        .eq("id", accountId)
+        .single();
+      if (accountError) throw accountError;
+
+      const previousOwnerId = account?.owner_id ? String(account.owner_id) : null;
+      const previousOwnerEmail =
+        previousOwnerId && previousOwnerId !== newOwner.id
+          ? authData.users.find((usuario) => usuario.id === previousOwnerId)
+              ?.email ?? null
+          : null;
+      const newOwnerName =
+        String(newOwner.user_metadata?.name ?? "").trim() ||
+        newOwner.email.split("@")[0];
+
+      const { error: profileError } = await service.from("profiles").upsert(
+        {
+          id: newOwner.id,
+          email: newOwner.email,
+          name: newOwnerName,
+        },
+        { onConflict: "id" }
+      );
+      if (profileError) throw profileError;
+
+      if (previousOwnerId && previousOwnerId !== newOwner.id) {
+        const { error: oldMembershipError } = await service
+          .from("empresa_usuarios")
+          .update({ papel: "usuario" })
+          .eq("empresa_id", accountId)
+          .eq("user_id", previousOwnerId);
+        if (oldMembershipError) throw oldMembershipError;
+      }
+
+      const { error: membershipError } = await service
+        .from("empresa_usuarios")
+        .upsert(
+          { empresa_id: accountId, user_id: newOwner.id, papel: "owner" },
+          { onConflict: "empresa_id,user_id" }
+        );
+      if (membershipError) throw membershipError;
+
+      const { error: ownerError } = await service
+        .from("empresas")
+        .update({ owner_id: newOwner.id })
+        .eq("id", accountId);
+      if (ownerError) throw ownerError;
+
+      await atualizarDonoNoCadastroBase({
+        service,
+        accountId,
+        newOwner: {
+          email: newOwner.email,
+          name: newOwnerName,
+        },
+        previousOwnerEmail,
+      });
+
+      const { error: auditError } = await service.rpc(
+        "admin_registrar_auditoria",
+        {
+          p_admin_user_id: admin.id,
+          p_target_user_id: newOwner.id,
+          p_target_account_id: accountId,
+          p_action: "owner_changed",
+          p_reason: reason,
+          p_metadata: {
+            previous_owner_id: previousOwnerId,
+            new_owner_email: newOwner.email,
+            account_name: account?.nome ?? null,
+          },
+        }
+      );
+      if (auditError) throw auditError;
     } else if (action === "delete") {
       if (body.confirmationEmail?.trim().toLowerCase() !== email) {
         return Response.json(
@@ -231,16 +339,46 @@ export async function POST(request: Request) {
         );
       }
 
-      const { error: pendingError } = await service.rpc("admin_alterar_conta", {
-        p_admin_user_id: admin.id,
-        p_account_id: accountId,
-        p_target_user_id: userId,
-        p_access_status: "deleted_pending",
-        p_plan: null,
-        p_subscription_status: null,
-        p_reason: reason ?? "Exclusão solicitada pelo administrador.",
-      });
-      if (pendingError) throw pendingError;
+      const { data: accountToDelete, error: accountLookupError } = await service
+        .from("empresas")
+        .select("id,owner_id")
+        .eq("id", accountId)
+        .maybeSingle();
+      if (accountLookupError) throw accountLookupError;
+
+      const isOwner = String(accountToDelete?.owner_id ?? "") === userId;
+
+      if (isOwner) {
+        const { error: pendingError } = await service.rpc("admin_alterar_conta", {
+          p_admin_user_id: admin.id,
+          p_account_id: accountId,
+          p_target_user_id: userId,
+          p_access_status: "deleted_pending",
+          p_plan: null,
+          p_subscription_status: null,
+          p_reason: reason ?? "Exclusao solicitada pelo administrador.",
+        });
+        if (pendingError) throw pendingError;
+      } else {
+        const { error: membershipDeleteError } = await service
+          .from("empresa_usuarios")
+          .delete()
+          .eq("empresa_id", accountId)
+          .eq("user_id", userId);
+        if (membershipDeleteError) throw membershipDeleteError;
+
+        const { error: inviteDeleteError } = await service
+          .from("empresa_convites_acesso")
+          .update({
+            active: false,
+            accepted_user_id: null,
+            accepted_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("empresa_id", accountId)
+          .eq("accepted_user_id", userId);
+        if (inviteDeleteError) throw inviteDeleteError;
+      }
 
       const { error: authDeleteError } =
         await service.auth.admin.deleteUser(userId, false);
@@ -249,17 +387,19 @@ export async function POST(request: Request) {
         return Response.json(
           {
             error:
-              "A conta foi marcada como deleted_pending, mas o usuário do Auth não pôde ser removido.",
+              "O acesso foi atualizado, mas o usuario do Auth nao pode ser removido.",
           },
           { status: 500 }
         );
       }
 
-      const { error: accountDeleteError } = await service
-        .from("empresas")
-        .delete()
-        .eq("id", accountId);
-      if (accountDeleteError) throw accountDeleteError;
+      if (isOwner) {
+        const { error: accountDeleteError } = await service
+          .from("empresas")
+          .delete()
+          .eq("id", accountId);
+        if (accountDeleteError) throw accountDeleteError;
+      }
 
       const { error: auditError } = await service.rpc(
         "admin_registrar_auditoria",
@@ -267,14 +407,14 @@ export async function POST(request: Request) {
           p_admin_user_id: admin.id,
           p_target_user_id: userId,
           p_target_account_id: accountId,
-          p_action: "account_deleted",
+          p_action: isOwner ? "account_deleted" : "child_user_deleted",
           p_reason: reason,
-          p_metadata: { email },
+          p_metadata: { email, is_owner: isOwner },
         }
       );
       if (auditError) throw auditError;
     } else {
-      return Response.json({ error: "Ação administrativa inválida." }, { status: 400 });
+      return Response.json({ error: "AÃ§Ã£o administrativa invÃ¡lida." }, { status: 400 });
     }
 
     return Response.json({ success: true });
@@ -283,7 +423,7 @@ export async function POST(request: Request) {
       error instanceof Error
         ? error.message
         : (error as { message?: string } | null)?.message ??
-          "Falha na operação administrativa.";
+          "Falha na operaÃ§Ã£o administrativa.";
     return Response.json({ error: mensagem }, { status: 500 });
   }
 }
@@ -300,4 +440,119 @@ function contarPorEmpresa(linhas: Linha[]) {
 
 function quantidade(mapa: Map<string, number>, accountId: string | null) {
   return accountId ? mapa.get(accountId) ?? 0 : 0;
+}
+
+async function atualizarDonoNoCadastroBase({
+  service,
+  accountId,
+  newOwner,
+  previousOwnerEmail,
+}: {
+  service: SupabaseClient;
+  accountId: string;
+  newOwner: { email: string; name: string };
+  previousOwnerEmail: string | null;
+}) {
+  const cadastroId = `${accountId}:default`;
+  const { data, error } = await service
+    .from("cadastro_base")
+    .select("id,dados")
+    .eq("id", cadastroId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return;
+
+  const dadosAtualizados = atualizarDonoNosDados(
+    data.dados,
+    newOwner,
+    previousOwnerEmail
+  );
+
+  const { error: updateError } = await service
+    .from("cadastro_base")
+    .update({ dados: dadosAtualizados })
+    .eq("id", cadastroId);
+
+  if (updateError) throw updateError;
+}
+
+function atualizarDonoNosDados(
+  dados: unknown,
+  newOwner: { email: string; name: string },
+  previousOwnerEmail: string | null
+) {
+  const cadastro = ehObjeto(dados) ? { ...dados } : {};
+  cadastro.usuarios = atualizarListaUsuariosOwner(
+    cadastro.usuarios,
+    newOwner,
+    previousOwnerEmail
+  );
+
+  if (ehObjeto(cadastro.dadosPorObra)) {
+    cadastro.dadosPorObra = Object.fromEntries(
+      Object.entries(cadastro.dadosPorObra).map(([obraId, dadosObra]) => {
+        const obra = ehObjeto(dadosObra) ? { ...dadosObra } : {};
+        obra.usuarios = atualizarListaUsuariosOwner(
+          obra.usuarios,
+          newOwner,
+          previousOwnerEmail
+        );
+        return [obraId, obra];
+      })
+    );
+  }
+
+  return cadastro;
+}
+
+function atualizarListaUsuariosOwner(
+  usuarios: unknown,
+  newOwner: { email: string; name: string },
+  previousOwnerEmail: string | null
+) {
+  const novoEmail = newOwner.email.trim().toLowerCase();
+  const antigoEmail = previousOwnerEmail?.trim().toLowerCase() ?? "";
+  const novoAdministrador = {
+    id: -1,
+    nome: newOwner.name || newOwner.email.split("@")[0],
+    funcao: "Administrador",
+    email: newOwner.email,
+    nivelAcesso: "Administrador",
+    protegido: true,
+    origem: "owner",
+  };
+
+  const lista = Array.isArray(usuarios) ? usuarios : [];
+  const restantes = lista
+    .map((usuario) => {
+      if (!ehObjeto(usuario)) return usuario;
+
+      const email = String(usuario.email ?? "").trim().toLowerCase();
+      const ehNovoDono = email === novoEmail;
+      const ehAntigoDono = antigoEmail && email === antigoEmail;
+      const ehOwnerProtegido =
+        usuario.origem === "owner" ||
+        (usuario.protegido === true &&
+          usuario.nivelAcesso === "Administrador");
+
+      if (ehNovoDono) return null;
+      if (ehAntigoDono || ehOwnerProtegido) {
+        return {
+          ...usuario,
+          nivelAcesso: "Usuario",
+          protegido: false,
+          origem: undefined,
+        };
+      }
+
+      return usuario;
+    })
+    .filter(Boolean);
+
+  return [novoAdministrador, ...restantes];
+}
+
+function ehObjeto(valor: unknown): valor is Linha {
+  return !!valor && typeof valor === "object" && !Array.isArray(valor);
 }

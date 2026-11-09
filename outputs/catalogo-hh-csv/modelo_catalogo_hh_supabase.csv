@@ -1,0 +1,1578 @@
+﻿disciplina;atividade;indice_hh;unidade
+Civil;Alvenaria de Blocos de Concretode (10X20X40);2.0;hh/m²
+Civil;Alvenaria de Blocos de Concretode (20X20X40);2.5;hh/m²
+Civil;Alvenarias Especiais;4.5;hh/m²
+Civil;Alvenaria de Tijolo Comum (1Tijolo);7.0;hh/m²
+Civil;Alvenariade Tijolo Comum (1/2Tijolo);4.0;hh/m²
+Civil;Alvenaria de Tijolo Laminado (1Tijolo);8.0;hh/m²
+Civil;Alvenaria de Tijolo Laminado (1/2Tijolo);5.0;hh/m²
+Civil;Apicoamento em Alvenaria Tijolo Laminado;1.94;hh/m²
+Civil;Argamassa de Proteção;2.0;hh/m²
+Civil;Argamassa de Regularização;2.0;hh/m²
+Civil;Argamassa Impermeável (Cimento. Areia e Sika);3.5;hh/m²
+Civil;Argila Expandida;2.0;hh/m²
+Civil;Chapisco de Paredes;0.35;hh/m²
+Civil;Chapisco de Tetos;0.6;hh/m²
+Civil;Emboço de Paredes;2.15;hh/m²
+Civil;Emboço de Teto;4.0;hh/m²
+Civil;Preparação em Central de Concreto – Magro;2.0;hh/m³
+Civil;Preparação em Central de Concreto – Estrutural;2.5;hh/m³
+Civil;Preparação em Central de Concreto – Ciclópico;2.2;hh/m³
+Civil;Preparação em Central de Concreto – Simples;2.0;hh/m³
+Civil; Lançamento Manual de Concreto Magro;8.0;hh/m³
+Civil; Lançamento Manual de Concreto Estrutural;10.0;hh/m³
+Civil; Lançamento Manual de Concreto Ciclópico;10.0;hh/m³
+Civil; Lançamento Manual de Concreto Simples;8.0;hh/m³
+Civil; Lançamento C/Grua de Concreto Magro;6.0;hh/m³
+Civil; Lançamento C/Grua de ConcretoEstrutural;8.0;hh/m³
+Civil; Lançamento C/Grua de Concreto Ciclópico;8.0;hh/m³
+Civil; Lançamento C/Grua de Concreto Simples;6.0;hh/m³
+Civil;Adensamento de Concreto Estrutural;1.0;hh/m³
+Civil;Adensamento de Concreto Ciclópico;1.2;hh/m³
+Civil;Adensamento de Concreto Simples;1.0;hh/m³
+Civil;Lançamento de Concreto em Bases;11.0;hh/m³
+Civil;Lançamento de Concreto em Vigas;15.0;hh/m³
+Civil;Lançamento de Concreto em Colunas;14.0;hh/m³
+Civil;Lançamento de Concreto em Envelopes;12.0;hh/m³
+Civil;Lançamento de Concreto em Lages;18.0;hh/m³
+Civil;Concreto – Esmerilhamento;2.15;hh/m²
+Civil;Contrapiso;2.0;hh/m²
+Civil;Apicoamento   ;15.0;hh/m²
+Civil;Cobertura Simples;0.4;hh/m²
+Civil;Cobertura de Telhas de Fibro Cimento;1.3;hh/m²
+Civil;Cobertura de Telhas de Madeirite;1.3;hh/m²
+Civil;Cobertura de Telhas Canalet de 90;1.1;hh/m²
+Civil;Cobertura de Telhas Canalet de 45;2.7;hh/m²
+Civil;Tapamento Frontal /Lateral c/Gancho (C/Paraf. AutoAta);1.2;hh/m²
+Civil;Acabamentos Diversos (Cobertura e Fechamento Lateral);2.0;hh/m²
+Civil;Cobertura e Tapamento;8.0;hh/m²
+Civil;Cobertura – Cumiera para Canalete 43;0.5;hh/m²
+Civil;Cobertura – Cumiera para Fibro Cimento;0.45;hh/m²
+Civil;Cobertura – Cumiera para Telha Cerâmica;1.0;hh/m²
+Civil;Cobertura – Madeiramento para Canalete 43;1.6;hh/m²
+Civil;Cobertura – Madeiramento para Telhas Cerâmicas;2.05;hh/m²
+Civil;Cobertura – Madeiramento para Telhas de Fibro Cimento;1.6;hh/m²
+Civil;Cobertura – Telhas Canalete 43 (ou Eternit);1.84;hh/m²
+Civil;Cobertura – Telhas Fibro Cimento (8mm);1.3;hh/m²
+Civil;Cobertura – Telhas Tipo Cerâmica;4.5;hh/m²
+Civil;Retirada de Tapamento Lateral de Predio;1.5;hh/m²
+Civil;Tapamento Lateral/Ampliação;2.0;hh/m²
+Civil;Desmontagem e Remontagem do Frontal;1.1;hh/m²
+Civil;Desmontagem do Tapamento Frontal;0.7;hh/m²
+Civil;Remontagem do Tapamento Frontal (C/paraf.Comum);0.4;hh/m²
+Civil;Montagem de Cimbramento Tubular;0.08;hh/ml
+Civil;Montagem de Cimbramento de Madeira;2.5;hh/ml
+Civil;Cimbramento em Madeira;0.5;hh/m³
+Civil;Demolição de Concreto Magro (com remoção);20.0;hh/m³
+Civil;Demolição de Concreto Simples;10.0;hh/m³
+Civil;Demolição de Pisos;12.0;hh/m³
+Civil;Demolição de Concreto Armado;20.0;hh/m³
+Civil;Demolição de Concreto Estrutural (com remoção);32.0;hh/m³
+Civil;Demolição de Concreto Estrutural  c/ Martelete;10.0;hh/m³
+Civil;Demolição de Alvenaria;0.5;hh/m²
+Civil;Demolição de Alvenaria de Tijolo (com remoção);4.0;hh/m³
+Civil;Demolição Manual de Tijolo Maciço C/Reaproveitamento;10.5;hh/m²
+Civil;Demolição Manual de Tijolo Maciço S/Reaproveitamento;6.4;hh/m²
+Civil;Demolição de Pavimentação Asfaltica (com remoção);1.0;hh/m³
+Civil;Demolição de Telhados (com remoção);2.0;hh/m³
+Civil;Demolição Manual de Telhados;0.68;hh/m²
+Civil;Demolição de Escória;10.0;hh/m³
+Civil;Demolição e Remoção de Pavimento de Concreto;0.6;hh/m²
+Civil;Demolição Manual de Pisos Cerâmicos;3.25;hh/m²
+Civil;Empilhamento de Blocos de Rocha Manual;0.9;hh/m³
+Civil;Desempilhamento de Blocos de Rocha Manual;0.3;hh/m³
+Civil;Desmatamento Manual;10.0;hh/m²
+Civil;Desmonte de Rocha A Dinamite;9.5;hh/m³
+Civil;Destocamento Manual;3.7;hh/unid
+Civil;Divisória de Madeira;6.0;hh/m²
+Civil;Divisória Metálica;5.0;hh/m²
+Civil;Corte de Piso em Concreto c/Máquina Tipo Cliper;0.2;hh/ml
+Civil;Cobertura de Ampliação;2.0;hh/m²
+Civil;Cercas;10.5;hh/ml
+Civil;Cercas de Tela de Arame Galvanizado Malha 2’’x2’’ fio 8;6.5;hh/ml
+Civil;Colocação de Chumbador;2.15;hh/kg
+Civil;Corrimão de Tubo de Aço Diam.de 2’’Galvanizado;4.67;hh/ml
+Civil;Chumbador Diam. de 25 mm;6.0;hh/ton
+Civil;Colocação de Pré-Moldados;10.14;hh/m³
+Civil;Desmontagem de Estrut. Sustent. de Tapamento Lateral;0.06;hh/kg
+Civil;Embutidos;0.2;hh/kg
+Civil;Forro Falso de Isopor;3.0;hh/m²
+Civil;Forro Metálico;2.5;hh/m²
+Civil;Grades Metálicas;10.0;hh/m²
+Civil;Grama;1.5;hh/m²
+Civil;Grauteamento;60.0;hh/m²
+Civil;Guias;6.2;hh/ml
+Civil;Instalações de Fossa Séptica (Colocação);18.0;hh/unid
+Civil;Inserts - Colocação;0.3;hh/kg
+Civil;Inserts - Fabricação;6.0;hh/kg
+Civil;Junta Fugaband;0.8;hh/ml
+Civil;Junta com Asfalto;0.7;hh/m²
+Civil;Limpeza de Terreno;1.0;hh/m²
+Civil;Limpeza Manual de Áreas;98.0;hh/m²
+Civil;Montagem de Estruturas de Ampliação de Galpões;0.15;hh/kg
+Civil;Paviflex - Assentamento;1.0;hh/m²
+Civil;Paviflex - Rodapé;0.6;hh/m²
+Civil;Pavimento - Recomposição;2.3;hh/m²
+Civil;Peças Sanitárias;0.2;hh/unid
+Civil;Poço de Visita;15.2;hh/unid
+Civil;Portões;4.0;hh/m²
+Civil;Portões em Perfis Tubulares e Tela Galvanizada;0.46;hh/m²
+Civil;Pré-Moldado - Colocação;5.0;hh/m³
+Civil;Pré-Moldado em Geral;15.0;hh/m³
+Civil;Pré-Moldado - Fabricação;12.0;hh/m³
+Civil;Pré-Moldado - Levantamento;8.0;hh/kg
+Civil;Protensão Cabos - Colocação Formas;0.08;hh/kg
+Civil;Protensão Cabos - Corte e Confecção;0.09;hh/kg
+Civil;Proteção de Taludes (Alcatrão AP-12);0.003;hh/m²
+Civil;Remoção Manual de Entulhos;2.0;hh/m³
+Civil;Remoção Manual de Paralelepípedos;1.0;hh/m²
+Civil;Sarjeta;6.2;hh/m
+Civil;Terra Preta Adubada;2.5;hh/m³
+Civil;Treliças M-150;1.7;hh/m
+Civil;Escavação Manual Simples;3.5;hh/m3
+Civil;Escavação Manual Material 1ª Categoria Geral;6.0;hh/m3
+Civil;Escavação Manual Material 1ª Categoria até 1.50 m;5.0;hh/m3
+Civil;Escavação Manual Material 1ª Categoria de 1.50 a 3.00 m;6.5;hh/m3
+Civil;Escavação Manual Material 2ª Categoria Geral;6.5;hh/m3
+Civil;Escavação Manual Material 2ª Categoria até 1.50 m;6.0;hh/m3
+Civil;Escavação Manual Material 2ª Categoria de 1.50 a 3.00 m;7.0;hh/m3
+Civil;Escavação Mecânica até 1.50 m;0.3;hh/m3
+Civil;Escavação Mecânica de 1.50 a 3.00 m;0.4;hh/m3
+Civil;Escavação Mecânica Diversas;0.5;hh/m3
+Civil;Escavação Mecânica;75.0;m3/dia
+Civil;Escavação Mecânica de Bases;0.6;hh/m3
+Civil;Escavação Mecânica de Valas;0.8;hh/m3
+Civil;Escav/Transp/Carga/Descarga Mat. 1ª Categ. Dist. 350 m;180.0;m3/hora
+Civil;Escav/Transp/Carga/Descarga Mat. 2ª Categ. Dist. 350 m;78.0;m3/hora
+Civil;Escoramento Descontínuo;1.55;hh/m2
+Civil;Escoramento Especial;5.0;hh/m2
+Civil;Esgotamento de Água;0.8;hh/m3
+Civil;Escavação Mecânica UG Elétrico;0.8;hh/m3
+Civil;Retro-Escavadeira;6.0;m3/hora
+Civil;Poclain;30.0;m3/hora
+Civil;Clain-Shell;2.2;m3/hora
+Civil;Drag-Line;6.0;m3/hora
+Civil;Shovel;12.0;m3/hora
+Civil;Armário de Madeira sob Pia de Cozinha C/revestimento;6.43;hh/unid.
+Civil;Caixilhos de Madeira;5.8;hh/m2
+Civil;Caixilhos de Alumínio;6;hh/m2
+Civil;Caixilhos de Ferro;8;hh/m2
+Civil;Caixilho de Ferro Fixo;1.63;hh/m2
+Civil;Caixilho de Ferro Maxim-Air;1.63;hh/m2
+Civil;Colocação em Geral;4;hh/m2
+Civil;Corrimão de Madeira ou Metálico;1.5;hh/ml
+Civil;Escadas de Madeira;5.5;hh/m2
+Civil;Escadas de Marinheiro;2.5;hh/ml
+Civil;Janela de Madeira tipo Basculante;3.75;hh/m2
+Civil;Janela de Alumínio tipo Basculante;2.5;hh/m2
+Civil;Janela de Alumínio de Correr;1.74;hh/m2
+Civil;Janela de Alumínio Maxim-Air;1.74;hh/m2
+Civil;Janela de Alumínio Fixa;1.74;hh/m2
+Civil;Janela de Alumínio tipo Veneziana;2.5;hh/m2
+Civil;Janela de Alumínio Anodizado;5.5;hh/m2
+Civil;Janela de Madeira tipo Guilhotina;4.04;hh/m2
+Civil;Janela de Ferro;1.74;hh/m2
+Civil;Janela de Ferro de Correr;1.74;hh/m2
+Civil;Janela de Madeira com Vidro;10;hh/m2
+Civil;Janela Veneziana Pré-Moldada Brasilit;4.68;hh/m2
+Civil;Marco - Colocação;1.4;hh/m2
+Civil;Portas de Madeira Simples;2.1;hh/m2
+Civil;Portas de Alumínio;6.7;hh/m2
+Civil;Portas de Ferro;6.7;hh/m2
+Civil;Porta de Madeira Completa;4.5;hh/m2
+Civil;Portão;4;hh/m2
+Civil;Porta de Madeira de 1 Folha Sem Revestimento;1.73;hh/m2
+Civil;Porta de Madeira Revestida C/Chapa Melamínica;1.48;hh/m2
+Civil;Porta de Madeira de 2 Folhas Sem Revestimento;1.85;hh/m2
+Civil;Porta de Aço de 1 Folha;2.95;hh/m2
+Civil;Porta de Aço de 2 Folhas;2.95;hh/m2
+Civil;Porta de Aço de Correr Incluindo Trilhos;2.95;hh/m2
+Civil;Porta de Madeira de Enrolar;2.95;hh/m2
+Civil;Porta de Alumínio Envidraçada de 1 e 2 Folhas;2.54;hh/m2
+Civil;Porta de Madeira de 2 Folhas Tipo Veneziana;2.79;hh/m2
+Civil;Vidros Simples p/Caixilhos;0.6;hh/m2
+Civil;Vidros Duplos p/Caixilhos;0.6;hh/m2
+Civil;Vidros Fantasia p/Caixilhos;0.6;hh/m2
+Civil;Vidro em Ferro de Correr;1.74;hh/m2
+Civil;Vidro de 3 mm;1;hh/m2
+Civil;Vidro de 4 mm;1;hh/m2
+Civil;Vidro de 5 mm;1;hh/m2
+Civil;Vidro de Fantasia;1;hh/m2
+Civil;Estacas - Arrasamento;3;hh/unid.
+Civil;Estacas Prancha - Cravação;10;hh/m
+Civil;Estacas Prancha - Retirada;8;m/dia
+Civil;Estroncamento;50;hh/ton.
+Civil;Faixa de Segurança;1;hh/m2
+Civil;Estaca Raiz Metálica Centrifugada - Cravação;5;unid./dia
+Civil;Emenda de Estacas Prancha;1.74;hh/unid.
+Civil;"Cravação sem Nega Estaca Metálica Diam. de 14""";0.19;hh/m
+Civil;"Cravação com Nega Estaca Metálica Diam. de 14""";0.11;hh/m
+Civil;Cravação Perfil H-12;0.26;hh/m
+Civil;Cravação Estaca Peroba;0.25;hh/m2
+Civil;Cravação de Estacas (Estaqueamento/Dia);1.5;unid./dia
+Civil;Arrasamento de Estacas Metálicas;2;hh/m3
+Civil;Arrasamento de Estacas Metálicas HH/Unidade;2;hh/unid.
+Civil;Arrasamento de Estacas Pré-Moldadas;3;hh/m3
+Civil;Arrasamento de Estacas Pré-Moldadas HH/Unidade;3;hh/unid.
+Civil;Confecção de Formas na Carpintaria;3.5;hh/m2
+Civil;Montagem de Formas;4;hh/m2
+Civil;Confecção de Formas no Campo;5.5;hh/m2
+Civil;Montagem de Formas em Bases;7;hh/m2
+Civil;Montagem de Formas em Vigas e Colunas;8;hh/m2
+Civil;Montagem de Formas em Envelopes;8;hh/m2
+Civil;Montagem de Formas em Lajes;10;hh/m2
+Civil;Fabricação e Montagem de Formas (Geral);3;m2/10 hs
+Civil;Desforma;1;hh/m2
+Civil;Formas Comuns – Com muito Embutido;6;hh/m2
+Civil;Formas Comuns – Com Pouco Embutido;5;hh/m2
+Civil;Formas Comuns – Colocação;4.2;hh/m2
+Civil;Colocação de Formas + Cimbramento;5.2;hh/m2
+Civil;Colocação de Formas + Imbutidos;8;hh/m2
+Civil;Colocação de Formas Curvas;6;hh/m2
+Civil;Formas Comuns – Colocação (Compensado – Retas);6.7;hh/m2
+Civil;Formas Comuns – Colocação (Tábuas de Fundação);3.8;hh/m2
+Civil;Formas Comuns – Fabricação;2.5;hh/m2
+Civil;Formas Comuns – Fabricação (Compensado – Retas);1.3;hh/m2
+Civil;Formas Comuns – Fabricação (Tábuas de Fundação);4.5;hh/m2
+Civil;Formas Curvas – Colocação (Compensado);3.05;hh/m2
+Civil;Formas Curvas – Colocação (Tábuas de Fundação);3.2;hh/m2
+Civil;Formas Curvas – Fabricação (Madeirit);6.3;hh/m2
+Civil;Formas Curvas – Fabricação (Tábuas de Fundação);4.5;hh/m2
+Civil;Formas Curvas – Fabricação e Colocação;8.5;hh/m2
+Civil;Formas Deslizantes – Colocação;6.5;hh/m2
+Civil;Formas em Geral (Planas);7;hh/m2
+Civil;Formas Tipo Painel (Em Madeirit) – Colocação;4.2;hh/m2
+Civil;Confecção de Ferragens;0.18;kg/hh
+Civil;Montagem de Ferragem;0.05;kg/hh
+Civil;Armação de Bases (50 Kg/M3);0.2;kg/hh
+Civil;Armação de Vigas e Colunas (300 Kg/M3);0.2;kg/hh
+Civil;Armação de Envelopes (20 Kg/M3);0.2;kg/hh
+Civil;Armação de Lajes (200 Kg/M3);0.2;kg/hh
+Civil;Armação Geral;12;kg/h
+Civil;Armação – Colocação em Estruturas;0.2;kg/hh
+Civil;Armação – Colocação em Fundações;0.15;kg/hh
+Civil;Armação – Corte e Dobra em Estruturas;0.1;kg/hh
+Civil;Armação – Corte e Dobra em Fundações;0.1;kg/hh
+Civil;Armação – Corte/Dobra/Colocação;0.18;kg/hh
+Civil;Malha Metálica – Colocação;0.25;hh/kg
+Civil;Colocação de Ferragem;0.15;hh/kg
+Civil;Impermeabilização de Reservatório (SIKA);10;hh/m2
+Civil;Impermeabilização de Laje c/Asfalto e Argamassa;5;hh/m2
+Civil;Impermeabilização de Parede e Laje com Argamassa;1.3;hh/m2
+Civil;Capeamento Asfáltico no Concreto;3;hh/m2
+Civil;Impermeabilização de Caixa D'Água;6;hh/m2
+Civil;Impermeabilização Interna em Paredes;3.5;hh/m2
+Civil;Impermeabilização Normal;2;hh/m2
+Civil;Lençol Impermeável;2;hh/m2
+Civil;Preparação da Base Binder Usinado a Quente;0.79;hh/m3
+Civil;Preparação da Base Binder Usinado a Frio;0.79;hh/m3
+Civil;Imprimação Betuminosa;0.0001;hh/m2
+Civil;Revestimento de Concreto Asfáltico;1.96;hh/m3
+Civil;Assuntamento de Brokeet;1.36;hh/m2
+Civil;Pintura – Caiação em Paredes;0.4;hh/m2
+Civil;Pintura – Emassamento de Paredes;0.5;hh/m2
+Civil;Pintura em Alvenarias;0.6;hh/m2
+Civil;Pintura Asfáltica em Fundações;0.6;hh/m2
+Civil;Pintura de Esquadrias de Madeira;1.4;hh/m2
+Civil;Pintura de Esquadrias Metálicas;0.9;hh/m2
+Civil;Pintura de Paredes;1.2;hh/m2
+Civil;Pintura de Faixas de Segurança;1;hh/m2
+Civil;Pintura Impermeabilizante Incolor;0.36;hh/m2
+Civil;Pintura Mineral Impermeável;0.36;hh/m2
+Civil;Pintura Látex – Base PVA;0.51;hh/m2
+Civil;Pintura Esmalte Sintético Alquídico;0.52;hh/m2
+Civil;Pintura a Óleo;0.53;hh/m2
+Civil;Pintura Alumínio;0.3;hh/m2
+Civil;Pintura Zarcão;0.23;hh/m2
+Civil;Pintura com Borracha Clorada;0.36;hh/m2
+Civil;Pintura de Ligação;0.006;hh/m2
+Civil;Colocação de Lavatório;21.59;hh/unid.
+Civil;Colocação de Bacia de Louça;26.43;hh/unid.
+Civil;Colocação de Mictório;26.43;hh/unid.
+Civil;Colocação de Papeleira;4.32;hh/unid.
+Civil;Colocação de Saboneteira;4.32;hh/unid.
+Civil;Colocação de Meia Saboneteira;4.32;hh/unid.
+Civil;Colocação de Cabide de Louça;4.32;hh/unid.
+Civil;Colocação de Porta-Toalhas;4.32;hh/unid.
+Civil;Colocação de Espelho com Moldura;4.32;hh/unid.
+Civil;Colocação de Pia de Inox;32;hh/unid.
+Civil;Colocação de Pia de Mármore com Cuba de Inox;30;hh/unid.
+Civil;Colocação de Pia com Pedra de Granilit;12.8;hh/unid.
+Civil;Colocação de Bacia Turca;6.4;hh/unid.
+Civil;Colocação de Boia para Saída de Água;7.5;hh/unid.
+Civil;Colocação de Bebedouro Elétrico;6;hh/unid.
+Civil;Chuveiro Elétrico Automático;16.86;hh/unid.
+Civil;Chuveiro em Latão Estampado Cromado;16.86;hh/unid.
+Civil;Aterro Compactação Manual;3.95;hh/m3
+Civil;Aterro Compactação Mecânica;2.7;hh/m3
+Civil;Aterro ou Reaterro Mecânico;0.2;hh/m3
+Civil;Aterro ou Reaterro com Areia;1.3;hh/m3
+Civil;Aterro ou Reaterro Compactado Manual Difícil;4.5;hh/m3
+Civil;Escarificação e Remoção de Camada Asfáltica Antiga;0.02;hh/m2
+Civil;Preparo Sub-Base Bica Corrida;0.14;hh/m3
+Civil;Reaterro Simples Manual;1.75;hh/m3
+Civil;Reaterro Simples Mecânico;0.65;hh/m3
+Civil;Reaterro Simples Compactação Manual;3.25;hh/m3
+Civil;Reaterro Simples Compactação Mecânica;2.95;hh/m3
+Civil;"Reaterro por Compactador ""Sapo"" M3/H";1.5;hh/m3
+Civil;"Reaterro por Compactador ""CM-20"" M3/H";5;hh/m3
+Civil;Remoção;1;hh/m3
+Civil;Remoção de Material Estocado;0.11;hh/m3
+Civil;Remoção de Material com Blocos Sextavado;0.45;hh/m3
+Civil;Sub-Base de Brita Graduada;0.14;hh/m2
+Civil;Reforço do Sub-Leito;0.3;hh/m2
+Civil;Enchimento de Cavas Simples com Compactação;0.8;hh/m3
+Civil;Enchimento de Cavas Simples sem Compactação;0.3;hh/m3
+Civil;Enchimento com Escória;1;hh/m3
+Civil;Bota-Fora Bases de Fundação;0.6;hh/m3
+Civil;Bota-Fora Bases Simples;1.3;hh/m3
+Civil;Bota-Fora com Transporte até 500 m;2.3;hh/m3
+Civil;Bota-Fora Enrocamento;3;hh/m3
+Civil;Compactação Manual;1;hh/m3
+Civil;Compactação Mecânica;0.5;hh/m3
+Civil;Preparo de Sub-Base Bica Corrida;0.14;hh/m3
+Civil;Regularização Manual de Solo;1.6;hh/m2
+Civil;Revestimento de Azulejo de 15 x 15;3;hh/m2
+Civil;Revestimento de Tacos Residenciais;3;hh/m2
+Civil;Revestimento de Tacos Industriais;3;hh/m2
+Civil;Revestimento de Ladrilhos Cerâmicos;3;hh/m2
+Civil;Revestimento de Cacos Cerâmicos;2.7;hh/m2
+Civil;Revestimento de Ladrilhos Hidráulicos;2.4;hh/m2
+Civil;Revestimento de Emboço e Reboco;3;hh/m2
+Civil;Revestimento de Massa Corrida;0.8;hh/m2
+Civil;Revestimento de Chapisco Fino;0.6;hh/m2
+Civil;Revestimento de Cimento Desempenado;2.4;hh/m2
+Civil;Revestimento de Assentamento de Brackete;3.2;hh/m2
+Civil;Revestimento de Laje com Cinasita;1;hh/m2
+Civil;Piso Cimentado Desempenado;1.4;hh/m2
+Civil;Piso Cimentado Liso;1.8;hh/m2
+Civil;Piso Korodur;2;hh/m2
+Civil;Rodapé para Korodur;1.52;hh/ml
+Civil;Assentamento de Tubo Cerâmico Diam. 100 mm;0.64;hh/m
+Civil;Assentamento de Tubo Cerâmico Diam. 150 mm;0.95;hh/m
+Civil;Assentamento de Tubo Cerâmico Diam. 200 mm;1.2;hh/m
+Civil;Assentamento de Tubo Cerâmico Diam. 250 mm;1.5;hh/m
+Civil;Assentamento de Tubo Cerâmico Diam. 300 mm;2;hh/m
+Civil;Assentamento de Tubo Cerâmico Diam. 400 mm;2.6;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 100 mm;1.05;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 200 mm;2.07;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 250 mm;2.58;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 300 mm;3.1;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 350 mm;3.61;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 400 mm;4.13;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 500 mm;5.16;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 600 mm;6.2;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 800 mm;8.3;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 1000 mm;10.3;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 1200 mm;13.04;hh/m
+Civil;Assentamento de Tubo Concreto Diam. 1500 mm;15.5;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 75 mm;0.4;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 100 mm;0.5;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 150 mm;0.7;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 200 mm;0.95;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 250 mm;1.2;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 300 mm;1.4;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 400 mm;1.5;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 500 mm;1.7;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 600 mm;1.8;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 700 mm;1.9;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 800 mm;2.1;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 900 mm;2.3;hh/m
+Civil;Assentamento de Tubo de Ferro Fundido Diam. 1200 mm;3;hh/m
+Civil;Grelha Hemisférica de Ferro Fundido Diam. de 100 mm;0.4;hh/pç
+Civil;Grelha Hemisférica de Ferro Fundido Diam. de 150 mm;0.6;hh/pç
+Civil;Assentamento de PVC Diam. 32 mm;0.2;hh/m
+Civil;Assentamento de PVC Diam. 40 mm;0.25;hh/m
+Civil;Assentamento de PVC Diam. 50 mm;0.3;hh/m
+Civil;Assentamento de PVC Diam. 75 mm;0.4;hh/m
+Civil;Assentamento de PVC Diam. 100 mm;0.5;hh/m
+Civil;Assentamento de PVC Diam. 150 mm;0.8;hh/m
+Civil;Assentamento de PVC Diam. 200 mm;1;hh/m
+Civil;Assentamento de PVC Diam. 250 mm;1.3;hh/m
+Civil;Assentamento de PVC Diam. 300 mm;1.5;hh/m
+Civil;Ralo Seco Diam. de 100 mm;6.64;hh/unid.
+Civil;Caixa Sifonada;6.64;hh/unid.
+Civil;Ralo Sifonado;6.64;hh/unid.
+Civil;"Tubo de Cobre Sem Costura Diam. de ¾""";1.1;hh/m
+Civil;"Tubo de Cobre Sem Costura Diam. de 1""";1.46;hh/m
+Civil;"Tubo de Cobre Sem Costura Diam. de 1 1/4""";0.53;hh/m
+Civil;"Tubo de Cobre Sem Costura Diam. de 1 1/2""";0.58;hh/m
+Civil;"Tubo de Cobre Sem Costura Diam. de 2""";0.66;hh/m
+Civil;"Tubo de Cobre Sem Costura Diam. de 3""";1.08;hh/m
+Civil;Tubo Cimento Amianto Diam. 50 mm (Incluso Mat. auxiliar);0.86;hh/m
+Civil;Tubo Cimento Amianto Diam. 75 mm (Incluso Mat. auxiliar);1.53;hh/m
+Civil;Chapéu de Cimento Amianto;2;hh/pç
+Mecânica;Alto Forno com Regeneradores;170;hh/ton.
+Mecânica;Casa de Força e Turbinas;260;hh/ton.
+Mecânica;Conversor Chauvin. Lavagem de Gases;345;hh/ton.
+Mecânica;Equipamentos de Laminação;195;hh/ton.
+Mecânica;Fábrica de Oxigênio;320;hh/ton.
+Mecânica;Fornos e Poços;150;hh/ton.
+Mecânica;Forno de Reaquecimento de Placas (W.Beam);330;hh/ton.
+Mecânica;Laminador de Chapas Grossas;285;hh/ton.
+Mecânica;Manuseio de Matérias-Primas;170;hh/ton.
+Mecânica;Montagem de Estrutura Perfilada;80;hh/ton.
+Mecânica;Montagem de Estrutura Laminar;100;hh/ton.
+Mecânica;Fabricação de Estrutura;110;hh/ton.
+Mecânica;Instalação de Equipamentos;110;hh/ton.
+Mecânica;Instalação de Equipamentos de Precisão;250;hh/ton.
+Mecânica;Montagem de Tubulação de Aço;250;hh/ton.
+Mecânica;Montagem de Tubulação de Ferro Fundido;120;hh/ton.
+Mecânica;Agitadores de Tanques;17;hh/un.
+Mecânica;Agitador (ton);160;hh/ton.
+Mecânica;Agitador (kg);6;kg/hh
+Mecânica;Air Cooler;205;hh/ton.
+Mecânica;Alimentador de Correia;65;hh/ton.
+Mecânica;Alimentador de Parafuso;60;hh/ton.
+Mecânica;Alimentador Vibratório;80;hh/ton.
+Mecânica;Aquecedor de Ar;10;kg/hh
+Mecânica;Balança para Caminhão;887;hh/pç.
+Mecânica;Balança de Processo;50;hh/ton.
+Mecânica;Barramento Trifásico para Ponte Rolante;15;hh/m
+Mecânica;Bombas e Acionamentos (pç);271;hh/pç.
+Mecânica;Bombas e Acionamentos;182;hh/ton.
+Mecânica;Bombas Centrífugas Horizontal Até;52;hh/ton.
+Mecânica;Bombas Centrífugas Horizontal >;84;hh/ton.
+Mecânica;Britador de Mandíbulas;75;hh/ton.
+Mecânica;Britador de Argila;60;hh/ton.
+Mecânica;Britador sem Ajustagem;25;hh/ton.
+Mecânica;Britador com Ajustagem;40;hh/ton.
+Mecânica;Calha de Descarga;40;hh/ton.
+Mecânica;Caldeiras de Vapor e Água;105;hh/ton.
+Mecânica;Caldeiras Compactas;60;hh/ton.
+Mecânica;Caldeiras de Fornos de Calcinação de Calcário;85;hh/ton.
+Mecânica;Chaminés Simples;40;hh/ton.
+Mecânica;Chaminés em Seções;125;hh/ton.
+Mecânica;Chaminés (Flare);130;hh/ton.
+Mecânica;Chaminés Pré-Fabricação e Montagem;250;hh/ton.
+Mecânica;Chapa de Erosão;100;hh/ton.
+Mecânica;Ciclone Primário;50;hh/ton.
+Mecânica;Ciclone Secundário;40;hh/ton.
+Mecânica;Ciclones - Limpadores;60;hh/ton.
+Mecânica;Ciclones - Secadores;80;hh/ton.
+Mecânica;Colunas de Lavagem;25;hh/ton.
+Mecânica;Coletores;105;hh/ton.
+Mecânica;Condensador;30;hh/ton.
+Mecânica;Condensador de Gás;65;hh/ton.
+Mecânica;Compressor Simples;100;hh/ton.
+Mecânica;Compressor Centrífugo;130;hh/ton.
+Mecânica;Compressor Multi-Estágio Axial;130;hh/ton.
+Mecânica;Compressor e Acionamentos;134;hh/ton.
+Mecânica;Conversor;100;hh/ton.
+Mecânica;Decantadores;50;hh/ton.
+Mecânica;Desaerador Simples;17;hh/ton.
+Mecânica;Desaerador Convencional;60;hh/ton.
+Mecânica;Dutos Redondos;130;hh/ton.
+Mecânica;Dutos Retangulares;100;hh/ton.
+Mecânica;Dutos em Seções;65;hh/ton.
+Mecânica;Dutos em Seções (Pré-Fabricação e Montagem);100;hh/ton.
+Mecânica;Economizador;25;hh/ton.
+Mecânica;Ejetores Simples;20;hh/ton.
+Mecânica;Ejetores Tipo I;46;hh/ton.
+Mecânica;Ejetores Tipo II;71;hh/ton.
+Mecânica;Ejetores Convencionais;120;hh/ton.
+Mecânica;Elevador de Caçamba;80;hh/ton.
+Mecânica;Elevador de Caneca;100;hh/ton.
+Mecânica;Ensacadeira Rotativa;80;hh/ton.
+Mecânica;Esferas;137;hh/ton.
+Mecânica;Evaporador;25;hh/ton.
+Mecânica;Exaustores;85;hh/ton.
+Mecânica;Feixe Tubular;40;hh/ton.
+Mecânica;Filtros de Tratamento de Água;150;hh/ton.
+Mecânica;Filtros Convencionais;165;hh/ton.
+Mecânica;Filtros de Manga (Para Poeira);59;hh/ton.
+Mecânica;Filtros Eletrostáticos;87;hh/ton.
+Mecânica;Filtros Simples;35;hh/ton.
+Mecânica;Fornos Convencional;180;hh/ton.
+Mecânica;Fornos de Calcinação;60;hh/ton.
+Mecânica;Forno Rotativo;75;hh/ton.
+Mecânica;Grupo Gerador;70;hh/ton.
+Mecânica;Gerador Elétrico;30;hh/ton.
+Mecânica;Gerador Diesel C/Filtro. TQ e Acessórios;120;hh/ton.
+Mecânica;Gerador de Gás;120;hh/ton.
+Mecânica;Intercambiadores;35;hh/ton.
+Mecânica;Internos de Vasos e Torres;200;hh/ton.
+Mecânica;Lavadores;100;hh/ton.
+Mecânica;Máquinas Operatrizes e Equipamentos Auxiliares;35;hh/ton.
+Mecânica;Máquina de Flotação;135;hh/ton.
+Mecânica;Moinho de Bola – Primário – Motor;50;hh/ton.
+Mecânica;Moinho de Bola – Secundário – Motor;40;hh/ton.
+Mecânica;Peneira Rotativa;49;hh/ton.
+Mecânica;Peneira Vibratória;20;hh/ton.
+Mecânica;Permutadores;40;hh/ton.
+Mecânica;Ponte Rolante Simples;25;hh/ton.
+Mecânica;Pontes Rolantes Convencionais;90;hh/ton.
+Mecânica;Pontes Rolantes até 50 ton.;78;hh/ton.
+Mecânica;Pórticos Rolantes até 100 ton.;56;hh/ton.
+Mecânica;Purificador;40;hh/ton.
+Mecânica;Pré-Aquecedor;120;hh/ton.
+Mecânica;Queimador;160;hh/ton.
+Mecânica;Reatores (Somente Montagem);30;hh/ton.
+Mecânica;Recuperador de Pó;60;hh/ton.
+Mecânica;Reservatório de Gases;250;hh/ton.
+Mecânica;Resfriador;35;hh/ton.
+Mecânica;Refervedor;35;hh/ton.
+Mecânica;Secadores;38;hh/ton.
+Mecânica;Secador de Argila;50;hh/ton.
+Mecânica;Secadores Convencionais;50;hh/ton.
+Mecânica;Separador a Vapor;20;hh/ton.
+Mecânica;Separadores;40;hh/ton.
+Mecânica;Serpentinas de Cobre;200;hh/ton.
+Mecânica;Serpentinas de Aço Carbono;250;hh/ton.
+Mecânica;Silos;60;hh/ton.
+Mecânica;Silos (Pré-Aquecidos);40;hh/ton.
+Mecânica;Silenciadores;23;hh/pç.
+Mecânica;Sistema de Acionamento;125;hh/ton.
+Mecânica;Sopradores;160;hh/ton.
+Mecânica;Super Aquecedor;132;hh/ton.
+Mecânica;Tanque;25;hh/ton.
+Mecânica;Tanque (Montagem + Soldagem);70;hh/ton.
+Mecânica;Tambores;25;hh/ton.
+Mecânica;Trilhos;25;hh/ton.
+Mecânica;Trilhos de Pontes Rolantes sobre Estruturas;90;hh/ton.
+Mecânica;Torre de Resfriamento;40;hh/ton.
+Mecânica;Torre de Transferência;100;hh/ton.
+Mecânica;Torre (Petrobrás) Bandejas Internas;190;hh/ton.
+Mecânica;Torre em Partes com Bandejas;85;hh/ton.
+Mecânica;Torre Convencional (Montagem Inteira);25;hh/ton.
+Mecânica;Trocador de Calor Grande;19;hh/ton.
+Mecânica;Trocador de Calor Médio e Pequeno;35;hh/ton.
+Mecânica;Tanque de Comum;29;hh/ton.
+Mecânica;Tanque de Armazenagem;108;hh/ton.
+Mecânica;Tanque de Processo;85;hh/
+Mecânica;Turbo Gerador;281;hh/ton.
+Mecânica;Turbinas Convencionais;120;hh/ton.
+Mecânica;Turbina a Gás;90;hh/ton.
+Mecânica;Turbina a Vapor;90;hh/ton.
+Mecânica;Turbo-Separador;60;hh/ton.
+Mecânica;Transportadores de Correia C/Mecanismo;120;hh/ton.
+Mecânica;Transportador de Correia;61;hh/ton.
+Mecânica;Transportador de Parafuso;64;hh/ton.
+Mecânica;Transportador Contínuo Vertical (Caçambas);67;hh/ton.
+Mecânica;Transportador Pneumático;80;hh/ton.
+Mecânica;Transportador de Caçambas;80;hh/ton.
+Mecânica;Transportador de Rosca;40;hh/ton.
+Mecânica;Transportador de Arraste;65;hh/ton.
+Mecânica;Tremonhas;80;hh/ton.
+Mecânica;Válvulas Rotativas;150;hh/ton.
+Mecânica;Ventiladores;90;hh/ton.
+Mecânica;Vasos;23;hh/ton.
+Mecânica;Vasos (com Montagem dos Internos);35;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Tambor de Lama;10;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Tambor de Vapor;10;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Parede ou Serpentina Tubular;110;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Riser Downcomer;90;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Economizador;80;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Superaquecedor;80;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Removedores de Fuligem;50;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Maçaricos;80;hh/ton.
+Mecânica;Montagem de Geração de Vapor - Caldeiras - Chaminé;60;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Geral Caldeira VU – 60–100 T/M;130;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Partes de Pressão - Corpos;25;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Partes de Pressão - Fornalhas;60;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Partes de Pressão - Tubos de Bank;120;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Partes de Pressão - Tubos de RH–SH;128;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Partes de Pressão - Invólucro;70;hh/ton.
+Mecânica;Montagem de Caldeira VU – 60–100 T/M - Partes de Pressão - Buck-Stay;77;hh/ton.
+Mecânica;Montagem de Compressores - Moto-Redutor;105;hh/ton.
+Mecânica;Montagem de Compressores - Cilindro-Pistão;220;hh/ton.
+Mecânica;Montagem de Compressores - Elétrico;50;hh/ton.
+Mecânica;Montagem de Esferas - Geral Esfera;95;hh/ton.
+Mecânica;Montagem de Esferas - Montagem;30;hh/ton.
+Mecânica;Montagem de Esferas - Soldas e Reparos;40;hh/ton.
+Mecânica;Montagem de Esferas - Estruturas;25;hh/ton.
+Mecânica;Montagem de Moega Coletora - Moega Coletora s/Transporte;60;hh/ton.
+Mecânica;Montagem de Moega Coletora - Boca de Descarga;70;hh/ton.
+Mecânica;Montagem de Moega Coletora - Grelha para Piso sob Boca;55;hh/ton.
+Mecânica;Montagem de Moega Coletora - Moega de Carga;40;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Carcaça. Painel Lateral e Funil;30;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Isolador e Caixa;85;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Mecanismo de Deslocamento de Pó para Telas;100;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Rolos Suportes;125;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Telas Filtrantes para Gás;100;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Teto da Caixa e Painel do Teto;90;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Tela Filtrante para Caixa e Term.;135;hh/ton.
+Mecânica;Montagem de Precipitador Eletrostático - Estrutura Plataforma. Escadas e Corrimãos;125;hh/ton.
+Mecânica;Montagem de Reator - Somente Montagem;30;hh/ton.
+Mecânica;Montagem de Reator - Montagem e Soldagem;70;hh/ton.
+Mecânica;Montagem de Transportadores de Correia - Transportador de Correia;0.13;hh/kg
+Mecânica;Montagem de Transportadores de Correia - Transportador de Correia - Largura 1.524 mm;0.06;hh/kg
+Mecânica;Montagem de Transportadores de Correia - Transportador de Correia - Largura 1.828 mm;0.05;hh/kg
+Mecânica;Lançamento de Correia Exceto Emenda (Transportador de Correia) - Lançamento de Correia - Largura até;1.5;hh/m
+Mecânica;Lançamento de Correia Exceto Emenda (Transportador de Correia) - Lançamento de Correia - Largura de a;2.3;hh/m
+Mecânica;Montagem de Bombas Acopladas s/Graut - Bombas Acopladas - Peso até 100 kg;20;hh/pç.
+Mecânica;Montagem de Bombas Acopladas s/Graut - Bombas Acopladas - Peso até 100 kg (ton);200;hh/ton.
+Mecânica;Montagem de Bombas Acopladas s/Graut - Bombas Acopladas - Peso de 100 kg até 1.000 kg;50;hh/pç.
+Mecânica;Montagem de Bombas Acopladas s/Graut - Bombas Acopladas - Peso de 100 kg até 1.000 kg (ton);100;hh/ton.
+Mecânica;Montagem de Bombas Acopladas s/Graut - Bombas Acopladas - Peso acima de 1.000 kg;80;hh/pç.
+Mecânica;Montagem de Bombas Acopladas s/Graut - Bombas Acopladas - Peso acima de 1.000 kg (ton);40;hh/ton.
+Mecânica;Montagem de Bombas Acopladas - Bombas Acopladas - Peso até 1.000 kg;65;hh/pç.
+Mecânica;Montagem de Bombas Acopladas - Bombas Acopladas - Peso até 1.000 kg (ton);130;hh/ton.
+Mecânica;Montagem de Bombas Acopladas - Bombas Acopladas - Peso acima de 1.000 kg até 5.000 kg;105;hh/pç.
+Mecânica;Montagem de Bombas Acopladas - Bombas Acopladas - Peso acima de 1.000 kg até 5.000 kg (ton);55;hh/ton.
+Mecânica;Montagem de Compressores - Compressor Complexo. Recebido Desmontado. Incluindo Lubrificação. Tanque de Óleo. Descarga etc.;220;hh/ton.
+Mecânica;Montagem de Compressores - Compressor Simples - Elétrico;40;hh/ton.
+Mecânica;Montagem de Fornalhas - Estruturas Suporte;50;hh/ton.
+Mecânica;Montagem de Fornalhas - Chaparia;60;hh/ton.
+Mecânica;Montagem de Fornalhas - Tubulação Interna;350;hh/ton.
+Mecânica;Montagem de Fornalhas - Queimadores;50;hh/ton.
+Mecânica;Montagem de Filtros Rotativos - Filtros Rotativos. Casco. Acionamento Motor. Sistema de Lubrificação. Internos Filtrantes;65;hh/ton.
+Mecânica;Montagem de Misturador/Agitador - Peso até;200;hh/ton.
+Mecânica;Montagem de Misturador/Agitador - Peso >;200;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Diesel - Tanque de Óleo;120;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Diesel - Lotes de Distribuição (0.09);110;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Diesel - Filtro Cesta (0.02);120;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Combustível - Pré-Aquecedor;120;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Combustível - Aquecedor;120;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Combustível - Bombas de Distribuição de Óleo;120;hh/ton.
+Mecânica;Montagem de Sistema de Óleo Combustível - Filtro Cesta;135;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Caldeira;20;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Ejetor Saldura;500;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Agitador Tanque + Tanque (Skid);135;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Bomba de Alimentação;20;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Bomba de Limpeza;40;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Bomba Dosadora;135;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Tanque de Água de Limpeza;20;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Tanque de Produtos Químicos;125;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Tanque Diesel Cala.;120;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Vaso;20;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Desaerador;20;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Ventilador;20;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Compressor;135;hh/ton.
+Mecânica;Montagem de Sistema de Vapor - Bomba de Óleo;125;hh/ton.
+Mecânica;Montagem de Sistema de Água Gelada - Unidade de Refrigeração;60;hh/ton.
+Mecânica;Montagem de Sistema de Água Gelada - Bombas;60;hh/ton.
+Mecânica;Montagem de Sistema de Água Gelada - Tanque de Expansão;60;hh/ton.
+Mecânica;Montagem de Sistema de Água Gelada - Filtro Cesta;60;hh/ton.
+Mecânica;Montagem de Sistema de Água Gelada - Trocador de Placas;600;hh/ton.
+Mecânica;Montagem de Sistema de Ar Comprimido - Compressor;40;hh/ton.
+Mecânica;Montagem de Sistema de Ar Comprimido - Secador;40;hh/ton.
+Mecânica;Montagem de Sistema de Ar Comprimido - Resfriador;40;hh/ton.
+Mecânica;Montagem de Sistema de Ar Comprimido - Filtros de Ar;160;hh/ton.
+Mecânica;Montagem de Sistema de Ar Comprimido - Reservatório de Ar;40;hh/ton.
+Mecânica;Montagem de Sistema de Distribuição de Água - Tanque de Tratamento de Água;125;hh/ton.
+Mecânica;Montagem de Sistema de Distribuição de Água - Bombas;35;hh/ton.
+Mecânica;Montagem de Sistema de Distribuição de Água - Tanque de Água;30;hh/ton.
+Mecânica;Montagem de Sistema de Distribuição de Água - Agitador;135;hh/ton.
+Mecânica;Montagem de Sistema de Água Resfriada - Air Cooler;70;hh/ton.
+Mecânica;Montagem de Sistema de Água Resfriada - Bombas de Água de Circulação Fechada;70;hh/ton.
+Mecânica;Montagem de Sistema de Água Resfriada - Tanques;100;hh/ton.
+Mecânica;Montagem de Sistema de Água Resfriada - Agitador;70;hh/ton.
+Mecânica;Montagem de Sistema de Água Resfriada - Torre de Resfriamento;70;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Cadinho e Fundo;110;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Sistema de Refrigeração do Cadinho;200;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Ventaneiras;90;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Cuba Goela;110;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Bustle Main e Algaravises;90;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Off Takes e VP Tanques;120;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Bifurcador e Down Comer;100;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Placas de Refrigeração;60;hh/ton.
+Caldeiraria;Montagem de Alto Forno - Miscelânias;150;hh/ton.
+Caldeiraria;Montagem de Caldeiraria de Diversos Equipamentos - Alto Forno;103;hh/ton.
+Caldeiraria;Montagem de Caldeiraria de Diversos Equipamentos - Regenerador;113;hh/ton.
+Caldeiraria;Montagem de Caldeiraria de Diversos Equipamentos - Coletor de Pó;122;hh/ton.
+Caldeiraria;Montagem de Caldeiraria de Diversos Equipamentos - V. Scruber;128;hh/ton.
+Caldeiraria;Montagem de Chaminés - Chaminé Simples Soldada até de Altura;70;hh/ton.
+Caldeiraria;Montagem de Chaminés - Chaminé até 4 Pernas. Altura > Soldada;120;hh/ton.
+Caldeiraria;Montagem de Equipamentos de Laminação - Leito de Resfriamento;29;hh/ton.
+Caldeiraria;Montagem de Equipamentos de Laminação - Trem de Desbaste;35;hh/ton.
+Caldeiraria;Montagem de Equipamentos de Laminação - Trem Intermediário e Médio;42;hh/ton.
+Caldeiraria;Montagem de Equipamentos de Laminação - Trem de Acabamento;52;hh/ton.
+Caldeiraria;Montagem de Tanques - Montagem do Fundo;7.5;hh/ton.
+Caldeiraria;Montagem de Tanques - Soldagem do Fundo;0.5;hh/ton.
+Caldeiraria;Montagem de Tanques - Montagem do Costado;1.6;hh/ton.
+Caldeiraria;Montagem de Tanques - Soldagem Horizontal do Costado;0.4;hh/ton.
+Caldeiraria;Montagem de Tanques - Soldagem Vertical do Costado;0.9;hh/ton.
+Caldeiraria;Montagem de Tanques - Montagem de Estruturas;28;hh/ton.
+Caldeiraria;Montagem de Tanques - Montagem das Chapas do Teto;19;hh/ton.
+Caldeiraria;Montagem de Tanques - Soldagem das Chapas do Teto;0.25;hh/ton.
+Caldeiraria;Montagem de Tanques - Montagem do Teto Flutuante;5.5;hh/ton.
+Caldeiraria;Montagem de Tanques - Soldagem do Teto Flutuante;0.14;hh/ton.
+Caldeiraria;Montagem de Plataformas Submarinas - Jaquetas;103;hh/ton.
+Caldeiraria;Montagem de Plataformas Submarinas - Bracings – Solda;0.08;hh/cm3
+Caldeiraria;Montagem de Plataformas Submarinas - Pernas – Solda;0.05;hh/cm3
+Caldeiraria;Montagem de Plataformas Submarinas - Montagem de Campo – Solda;0.08;hh/cm3
+Caldeiraria;Montagem de Plataformas Submarinas - Edificação;0.1;hh/cm3
+Caldeiraria;Montagem de Plataformas Submarinas - Estaca;30;hh/ton.
+Caldeiraria;Montagem de Plataformas Submarinas - Acoplamento + Solda Oficina;0.03;hh/cm3
+Caldeiraria;Montagem de Plataformas Submarinas - Solda de Campo;0.06;hh/cm3
+Caldeiraria;Montagem de Plataformas Submarinas - Convés;170;hh/ton.
+Caldeiraria;Montagem de Plataformas Submarinas - Fabricação/Montagem Geral;170;hh/ton.
+Caldeiraria;Montagem de Plataformas Submarinas - Montagem de Anodos;46;hh/un.
+Metálica;Fabricação de Estrutura Metálicas - Estrutura;110;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes de Tubulação;120;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes de Elétrica;140;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes de Instrumentação;230;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes de Chaves;150;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Chumbadores;15;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Postes de Ferro;35;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Pisos Metálicos Grandes Superfícies;80;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Passarelas GDS. Corridas c/Escadas e Corrim.;120;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Passarelas Leves;130;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Portas Metálicas;500;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Escadas Espiral Diam. 1.50 Aço 120 kg/m;150;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Corrimãos;300;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Estrutura Sustent. Grandes Equipam. Fixos;120;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Estrut. Integrada a Grandes Equipam. Móveis;120;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Estrutura de Acesso e Proteção;120;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Pipe Rack Metálico;60;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes até ½ kg;1200;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes sem Solda até 5 kg;800;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes sem Solda até 10 kg;500;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes com Solda até 5 kg;500;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes com Solda até 20 kg;300;hh/ton.
+Metálica;Fabricação de Estrutura Metálicas - Suportes com Solda acima de 20 kg;200;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura Perfilada;80;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura Laminar;100;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura Metálica Pesada;60.5;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura Metálica Média;65;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura Metálica Leve;70;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura Metálica Esbelta;120;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Escadas;150;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Corrimãos;140;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Plataformas;80;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Pipe-Rack;60;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilhos (ton);100;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilhos;2;hh/ml
+Metálica;Montagem de Estruturas Metálicas - Suportes de Tubulações;300;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Suportes de Elétrica;350;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Suportes de Instrumentação;500;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Cobertura;2;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Monovias;200;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Condutor de Águas Pluviais (Calhas);21;hh/ml
+Metálica;Montagem de Estruturas Metálicas - Dutos Metálicos Pluviais;110;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Galpões Pesados Tipo Aciaria Elev. > 50 m;45;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Galpões Pesados Tipo Aciaria Elev. ≤ 50 m;40;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Galpões Médios Homogênios Tipo Laminação;30;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Galpões Leves Tipo Casa de Bomba. Oficinas;60;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Pisos Metálicos Grandes Superfícies;50;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Passarelas Gds. Corridas c/Escadas e Corrim.;60;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Passarelas Leves;30;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Portas Metálicas;300;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Aeradores Dutos Metal Contínuos (Pluvial);185;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilhos Fixados sobre Estruturas;100;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Escadas Espiral Diam. 1.50 Aço 120 kg/m;60;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrut. Sustent. Grandes Equipam. Fixos;50;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrut. Sustent. Médios/Peq. Equipam. Fixos;60;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrut. Integrada a Grandes Equipam. Móveis;40;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Estrutura de Acesso e Proteção;80;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Pipe Rack Metálico;25;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilho sobre Concreto Embut. Tipo Pórtico (ton);180;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilho Fixado s/Estrutura;150;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilho sobre Concreto Embut. Tipo Pórtico;10;hh/m
+Metálica;Montagem de Estruturas Metálicas - Trilho sobre Vigas de Rolam. Ponteados Viga;40;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Trilho sobre Vigas de Rolamento Fixos com Castanha e Furação da Viga;90;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Cobertura Galvanizada Alumínio Chapa Corrugada ou Similares;1;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Cobertura Galvanizada Alumínio Chapa Corrosiva ou Similares;0.6;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Idem It. 043 + Duplas Tipo Sanduíche;1.5;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Idem It. 043 + Poliéster;0.9;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Tapamento Galvanizado Alumínio Corrugado;1.2;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Tapamento Tipo Sanduíche;1.75;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Tapamento em Arco Tipo Transportador;1.5;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Tapamento Lateral;1;hh/m2
+Metálica;Montagem de Estruturas Metálicas - Suportes até ½ kg;800;hh/ton.
+Metálica;Montagem de Estruturas Metálicas - Suportes sem Solda até 5 kg;500;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Galpões Leves;71;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Galpões Médios;53.5;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Galpões Pesados;34.5;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Estrutura de Sustentação de Grandes Equipamentos Fixos;38;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Estrutura de Sustentação de Médios e Pequenos Equipamentos Fixos;52.5;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Estruturas de Acesso e de Proteção;97;hh/ton.
+Metálica;Montagem de Galpões e Demais Estruturas Tubulares - Pipe-Rack Tubular;48;hh/ton.
+Elétrica;Montagem de Equipamentos Elétricos - Banco de Baterias de 125 V;120;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Banco de Baterias de 24 V;60;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Baterias;50;hh/cj
+Elétrica;Montagem de Equipamentos Elétricos - Carregador de Baterias de 125 V;80;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Carregador de Baterias de 24 V;40;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Chave Seccionadora;60;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Conjunto de Manobras de 13.8 kV;1200;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Disjuntor;200;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Dutos de Barras;40;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Mesa de Comando;170;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Mesa de Controle;400;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Quadro de Iluminação;10;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Quadro de Distribuição;10;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de C.C. de C.C. 125 V;80;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de C.C. de C.C. 24 V;20;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Luz;46;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Iluminação;80;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de 13.8 kV;720;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Centro de Cargas 480 V;640;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de C.C.M. de 480 V;510;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de C.C.M. de 4.16 kV;510;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Força de Instrumentação;120;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Central de Instrumentos;960;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Auxiliar;95;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Ponte Rolante;60;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Principal de Controle;1200;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Distribuição de Instrumentos;300;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Alimentador de Controle;70;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Contatores Magnéticos;60;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Retificador;440;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Corrente Contínua;200;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Mímico;440;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Registrador;220;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel Transformador;400;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel das Linhas A.T.;400;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel do Carregador de Baterias;100;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Distribuição Interna de C.A.;150;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Painel de Centro de Carga C.A.;150;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Luz;25;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Iluminação (Médio);25;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Iluminação (Grande);100;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Força (Entrada);40;hh/kva
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Força;160;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Instrumentação;25;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Tomada de Força;20;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Tomada de Solda;20;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Potência;400;hh/unid.
+Elétrica;Montagem de Equipamentos Elétricos - Transformador de Corrente;400;hh/unid.
+Elétrica;Montagem Geral - Unidade Industrial sem Projeto (Entrada);18;hh/mva
+Elétrica;Montagem Geral - Dutos de Amianto;0.5;hh/m
+Elétrica;Montagem Geral - Eletroduto Galvanizado com Suporte;2;hh/m
+Elétrica;Montagem Geral - Eletroduto Galvanizado sem Suporte;0.5;hh/m
+Elétrica;Montagem Geral - Eletroduto Flexível com Suporte;2.9;hh/m
+Elétrica;Montagem Geral - Bandejas com Suportes;2;hh/m
+Elétrica;Montagem Geral - Cabo de Aterramento;0.5;hh/m
+Elétrica;Montagem Geral - Cabo de Alta Tensão;2;hh/m
+Elétrica;Montagem Geral - Cabo de Baixa Tensão;0.6;hh/m
+Elétrica;Montagem Geral - Ligações ou Terminações em Subestações;20;un/m
+Elétrica;Montagem Geral - Ligações ou Terminações;1;hh/un
+Elétrica;Montagem Geral - Para-Raio;5;hh/un
+Elétrica;Montagem Geral - Resistor de Aterramento;140;hh/un
+Elétrica;Montagem Geral - Luminária;5;hh/un
+Elétrica;Montagem Geral - Suportes (Bandejas e Eletrodutos);0.5;un/m
+Elétrica;Montagem Geral - Mesa de Comando;170;hh/un
+Elétrica;Montagem Geral - Mesa de Controle;400;hh/un
+Elétrica;Montagem Geral - Quadro de Iluminação;10;hh/un
+Elétrica;Montagem Geral - Quadro de Distribuição;10;hh/un
+Elétrica;Montagem Geral - Transformador de Força (Entrada);40;hh/kva
+Elétrica;Montagem Geral - Transformador de Potência;400;hh/un
+Elétrica;Montagem Geral - Transformador de Corrente;400;hh/un
+Elétrica;Montagem Geral - Transformador de Iluminação;100;hh/un
+Elétrica;Montagem Geral - Disjuntor;200;hh/un
+Elétrica;Montagem Geral - Conjunto de Manobra 13.8 kV;1200;hh/un
+Elétrica;Montagem Geral - Centro de Controle de Motores 4.16 kV;500;hh/un
+Elétrica;Montagem Geral - Painel de Iluminação;80;hh/un
+Elétrica;Montagem Geral - Painel Principal de Controle;1200;hh/un
+Elétrica;Montagem Geral - Painel de Distribuição de Instrumentos;300;hh/un
+Elétrica;Montagem Geral - Painel Alimentador de Controle;70;hh/un
+Elétrica;Montagem Geral - Painel de Contatores Magnéticos;60;hh/un
+Elétrica;Montagem Geral - Painel Retificador;440;hh/un
+Elétrica;Montagem Geral - Painel de Corrente Contínua;200;hh/un
+Elétrica;Montagem Geral - Painel Mímico;440;hh/un
+Elétrica;Montagem Geral - Painel Registrador;220;hh/un
+Elétrica;Montagem Geral - Painel Transformador;400;hh/un
+Elétrica;Montagem Geral - Painel das Linhas A.T.;400;hh/un
+Elétrica;Montagem Geral - Painel do Carregador de Baterias;100;hh/un
+Elétrica;Montagem Geral - Painel de Distribuição Interna de C.A.;150;hh/un
+Elétrica;Montagem Geral - Painel de Centro de Carga C.A.;150;hh/un
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 1/2""";0.5;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 3/4""";0.73;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 1""";0.94;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 1 1/4""";1.13;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 1 1/2""";1.31;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 2""";1.69;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 2 1/2""";2.03;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 3""";2.34;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 3 1/2""";2.63;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 4""";2.9;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 5""";3.39;hh/m
+Elétrica;"Eletroduto de Aço Galvanizado Fixado com Braçadeiras - Diâmetro de 6""";3.79;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 1/2""";0.58;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 3/4""";0.84;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 1""";1.07;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 1 1/4""";1.27;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 1 1/2""";1.46;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 2""";1.82;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 2 1/2""";2.17;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 3""";2.44;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 3 1/2""";2.68;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 4""";2.86;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 5""";3.15;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Laje de Concreto - Diâmetro de 6""";3.38;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 1/2""";0.6;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 3/4""";0.88;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 1""";1.13;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 1 1/4""";1.36;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 1 1/2""";1.57;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 2""";2.03;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 2 1/2""";2.44;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 3""";2.61;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 3 1/2""";3.16;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 4""";3.48;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 5""";3.79;hh/m
+Elétrica;"Eletroduto de Aço Embutido em Parede de Alvenaria - Diâmetro de 6""";4.09;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 1/2""";0.6;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 3/4""";0.88;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 1""";1.13;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 1 1/4""";1.36;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 1 1/2""";1.57;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 2""";2.03;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 2 1/2""";2.44;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 3""";2.61;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 3 1/2""";3.16;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 4""";3.48;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 5""";3.79;hh/m
+Elétrica;"Eletroduto de Aço Suspenso por Cabo de Aço - Diâmetro de 6""";4.09;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 1/2""";0.35;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 3/4""";0.5;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 1""";0.62;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 1 1/4""";0.77;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 1 1/2""";0.88;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 2""";1.12;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 2 1/2""";1.33;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 3""";1.52;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 3 1/2""";1.67;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 4""";1.8;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 5""";2.04;hh/m
+Elétrica;"Eletroduto de Aço Enterrado Diretamente no Solo. Excluso Valetamento - Diâmetro de 6""";2.2;hh/m
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 1/2""";1;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 3/4""";1.3;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 1""";1.55;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 1 1/4""";1.8;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 1 1/2""";2.1;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 2""";2.5;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 2 1/2""";2.8;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 3""";3.15;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 3 1/2""";3.35;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 4""";3.6;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 5""";4;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto. Fixada com Ferragens Padronizadas - Diâmetro de 6""";4.5;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 1/2""";0.8;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 3/4""";1.04;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 1""";1.24;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 1 1/4""";1.44;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 1 1/2""";1.68;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 2""";2;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 2 1/2""";2.32;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 3""";2.52;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 3 1/2""";2.68;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 4""";2.88;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 5""";3.2;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Laje - Diâmetro de 6""";3.6;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 1/2""";1.25;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 3/4""";1.62;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 1""";1.94;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 1 1/4""";2.25;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 1 1/2""";2.62;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 2""";2.8;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 2 1/2""";2.95;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 3""";3.2;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 3 1/2""";3.4;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 4""";3.6;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 5""";4;hh/pç
+Elétrica;"Curva de Aço 90 Graus para Eletroduto Embutida em Parede de Alvenaria - Diâmetro de 6""";4.5;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 1/2""";0.39;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 3/4""";0.47;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 1""";0.55;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 1 1/4""";0.7;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 1 1/2""";0.81;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 2""";0.89;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 2 1/2""";0.91;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 3""";0.98;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 3 1/2""";1.17;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 4""";1.41;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 5""";1.61;hh/pç
+Elétrica;"Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 6""";1.76;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 1/2""";0.6;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 3/4""";0.68;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 1""";0.85;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 1 1/4""";1.07;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 1 1/2""";1.25;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 2""";1.37;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 2 1/2""";1.4;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 3""";1.5;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 3 1/2""";1.8;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 4""";2.17;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 5""";2.48;hh/pç
+Elétrica;"Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 6""";2.7;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 1/2""";0.6;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 3/4""";0.68;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 1""";0.85;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 1 1/4""";1.07;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 1 1/2""";1.25;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 2""";1.37;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 2 1/2""";1.4;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 3""";1.5;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 3 1/2""";1.8;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 4""";2.17;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 5""";2.48;hh/pç
+Elétrica;"Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 6""";2.7;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 1/2""";0.75;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 3/4""";0.88;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 1""";1.07;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 1 1/4""";1.27;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 1 1/2""";1.5;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 2""";1.65;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 2 1/2""";1.68;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 3""";1.8;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 3 1/2""";2.2;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 4""";2.6;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 5""";2.99;hh/pç
+Elétrica;"Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 6""";3.32;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 1/2""";0.87;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 3/4""";1.04;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 1""";1.2;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 1 1/4""";1.5;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 1 1/2""";1.8;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 2""";2;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 2 1/2""";2.1;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 3""";2.3;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 3 1/2""";2.5;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 4""";3;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 5""";3.47;hh/pç
+Elétrica;"Condulete Tipo “X” para Eletroduto de Aço - Diâmetro de 6""";3.88;hh/pç
+Elétrica;"Tomada em Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 1/2""";2.2;hh/pç
+Elétrica;"Tomada em Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 3/4""";2.2;hh/pç
+Elétrica;"Tomada em Condulete Tipo “E” para Eletroduto de Aço - Diâmetro de 1""";2.6;hh/pç
+Elétrica;"Tomada em Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 1/2""";2.7;hh/pç
+Elétrica;"Tomada em Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 3/4""";2.7;hh/pç
+Elétrica;"Tomada em Condulete Tipo “C” para Eletroduto de Aço - Diâmetro de 1""";3.1;hh/pç
+Elétrica;"Interruptor em Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 1/2""";2.35;hh/pç
+Elétrica;"Interruptor em Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 3/4""";2.35;hh/pç
+Elétrica;"Interruptor em Condulete Tipo “L” para Eletroduto de Aço - Diâmetro de 1""";2.7;hh/pç
+Elétrica;"Interruptor em Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 1/2""";2.6;hh/pç
+Elétrica;"Interruptor em Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 3/4""";2.6;hh/pç
+Elétrica;"Interruptor em Condulete Tipo “T” para Eletroduto de Aço - Diâmetro de 1""";3.27;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 1/2""";0.19;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 3/4""";0.19;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 1""";0.19;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 1 1/4""";0.2;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 1 1/2""";0.21;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 2""";0.23;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 2 1/2""";0.27;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 3""";0.27;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 3 1/2""";0.28;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 4""";0.3;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 5""";0.32;hh/pç
+Elétrica;"Bucha para Eletroduto de Aço - Diâmetro de 6""";0.35;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 1/2""";0.1;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 3/4""";0.1;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 1""";0.1;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 1 1/4""";0.11;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 1 1/2""";0.11;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 2""";0.11;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 2 1/2""";0.13;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 3""";0.14;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 3 1/2""";0.14;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 4""";0.15;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 5""";0.16;hh/pç
+Elétrica;"Arruela para Eletroduto de Aço - Diâmetro de 6""";0.17;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 1/2""";0.83;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 3/4""";0.84;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 1""";0.86;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 1 1/4""";0.97;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 1 1/2""";1.06;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 2""";1.13;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 2 1/2""";1.27;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 3""";1.52;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 3 1/2""";1.6;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 4""";1.7;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 5""";1.83;hh/pç
+Elétrica;"União para Eletroduto de Aço - Diâmetro de 6""";1.96;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 1/2""";0.83;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 3/4""";0.84;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 1""";0.86;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 1 1/4""";0.97;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 1 1/2""";1.06;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 2""";1.13;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 2 1/2""";1.27;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 3""";1.52;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 3 1/2""";1.6;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 4""";1.7;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 5""";1.83;hh/pç
+Elétrica;"Redução para Eletroduto de Aço - Diâmetro de 6""";1.96;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 1/2""";0.91;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 3/4""";0.92;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 1""";0.94;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 1 1/4""";1.06;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 1 1/2""";1.16;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 2""";1.24;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 2 1/2""";1.39;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 3""";1.67;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 3 1/2""";1.76;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 4""";1.87;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 5""";1.99;hh/pç
+Elétrica;"Unidade Seladora para Eletroduto de Aço - Diâmetro de 6""";2.13;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 1/2""";0.29;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 3/4""";0.29;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 1""";0.32;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 1 1/4""";0.34;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 1 1/2""";0.36;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 2""";0.38;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 2 1/2""";0.4;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 3""";0.41;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 3 1/2""";0.43;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 4""";0.45;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 5""";0.47;hh/pç
+Elétrica;"Prensa Cabo para Cabos - Diâmetro de 6""";0.5;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 1/2""";0.29;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 3/4""";0.29;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 1""";0.32;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 1 1/4""";0.34;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 1 1/2""";0.36;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 2""";0.38;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 2 1/2""";0.4;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 3""";0.41;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 3 1/2""";0.43;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 4""";0.45;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 5""";0.47;hh/pç
+Elétrica;"Luva para Eletrodutos de Aço - Diâmetro de 6""";0.5;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 1/2""";0.29;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 3/4""";0.29;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 1""";0.32;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 1 1/4""";0.34;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 1 1/2""";0.36;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 2""";0.38;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 2 1/2""";0.4;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 3""";0.41;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 3 1/2""";0.43;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 4""";0.45;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 5""";0.47;hh/pç
+Elétrica;"Niple para Eletrodutos de Aço - Diâmetro de 6""";0.5;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 1/2""";0.19;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 3/4""";0.19;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 1""";0.19;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 1 1/4""";0.2;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 1 1/2""";0.21;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 2""";0.23;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 2 1/2""";0.27;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 3""";0.27;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 3 1/2""";0.28;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 4""";0.3;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 5""";0.32;hh/pç
+Elétrica;"Cap para Eletrodutos de Aço - Diâmetro de 6""";0.35;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 1/2""";0.4;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 3/4""";0.5;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 1""";0.7;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 1 1/4""";0.8;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 1 1/2""";0.9;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 2""";1.2;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 2 1/2""";1.5;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 3""";1.7;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 3 1/2""";2.2;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 4""";2.8;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 5""";3.6;hh/pç
+Elétrica;"Curvatura para Eletrodutos de Aço - Diâmetro de 6""";4.3;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 1/2""";0.2;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 3/4""";0.2;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 1""";0.22;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 1 1/4""";0.23;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 1 1/2""";0.23;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 2""";0.25;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 2 1/2""";0.25;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 3""";0.3;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 3 1/2""";0.3;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 4""";0.35;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 5""";0.4;hh/pç
+Elétrica;"Abraçadeira Tipo “U” e “D” para Eletrodutos de Aço - Diâmetro de 6""";0.45;hh/pç
+Elétrica;Caixa de Ligação à Prova de Tempo - Pequena;3;hh/pç
+Elétrica;Caixa de Ligação à Prova de Tempo - Média;4;hh/pç
+Elétrica;Caixa de Ligação à Prova de Tempo - Grande;6;hh/pç
+Elétrica;Caixa de Ligação à Prova de Explosão - Pequena;3.5;hh/pç
+Elétrica;Caixa de Ligação à Prova de Explosão - Média;4.5;hh/pç
+Elétrica;Caixa de Ligação à Prova de Explosão - Grande;7;hh/pç
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 1/2""";1.4;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 3/4""";1.7;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 1""";2.34;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 1 1/4""";3.34;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 1 1/2""";3.48;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 2""";4;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 2 1/2""";4.94;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 3""";5.6;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 3 1/2""";6.2;hh/m
+Elétrica;"Eletroduto Flexível Tipo Sealtubo - Diâmetro de 4""";6.8;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 1/2""";1.8;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 3/4""";2.14;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 1""";2.54;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 1 1/4""";3.54;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 1 1/2""";3.88;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 2""";4.6;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 2 1/2""";5.54;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 3""";6.4;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 3 1/2""";7.1;hh/m
+Elétrica;"Eletroduto Flexível à Prova de Explosão - Diâmetro de 4""";7.8;hh/m
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 1/2""";0.33;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 3/4""";0.43;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 1""";0.53;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 1 1/4""";0.83;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 1 1/2""";0.86;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 2""";1;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 2 1/2""";1.23;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 3""";1.4;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 3 1/2""";1.55;hh/pç
+Elétrica;"Conector para Eletroduto Flexível - Diâmetro de 4""";1.7;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 1/2""";1.4;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 3/4""";1.73;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 1""";2.13;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 1 1/4""";3.33;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 1 1/2""";3.46;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 2""";4;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 2 1/2""";4.93;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 3""";5.5;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 3 1/2""";6.2;hh/pç
+Elétrica;"Eletroduto Flexível à Prova de Tempo em Peças de 500 mm com 2 Conectores - Diâmetro de 4""";6.8;hh/pç
+Elétrica;"Eletroduto de Fibrocimento Aplicado Diretamente no Solo - Diâmetro de 2""";0.6;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Diretamente no Solo - Diâmetro de 3""";0.7;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Diretamente no Solo - Diâmetro de 4""";0.8;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Diretamente no Solo - Diâmetro de 6""";0.9;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Envolto em Concreto - Diâmetro de 2""";0.8;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Envolto em Concreto - Diâmetro de 3""";0.9;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Envolto em Concreto - Diâmetro de 4""";1;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado Envolto em Concreto - Diâmetro de 5""";1.1;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado em Envelopes com Elementos - Diâmetro de 2""";3.2;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado em Envelopes com Elementos - Diâmetro de 3""";3.6;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado em Envelopes com Elementos - Diâmetro de 4""";4;hh/m
+Elétrica;"Eletroduto de Fibrocimento Aplicado em Envelopes com Elementos - Diâmetro de 5""";4.4;hh/m
+Elétrica;"Curva de 45 Graus em Fibrocimento - Diâmetro de 2""";2.4;hh/pç
+Elétrica;"Curva de 45 Graus em Fibrocimento - Diâmetro de 3""";2.7;hh/pç
+Elétrica;"Curva de 45 Graus em Fibrocimento - Diâmetro de 4""";3.15;hh/pç
+Elétrica;"Curva de 45 Graus em Fibrocimento - Diâmetro de 5""";3.5;hh/pç
+Elétrica;"Curva de 90 Graus em Fibrocimento - Diâmetro de 2""";2.4;hh/pç
+Elétrica;"Curva de 90 Graus em Fibrocimento - Diâmetro de 3""";2.7;hh/pç
+Elétrica;"Curva de 90 Graus em Fibrocimento - Diâmetro de 4""";3.15;hh/pç
+Elétrica;"Curva de 90 Graus em Fibrocimento - Diâmetro de 5""";3.5;hh/pç
+Elétrica;"Luva Plástica para Conexão de Fibrocimento - Diâmetro de 2""";2;hh/pç
+Elétrica;"Luva Plástica para Conexão de Fibrocimento - Diâmetro de 3""";2.3;hh/pç
+Elétrica;"Luva Plástica para Conexão de Fibrocimento - Diâmetro de 4""";2.7;hh/pç
+Elétrica;"Luva Plástica para Conexão de Fibrocimento - Diâmetro de 5""";3.7;hh/pç
+Elétrica;"Adaptador Bocal para Conexão de Fibrocimento - Diâmetro de 2""";2.4;hh/pç
+Elétrica;"Adaptador Bocal para Conexão de Fibrocimento - Diâmetro de 3""";2.7;hh/pç
+Elétrica;"Adaptador Bocal para Conexão de Fibrocimento - Diâmetro de 4""";3.15;hh/pç
+Elétrica;"Adaptador Bocal para Conexão de Fibrocimento - Diâmetro de 5""";3.5;hh/pç
+Elétrica;"Redução para Conexão de Fibrocimento - Diâmetro de 2""";2.4;hh/pç
+Elétrica;"Redução para Conexão de Fibrocimento - Diâmetro de 3""";2.7;hh/pç
+Elétrica;"Redução para Conexão de Fibrocimento - Diâmetro de 4""";3.15;hh/pç
+Elétrica;"Redução para Conexão de Fibrocimento - Diâmetro de 5""";3.5;hh/pç
+Elétrica;"Dutos de Inspeção - Diâmetro de 2""";1.2;hh/m
+Elétrica;"Dutos de Inspeção - Diâmetro de 4""";1.3;hh/m
+Elétrica;"Dutos de Inspeção - Diâmetro de 6""";1.4;hh/m
+Elétrica;"Dutos de Inspeção - Diâmetro de 8""";1.5;hh/m
+Elétrica;"Dutos de Inspeção - Diâmetro de 10""";1.6;hh/m
+Elétrica;"Dutos de Inspeção - Diâmetro de 12""";1.7;hh/m
+Elétrica;Valetamento Simples - 600 x 600 mm;1.6;hh/m
+Elétrica;Valetamento com Lajotas e Areia - 600 x 600 mm;3;hh/m
+Elétrica;Bandejamento Trecho Reto - 200 mm;0.9;hh/m
+Elétrica;Bandejamento Trecho Reto - 250 mm;1.1;hh/m
+Elétrica;Bandejamento Trecho Reto - 300 mm;1.2;hh/m
+Elétrica;Bandejamento Trecho Reto - 400 mm;1.5;hh/m
+Elétrica;Bandejamento Trecho Reto - 500 mm;2;hh/m
+Elétrica;Bandejamento Trecho Reto - 600 mm;2.2;hh/m
+Elétrica;Bandejamento Trecho Reto - 700 mm;2.5;hh/m
+Elétrica;Bandejamento Trecho Reto - 750 mm;2.7;hh/m
+Elétrica;Bandejamento Trecho Reto - 800 mm;2.9;hh/m
+Elétrica;Bandejamento Trecho Reto - 1000 mm;3.1;hh/m
+Elétrica;Bandejamento Trecho Reto - 1250 mm;3.5;hh/m
+Elétrica;Bandejamento Trecho Reto - 1500 mm;3.9;hh/m
+Elétrica;Cruzeta para Bandejamento - 200 mm;3.5;hh/pç
+Elétrica;Cruzeta para Bandejamento - 250 mm;3.65;hh/pç
+Elétrica;Cruzeta para Bandejamento - 300 mm;3.8;hh/pç
+Elétrica;Cruzeta para Bandejamento - 400 mm;4.1;hh/pç
+Elétrica;Cruzeta para Bandejamento - 500 mm;4.6;hh/pç
+Elétrica;Cruzeta para Bandejamento - 600 mm;4.8;hh/pç
+Elétrica;Cruzeta para Bandejamento - 700 mm;5.1;hh/pç
+Elétrica;Cruzeta para Bandejamento - 750 mm;5.4;hh/pç
+Elétrica;Cruzeta para Bandejamento - 800 mm;5.7;hh/pç
+Elétrica;Cruzeta para Bandejamento - 1000 mm;6.1;hh/pç
+Elétrica;Cruzeta para Bandejamento - 1250 mm;6.5;hh/pç
+Elétrica;Cruzeta para Bandejamento - 1500 mm;7;hh/pç
+Elétrica;Tê para Bandejamento - 200 mm;3;hh/pç
+Elétrica;Tê para Bandejamento - 250 mm;3.15;hh/pç
+Elétrica;Tê para Bandejamento - 300 mm;3.3;hh/pç
+Elétrica;Tê para Bandejamento - 400 mm;3.6;hh/pç
+Elétrica;Tê para Bandejamento - 500 mm;4.1;hh/pç
+Elétrica;Tê para Bandejamento - 600 mm;4.3;hh/pç
+Elétrica;Tê para Bandejamento - 700 mm;4.6;hh/pç
+Elétrica;Tê para Bandejamento - 750 mm;4.9;hh/pç
+Elétrica;Tê para Bandejamento - 800 mm;5.2;hh/pç
+Elétrica;Tê para Bandejamento - 1000 mm;5.6;hh/pç
+Elétrica;Tê para Bandejamento - 1250 mm;6;hh/pç
+Elétrica;Tê para Bandejamento - 1500 mm;6.5;hh/pç
+Elétrica;Curva para Bandejamento - 200 mm;2.6;hh/pç
+Elétrica;Curva para Bandejamento - 250 mm;2.7;hh/pç
+Elétrica;Curva para Bandejamento - 300 mm;2.8;hh/pç
+Elétrica;Curva para Bandejamento - 400 mm;2.9;hh/pç
+Elétrica;Curva para Bandejamento - 500 mm;3.1;hh/pç
+Elétrica;Curva para Bandejamento - 600 mm;3.3;hh/pç
+Elétrica;Curva para Bandejamento - 700 mm;3.6;hh/pç
+Elétrica;Curva para Bandejamento - 750 mm;3.8;hh/pç
+Elétrica;Curva para Bandejamento - 800 mm;4;hh/pç
+Elétrica;Curva para Bandejamento - 1000 mm;4.2;hh/pç
+Elétrica;Curva para Bandejamento - 1250 mm;4.4;hh/pç
+Elétrica;Curva para Bandejamento - 1500 mm;4.7;hh/pç
+Elétrica;Redução para Bandejamento - 200 mm;1.75;hh/pç
+Elétrica;Redução para Bandejamento - 250 mm;1.9;hh/pç
+Elétrica;Redução para Bandejamento - 300 mm;2.05;hh/pç
+Elétrica;Redução para Bandejamento - 400 mm;2.35;hh/pç
+Elétrica;Redução para Bandejamento - 500 mm;3.15;hh/pç
+Elétrica;Redução para Bandejamento - 600 mm;3.2;hh/pç
+Elétrica;Redução para Bandejamento - 700 mm;3.4;hh/pç
+Elétrica;Redução para Bandejamento - 750 mm;3.5;hh/pç
+Elétrica;Redução para Bandejamento - 800 mm;3.6;hh/pç
+Elétrica;Redução para Bandejamento - 1000 mm;3.7;hh/pç
+Elétrica;Redução para Bandejamento - 1250 mm;3.8;hh/pç
+Elétrica;Redução para Bandejamento - 1500 mm;3.9;hh/pç
+Elétrica;Peça Final para Bandejamento - 200 mm;1;hh/pç
+Elétrica;Peça Final para Bandejamento - 250 mm;1.05;hh/pç
+Elétrica;Peça Final para Bandejamento - 300 mm;1.1;hh/pç
+Elétrica;Peça Final para Bandejamento - 400 mm;1.2;hh/pç
+Elétrica;Peça Final para Bandejamento - 500 mm;1.3;hh/pç
+Elétrica;Peça Final para Bandejamento - 600 mm;1.4;hh/pç
+Elétrica;Peça Final para Bandejamento - 700 mm;1.5;hh/pç
+Elétrica;Peça Final para Bandejamento - 750 mm;1.55;hh/pç
+Elétrica;Peça Final para Bandejamento - 800 mm;1.6;hh/pç
+Elétrica;Peça Final para Bandejamento - 1000 mm;1.7;hh/pç
+Elétrica;Peça Final para Bandejamento - 1250 mm;1.8;hh/pç
+Elétrica;Peça Final para Bandejamento - 1500 mm;1.9;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 200 mm;1.05;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 250 mm;1.1;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 300 mm;1.15;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 400 mm;1.25;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 500 mm;1.35;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 600 mm;1.45;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 700 mm;1.5;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 750 mm;1.5;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 800 mm;1.6;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 1000 mm;1.65;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 1250 mm;1.7;hh/pç
+Elétrica;Proteção para Ligação em Painel (Flange) - 1500 mm;1.8;hh/pç
+Elétrica;"Perfilados e Acessórios - Perfilado Liso ou Perfurado 1 1/2"" x 1 1/2""";0.55;hh/m
+Elétrica;"Perfilados e Acessórios - Perfilado Liso ou Perfurado 3/4"" x 1 1/2""";0.5;hh/m
+Elétrica;Perfilados e Acessórios - Tampa p/Perfilado Liso ou Perfurado;0.1;hh/m
+Elétrica;Perfilados e Acessórios - Perfilado para Concreto (Excluso o Rasgo);0.9;hh/m
+Elétrica;Perfilados e Acessórios - Junção Externa p/Perfilado;0.8;hh/pç
+Elétrica;Perfilados e Acessórios - Junção Rápida;0.7;hh/pç
+Elétrica;"Perfilados e Acessórios - Junção Rápida Tipo ""L""";0.7;hh/pç
+Elétrica;"Perfilados e Acessórios - Junção Rápida Tipo ""T""";1;hh/pç
+Elétrica;"Perfilados e Acessórios - Junção Rápida Tipo ""X""";1.2;hh/pç
+Elétrica;"Perfilados e Acessórios - Saída Final Diâmetro de 3/4""";0.3;hh/pç
+Elétrica;"Perfilados e Acessórios - Saída Superior Diâmetro de 3/4""";0.8;hh/pç
+Elétrica;"Perfilados e Acessórios - Saída Lateral Diâmetro de 3/4""";0.8;hh/pç
+Elétrica;Perfilados e Acessórios - Gancho Curto. Longo para Luminária;0.3;hh/pç
+Elétrica;Perfilados e Acessórios - Sapata Rápida 1 Furo;1;hh/pç
+Elétrica;Perfilados e Acessórios - Sapata Rápida 4 Furos;2;hh/pç
+Elétrica;Perfilados e Acessórios - Mão Francesa Simples;2;hh/pç
+Elétrica;Perfilados e Acessórios - Mão Francesa Dupla;2.5;hh/pç
+Elétrica;"Perfilados e Acessórios - Grampo ""C""";1;hh/pç
+Elétrica;"Perfilados e Acessórios - Balancim para Grampo ""C""";0.2;hh/pç
+Elétrica;Perfilados e Acessórios - Grapa;0.2;hh/pç
+Elétrica;Perfilados e Acessórios - Caixa para Tomadas em Perfilado;1.5;hh/pç
+Elétrica;Perfilados e Acessórios - Caixa para Flexível em Perfilado;1.5;hh/pç
+Elétrica;Perfilados e Acessórios - Caixa de Ligação em Perfilado;1;hh/pç
+Elétrica;"Perfilados e Acessórios - Caixa de Derivação Tipo ""C""";1.3;hh/pç
+Elétrica;"Perfilados e Acessórios - Caixa de Derivação Tipo ""L""";1.3;hh/pç
+Elétrica;"Perfilados e Acessórios - Caixa de Derivação Tipo ""T""";1.5;hh/pç
+Elétrica;"Perfilados e Acessórios - Caixa de Derivação Tipo ""M""";1.6;hh/pç
+Elétrica;"Perfilados e Acessórios - Braçadeira Tipo ""U"" Todas as Bitolas";0.3;hh/pç
+Elétrica;"Perfilados e Acessórios - Braçadeira Tipo ""D"" Todas as Bitolas";0.3;hh/pç
+Elétrica;Perfilados e Acessórios - Braçadeira de União Horizontal - Toda Bitola;1;hh/pç
+Elétrica;Perfilados e Acessórios - Braçadeira de União Vertical - Toda Bitola;1;hh/pç
+Elétrica;"Perfilados e Acessórios - Suporte de Tubulação Tipo ""C"" - Toda Bitola";0.5;hh/pç
+Elétrica;Perfilados e Acessórios - Braçadeira de Grapa Curta - Simples;0.3;hh/pç
+Elétrica;Perfilados e Acessórios - Braçadeira de Grapa Curta - Dupla;0.5;hh/pç
+Elétrica;Perfilados e Acessórios - Braçadeira de Grapa Curta - Tripla;0.8;hh/pç
+Elétrica;Perfilados e Acessórios - Sela para Braçadeira;0.1;hh/pç
+Elétrica;Perfilados e Acessórios - Braçadeira Simples - Todas as Bitolas;1;hh/pç
+Elétrica;Perfilados e Acessórios - Contra Braçadeira;0.1;hh/pç
+Elétrica;Perfilados e Acessórios - Suporte de Tubulação Econômica;0.9;hh/pç
+Elétrica;Dutos Modular - Duto Modular Embutido;3;hh/m
+Elétrica;Dutos Modular - Duto Modular Aparente;3;hh/m
+Elétrica;Dutos Modular - Duto Modular Simples;2.5;hh/m
+Elétrica;Dutos de Pisos e Acessórios - Duto Liso;2;hh/m
+Elétrica;Dutos de Pisos e Acessórios - Curva Vertical;0.35;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Curva Horizontal;0.33;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Desvio Vertical;1.4;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Desvio Duplo;2.1;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Junção de Dutos;2;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Nivelador de Dutos;3;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Caixa de Passagem 1 Nível;3.3;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Caixa de Passagem 2 Níveis;4;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Caixa de Passagem 3 Níveis;5;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Derivação “X” Aparente;2.4;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Saída de Duto para Tubo;0.45;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Luva de Arremate;1;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Tampão para Caixa de Passagem;0.9;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Corpo de Tomada;0.3;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Tomada Dupla de Energia;0.3;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Bucha para Telefone;0.2;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Bucha de Fixação;0.2;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Bucha de Fixação Inferior;0.15;hh/pç
+Elétrica;Dutos de Pisos e Acessórios - Arremate de Piso;1;hh/pç
+Elétrica;"Dutos de Pisos e Acessórios - Tampão Diâmetro de 3/4""";0.3;hh/pç
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 014 AWG - 1.5 mm2;0.03;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 012 AWG - 2.5 mm2;0.04;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 010 AWG - 4 mm2;0.05;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 008 AWG - 6 mm2;0.06;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 006 AWG - 10 mm2;0.07;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 004 AWG - 16 mm2;0.08;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 002 AWG - 25 mm2;0.09;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 1/0 - 35 mm2;0.1;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 2/0 - 50 mm2;0.12;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo 3/0 - 70 mm2;0.14;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 4/0 AWG - 95 mm2;0.17;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 250 MCM - 120 mm2;0.22;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 300 MCM - 135 mm2;0.24;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 350 MCM - 150 mm2;0.26;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 400 MCM - 185 mm2;0.3;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 500 MCM - 220 mm2;0.32;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 600 MCM - 240 mm2;0.36;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 700 MCM - 270 mm2;0.39;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 750 MCM - 280 mm2;0.4;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 800 MCM - 295 mm2;0.42;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 900 MCM - 320 mm2;0.44;hh/m
+Elétrica;Fios e Cabos Classe Tensão até 1000 V - Cabo de 1000 MCM - 350 mm2;0.46;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 14 AWG - 1.5 mm2;0.05;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 12 AWG - 2.5 mm2;0.06;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 10 AWG - 4 mm2;0.07;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 8 AWG - 6 mm2;0.08;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 6 AWG - 10 mm2;0.09;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 4 AWG - 16 mm2;0.11;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 2 AWG - 25 mm2;0.13;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 1/0 AWG - 35 mm2;0.16;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 2/0 AWG - 50 mm2;0.2;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 3/0 AWG - 70 mm2;0.23;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 4/0 AWG - 95 mm2;0.26;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 250 MCM;0.28;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 300 MCM - 120 mm2;0.3;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 350 MCM - 150 mm2;0.32;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 400 MCM - 185 mm2;0.34;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 500 MCM;0.38;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 600 MCM - 240 mm2;0.4;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 700 MCM;0.42;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 750 MCM;0.43;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 800 MCM - 300 mm2;0.45;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 900 MCM - 400 mm2;0.48;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 2 x 2 - Cabo de 1000 MCM - 500 mm2;0.52;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 14 AWG - 1.5 mm2;0.07;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 12 AWG - 2.5 mm2;0.07;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 10 AWG - 4 mm2;0.08;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 8 AWG - 6 mm2;0.1;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 6 AWG - 10 mm2;0.12;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 4 AWG - 16 mm2;0.14;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 3 AWG - 25 mm2;0.17;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 1/0 AWG - 35 mm2;0.21;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 2/0 AWG - 50 mm2;0.27;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 3/0 AWG - 70 mm2;0.32;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 4/0 AWG - 95 mm2;0.35;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 250 MCM - 120 mm2;0.38;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 300 MCM;0.4;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 350 MCM - 150 mm2;0.42;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 400 MCM - 185 mm2;0.45;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 500 MCM - 240 mm2;0.49;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 600 MCM;0.53;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 700 MCM - 300 mm2;0.57;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 750 MCM;0.59;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 800 MCM;0.61;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 900 MCM - 400 mm2;0.65;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 3 x - Cabo de 1000 MCM - 500 mm2;0.69;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 14 AWG - 1.5 mm2;0.08;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 12 AWG - 2.5 mm2;0.09;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 10 AWG - 4 mm2;0.1;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 8 AWG - 6 mm2;0.12;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 6 AWG - 10 mm2;0.14;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 4 AWG - 16 mm2;0.16;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 3 AWG - 25 mm2;0.19;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 1/0 AWG - 35 mm2;0.24;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 2/0 AWG - 50 mm2;0.31;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 3/0 AWG - 70 mm2;0.37;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 4/0 AWG - 95 mm2;0.4;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 250 MCM - 120 mm2;0.44;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 300 MCM;0.46;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 350 MCM - 150 mm2;0.48;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 400 MCM - 185 mm2;0.51;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 500 MCM;0.56;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 600 MCM - 240 mm2;0.6;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 700 MCM;0.63;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 750 MCM;0.65;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 800 MCM - 300 mm2;0.69;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 900 MCM;0.73;hh/m
+Elétrica;Cabos Classe Tensão até 1000 V - 4 x - Cabo de 1000 MCM;0.76;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 20 AWG;0.02;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 18 AWG;0.02;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 16 AWG;0.03;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 14 AWG;0.03;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 12 AWG - 2.5 mm2;0.04;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 10 AWG - 4 mm2;0.05;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 8 AWG - 6 mm2;0.06;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 6 AWG - 10 mm2;0.07;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 4 AWG - 16 mm2;0.08;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 2 AWG - 25 mm2;0.09;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 1/0 AWG - 35 mm2;0.1;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 2/0 AWG - 50 mm2;0.12;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 3/0 AWG - 70 mm2;0.14;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 4/0 AWG;0.16;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 250 MCM - 95 mm2;0.18;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 300 MCM;0.2;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 350 MCM - 120 mm2;0.22;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 400 MCM;0.24;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 500 MCM - 185 mm2;0.26;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 600 MCM;0.28;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 700 MCM - 240 mm2;0.3;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 750 MCM;0.31;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 800 MCM;0.33;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 900 MCM;0.36;hh/m
+Elétrica;Fios e Cabos de Cobre Nu - Cabo de 1000 MCM;0.4;hh/m
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 14 AWG - 1.5 mm2;0.4;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 12 AWG - 2.4 mm2;0.45;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 10 AWG - 4 mm2;0.53;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 8 AWG - 6 mm2;0.73;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 6 AWG - 10 mm2;0.89;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 4 AWG - 16 mm2;1.1;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 2 AWG - 25 mm2;1.4;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 1/0 AWG - 35 mm2;1.7;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 2/0 AWG - 50 mm2;2;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 3/0 AWG - 70 mm2;2.3;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 4/0 AWG - 95 mm2;2.6;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 250 MCM;3;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 300 MCM - 120 mm2;3.5;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 350 MCM;3.8;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 400 MCM - 150 mm2;4.1;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 500 MCM;4.7;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 600 MCM - 185 mm2;5.2;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 700 MCM;5.7;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 750 MCM;6.3;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 800 MCM;6.8;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 900 MCM;7.3;hh/pç
+Elétrica;Terminais de Pressão para Cabos - Terminal de Pressão de 1000 MCM;8;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 1/2""";0.3;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 3/4""";0.3;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 1""";0.4;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 1 1/2""";0.5;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 2""";0.6;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 2 1/2""";0.7;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 3""";0.7;hh/pç
+Elétrica;"Unidut Reto para Emenda de Eletrodutos Rígidos - Ref.: UR0120.Daisa - Diâmetro de 4""";0.8;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 1/2""";0.03;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 3/4""";0.04;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 1""";0.05;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 1 1/2""";0.06;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 2""";0.07;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 2 1/2""";0.07;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 3""";0.1;hh/pç
+Elétrica;"Arruela para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 4""";0.12;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 1/2""";0.03;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 3/4""";0.04;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 1""";0.05;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 1 1/2""";0.06;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 2""";0.07;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 2 1/2""";0.07;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 3""";0.1;hh/pç
+Elétrica;"Bucha para Eletroduto em Zamak com Rosca a Gás - Diâmetro de 4""";0.12;hh/pç
+Tubulação;Fabricação para Unidade de Processo - Tubulação de Aço Carbono;250;hh/ton.
+Tubulação;Fabricação para Unidade de Processo - Tubulação de Aço Liga;350;hh/ton.
+Tubulação;Fabricação para Unidade de Processo - Tubulação de Aço Inox;500;hh/ton.
+Tubulação;Fabricação para Unidade de Processo - Tubulação de Cobre;350;hh/ton.
+Tubulação;Fabricação para Unidade de Processo - Tubulação de Aço Galvanizado;250;hh/ton.
+Tubulação;Montagem de Tubulação Subterrânea - Tubulação de Ferro Fundido;70;hh/ton.
+Tubulação;Montagem de Tubulação Subterrânea - Tubulação de Aço Carbono;120;hh/ton.
+Tubulação;Montagem de Tubulação em Unidades de Processo - Tubulação de Aço Carbono;170;hh/ton.
+Tubulação;Montagem de Tubulação em Unidades de Processo - Tubulação de Aço Liga;200;hh/ton.
+Tubulação;Montagem de Tubulação em Unidades de Processo - Tubulação de Aço Inox;400;hh/ton.
+Tubulação;Montagem de Tubulação em Unidades de Processo - Tubulação de Aço Galvanizado;170;hh/ton.
+Tubulação;Montagem de Tubulação em Unidades de Processo - Tubulação de Cobre;300;hh/ton.
+Tubulação;Fabricação e Montagem de Tubulação sobre Pipe-Rack - Tubulação de Aço Carbono;200;hh/ton.
+Tubulação;Fabricação e Montagem de Tubulação sobre Pipe-Rack - Tubulação de Aço Liga;250;hh/ton.
+Tubulação;Fabricação e Montagem de Tubulação sobre Pipe-Rack - Tubulação de Aço Inox;440;hh/ton.
+Tubulação;Fabricação e Montagem de Tubulação sobre Pipe-Rack - Tubulação de Aço Galvanizado;200;hh/ton.
+Tubulação;Fabricação e Montagem de Linhas de Vapor (Steam Tracing) - Tubulação;500;hh/ton.

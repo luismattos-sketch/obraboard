@@ -6,7 +6,9 @@ import type {
   Atividade,
   AtividadeRecurso,
   AtualizacaoAtividade,
+  FotoAtividade,
   StatusAtividade,
+  TipoFotoAtividade,
 } from "../../lib/types";
 import {
   cadastroBaseEvento,
@@ -61,6 +63,14 @@ type ParametrosCampoUrl = {
   token: string | null;
 };
 
+type AcaoFoto = {
+  atividade: Atividade;
+  tipo: TipoFotoAtividade;
+};
+
+const bucketFotosAtividades = "atividade-fotos";
+const limiteFotoBytes = 10 * 1024 * 1024;
+
 export default function CampoPage() {
   return <CampoPageContent />;
 }
@@ -104,6 +114,13 @@ function CampoPageContent() {
   const [restricaoTexto, setRestricaoTexto] = useState("");
   const [atividadesEditaveis, setAtividadesEditaveis] = useState<Record<number, boolean>>({});
   const [realizadoAtividade, setRealizadoAtividade] = useState<Record<number, string>>({});
+  const [fotosPorAtividade, setFotosPorAtividade] = useState<
+    Record<number, FotoAtividade[]>
+  >({});
+  const [acaoFoto, setAcaoFoto] = useState<AcaoFoto | null>(null);
+  const [arquivoFoto, setArquivoFoto] = useState<File | null>(null);
+  const [previewFoto, setPreviewFoto] = useState("");
+  const [fotoSalvando, setFotoSalvando] = useState(false);
   const [dataTurnoCampo, setDataTurnoCampo] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
   const dataTurnoAtual =
@@ -289,6 +306,7 @@ function CampoPageContent() {
       )
     );
     setAtividades(carregadas);
+    await carregarFotosAtividades(carregadas);
     setControles(
       carregadas.reduce<Record<number, ControleAtividade>>((mapa, atividade) => {
         const registro = atividade as Atividade & {
@@ -316,6 +334,37 @@ function CampoPageContent() {
       }, {})
     );
     await carregarRecursosAtividades(carregadas);
+  }
+
+  async function carregarFotosAtividades(atividadesCarregadas: Atividade[]) {
+    const ids = atividadesCarregadas.map((item) => item.id);
+
+    if (ids.length === 0) {
+      setFotosPorAtividade({});
+      return;
+    }
+
+    const { data, error } = await supabaseCampo
+      .from("atividade_fotos")
+      .select("*")
+      .in("atividade_id", ids)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.warn("Fotos das atividades indisponiveis no Campo.", error);
+      setFotosPorAtividade({});
+      return;
+    }
+
+    setFotosPorAtividade(
+      ((data || []) as FotoAtividade[]).reduce<Record<number, FotoAtividade[]>>(
+        (mapa, foto) => {
+          mapa[foto.atividade_id] = [...(mapa[foto.atividade_id] ?? []), foto];
+          return mapa;
+        },
+        {}
+      )
+    );
   }
 
   async function carregarRecursosAtividades(atividadesCarregadas: Atividade[]) {
@@ -409,6 +458,7 @@ function CampoPageContent() {
     setStatusLinkCampo("invalido");
     setAtividades([]);
     setMaoObraReal([]);
+    setFotosPorAtividade({});
     setRecursosPorAtividade({});
     setFuncoesPrevistasCadastradas([]);
     setUsuariosCadastrados([]);
@@ -599,22 +649,29 @@ function CampoPageContent() {
         ? undefined
         : Math.min(100, Math.round((quantidadeRealizada / previsto) * 100));
     const controleAtual = controles[id];
+    const agoraAtualizacao = agora;
+    const iniciadoEmAtual = atividadeAtual
+      ? (atividadeAtual as Atividade & { iniciado_em?: string | null }).iniciado_em
+      : null;
     const tempoAcumulado =
-      controleAtual?.runningSince
-        ? Number(controleAtual.elapsedMs || 0) + agora - controleAtual.runningSince
-        : controleAtual?.elapsedMs ?? 0;
+      status === "Finalizada" && iniciadoEmAtual
+        ? Math.max(0, agoraAtualizacao - new Date(iniciadoEmAtual).getTime())
+        : controleAtual?.runningSince
+          ? Number(controleAtual.elapsedMs || 0) +
+            agoraAtualizacao -
+            controleAtual.runningSince
+          : controleAtual?.elapsedMs ?? 0;
+    const agoraIso = new Date(agoraAtualizacao).toISOString();
     const atualizacao: AtualizacaoAtividade &
       Record<string, string | number | null | undefined> = {
       status,
       tempo_acumulado_ms: Math.round(tempoAcumulado),
       iniciado_em:
         status === "Execução"
-          ? atividadeAtual && (atividadeAtual as Atividade & { iniciado_em?: string | null }).iniciado_em
-            ? (atividadeAtual as Atividade & { iniciado_em?: string | null }).iniciado_em
-            : new Date().toISOString()
+          ? iniciadoEmAtual || agoraIso
           : undefined,
-      pausado_em: status === "Parcial" || status === "Restrição" ? new Date().toISOString() : undefined,
-      finalizado_em: status === "Finalizada" ? new Date().toISOString() : undefined,
+      pausado_em: status === "Parcial" || status === "Restrição" ? agoraIso : undefined,
+      finalizado_em: status === "Finalizada" ? agoraIso : undefined,
     };
 
     if (quantidadeRealizada !== undefined) {
@@ -631,7 +688,7 @@ function CampoPageContent() {
 
     if (!obraIdCampo || !turnoIdCampo || !dataTurnoGravacao) {
       alert(mensagemLinkInvalido);
-      return;
+      return false;
     }
 
     let { error } = await supabaseCampo
@@ -659,7 +716,7 @@ function CampoPageContent() {
     if (error) {
       console.error(error);
       alert(descreverErroSupabase(error, "atualizar a atividade"));
-      return;
+      return false;
     }
 
     const atividadeAtualizada = atividadeAtual
@@ -692,6 +749,8 @@ function CampoPageContent() {
       console.error("Atividade atualizada, mas a tela Campo não recarregou.", error);
       alert("Avanço salvo. Recarregue a tela se os dados não atualizarem.");
     }
+
+    return true;
   }
 
   async function sincronizarControleTurnoPorAtividades(
@@ -775,22 +834,10 @@ function CampoPageContent() {
       return;
     }
 
-    setControles((atuais) => {
-      const atual = atuais[id] ?? { elapsedMs: 0, runningSince: null };
-
-      if (atual.runningSince) {
-        return atuais;
-      }
-
-      return {
-        ...atuais,
-        [id]: {
-          ...atual,
-          runningSince: Date.now(),
-        },
-      };
-    });
-    await atualizarAtividade(id, "Execução");
+    const atividade = atividades.find((item) => item.id === id);
+    if (atividade) {
+      abrirPopupFoto(atividade, "inicio");
+    }
   }
 
   async function finalizarAtividade(atividade: Atividade) {
@@ -799,28 +846,195 @@ function CampoPageContent() {
       return;
     }
 
-    const realizadoInformado = obterRealizadoInformado(
-      atividade.id,
-      realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0
-    );
+    abrirPopupFoto(atividade, "fim");
+  }
 
-    setRealizadoAtividade((atuais) => ({
-      ...atuais,
-      [atividade.id]: String(realizadoInformado),
-    }));
-    pausarCronometro(atividade.id);
-    await atualizarAtividade(
+  function abrirPopupFoto(atividade: Atividade, tipo: TipoFotoAtividade) {
+    limparArquivoFoto();
+    setAcaoFoto({ atividade, tipo });
+  }
+
+  function fecharPopupFoto() {
+    if (fotoSalvando) {
+      return;
+    }
+
+    setAcaoFoto(null);
+    limparArquivoFoto();
+  }
+
+  function limparArquivoFoto() {
+    if (previewFoto) {
+      URL.revokeObjectURL(previewFoto);
+    }
+    setArquivoFoto(null);
+    setPreviewFoto("");
+  }
+
+  function selecionarFoto(arquivo: File | null) {
+    if (!arquivo) {
+      return;
+    }
+
+    if (!arquivo.type.startsWith("image/")) {
+      alert("Selecione um arquivo de imagem.");
+      return;
+    }
+
+    if (arquivo.size > limiteFotoBytes) {
+      alert("A foto deve ter no máximo 10 MB.");
+      return;
+    }
+
+    if (previewFoto) {
+      URL.revokeObjectURL(previewFoto);
+    }
+    setArquivoFoto(arquivo);
+    setPreviewFoto(URL.createObjectURL(arquivo));
+  }
+
+  async function salvarFotoAtividade() {
+    if (!acaoFoto || !arquivoFoto) {
+      alert("Tire uma foto ou selecione uma imagem.");
+      return;
+    }
+
+    if (!obraIdCampo || !turnoIdCampo || !dataTurnoAtual || !turno) {
+      alert("A tela Campo precisa estar vinculada a frente, data e turno.");
+      return;
+    }
+
+    const atividade = acaoFoto.atividade;
+    const extensao = obterExtensaoFoto(arquivoFoto);
+    const storagePath = [
+      obraIdCampo,
+      turnoIdCampo,
       atividade.id,
-      "Finalizada",
-      realizadoInformado,
-      atividade.responsavel,
-      true
-    );
-    setAtividadesEditaveis((atuais) => {
-      const novos = { ...atuais };
-      delete novos[atividade.id];
-      return novos;
-    });
+      `${Date.now()}-${crypto.randomUUID()}.${extensao}`,
+    ].join("/");
+
+    setFotoSalvando(true);
+
+    const registro = {
+      obra_id: obraIdCampo,
+      turno_id: turnoIdCampo,
+      atividade_id: atividade.id,
+      data_turno: dataTurnoAtual,
+      turno,
+      tipo: acaoFoto.tipo,
+      storage_path: storagePath,
+      nome_arquivo: arquivoFoto.name,
+      mime_type: arquivoFoto.type,
+      tamanho_bytes: arquivoFoto.size,
+    };
+
+    const { data: fotoCriada, error: erroRegistro } = await supabaseCampo
+      .from("atividade_fotos")
+      .insert(registro)
+      .select("*")
+      .single();
+
+    if (erroRegistro || !fotoCriada) {
+      console.error(erroRegistro);
+      alert(descreverErroSupabase(erroRegistro, "registrar a foto"));
+      setFotoSalvando(false);
+      return;
+    }
+
+    const { error: erroUpload } = await supabaseCampo.storage
+      .from(bucketFotosAtividades)
+      .upload(storagePath, arquivoFoto, {
+        contentType: arquivoFoto.type,
+        upsert: false,
+      });
+
+    if (erroUpload) {
+      await supabaseCampo.from("atividade_fotos").delete().eq("id", fotoCriada.id);
+      console.error(erroUpload);
+      alert("Não foi possível enviar a foto. A atividade não foi alterada.");
+      setFotoSalvando(false);
+      return;
+    }
+
+    try {
+      let atividadeAtualizada = true;
+
+      if (acaoFoto.tipo === "inicio") {
+        setControles((atuais) => {
+          const atual = atuais[atividade.id] ?? {
+            elapsedMs: 0,
+            runningSince: null,
+          };
+          return {
+            ...atuais,
+            [atividade.id]: {
+              ...atual,
+              runningSince: atual.runningSince ?? Date.now(),
+            },
+          };
+        });
+        atividadeAtualizada = await atualizarAtividade(atividade.id, "Execução");
+      } else if (acaoFoto.tipo === "fim") {
+        const realizadoInformado = obterRealizadoInformado(
+          atividade.id,
+          realizadoAtividade[atividade.id] ?? atividade.realizado ?? 0
+        );
+        setRealizadoAtividade((atuais) => ({
+          ...atuais,
+          [atividade.id]: String(realizadoInformado),
+        }));
+        pausarCronometro(atividade.id);
+        atividadeAtualizada = await atualizarAtividade(
+          atividade.id,
+          "Finalizada",
+          realizadoInformado,
+          atividade.responsavel,
+          true
+        );
+        setAtividadesEditaveis((atuais) => {
+          const novos = { ...atuais };
+          delete novos[atividade.id];
+          return novos;
+        });
+      }
+
+      if (!atividadeAtualizada) {
+        await supabaseCampo.storage
+          .from(bucketFotosAtividades)
+          .remove([storagePath]);
+        await supabaseCampo.from("atividade_fotos").delete().eq("id", fotoCriada.id);
+        if (acaoFoto.tipo === "inicio") {
+          pausarCronometro(atividade.id);
+        } else if (acaoFoto.tipo === "fim") {
+          setControles((atuais) => {
+            const atual = atuais[atividade.id] ?? {
+              elapsedMs: 0,
+              runningSince: null,
+            };
+            return {
+              ...atuais,
+              [atividade.id]: {
+                ...atual,
+                runningSince: atual.runningSince ?? Date.now(),
+              },
+            };
+          });
+        }
+        return;
+      }
+
+      setFotosPorAtividade((atuais) => ({
+        ...atuais,
+        [atividade.id]: [
+          ...(atuais[atividade.id] ?? []),
+          fotoCriada as FotoAtividade,
+        ],
+      }));
+      setAcaoFoto(null);
+      limparArquivoFoto();
+    } finally {
+      setFotoSalvando(false);
+    }
   }
 
   async function continuarAtividadeFinalizada(atividade: Atividade) {
@@ -933,6 +1147,15 @@ function CampoPageContent() {
       restricaoSalvandoRef.current = null;
       setRestricaoSalvandoId(null);
     }
+  }
+
+  function cancelarRestricao() {
+    if (restricaoSalvandoRef.current !== null) {
+      return;
+    }
+
+    setRestricaoEditandoId(null);
+    setRestricaoTexto("");
   }
 
   async function resolverRestricao(id: number, restricaoId: string) {
@@ -1272,12 +1495,14 @@ function CampoPageContent() {
               (item) => item.atividade_id === atividade.id
             );
             const recursosPlanejados = recursosPorAtividade[atividade.id] ?? [];
+            const fotosAtividade = fotosPorAtividade[atividade.id] ?? [];
             const restricoesAtividade = restricoes[atividade.id] ?? [];
             const temEquipeReal = recursosAtividade.some(
               (item) => Number(item.quantidade || 0) > 0
             );
             const foiIniciada = atividadeFoiIniciada(atividade);
-            const iniciarInativo = !temEquipeReal;
+            const iniciarInativo =
+              !temEquipeReal || atividade.status === "Execução";
             const restricaoInativa =
               !temEquipeReal ||
               !foiIniciada ||
@@ -1420,6 +1645,24 @@ function CampoPageContent() {
                   )}
                 </div>
 
+                {foiIniciada && (
+                  <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+                    <div>
+                      <p className="font-bold text-blue-800">Registro fotográfico</p>
+                      <p className="text-blue-700">
+                        {fotosAtividade.length} foto(s) vinculada(s)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => abrirPopupFoto(atividade, "durante")}
+                      className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white"
+                    >
+                      Inserir foto
+                    </button>
+                  </div>
+                )}
+
                 {restricoesAtividade.map((restricao) => (
                   <div
                     key={restricao.id}
@@ -1454,11 +1697,20 @@ function CampoPageContent() {
                       className="mt-2 min-h-[80px] w-full rounded-lg border border-red-200 bg-white p-3 text-sm"
                       placeholder="Descreva o impedimento, responsável e condição de liberação..."
                     />
-                    <div className="mt-3">
+                    <div className="mt-3 grid grid-cols-2 gap-2">
                       <button
+                        type="button"
+                        onClick={cancelarRestricao}
+                        disabled={restricaoSalvandoId === atividade.id}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => salvarRestricao(atividade.id)}
                         disabled={restricaoSalvandoId === atividade.id}
-                        className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-red-300"
+                        className="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-red-300"
                       >
                         {restricaoSalvandoId === atividade.id
                           ? "Salvando..."
@@ -1517,7 +1769,121 @@ function CampoPageContent() {
           })
         )}
       </section>
+      {acaoFoto && (
+        <PopupFotoAtividade
+          acao={acaoFoto}
+          preview={previewFoto}
+          salvando={fotoSalvando}
+          onSelecionar={selecionarFoto}
+          onFechar={fecharPopupFoto}
+          onSalvar={salvarFotoAtividade}
+        />
+      )}
     </main>
+  );
+}
+
+function PopupFotoAtividade({
+  acao,
+  preview,
+  salvando,
+  onSelecionar,
+  onFechar,
+  onSalvar,
+}: {
+  acao: AcaoFoto;
+  preview: string;
+  salvando: boolean;
+  onSelecionar: (arquivo: File | null) => void;
+  onFechar: () => void;
+  onSalvar: () => void;
+}) {
+  const titulo =
+    acao.tipo === "inicio"
+      ? "Foto de início da atividade"
+      : acao.tipo === "fim"
+      ? "Foto de fim da atividade"
+      : "Adicionar foto da atividade";
+  const textoAcao =
+    acao.tipo === "inicio"
+      ? "Enviar foto e iniciar"
+      : acao.tipo === "fim"
+      ? "Enviar foto e finalizar"
+      : "Enviar foto";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-foto-atividade"
+        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl"
+      >
+        <h2 id="titulo-foto-atividade" className="text-xl font-bold">
+          {titulo}
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">{acao.atividade.atividade}</p>
+        <p className="mt-3 text-sm text-slate-600">
+          Tire uma foto com a câmera ou selecione uma imagem do dispositivo.
+        </p>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="cursor-pointer rounded-lg bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white">
+            Abrir câmera
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              disabled={salvando}
+              onChange={(event) => onSelecionar(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label className="cursor-pointer rounded-lg border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-700">
+            Escolher arquivo
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={salvando}
+              onChange={(event) => onSelecionar(event.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
+
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview}
+            alt="Pré-visualização da foto selecionada"
+            className="mt-4 max-h-[45vh] w-full rounded-xl bg-slate-100 object-contain"
+          />
+        ) : (
+          <div className="mt-4 flex min-h-40 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm font-semibold text-slate-500">
+            Nenhuma foto selecionada.
+          </div>
+        )}
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onFechar}
+            disabled={salvando}
+            className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={onSalvar}
+            disabled={!preview || salvando}
+            className="rounded-lg bg-green-600 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {salvando ? "Enviando..." : textoAcao}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1529,6 +1895,19 @@ function MensagemCampo({ texto }: { texto: string }) {
       </p>
     </main>
   );
+}
+
+function obterExtensaoFoto(arquivo: File) {
+  const extensaoNome = arquivo.name.split(".").pop()?.toLowerCase();
+  if (extensaoNome && /^[a-z0-9]{2,5}$/.test(extensaoNome)) {
+    return extensaoNome;
+  }
+
+  if (arquivo.type === "image/png") return "png";
+  if (arquivo.type === "image/webp") return "webp";
+  if (arquivo.type === "image/heic") return "heic";
+  if (arquivo.type === "image/heif") return "heif";
+  return "jpg";
 }
 
 function StatusBadge({ status }: { status: string }) {

@@ -12,8 +12,12 @@ import {
   sincronizarCadastroBaseRemoto,
   type ObraCadastrada,
 } from "../lib/cadastro-base";
+import { obterPapelAcessoAtual, type PapelAcesso } from "../lib/acessos";
+import { podeAcessarMedicao } from "../lib/medicao-acesso";
 import { criarRotaComObra, gerarCampoUrl } from "../lib/rotas";
 import { supabase } from "../lib/supabase";
+import { usuarioPodeEditarBlog } from "../lib/blog";
+import SuporteChat from "./SuporteChat";
 
 interface Props {
   children: ReactNode;
@@ -23,17 +27,21 @@ interface Props {
   statusTom?: "planejado" | "andamento" | "encerrado";
   infoCentral?: string;
   detalheCentral?: string;
+  headerActions?: ReactNode;
   logoUrl?: string;
 }
 
 const menuItems = [
   { href: "/obra", label: "Frente", icon: "OB" },
   { href: "/checkin", label: "Check-in", icon: "✓" },
-  { href: "/", label: "Painel", icon: "▦" },
+  { href: "/painel", label: "Painel", icon: "▦" },
   { href: "/checkout", label: "Check-out", icon: "↗" },
   { href: "/indicadores", label: "Indicadores", icon: "▥" },
   { href: "/rdo", label: "RDO", icon: "▤" },
+  { href: "/assinatura", label: "Assinatura", icon: "R$" },
 ];
+const rotasPlanejador = new Set(["/obra", "/checkin", "/painel", "/checkout", "/indicadores", "/rdo"]);
+const rotasVisitante = new Set(["/checkin", "/painel", "/checkout", "/indicadores"]);
 
 export default function DesktopLayout({
   children,
@@ -43,6 +51,7 @@ export default function DesktopLayout({
   statusTom = "andamento",
   infoCentral,
   detalheCentral,
+  headerActions,
   logoUrl,
 }: Props) {
   const [logoSalvo, setLogoSalvo] = useState("");
@@ -51,14 +60,29 @@ export default function DesktopLayout({
   const [turnoAtivoId, setTurnoAtivoId] = useState<number | null>(null);
   const [campoToken, setCampoToken] = useState<string | null>(null);
   const [appAdmin, setAppAdmin] = useState(false);
+  const [papelAcesso, setPapelAcesso] = useState<PapelAcesso>("none");
+  const [suporteAberto, setSuporteAberto] = useState(false);
   const [usuarioNome, setUsuarioNome] = useState("Usuário");
   const [usuarioFuncao, setUsuarioFuncao] = useState("Função não informada");
+  const [usuarioEmail, setUsuarioEmail] = useState("");
   const pathname = usePathname();
   const logoExibido = logoUrl ?? logoSalvo;
   const usuarioIniciais = obterIniciaisUsuario(usuarioNome);
   const campoHref = gerarCampoUrl({ token: campoToken });
+  const somenteLeitura = papelAcesso === "visitante";
+  const medicaoLiberada = podeAcessarMedicao(usuarioEmail);
+  const itensMenuBase = filtrarMenuPorPapel(menuItems, papelAcesso);
+  const itemMedicao = { href: "/medicao", label: "Medição", icon: "MD" };
+  const itensMenuBaseComMedicao = medicaoLiberada
+    ? itensMenuBase.flatMap((item) =>
+        item.href === "/assinatura" ? [itemMedicao, item] : [item]
+      )
+    : itensMenuBase;
   const itensMenu = [
-    ...menuItems,
+    ...itensMenuBaseComMedicao,
+    ...(usuarioPodeEditarBlog(usuarioEmail)
+      ? [{ href: "/blog/novo", label: "Blog", icon: "BG" }]
+      : []),
     ...(appAdmin
       ? [{ href: "/admin/users", label: "Usuários", icon: "AD" }]
       : []),
@@ -72,11 +96,17 @@ export default function DesktopLayout({
       : statusTom === "encerrado"
       ? "bg-slate-200 text-slate-700"
       : "bg-green-100 text-green-700";
-  const itensMobile = [...itensMenu, { href: campoHref, label: "Campo", icon: "CP" }];
+  const itensMobile = somenteLeitura
+    ? itensMenu
+    : [...itensMenu, { href: campoHref, label: "Campo", icon: "CP" }];
 
   useEffect(() => {
-    void supabase.rpc("is_app_admin").then(({ data }) => {
+    void Promise.all([
+      supabase.rpc("is_app_admin"),
+      obterPapelAcessoAtual(),
+    ]).then(([{ data }, papel]) => {
       setAppAdmin(Boolean(data));
+      setPapelAcesso(papel);
     });
   }, []);
 
@@ -101,6 +131,7 @@ export default function DesktopLayout({
 
       setUsuarioNome(nome);
       setUsuarioFuncao(funcao);
+      setUsuarioEmail(usuario?.email ?? "");
     }
 
     void supabase.auth.getUser().then(({ data }) => {
@@ -168,6 +199,10 @@ export default function DesktopLayout({
   }, [obraAtivaId, turnoAtivoId]);
 
   function alterarObraAtiva(valor: string) {
+    if (somenteLeitura) {
+      return;
+    }
+
     const novoId = valor ? Number(valor) : null;
 
     setObraAtivaId(novoId);
@@ -176,6 +211,10 @@ export default function DesktopLayout({
   }
 
   function apagarDadosEntrada() {
+    if (somenteLeitura) {
+      return;
+    }
+
     const confirmou = window.confirm(
       "Tem certeza que deseja apagar todos os dados de entrada cadastrados? Esta ação não pode ser desfeita."
     );
@@ -219,6 +258,10 @@ export default function DesktopLayout({
                   icon={item.icon}
                 />
               ))}
+              <SuporteMenuButton
+                ativo={suporteAberto}
+                onClick={() => setSuporteAberto((atual) => !atual)}
+              />
             </nav>
 
             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-3">
@@ -229,6 +272,7 @@ export default function DesktopLayout({
                 <select
                   value={obraAtivaId ?? ""}
                   onChange={(e) => alterarObraAtiva(e.target.value)}
+                  disabled={somenteLeitura}
                   className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm font-semibold text-white"
                 >
                   <option value="">
@@ -265,6 +309,7 @@ export default function DesktopLayout({
             <button
               type="button"
               onClick={apagarDadosEntrada}
+              disabled={somenteLeitura}
               className="w-full rounded-lg border border-slate-800 px-3 py-2 text-left text-xs font-semibold text-slate-500 transition hover:border-red-900/70 hover:bg-red-950/30 hover:text-red-200"
             >
               Apagar dados de entrada
@@ -319,6 +364,7 @@ export default function DesktopLayout({
               <select
                 value={obraAtivaId ?? ""}
                 onChange={(e) => alterarObraAtiva(e.target.value)}
+                disabled={somenteLeitura}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm font-semibold text-white"
               >
                 <option value="">
@@ -344,6 +390,11 @@ export default function DesktopLayout({
                   disabledText="Publique um turno no Check-in"
                 />
               ))}
+              <SuporteMenuButton
+                ativo={suporteAberto}
+                compact
+                onClick={() => setSuporteAberto((atual) => !atual)}
+              />
             </nav>
           </div>
 
@@ -373,17 +424,35 @@ export default function DesktopLayout({
                 </div>
               )}
 
-              {status && (
+              {headerActions ? (
+                <div className="justify-self-start lg:justify-self-end">
+                  {headerActions}
+                </div>
+              ) : status ? (
                 <div className={`justify-self-start rounded-full px-4 py-2 text-sm font-semibold lg:justify-self-end ${classeStatus}`}>
                   {status}
                 </div>
-              )}
+              ) : null}
             </div>
           </header>
 
-          {children}
+          {somenteLeitura && (
+            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800 print:hidden">
+              Acesso de visitante: visualizacao liberada, edicao bloqueada.
+            </div>
+          )}
+
+          <div className={somenteLeitura ? "frentia-readonly" : undefined}>
+            {children}
+          </div>
         </section>
       </div>
+
+      <SuporteChat
+        aberto={suporteAberto}
+        flutuante
+        onClose={() => setSuporteAberto(false)}
+      />
     </main>
   );
 }
@@ -444,12 +513,59 @@ function MenuLink({
   );
 }
 
+function SuporteMenuButton({
+  ativo,
+  compact = false,
+  onClick,
+}: {
+  ativo: boolean;
+  compact?: boolean;
+  onClick: () => void;
+}) {
+  const classeBase = `flex items-center gap-3 rounded-xl text-sm font-semibold transition ${
+    compact ? "shrink-0 px-3 py-2" : "w-full px-4 py-3"
+  }`;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${classeBase} ${
+        ativo
+          ? "bg-orange-500 text-white shadow-sm"
+          : "text-slate-300 hover:bg-slate-800 hover:text-white"
+      }`}
+    >
+      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/10 text-sm">
+        SP
+      </span>
+
+      <span>Suporte</span>
+    </button>
+  );
+}
+
 function obterPathnameHref(href: string) {
   try {
     return new URL(href).pathname;
   } catch {
     return href.split("?")[0];
   }
+}
+
+function filtrarMenuPorPapel(
+  itens: typeof menuItems,
+  papel: PapelAcesso
+) {
+  if (papel === "planejador") {
+    return itens.filter((item) => rotasPlanejador.has(item.href));
+  }
+
+  if (papel === "visitante") {
+    return itens.filter((item) => rotasVisitante.has(item.href));
+  }
+
+  return itens;
 }
 
 function atualizarObraIdNaUrl(pathname: string, obraId: number | null) {

@@ -37,6 +37,711 @@ body {
   font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
+.marketing-page {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #172033;
+}
+
+.marketing-page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.frentia-shared-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid rgba(230, 234, 240, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.frentia-shared-container {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.frentia-shared-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  height: 92px;
+}
+
+.frentia-shared-brand {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.frentia-shared-brand img {
+  width: 245px;
+  height: auto;
+  max-height: 68px;
+  object-fit: contain;
+}
+
+.frentia-shared-menu {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  color: #4d5a6d;
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+.frentia-shared-menu a:hover {
+  color: #062b63;
+}
+
+.frentia-shared-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.frentia-shared-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 13px 20px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  transition: 0.2s ease;
+}
+
+.frentia-shared-btn-primary {
+  background: #ff6b00;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(255, 107, 0, 0.26);
+}
+
+.frentia-shared-btn-primary:hover {
+  background: #d85a00;
+  transform: translateY(-2px);
+}
+
+.frentia-shared-btn-login {
+  border: 1px solid #e6eaf0;
+  background: #ffffff;
+  color: #062b63;
+  box-shadow: 0 8px 20px rgba(4, 31, 73, 0.06);
+}
+
+.marketing-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-height: 92px;
+  padding: 0.75rem clamp(1.25rem, 4vw, 3rem);
+  border-bottom: 1px solid #e6eaf0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.marketing-brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.marketing-logo {
+  width: 245px;
+  max-width: 52vw;
+  height: auto;
+  object-fit: contain;
+}
+
+.marketing-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.45rem;
+  color: #4d5a6d;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.marketing-nav a:hover {
+  color: #002f6c;
+}
+
+.marketing-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.marketing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.marketing-button-login {
+  border: 1px solid #e6eaf0;
+  background: #ffffff;
+  color: #062b63;
+  box-shadow: 0 8px 20px rgba(4, 31, 73, 0.06);
+}
+
+.marketing-button-primary {
+  background: #ff6b00;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(255, 107, 0, 0.22);
+}
+
+.marketing-button-secondary {
+  border: 1px solid #c9dcf7;
+  background: #eaf2ff;
+  color: #002f6c;
+}
+
+.marketing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.82fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: center;
+  padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 4vw, 3rem);
+  background:
+    linear-gradient(135deg, rgba(255, 107, 0, 0.08), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+}
+
+.marketing-hero-simple {
+  grid-template-columns: minmax(0, 56rem);
+}
+
+.marketing-hero-copy {
+  max-width: 56rem;
+}
+
+.marketing-eyebrow {
+  margin: 0 0 0.75rem;
+  color: #d85a00;
+  font-size: 0.78rem;
+  font-weight: 1000;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.marketing-page h1,
+.marketing-page h2,
+.marketing-page h3,
+.marketing-page p {
+  margin-top: 0;
+}
+
+.marketing-page h1 {
+  max-width: 52rem;
+  margin-bottom: 1.25rem;
+  color: #041f49;
+  font-size: clamp(2.4rem, 6vw, 4.7rem);
+  font-weight: 1000;
+  line-height: 1.02;
+}
+
+.marketing-page h2 {
+  margin-bottom: 1rem;
+  color: #041f49;
+  font-size: clamp(1.75rem, 3vw, 3rem);
+  font-weight: 1000;
+  line-height: 1.08;
+}
+
+.marketing-page h3 {
+  margin-bottom: 0.55rem;
+  color: #041f49;
+  font-size: 1.15rem;
+  font-weight: 950;
+}
+
+.marketing-page p {
+  color: #4d5a6d;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.marketing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1.6rem;
+}
+
+.marketing-product {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #e6eaf0;
+  border-radius: 0.5rem;
+  padding: 1.2rem;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(4, 31, 73, 0.14);
+}
+
+.product-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 0.5rem;
+  background: #041f49;
+  padding: 1rem;
+  color: #ffffff;
+}
+
+.product-top span {
+  color: #ffb987;
+  font-weight: 900;
+}
+
+.product-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.product-kpis div {
+  border: 1px solid #e6eaf0;
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  background: #f6f8fb;
+}
+
+.product-kpis span {
+  display: block;
+  color: #7b8794;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.product-kpis strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #002f6c;
+}
+
+.product-bars {
+  display: flex;
+  align-items: end;
+  gap: 0.8rem;
+  height: 13rem;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: #eef2f6;
+}
+
+.product-bars span {
+  flex: 1;
+  min-height: 2.5rem;
+  border-radius: 0.5rem 0.5rem 0.2rem 0.2rem;
+  background: #ff6b00;
+}
+
+.product-bars span:nth-child(odd) {
+  background: #002f6c;
+}
+
+.marketing-section {
+  padding: clamp(3.5rem, 7vw, 6rem) clamp(1rem, 4vw, 3rem);
+}
+
+.marketing-section-muted {
+  background: #f6f8fb;
+}
+
+.marketing-section-head {
+  max-width: 52rem;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+.marketing-grid {
+  display: grid;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.marketing-grid-three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.marketing-grid-two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.marketing-card,
+.marketing-link-card {
+  border: 1px solid #e6eaf0;
+  border-radius: 0.5rem;
+  padding: 1.3rem;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(4, 31, 73, 0.06);
+}
+
+.marketing-link-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.marketing-link-card {
+  display: grid;
+  gap: 0.55rem;
+  color: #041f49;
+  font-weight: 950;
+}
+
+.marketing-link-card span {
+  color: #d85a00;
+  font-size: 0.9rem;
+}
+
+.marketing-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 3rem);
+  max-width: 72rem;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.marketing-list,
+.marketing-resource-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-list li,
+.marketing-resource-list li {
+  border: 1px solid #e6eaf0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: #ffffff;
+  color: #172033;
+  font-weight: 850;
+}
+
+.marketing-resource-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+.marketing-cta {
+  margin: 0 clamp(1rem, 4vw, 3rem) clamp(3rem, 6vw, 5rem);
+  border-radius: 0.5rem;
+  padding: clamp(2rem, 5vw, 4rem);
+  background: #041f49;
+  color: #ffffff;
+  text-align: center;
+}
+
+.marketing-cta h2,
+.marketing-cta p {
+  color: #ffffff;
+}
+
+.marketing-cta p {
+  max-width: 44rem;
+  margin-right: auto;
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.marketing-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  border-top: 1px solid #e6eaf0;
+  padding: 1.5rem;
+  color: #4d5a6d;
+  font-weight: 800;
+}
+
+.marketing-legal {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem);
+}
+
+.institutional-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+  gap: clamp(2rem, 6vw, 4.5rem);
+  align-items: center;
+  padding: clamp(4rem, 8vw, 7rem) clamp(1.25rem, 4vw, 3rem);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(255, 107, 0, 0.14), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(6, 43, 99, 0.14), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+}
+
+.institutional-hero > div {
+  max-width: 56rem;
+}
+
+.institutional-hero-simple {
+  grid-template-columns: minmax(0, 62rem);
+}
+
+.institutional-panel {
+  border: 1px solid rgba(230, 234, 240, 0.95);
+  border-radius: 0.5rem;
+  padding: clamp(1.4rem, 3vw, 2rem);
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(4, 31, 73, 0.14);
+}
+
+.institutional-panel-kicker {
+  display: inline-flex;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: #fff1e6;
+  color: #a94700;
+  font-size: 0.78rem;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.institutional-contact-card {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 1.25rem;
+  border: 1px solid #c9dcf7;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: #eaf2ff;
+  color: #041f49;
+}
+
+.institutional-contact-card strong {
+  color: #062b63;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.institutional-contact-card a {
+  color: #041f49;
+  font-weight: 900;
+}
+
+.institutional-section,
+.institutional-legal {
+  padding: clamp(3.5rem, 7vw, 6rem) clamp(1.25rem, 4vw, 3rem);
+}
+
+.institutional-grid,
+.institutional-legal {
+  display: grid;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.institutional-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.institutional-legal {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.institutional-card {
+  border: 1px solid #e6eaf0;
+  border-radius: 0.5rem;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(4, 31, 73, 0.08);
+}
+
+.institutional-card h2 {
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+}
+
+.institutional-card-accent {
+  border-color: #c9dcf7;
+  background: #eaf2ff;
+}
+
+.blog-post-page {
+  grid-template-columns: minmax(0, 52rem);
+  justify-content: center;
+}
+
+.blog-post-page h1 {
+  font-size: clamp(2.15rem, 4vw, 3.6rem);
+}
+
+.blog-post-excerpt {
+  margin-bottom: 1.5rem;
+  color: #4d5a6d;
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
+.blog-post-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.blog-post-content h2 {
+  margin-top: 0.75rem;
+  color: #0b2f63;
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.blog-post-content ul {
+  margin: 0.25rem 0 0.25rem 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+  color: #24324a;
+  line-height: 1.75;
+  list-style: disc;
+}
+
+.blog-post-image {
+  margin: 0.5rem 0;
+}
+
+.blog-post-image img {
+  width: 100%;
+  max-height: 520px;
+  border: 1px solid #d8e0ea;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.blog-post-image figcaption {
+  margin-top: 0.45rem;
+  color: #6b778c;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .frentia-shared-nav {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 16px 0;
+  }
+
+  .frentia-shared-menu {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .marketing-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .marketing-nav {
+    justify-content: flex-start;
+  }
+
+  .marketing-header-actions {
+    width: 100%;
+  }
+
+  .marketing-header-actions .marketing-button {
+    flex: 1;
+  }
+
+  .marketing-hero,
+  .marketing-split,
+  .marketing-grid-three,
+  .marketing-grid-two,
+  .marketing-link-grid,
+  .marketing-resource-list,
+  .institutional-hero,
+  .institutional-grid,
+  .institutional-legal {
+    grid-template-columns: 1fr;
+  }
+
+  .product-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .frentia-shared-container {
+    width: min(100% - 28px, 1180px);
+  }
+
+  .frentia-shared-brand img {
+    width: 190px;
+  }
+
+  .frentia-shared-actions {
+    width: 100%;
+  }
+
+  .frentia-shared-actions .frentia-shared-btn {
+    flex: 1;
+  }
+}
+
+.frentia-readonly input,
+.frentia-readonly textarea,
+.frentia-readonly select,
+.frentia-readonly button {
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.frentia-readonly a,
+.frentia-readonly [data-readonly-allow="true"] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.frentia-readonly [data-readonly-allow="true"] input,
+.frentia-readonly [data-readonly-allow="true"] textarea,
+.frentia-readonly [data-readonly-allow="true"] select,
+.frentia-readonly [data-readonly-allow="true"] button {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.frentia-readonly [data-readonly-block="true"] {
+  pointer-events: none;
+  opacity: 0.72;
+}
+
 .campo-filtro {
   width: 100%;
   border: 1px solid var(--frentia-border);
@@ -270,6 +975,11 @@ body {
   }
 
   .rdo-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .rdo-fotos {
     break-inside: avoid;
     page-break-inside: avoid;
   }

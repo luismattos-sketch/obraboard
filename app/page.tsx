@@ -1,1110 +1,704 @@
-"use client";
-
+import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import DesktopLayout from "../components/DesktopLayout";
-import { supabase } from "../lib/supabase";
-import type { Atividade, RecursoDisponivelTurno } from "../lib/types";
-import {
-  cadastroBaseEvento,
-  cadastroDadosObraInicial,
-  carregarCadastroBase,
-  getContextoAtual,
-  obterDadosObra,
-  sincronizarCadastroBaseRemoto,
-  type FuncaoPrevistaCadastrada,
-  type TurnoCadastrado,
-} from "../lib/cadastro-base";
-import {
-  atividadeEncerraTurno,
-  calcularTempoTurno,
-  pertenceAoTurno,
-  type FechamentosTurno,
-  type ControlesTurno,
-  iniciarControleTurno,
-  obterControleTurno,
-  pausarControleTurno,
-  turnoEstaEncerrado,
-  type RestricaoHistorico,
-} from "../lib/operacao";
-import {
-  carregarControlesTurnoRemotos,
-  carregarFechamentosTurnoRemotos,
-  descreverErroSupabase,
-  listarRestricoesHistoricoRemoto,
-  salvarControleTurnoRemoto,
-} from "../lib/operacao-remota";
-import { gerarCampoUrl } from "../lib/rotas";
 
-type MaoObraReal = {
-  id: number;
-  obra_id?: number | null;
-  turno_id?: number | null;
-  atividade_id?: number | null;
-  funcao: string | null;
-  quantidade: number | null;
-  turno: string | null;
-  data_turno: string | null;
+const siteUrl = "https://www.frentia.com.br";
+
+export const metadata: Metadata = {
+  title: "Frentia | Controle de execução em campo para obras e paradas industriais",
+  description:
+    "Controle o planejado x realizado em tempo real. Publique turnos por QR Code, registre restrições e acompanhe a execução da frente no painel.",
+  alternates: {
+    canonical: `${siteUrl}/`,
+  },
+  openGraph: {
+    title: "Frentia | Controle de execução em campo",
+    description:
+      "Veja o planejado x realizado, registre restrições e acompanhe o turno em tempo real.",
+    url: siteUrl,
+    type: "website",
+  },
 };
 
-const dataHoje = () => new Date().toISOString().slice(0, 10);
-
-export default function Home() {
-  const [atividadesBanco, setAtividadesBanco] = useState<Atividade[]>([]);
-  const [maoObraReal, setMaoObraReal] = useState<MaoObraReal[]>([]);
-  const [obraAtivaNome, setObraAtivaNome] = useState("Sem frente selecionada");
-  const [obraAtivaId, setObraAtivaId] = useState<number | null>(null);
-  const [turnoAtivo, setTurnoAtivo] = useState("");
-  const [turnoAtivoDados, setTurnoAtivoDados] = useState<TurnoCadastrado | null>(null);
-  const [clientePronto, setClientePronto] = useState(false);
-  const [agora, setAgora] = useState(() => new Date());
-  const [historicoRestricoes, setHistoricoRestricoes] = useState<RestricaoHistorico[]>([]);
-  const [funcoesPrevistas, setFuncoesPrevistas] = useState<
-    FuncaoPrevistaCadastrada[]
-  >([]);
-  const [recursosDisponiveis, setRecursosDisponiveis] = useState<
-    RecursoDisponivelTurno[]
-  >([]);
-  const [fechamentos, setFechamentos] = useState<FechamentosTurno>({});
-  const [controlesTurno, setControlesTurno] = useState<ControlesTurno>({});
-  const [mensagem, setMensagem] = useState("");
-
-  const turnoAtual = turnoAtivo;
-
-  const atividadesDoTurnoAtual = useMemo(() => {
-    if (!turnoAtual) {
-      return atividadesBanco;
-    }
-
-    return atividadesBanco.filter((item) => {
-      const mesmaObra =
-        !obraAtivaId || Number(item.obra_id) === Number(obraAtivaId);
-
-      const mesmoTurnoPorId =
-        turnoAtivoDados?.id &&
-        item.turno_id &&
-        Number(item.turno_id) === Number(turnoAtivoDados.id);
-
-      const mesmoTurnoPorNome =
-        item.turno &&
-        String(item.turno).trim().toLowerCase() ===
-          String(turnoAtual).trim().toLowerCase();
-
-      return mesmaObra && (mesmoTurnoPorId || mesmoTurnoPorNome);
-    });
-  }, [atividadesBanco, obraAtivaId, turnoAtivoDados, turnoAtual]);
-
-  const dataTurnoAtual = obterDataTurnoAtual(atividadesDoTurnoAtual);
-  const dataTurnoOperacional = dataTurnoAtual ?? dataHoje();
-
-  const atividadesDaData = useMemo(
-    () =>
-      dataTurnoAtual
-        ? atividadesBanco.filter((item) => item.data_turno === dataTurnoAtual)
-        : atividadesBanco,
-    [atividadesBanco, dataTurnoAtual]
-  );
-
-  const turnoIdCampo = useMemo(() => {
-    const atividadeComTurnoId = atividadesDoTurnoAtual.find(
-      (item) => item.turno_id
-    );
-
-    if (atividadeComTurnoId?.turno_id) {
-      return Number(atividadeComTurnoId.turno_id);
-    }
-
-    if (turnoAtivoDados?.id) {
-      return Number(turnoAtivoDados.id);
-    }
-
-    return null;
-  }, [atividadesDoTurnoAtual, turnoAtivoDados]);
-
-  const atividades = useMemo(() => {
-    if (!turnoAtual) {
-      return [];
-    }
-
-    return atividadesDaData.filter((item) => {
-      const mesmaObra =
-        !obraAtivaId || Number(item.obra_id) === Number(obraAtivaId);
-
-      const mesmoTurnoPorId =
-        turnoIdCampo &&
-        item.turno_id &&
-        Number(item.turno_id) === Number(turnoIdCampo);
-
-      const mesmoTurnoPorNome =
-        item.turno &&
-        String(item.turno).trim().toLowerCase() ===
-          String(turnoAtual).trim().toLowerCase();
-
-      const mesmaData =
-        !dataTurnoAtual || item.data_turno === dataTurnoAtual;
-
-      return mesmaObra && mesmaData && (mesmoTurnoPorId || mesmoTurnoPorNome);
-    });
-  }, [atividadesDaData, dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]);
-
-  const recursosReaisPorFuncao = useMemo(() => {
-    const mapa = new Map<string, { quantidade: number; hh: number }>();
-    const atividadesIds = new Set(atividades.map((item) => item.id));
-    const atividadesPorId = new Map(atividades.map((item) => [item.id, item]));
-
-    maoObraReal
-      .filter((item) =>
-        item.atividade_id
-          ? atividadesIds.has(item.atividade_id)
-          : pertenceAoTurno(item, {
-              obraId: obraAtivaId,
-              turnoId: turnoAtivoDados?.id ?? null,
-              turno: turnoAtual || null,
-              dataTurno: dataTurnoAtual,
-            })
-      )
-      .forEach((item) => {
-        const funcao = item.funcao || "";
-
-        if (funcao) {
-          const quantidade = Number(item.quantidade || 0);
-          const atividade = item.atividade_id
-            ? atividadesPorId.get(item.atividade_id)
-            : null;
-          const hh =
-            quantidade * Number(atividade?.tempo_previsto_horas || 0);
-          const atual = mapa.get(funcao) ?? { quantidade: 0, hh: 0 };
-
-          atual.quantidade += quantidade;
-          atual.hh += hh;
-          mapa.set(funcao, atual);
-        }
-      });
-
-    return mapa;
-  }, [atividades, dataTurnoAtual, maoObraReal, obraAtivaId, turnoAtivoDados, turnoAtual]);
-
-  const recursosPrevistosPorFuncao = useMemo(() => {
-    const mapa = new Map<string, { quantidade: number; hh: number }>();
-
-    recursosDisponiveis.forEach((item) => {
-      const atual = mapa.get(item.funcao) ?? { quantidade: 0, hh: 0 };
-      atual.quantidade += Number(item.quantidade || 0);
-      atual.hh += Number(item.quantidade || 0) * Number(item.cargaHoraria || 0);
-      mapa.set(item.funcao, atual);
-    });
-
-    return mapa;
-  }, [recursosDisponiveis]);
-
-  const funcoesRecursos = useMemo(() => {
-    const nomes = new Set([
-      ...funcoesPrevistas.map((item) => item.nome),
-      ...Array.from(recursosPrevistosPorFuncao.keys()),
-      ...Array.from(recursosReaisPorFuncao.keys()),
-    ]);
-
-    return Array.from(nomes).filter(Boolean);
-  }, [funcoesPrevistas, recursosPrevistosPorFuncao, recursosReaisPorFuncao]);
-
-  const dataTurnoFormatada = dataTurnoAtual
-    ? formatarDataTurno(dataTurnoAtual)
-    : "Turno sem data";
-
-  const controleTurno = obterControleTurno(
-    controlesTurno,
-    obraAtivaId,
-    dataTurnoOperacional,
-    turnoAtual || null
-  );
-  const campoObraAtivaUrl =
-    clientePronto && controleTurno?.publicToken
-      ? gerarCampoUrl({ token: controleTurno.publicToken })
-      : null;
-
-  const tempoDecorridoMs = calcularTempoTurno(controleTurno, agora.getTime());
-
-  const turnoEncerrado = turnoEstaEncerrado(
-    fechamentos,
-    obraAtivaId,
-    dataTurnoOperacional,
-    turnoAtual || null
-  );
-
-  const statusOperacao = turnoEncerrado
-    ? "encerrado"
-    : controleTurno?.status ?? "planejado";
-
-  const indicadorTurnoExibido = obterIndicadorOperacao(statusOperacao);
-
-
-  const qrCodeUrl = campoObraAtivaUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-        campoObraAtivaUrl
-      )}&size=180x180&margin=8`
-    : null;
-
-  const qrCodeRenderKey = campoObraAtivaUrl
-    ? `${campoObraAtivaUrl}:${statusOperacao}:${turnoIdCampo ?? ""}:${dataTurnoAtual ?? ""}`
-    : null;
-
-  const executando = contarStatus(atividades, "Execução");
-  const restricoes = contarStatus(atividades, "Restrição");
-  const finalizadas = atividades.filter(atividadeEncerraTurno).length;
-  const parciais = atividades.filter(atividadeContaComoParcial).length;
-  const restricoesAtivas = useMemo(
-    () =>
-      historicoRestricoes.filter((item) =>
-        restricaoEstaAtivaNoTurno(item.status)
-      ),
-    [historicoRestricoes]
-  );
-  const totalRestricoes = Math.max(restricoes, restricoesAtivas.length);
-
-  const restricoesPainel = useMemo(() => {
-    return restricoesAtivas.map((item) => ({
-      id: item.id,
-      codigo: `R${item.atividadeId}`,
-      titulo: item.atividade,
-      responsavel: item.responsavel,
-      observacao: item.texto || "Restrição sem descrição.",
-      criticidade: "Alta",
-      status: item.status,
-    }));
-  }, [restricoesAtivas]);
-
-  const historicoRestricoesOrdenado = useMemo(
-    () =>
-      [...historicoRestricoes].sort(
-        (a, b) =>
-          new Date(b.registradaEm).getTime() - new Date(a.registradaEm).getTime()
-      ),
-    [historicoRestricoes]
-  );
-
-  const checkoutTurnoUrl = useMemo(() => {
-    const params = new URLSearchParams();
-
-    if (obraAtivaId) {
-      params.set("obraId", String(obraAtivaId));
-    }
-
-    if (turnoIdCampo) {
-      params.set("turnoId", String(turnoIdCampo));
-    }
-
-    if (dataTurnoAtual) {
-      params.set("dataTurno", dataTurnoAtual);
-    }
-
-    const query = params.toString();
-    return query ? `/checkout?${query}` : "/checkout";
-  }, [dataTurnoAtual, obraAtivaId, turnoIdCampo]);
-
-  const carregarAtividadesPainel = useCallback(async (obraId: number | null) => {
-    if (!obraId) {
-      setAtividadesBanco([]);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("atividades")
-      .select("*")
-      .eq("obra_id", obraId)
-      .order("id", { ascending: true });
-
-    setAtividadesBanco((data || []) as Atividade[]);
-  }, []);
-
-  async function carregarMaoObraRealPainel() {
-    const { data } = await supabase
-      .from("mao_obra")
-      .select("*")
-      .order("id", { ascending: true });
-
-    setMaoObraReal((data || []) as MaoObraReal[]);
-  }
-
-  const carregarRestricoesPainel = useCallback(
-    async (
-      obraIdAtual = obraAtivaId,
-      dataAtual = dataTurnoAtual,
-      turnoNome = turnoAtual,
-      turnoIdAtual = turnoIdCampo
-    ) => {
-      if (!obraIdAtual) {
-        setHistoricoRestricoes([]);
-        return;
-      }
-
-      const restricoesAtualizadas = await listarRestricoesHistoricoRemoto(
-        obraIdAtual,
-        dataAtual ?? null,
-        turnoNome || null,
-        turnoIdAtual
-      );
-
-      setHistoricoRestricoes(restricoesAtualizadas);
-    },
-    [dataTurnoAtual, obraAtivaId, turnoAtual, turnoIdCampo]
-  );
-
-  useEffect(() => {
-    const intervalo = window.setInterval(() => setAgora(new Date()), 1000);
-    queueMicrotask(() => setClientePronto(true));
-
-    return () => window.clearInterval(intervalo);
-  }, []);
-
-  useEffect(() => {
-    async function carregarEstadoOperacaoRemoto(obraIdAtual: number | null) {
-      const [controles, fechamentosRemotos] = await Promise.all([
-        carregarControlesTurnoRemotos(obraIdAtual),
-        carregarFechamentosTurnoRemotos(obraIdAtual),
-      ]);
-
-      setControlesTurno(controles);
-      setFechamentos(fechamentosRemotos);
-    }
-
-    function carregarContexto(cadastro = carregarCadastroBase()) {
-      const contexto = getContextoAtual(cadastro);
-      const obraAtiva = contexto.obraAtiva;
-      const obraResolvidaId = contexto.obraAtivaId;
-      const dadosObra = obraAtiva
-        ? obterDadosObra(cadastro, obraAtiva.id)
-        : cadastroDadosObraInicial;
-
-      setObraAtivaNome(
-        obraAtiva?.nome ||
-          (obraResolvidaId ? "Frente informada no link" : "Sem frente selecionada")
-      );
-      setObraAtivaId(obraResolvidaId);
-      setFuncoesPrevistas(dadosObra.funcoesPrevistas);
-      setTurnoAtivo(contexto.turnoAtivo?.nome ?? "");
-      setTurnoAtivoDados(contexto.turnoAtivo);
-      void carregarAtividadesPainel(obraResolvidaId);
-      void carregarMaoObraRealPainel();
-      void carregarEstadoOperacaoRemoto(obraResolvidaId);
-    }
-
-    function carregarContextoLocal() {
-      carregarContexto();
-    }
-
-    async function carregarContextoRemoto() {
-      carregarContexto(await sincronizarCadastroBaseRemoto());
-    }
-
-    void carregarContextoRemoto();
-    const intervaloAtualizacao = window.setInterval(() => {
-      void carregarContextoRemoto();
-    }, 5000);
-    window.addEventListener(cadastroBaseEvento, carregarContextoLocal);
-
-    return () => {
-      window.clearInterval(intervaloAtualizacao);
-      window.removeEventListener(cadastroBaseEvento, carregarContextoLocal);
-    };
-  }, [carregarAtividadesPainel]);
-
-  useEffect(() => {
-    void carregarRecursosPainel();
-
-    async function carregarRecursosPainel() {
-      if (!obraAtivaId || !dataTurnoAtual || !turnoAtual || !turnoAtivoDados?.id) {
-        setRecursosDisponiveis([]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("recursos_disponiveis")
-        .select("*")
-        .eq("obra_id", obraAtivaId)
-        .eq("data_turno", dataTurnoAtual)
-        .eq("turno_id", turnoAtivoDados.id)
-        .order("id", { ascending: true });
-
-      if (error) {
-        console.warn("Recursos planejados indisponiveis no Supabase.", error);
-        setRecursosDisponiveis([]);
-        return;
-      }
-
-      setRecursosDisponiveis([
-        ...((data || []) as Array<Record<string, unknown>>).map((item) => ({
-          id: Number(item.id),
-          obra_id: Number(item.obra_id),
-          turno_id:
-            item.turno_id === null || item.turno_id === undefined
-              ? null
-              : Number(item.turno_id),
-          data_turno: String(item.data_turno),
-          turno: String(item.turno),
-          funcao: String(item.funcao),
-          quantidade: Number(item.quantidade || 0),
-          cargaHoraria: Number(item.carga_horaria || 0),
-        })),
-      ]);
-    }
-  }, [dataTurnoAtual, obraAtivaId, turnoAtivoDados, turnoAtual]);
-
-  useEffect(() => {
-    if (!obraAtivaId) {
-      queueMicrotask(() => setHistoricoRestricoes([]));
-      return;
-    }
-
-    const atualizarPainel = () => {
-      void carregarAtividadesPainel(obraAtivaId);
-      void carregarRestricoesPainel();
-    };
-
-    queueMicrotask(() => {
-      atualizarPainel();
-    });
-    const intervaloRestricoes = window.setInterval(() => {
-      atualizarPainel();
-    }, 3000);
-
-    return () => window.clearInterval(intervaloRestricoes);
-  }, [obraAtivaId, carregarAtividadesPainel, carregarRestricoesPainel]);
-
-  useEffect(() => {
-    if (!obraAtivaId) {
-      return;
-    }
-
-    const canal = supabase
-      .channel(`painel-operacao-${obraAtivaId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "atividades", filter: `obra_id=eq.${obraAtivaId}` },
-        () => {
-          void carregarAtividadesPainel(obraAtivaId);
-          void carregarRestricoesPainel();
-          void sincronizarCadastroBaseRemoto();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "mao_obra", filter: `obra_id=eq.${obraAtivaId}` },
-        () => {
-          void carregarMaoObraRealPainel();
-          void sincronizarCadastroBaseRemoto();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "turnos_operacao", filter: `obra_id=eq.${obraAtivaId}` },
-        () => {
-          void carregarControlesTurnoRemotos(obraAtivaId).then(setControlesTurno);
-          void carregarFechamentosTurnoRemotos(obraAtivaId).then(setFechamentos);
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "restricoes_historico", filter: `obra_id=eq.${obraAtivaId}` },
-        () => {
-          void carregarAtividadesPainel(obraAtivaId);
-          void carregarRestricoesPainel();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(canal);
-    };
-  }, [obraAtivaId, carregarAtividadesPainel, carregarRestricoesPainel]);
-
-  function iniciarTurnoPainel() {
-    if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
-      return;
-    }
-
-    gravarControlesTurno(
-      iniciarControleTurno(
-        controlesTurno,
-        obraAtivaId,
-        dataTurnoOperacional,
-        turnoAtual
-      )
-    );
-    setMensagem("Turno iniciado.");
-  }
-
-  function pararTurnoPainel() {
-    if (!obraAtivaId || !dataTurnoOperacional || !turnoAtual) {
-      return;
-    }
-
-    gravarControlesTurno(
-      pausarControleTurno(
-        controlesTurno,
-        obraAtivaId,
-        dataTurnoOperacional,
-        turnoAtual
-      )
-    );
-    setMensagem("Turno pausado.");
-  }
-
-  function continuarTurnoPainel() {
-    iniciarTurnoPainel();
-    setMensagem("Turno retomado.");
-  }
-
-  function gravarControlesTurno(novosControles: ControlesTurno) {
-    setControlesTurno(novosControles);
-    const controle = obterControleTurno(
-      novosControles,
-      obraAtivaId,
-      dataTurnoOperacional,
-      turnoAtual || null
-    );
-
-    if (obraAtivaId && dataTurnoOperacional && turnoAtual && controle) {
-      void salvarControleTurnoRemoto(
-        obraAtivaId,
-        dataTurnoOperacional,
-        turnoAtual,
-        turnoAtivoDados?.id ?? null,
-        controle
-      ).catch((error) => {
-        console.error(error);
-        setMensagem(descreverErroSupabase(error, "iniciar o turno"));
-      });
-    }
-  }
-
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Frentia",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "Software para controle de execução em campo, planejado x realizado, apontamento por QR Code, restrições e acompanhamento de turno.",
+  url: siteUrl,
+};
+
+const featureLinks = [
+  ["Controle de execução em campo", "/controle-execucao-campo"],
+  ["Planejado x realizado", "/planejado-vs-realizado"],
+  ["RDO digital", "/rdo-digital"],
+  ["Controle de turno", "/controle-turno-obra"],
+  ["Gestão de restrições", "/gestao-restricoes-obra"],
+  ["Paradas industriais", "/software-gestao-paradas-industriais"],
+];
+
+export default function LandingPage() {
   return (
-    <DesktopLayout
-      titulo="Painel Frentia"
-      subtitulo={`Frente: ${obraAtivaNome} - Turno ${turnoAtual || "-"} - Data: ${dataTurnoFormatada}`}
-      status={indicadorTurnoExibido.texto}
-      statusTom={indicadorTurnoExibido.tom}
-      infoCentral={formatarRelogioTurno(agora)}
-      detalheCentral={`Decorrido ${formatarDuracao(tempoDecorridoMs)} - ${indicadorTurnoExibido.detalhe}`}
-    >
-      <div className="space-y-4">
-        {mensagem && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-            {mensagem}
+    <main className="frentia-landing">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(softwareJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .frentia-landing {
+              --azul-frentia: #062B63;
+              --azul-profundo: #041F49;
+              --azul-noite: #031733;
+              --azul-claro: #EAF2FF;
+              --azul-borda: #C9DCF7;
+              --laranja-frentia: #FF6B00;
+              --laranja-escuro: #D85A00;
+              --laranja-claro: #FFF1E6;
+              --cinza-900: #172033;
+              --cinza-700: #4D5A6D;
+              --cinza-500: #7B8794;
+              --cinza-200: #E6EAF0;
+              --cinza-100: #F6F8FB;
+              --branco: #FFFFFF;
+              --verde: #17A673;
+              --sombra: 0 18px 45px rgba(4, 31, 73, 0.14);
+              --sombra-suave: 0 12px 32px rgba(4, 31, 73, 0.08);
+              color: var(--cinza-900);
+              background: var(--branco);
+              font-family: Inter, Arial, Helvetica, sans-serif;
+              line-height: 1.55;
+            }
+            .frentia-landing * { box-sizing: border-box; }
+            .frentia-landing a { color: inherit; text-decoration: none; }
+            .frentia-landing .container { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+            .frentia-landing header {
+              position: sticky; top: 0; z-index: 50;
+              background: rgba(255, 255, 255, 0.92);
+              backdrop-filter: blur(14px);
+              border-bottom: 1px solid rgba(230, 234, 240, 0.9);
+            }
+            .frentia-landing .nav { height: 92px; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
+            .frentia-landing .brand { display: inline-flex; align-items: center; flex-shrink: 0; }
+            .frentia-landing .brand img { width: 245px; height: auto; max-height: 68px; object-fit: contain; }
+            .frentia-landing .menu { display: flex; align-items: center; gap: 24px; color: var(--cinza-700); font-size: 0.94rem; font-weight: 800; }
+            .frentia-landing .menu a:hover { color: var(--azul-frentia); }
+            .frentia-landing .nav-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+            .frentia-landing .btn {
+              display: inline-flex; align-items: center; justify-content: center;
+              min-height: 44px; border-radius: 999px; padding: 13px 20px;
+              font-size: 0.95rem; font-weight: 900; line-height: 1; white-space: nowrap;
+              transition: 0.2s ease;
+            }
+            .frentia-landing .btn-primary { background: var(--laranja-frentia); color: var(--branco); box-shadow: 0 14px 28px rgba(255, 107, 0, 0.26); }
+            .frentia-landing .btn-primary:hover { background: var(--laranja-escuro); transform: translateY(-2px); }
+            .frentia-landing .btn-secondary { background: var(--azul-claro); color: var(--azul-frentia); }
+            .frentia-landing .btn-login { background: var(--branco); color: var(--azul-frentia); border: 1px solid var(--cinza-200); box-shadow: 0 8px 20px rgba(4,31,73,0.06); }
+            .frentia-landing .hero {
+              overflow: hidden; position: relative; padding: 78px 0 68px;
+              background:
+                radial-gradient(circle at 7% 5%, rgba(255, 107, 0, 0.13), transparent 26%),
+                radial-gradient(circle at 88% 16%, rgba(6, 43, 99, 0.15), transparent 31%),
+                linear-gradient(180deg, #FFFFFF 0%, #F6F8FB 100%);
+            }
+            .frentia-landing .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
+            .frentia-landing .tag {
+              display: inline-flex; align-items: center; gap: 9px; margin-bottom: 18px;
+              border-radius: 999px; padding: 8px 13px;
+              background: var(--laranja-claro); color: #A94700;
+              font-size: 0.86rem; font-weight: 900;
+            }
+            .frentia-landing .tag span { width: 8px; height: 8px; border-radius: 999px; background: var(--laranja-frentia); }
+            .frentia-landing h1 { max-width: 760px; margin: 0 0 22px; color: var(--azul-profundo); font-size: clamp(2.35rem, 4.3vw, 4.55rem); font-weight: 1000; line-height: 1.02; }
+            .frentia-landing h2 { margin: 0 0 16px; color: var(--azul-profundo); font-size: clamp(2rem, 3vw, 3.1rem); font-weight: 1000; line-height: 1.05; }
+            .frentia-landing h3 { margin: 0 0 8px; color: var(--azul-profundo); font-weight: 950; }
+            .frentia-landing p { margin: 0; color: var(--cinza-700); }
+            .frentia-landing .hero p { max-width: 650px; margin-bottom: 30px; font-size: 1.12rem; }
+            .frentia-landing .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 24px; }
+            .frentia-landing .microcopy { color: var(--cinza-500); font-size: 0.93rem; font-weight: 700; }
+            .frentia-landing .proof-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+            .frentia-landing .proof-pill { border: 1px solid var(--cinza-200); border-radius: 999px; padding: 9px 12px; background: var(--branco); color: var(--azul-profundo); font-size: 0.86rem; font-weight: 900; box-shadow: 0 8px 20px rgba(4,31,73,0.04); }
+            .frentia-landing .hero-card { border: 1px solid rgba(230,234,240,0.9); border-radius: 32px; padding: 16px; background: rgba(255,255,255,0.94); box-shadow: var(--sombra); transform: rotate(1deg); }
+            .frentia-landing .product-window { min-height: 520px; display: grid; grid-template-columns: 92px 1fr; overflow: hidden; border: 1px solid var(--cinza-200); border-radius: 24px; background: #EDF2F8; }
+            .frentia-landing .fake-sidebar { display: flex; flex-direction: column; gap: 12px; padding: 15px 10px; background: var(--azul-noite); color: rgba(255,255,255,0.78); }
+            .frentia-landing .fake-logo { margin-bottom: 8px; border-radius: 8px; padding: 8px; background: var(--branco); color: var(--azul-frentia); text-align: center; font-size: 0.84rem; font-weight: 900; }
+            .frentia-landing .fake-menu { display: grid; gap: 7px; }
+            .frentia-landing .fake-menu span { border-radius: 9px; padding: 8px 7px; font-size: 0.72rem; font-weight: 900; }
+            .frentia-landing .fake-menu .active { background: var(--laranja-frentia); color: var(--branco); }
+            .frentia-landing .fake-main { display: grid; gap: 13px; padding: 16px; }
+            .frentia-landing .fake-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-radius: 18px; padding: 15px; background: var(--branco); box-shadow: 0 8px 18px rgba(4,31,73,0.05); }
+            .frentia-landing .fake-top small { color: var(--cinza-500); font-weight: 800; }
+            .frentia-landing .clock { border: 1px solid var(--azul-borda); border-radius: 11px; padding: 9px 11px; background: var(--azul-claro); color: var(--azul-frentia); font-weight: 900; }
+            .frentia-landing .fake-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+            .frentia-landing .kpi { border: 1px solid var(--cinza-200); border-radius: 15px; padding: 13px; background: var(--branco); }
+            .frentia-landing .kpi small { color: var(--cinza-500); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; }
+            .frentia-landing .kpi strong { display: block; margin-top: 3px; color: var(--azul-frentia); font-size: 1.45rem; line-height: 1.15; }
+            .frentia-landing .fake-content { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; }
+            .frentia-landing .fake-panel, .frentia-landing .qr-card { border: 1px solid var(--cinza-200); border-radius: 18px; padding: 15px; background: var(--branco); box-shadow: 0 8px 18px rgba(4,31,73,0.04); }
+            .frentia-landing .mini-bar { height: 8px; overflow: hidden; border-radius: 999px; background: var(--cinza-200); }
+            .frentia-landing .mini-bar span { display: block; height: 100%; border-radius: 999px; background: var(--verde); }
+            .frentia-landing .mini-bar.orange span { background: var(--laranja-frentia); }
+            .frentia-landing .resource-bars { display: grid; gap: 10px; margin-top: 12px; }
+            .frentia-landing .bar-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; color: var(--cinza-900); font-size: 0.82rem; font-weight: 900; }
+            .frentia-landing .qr { width: 118px; height: 118px; margin: 12px auto; border: 8px solid var(--branco); border-radius: 14px; background: var(--branco); box-shadow: 0 0 0 1px var(--cinza-200), 0 10px 22px rgba(4,31,73,0.08); }
+            .frentia-landing .qr img { display: block; width: 100%; height: 100%; object-fit: contain; }
+            .frentia-landing .qr-button { display: block; width: 100%; border-radius: 11px; padding: 10px; background: var(--laranja-frentia); color: var(--branco); text-align: center; font-size: 0.82rem; font-weight: 900; }
+            .frentia-landing section { padding: 86px 0; }
+            .frentia-landing .section-head { max-width: 820px; margin: 0 auto 44px; text-align: center; }
+            .frentia-landing .section-head p { font-size: 1.08rem; }
+            .frentia-landing .eyebrow { margin-bottom: 10px; color: var(--laranja-frentia); font-size: 0.78rem; font-weight: 1000; letter-spacing: 0.12em; text-transform: uppercase; }
+            .frentia-landing .pain-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 26px; align-items: stretch; }
+            .frentia-landing .pain-lead { border-radius: 32px; padding: 34px; background: var(--azul-profundo); color: var(--branco); box-shadow: var(--sombra); }
+            .frentia-landing .pain-lead h2, .frentia-landing .field h2, .frentia-landing .cta h2 { color: var(--branco); }
+            .frentia-landing .pain-lead p, .frentia-landing .field p, .frentia-landing .cta p { color: rgba(255,255,255,0.82); }
+            .frentia-landing .pain-list, .frentia-landing .field-list { display: grid; gap: 16px; }
+            .frentia-landing .pain-item { display: grid; grid-template-columns: 46px 1fr; gap: 16px; border: 1px solid var(--cinza-200); border-radius: 22px; padding: 24px; background: var(--cinza-100); }
+            .frentia-landing .pain-icon { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 15px; background: var(--laranja-claro); color: var(--laranja-escuro); font-weight: 1000; }
+            .frentia-landing .flow, .frentia-landing .indicators, .frentia-landing .pricing, .frentia-landing .seo-links { background: linear-gradient(180deg, #FFFFFF 0%, #F6F8FB 100%); }
+            .frentia-landing .steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+            .frentia-landing .step, .frentia-landing .module-card, .frentia-landing .audience-card, .frentia-landing .faq, .frentia-landing .price, .frentia-landing .seo-card { border: 1px solid var(--cinza-200); border-radius: 22px; padding: 22px; background: var(--branco); box-shadow: var(--sombra-suave); }
+            .frentia-landing .step-num { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-bottom: 18px; border-radius: 14px; background: var(--azul-claro); color: var(--azul-frentia); font-weight: 1000; }
+            .frentia-landing .step.highlight { background: var(--azul-profundo); color: var(--branco); border-color: var(--azul-profundo); }
+            .frentia-landing .step.highlight h3, .frentia-landing .step.highlight p { color: var(--branco); }
+            .frentia-landing .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+            .frentia-landing .module-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+            .frentia-landing .module-icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 16px; background: var(--azul-claro); color: var(--azul-frentia); font-weight: 1000; }
+            .frentia-landing .module-pill { border-radius: 999px; padding: 6px 10px; background: var(--cinza-100); color: var(--cinza-700); font-size: 0.76rem; font-weight: 900; }
+            .frentia-landing .screen-mini { display: grid; gap: 8px; margin-top: 18px; border: 1px solid var(--cinza-200); border-radius: 16px; padding: 10px; background: #F3F6FA; }
+            .frentia-landing .mini-row { height: 12px; border: 1px solid var(--cinza-200); border-radius: 999px; background: var(--branco); }
+            .frentia-landing .mini-row.short { width: 58%; }
+            .frentia-landing .mini-row.mid { width: 78%; }
+            .frentia-landing .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .frentia-landing .mini-box { height: 48px; border: 1px solid var(--cinza-200); border-radius: 12px; background: var(--branco); }
+            .frentia-landing .field { background: var(--azul-profundo); color: var(--branco); }
+            .frentia-landing .field-grid, .frentia-landing .indicator-layout { display: grid; grid-template-columns: 1fr 0.92fr; gap: 42px; align-items: center; }
+            .frentia-landing .field-item { display: grid; grid-template-columns: 36px 1fr; gap: 13px; color: rgba(255,255,255,0.9); }
+            .frentia-landing .check-dot { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,0.13); border-radius: 12px; background: rgba(255,255,255,0.1); }
+            .frentia-landing .phone { width: min(360px, 100%); margin: 0 auto; border: 10px solid rgba(255,255,255,0.12); border-radius: 38px; padding: 16px; background: #0A234F; box-shadow: 0 28px 70px rgba(0,0,0,0.28); }
+            .frentia-landing .phone-screen { display: grid; gap: 12px; border-radius: 28px; padding: 18px; background: var(--branco); color: var(--cinza-900); }
+            .frentia-landing .phone-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+            .frentia-landing .phone-chip { border-radius: 999px; padding: 6px 9px; background: #E7F8F1; color: var(--verde); font-size: 0.72rem; font-weight: 1000; }
+            .frentia-landing .task-card { display: grid; gap: 9px; border: 1px solid var(--cinza-200); border-radius: 16px; padding: 12px; }
+            .frentia-landing .phone-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .frentia-landing .phone-btn { border-radius: 11px; padding: 10px; background: var(--azul-claro); color: var(--azul-frentia); text-align: center; font-size: 0.76rem; font-weight: 1000; }
+            .frentia-landing .phone-btn.primary { background: var(--laranja-frentia); color: var(--branco); }
+            .frentia-landing .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 24px; }
+            .frentia-landing .metric-card { border: 1px solid var(--cinza-200); border-radius: 20px; padding: 20px; background: var(--branco); box-shadow: var(--sombra-suave); }
+            .frentia-landing .metric-card small { color: var(--cinza-500); font-size: 0.72rem; font-weight: 1000; text-transform: uppercase; }
+            .frentia-landing .metric-card strong { display: block; margin-top: 6px; color: var(--azul-frentia); font-size: 2rem; line-height: 1; }
+            .frentia-landing .charts { border: 1px solid var(--cinza-200); border-radius: 30px; padding: 26px; background: var(--branco); box-shadow: var(--sombra); }
+            .frentia-landing .bars { display: flex; align-items: end; gap: 18px; height: 190px; border-radius: 18px; padding: 18px; background: var(--cinza-100); }
+            .frentia-landing .bar-col { flex: 1; min-height: 30px; border-radius: 12px 12px 6px 6px; background: var(--azul-frentia); }
+            .frentia-landing .bar-col:nth-child(1) { height: 84px; }
+            .frentia-landing .bar-col:nth-child(2) { height: 128px; background: var(--laranja-frentia); }
+            .frentia-landing .bar-col:nth-child(3) { height: 154px; }
+            .frentia-landing .bar-col:nth-child(4) { height: 60px; background: var(--verde); }
+            .frentia-landing .audience-grid, .frentia-landing .faq-grid, .frentia-landing .seo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+            .frentia-landing .price-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
+            .frentia-landing .price { display: flex; flex-direction: column; gap: 18px; padding: 30px; }
+            .frentia-landing .price.featured { border: 2px solid var(--laranja-frentia); transform: translateY(-10px); }
+            .frentia-landing .amount { color: var(--azul-frentia); font-size: 2.4rem; font-weight: 1000; }
+            .frentia-landing .price ul { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; color: var(--cinza-700); }
+            .frentia-landing .price li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
+            .frentia-landing .price li::before { content: "✓"; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-top: 2px; border-radius: 999px; background: var(--azul-claro); color: var(--azul-frentia); font-size: 0.76rem; font-weight: 1000; line-height: 1; }
+            .frentia-landing .price.featured li::before { background: var(--laranja-claro); color: var(--laranja-escuro); }
+            .frentia-landing .price .btn { margin-top: auto; width: 100%; }
+            .frentia-landing .cta { background: var(--azul-profundo); text-align: center; }
+            .frentia-landing .cta p { max-width: 700px; margin: 0 auto 24px; }
+            .frentia-landing footer { border-top: 1px solid var(--cinza-200); padding: 28px 0; background: var(--branco); }
+            .frentia-landing .footer-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; color: var(--cinza-500); font-size: 0.92rem; font-weight: 800; }
+            .frentia-landing .footer-links { display: flex; flex-wrap: wrap; gap: 14px; }
+            @media (max-width: 1020px) {
+              .frentia-landing .nav { height: auto; flex-wrap: wrap; padding: 16px 0; }
+              .frentia-landing .menu { order: 3; width: 100%; overflow-x: auto; padding-bottom: 4px; }
+              .frentia-landing .hero-grid, .frentia-landing .pain-grid, .frentia-landing .field-grid, .frentia-landing .indicator-layout { grid-template-columns: 1fr; }
+              .frentia-landing .steps, .frentia-landing .modules-grid, .frentia-landing .audience-grid, .frentia-landing .faq-grid, .frentia-landing .price-cards, .frentia-landing .seo-grid { grid-template-columns: 1fr; }
+              .frentia-landing .price.featured { transform: none; }
+            }
+            @media (max-width: 620px) {
+              .frentia-landing .container { width: min(100% - 28px, 1180px); }
+              .frentia-landing .brand img { width: 190px; }
+              .frentia-landing .nav-actions { width: 100%; }
+              .frentia-landing .nav-actions .btn { flex: 1; }
+              .frentia-landing .product-window { min-height: auto; grid-template-columns: 1fr; }
+              .frentia-landing .fake-sidebar { display: none; }
+              .frentia-landing .fake-kpis, .frentia-landing .fake-content, .frentia-landing .metric-grid { grid-template-columns: 1fr; }
+            }
+          `,
+        }}
+      />
+
+      <header>
+        <div className="container nav">
+          <Link href="/" className="brand" aria-label="Frentia">
+            <Image
+              src="/frentia-logo.png"
+              alt="Frentia"
+              width={245}
+              height={68}
+              priority
+            />
+          </Link>
+          <nav className="menu" aria-label="Navegação principal">
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#recursos">Recursos</a>
+            <a href="#indicadores">Indicadores</a>
+            <a href="#planos">Planos</a>
+            <a href="#faq">FAQ</a>
+            <Link href="/blog">Blog</Link>
+          </nav>
+          <div className="nav-actions">
+            <Link href="/login" className="btn btn-login">
+              Entrar
+            </Link>
+            <Link href="/cadastro" className="btn btn-primary">
+              Começar grátis
+            </Link>
           </div>
-        )}
+        </div>
+      </header>
 
-        {!obraAtivaId ? (
-          <EstadoVazio texto="Selecione uma frente no menu lateral para continuar." />
-        ) : !turnoAtual ? (
-          <EstadoVazio texto="Selecione ou publique um turno no Checkin para continuar." />
-        ) : null}
-
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-[minmax(220px,360px)_auto_1fr] lg:items-center">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs font-bold uppercase text-slate-500">
-                Turno ativo
-              </p>
-              <p className="mt-1 font-bold text-slate-900">
-                {turnoAtual || "-"}
-              </p>
-              {turnoAtivoDados && (
-                <p className="text-xs font-semibold text-slate-500">
-                  Planejado: {turnoAtivoDados.horaInicio} - {turnoAtivoDados.horaFim}
-                </p>
-              )}
+      <section className="hero">
+        <div className="container hero-grid">
+          <div>
+            <div className="tag">
+              <span />
+              Campo, painel e RDO no mesmo fluxo
             </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {statusOperacao === "em_andamento" ? (
-                <button
-                  type="button"
-                  onClick={pararTurnoPainel}
-                  className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-yellow-600"
-                >
-                  Parar Turno
-                </button>
-              ) : statusOperacao === "pausado" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={continuarTurnoPainel}
-                    className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
-                  >
-                    Continuar Turno
-                  </button>
-                  <Link
-                    href={checkoutTurnoUrl}
-                    className="rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-slate-800"
-                  >
-                    Check-out
-                  </Link>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={iniciarTurnoPainel}
-                  disabled={!obraAtivaId || !turnoAtual || statusOperacao === "encerrado"}
-                  className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  {statusOperacao === "encerrado" ? "Turno encerrado" : "Iniciar Turno"}
-                </button>
-              )}
+            <h1>Controle a execução da sua frente em tempo real, do check-in ao RDO</h1>
+            <p>
+              Publique turnos por QR Code, acompanhe o planejado x realizado, registre
+              restrições e transforme o apontamento de campo em decisão durante o turno.
+            </p>
+            <div className="hero-actions">
+              <Link href="/cadastro" className="btn btn-primary">
+                Começar grátis
+              </Link>
+              <a href="#como-funciona" className="btn btn-secondary">
+                Ver fluxo operacional
+              </a>
             </div>
+            <p className="microcopy">
+              O planejador acessa com login. O encarregado entra pelo QR Code no celular.
+            </p>
+            <div className="proof-row">
+              <span className="proof-pill">Turnos por QR Code</span>
+              <span className="proof-pill">Restrições em campo</span>
+              <span className="proof-pill">Painel em tempo real</span>
+              <span className="proof-pill">Base para RDO</span>
+            </div>
+          </div>
 
-            <p className="text-sm font-semibold text-slate-500">
-              A contagem é manual: iniciar, parar, continuar e encerrar não dependem do horário planejado.
+          <div className="hero-card" aria-label="Exemplo visual do painel Frentia">
+            <div className="product-window">
+              <aside className="fake-sidebar">
+                <div className="fake-logo">Frentia</div>
+                <div className="fake-menu">
+                  <span>Obra</span>
+                  <span>Check-in</span>
+                  <span className="active">Painel</span>
+                  <span>Campo</span>
+                  <span>RDO</span>
+                </div>
+              </aside>
+              <div className="fake-main">
+                <div className="fake-top">
+                  <div>
+                    <h3>Painel Frentia</h3>
+                    <small>Frente: Montagem Industrial - Turno 1</small>
+                  </div>
+                  <div className="clock">08:42</div>
+                </div>
+                <div className="fake-kpis">
+                  <div className="kpi"><small>Atividades</small><strong>18</strong></div>
+                  <div className="kpi"><small>Execução</small><strong>7</strong></div>
+                  <div className="kpi"><small>Restrições</small><strong>2</strong></div>
+                  <div className="kpi"><small>Real</small><strong>64%</strong></div>
+                </div>
+                <div className="fake-content">
+                  <div className="fake-panel">
+                    <h4>Recursos previsto x real</h4>
+                    <div className="resource-bars">
+                      <div>
+                        <div className="bar-label"><span>Caldeireiro</span><span>82%</span></div>
+                        <div className="mini-bar"><span style={{ width: "82%" }} /></div>
+                      </div>
+                      <div>
+                        <div className="bar-label"><span>Soldador</span><span>68%</span></div>
+                        <div className="mini-bar orange"><span style={{ width: "68%" }} /></div>
+                      </div>
+                      <div>
+                        <div className="bar-label"><span>Montador</span><span>91%</span></div>
+                        <div className="mini-bar"><span style={{ width: "91%" }} /></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="qr-card">
+                    <h4>Campo da frente ativa</h4>
+                    <p>QR Code publicado para o encarregado apontar o turno.</p>
+                    <div className="qr">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2Fwww.frentia.com.br%2Fcadastro&size=180x180&margin=8"
+                        alt="QR Code para abrir a página de cadastro do Frentia"
+                        width="102"
+                        height="102"
+                      />
+                    </div>
+                    <span className="qr-button">Abrir Campo</span>
+                  </div>
+                </div>
+                <div className="fake-panel">
+                  <h4>Atividades do turno</h4>
+                  <div className="screen-mini">
+                    <div className="mini-row" />
+                    <div className="mini-row mid" />
+                    <div className="mini-row short" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pain">
+        <div className="container pain-grid">
+          <div className="pain-lead">
+            <div className="eyebrow">Dor operacional</div>
+            <h2>A execução não pode depender de mensagem solta.</h2>
+            <p>
+              Quando o campo informa tarde, o planejador perde a chance de corrigir rota
+              durante o turno. O Frentia coloca o dado operacional no painel enquanto a
+              frente ainda está trabalhando.
             </p>
           </div>
-        </section>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-          <KpiCard titulo="Atividades" valor={String(atividades.length)} />
-          <KpiCard titulo="Execução" valor={String(executando)} />
-          <KpiCard
-            titulo="Restrições"
-            valor={String(totalRestricoes)}
-            destaque="text-red-500"
-          />
-          <KpiCard
-            titulo="Parciais"
-            valor={String(parciais)}
-            destaque="text-yellow-500"
-          />
-          <KpiCard
-            titulo="Finalizada"
-            valor={String(finalizadas)}
-            destaque="text-green-600"
-          />
+          <div className="pain-list">
+            {[
+              ["01", "Planejado x realizado atrasado", "Veja avanço, status e recursos sem esperar fechamento manual."],
+              ["02", "Restrições sem rastreabilidade", "Registre impedimentos no turno, ligados à frente e à atividade."],
+              ["03", "RDO montado no retrabalho", "Use o histórico do turno para apoiar o relatório diário."],
+            ].map(([num, title, text]) => (
+              <article className="pain-item" key={title}>
+                <div className="pain-icon">{num}</div>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
+      </section>
 
-        <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
-          <div className="space-y-4">
-            <section className="rounded-2xl bg-white shadow-sm">
-              <CabecalhoSecao titulo="Recursos" texto="Previsto x real" />
+      <section className="flow" id="como-funciona">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow">Como funciona</div>
+            <h2>Do check-in ao RDO em uma linha clara.</h2>
+            <p>
+              O fluxo foi desenhado para a rotina real de obras, frentes de serviço e
+              paradas industriais.
+            </p>
+          </div>
+          <div className="steps">
+            {[
+              ["1", "Crie a obra", "Cadastre a frente, disciplinas, responsáveis e dados operacionais."],
+              ["2", "Planeje o turno", "Defina atividades, recursos, metas e prioridades antes da execução."],
+              ["3", "Publique o QR Code", "O encarregado acessa a tela Campo pelo celular sem login."],
+              ["4", "Acompanhe o painel", "Veja status, tempo, recursos, restrições e avanço real."],
+              ["5", "Valide no checkout", "Feche pendências, parciais e tratativas do turno."],
+              ["6", "Gere o RDO", "Transforme registros do turno em histórico operacional."],
+            ].map(([num, title, text], index) => (
+              <article className={`step ${index === 2 ? "highlight" : ""}`} key={title}>
+                <div className="step-num">{num}</div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-4">
-                {funcoesRecursos.length === 0 ? (
-                  <EstadoVazio texto="Nenhum recurso previsto cadastrado para a frente ativa." />
-                ) : (
-                  funcoesRecursos.map((funcao) => {
-                    const previsto = recursosPrevistosPorFuncao.get(funcao);
+      <section id="recursos">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow">Recursos</div>
+            <h2>O que o Frentia entrega na operação.</h2>
+            <p>
+              As telas conectam planejamento, campo, painel, restrições e fechamento sem
+              alterar a lógica simples do QR Code para quem executa.
+            </p>
+          </div>
+          <div className="modules-grid">
+            {[
+              ["CF", "Cadastro da Frente", "Base operacional", "Centralize dados da frente, disciplinas, funções, turnos e responsáveis."],
+              ["CI", "Check-in Operacional", "Planejamento", "Defina atividades do turno, recursos disponíveis, metas e observações."],
+              ["QR", "Tela Campo via QR Code", "Campo", "O encarregado lança recursos, inicia atividades e registra restrições pelo celular."],
+              ["PF", "Painel Frentia", "Tempo real", "Acompanhe execução, parciais, finalizadas, restrições e recursos previsto x real."],
+              ["CO", "Check-out do Turno", "Fechamento", "Valide atividades, trate restrições e reprograme pendências com rastreabilidade."],
+              ["RDO", "RDO digital", "Histórico", "Consolide resumo, recursos, atividades do turno, restrições e evidências."],
+            ].map(([icon, title, pill, text]) => (
+              <article className="module-card" key={title}>
+                <div className="module-head">
+                  <div className="module-icon">{icon}</div>
+                  <span className="module-pill">{pill}</span>
+                </div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <div className="screen-mini">
+                  <div className="mini-row" />
+                  <div className="mini-row mid" />
+                  <div className="mini-grid">
+                    <div className="mini-box" />
+                    <div className="mini-box" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
-                    return (
-                      <RecursoCard
-                        key={funcao}
-                        nome={funcao}
-                        previsto={previsto?.quantidade ?? 0}
-                        hhDisponivel={previsto?.hh ?? 0}
-                        hhReal={recursosReaisPorFuncao.get(funcao)?.hh ?? 0}
-                      />
-                    );
-                  })
-                )}
+      <section className="field">
+        <div className="container field-grid">
+          <div>
+            <div className="eyebrow">Campo conectado</div>
+            <h2>O planejador tem conta. O campo só precisa do QR Code.</h2>
+            <p>
+              Quem planeja acessa o sistema com login, publica o turno e compartilha o QR
+              Code. O encarregado abre a tela Campo no celular e alimenta o painel com dados
+              da execução.
+            </p>
+            <div className="field-list">
+              {[
+                "Acesso simples para o encarregado, sem senha e sem instalação.",
+                "Dados vinculados ao turno ativo publicado pelo planejador.",
+                "Recursos, restrições, início, finalização e quantitativos no painel.",
+              ].map((item) => (
+                <div className="field-item" key={item}>
+                  <div className="check-dot" />
+                  <div><strong>{item}</strong></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="phone" aria-label="Exemplo de tela campo no celular">
+            <div className="phone-screen">
+              <div className="phone-top">
+                <div>
+                  <strong>Campo · Turno 1</strong>
+                  <br />
+                  <small>Manutenção</small>
+                </div>
+                <span className="phone-chip">Ativo</span>
               </div>
-            </section>
-
-            <section className="rounded-2xl bg-white shadow-sm">
-              <CabecalhoSecao
-                titulo="Gestão operacional"
-                texto="Frentes, tarefas e oportunidades"
-              />
-
-              {atividades.length === 0 ? (
-                <div className="p-4">
-                  <EstadoVazio texto="Nenhuma atividade carregada para a frente, data e turno atuais." />
+              <div className="task-card">
+                <h4>Montagem de estrutura</h4>
+                <div className="mini-row" />
+                <div className="mini-row short" />
+                <div className="phone-actions">
+                  <div className="phone-btn primary">Iniciar</div>
+                  <div className="phone-btn">Restrição</div>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-[760px] w-full">
-                    <thead className="bg-slate-50 text-sm">
-                      <tr>
-                        <th className="p-3 text-left">Pri</th>
-                        <th className="p-3 text-left">Disc</th>
-                        <th className="p-3 text-left">Atividade</th>
-                        <th className="p-3 text-left">Local</th>
-                        <th className="p-3 text-left">Resp</th>
-                        <th className="p-3 text-center">Prev</th>
-                        <th className="p-3 text-center">Real</th>
-                        <th className="p-3 text-center">Status</th>
-                      </tr>
-                    </thead>
+              </div>
+              <div className="task-card">
+                <h4>Recursos mobilizados</h4>
+                <div className="mini-row mid" />
+                <div className="mini-row short" />
+              </div>
+              <div className="phone-actions">
+                <div className="phone-btn">Salvar avanço</div>
+                <div className="phone-btn primary">Finalizar</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                    <tbody>
-                      {atividades.map((item) => (
-                        <tr
-                          key={item.id}
-                          className="border-t text-sm hover:bg-slate-50"
-                        >
-                          <td className="p-3 font-bold text-red-500">
-                            {item.prioridade}
-                          </td>
-                          <td className="p-3 font-semibold">{item.disciplina}</td>
-                          <td className="p-3 font-medium">{item.atividade}</td>
-                          <td className="p-3">{item.local}</td>
-                          <td className="p-3">{item.responsavel}</td>
-                          <td className="p-3 text-center">{item.previsto}</td>
-                          <td className="p-3 text-center">{item.realizado ?? 0}</td>
-                          <td className="p-3 text-center">
-                            <StatusBadge status={item.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+      <section className="indicators" id="indicadores">
+        <div className="container indicator-layout">
+          <div>
+            <div className="eyebrow">Indicadores</div>
+            <h2>Um painel visual para decidir durante o turno, não depois dele.</h2>
+            <p>
+              Veja HH planejado x consumido, avanço real, PPC, tempo produtivo, tempo parado,
+              restrições abertas e linha do tempo da execução.
+            </p>
+            <div className="metric-grid">
+              <div className="metric-card"><small>HH consumido</small><strong>232,3</strong></div>
+              <div className="metric-card"><small>Avanço real</small><strong>40%</strong></div>
+              <div className="metric-card"><small>Restrições abertas</small><strong>2</strong></div>
+              <div className="metric-card"><small>PPC</small><strong>68%</strong></div>
+            </div>
+          </div>
+          <div className="charts">
+            <h3>Planejado x Real</h3>
+            <div className="bars">
+              <div className="bar-col" />
+              <div className="bar-col" />
+              <div className="bar-col" />
+              <div className="bar-col" />
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <section className="rounded-2xl bg-white shadow-sm">
-              <CabecalhoSecao
-                titulo="Histórico de restrições"
-                texto="Registros do Campo para o turno atual"
-              />
+      <section className="seo-links">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow">Casos de uso</div>
+            <h2>Explore o Frentia por necessidade operacional.</h2>
+          </div>
+          <div className="seo-grid">
+            {featureLinks.map(([label, href]) => (
+              <Link href={href} className="seo-card" key={href}>
+                <h3>{label}</h3>
+                <p>Saiba como o Frentia apoia esse fluxo.</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {historicoRestricoesOrdenado.length === 0 ? (
-                <div className="p-4">
-                  <EstadoVazio texto="Nenhuma restrição registrada pelo Campo neste turno." />
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {historicoRestricoesOrdenado.map((item) => (
-                    <div key={item.id} className="p-4 text-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-bold text-slate-900">{item.atividade}</p>
-                        <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-600">
-                          {item.status}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-slate-600">{item.texto}</p>
-                      <p className="mt-2 text-xs font-semibold text-slate-400">
-                        {item.responsavel || "Sem responsável"} - {formatarDataHora(item.registradaEm)}
-                      </p>
-                    </div>
+      <section>
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow">Onde usar</div>
+            <h2>Feito para operações que precisam enxergar a execução.</h2>
+          </div>
+          <div className="audience-grid">
+            {[
+              ["Manutenção industrial", "Controle equipes, impedimentos, HH, avanço e fechamento em paradas ou rotinas programadas."],
+              ["Montagem eletromecânica", "Acompanhe frentes por disciplina, recurso, responsável, prioridade e status."],
+              ["Obras industriais", "Organize curto prazo e tenha histórico confiável para reunião, medição e RDO."],
+            ].map(([title, text]) => (
+              <article className="audience-card" key={title}>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="pricing" id="planos">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow">Planos</div>
+            <h2>Comece grátis. Cresça sem mudar o fluxo.</h2>
+            <p>
+              Teste por 30 dias com as mesmas regras do plano Starter. Depois, escolha o plano
+              ideal para manter dados, históricos, indicadores e RDOs.
+            </p>
+          </div>
+          <div className="price-cards">
+            {[
+              {
+                name: "Starter",
+                price: "R$ 129",
+                cta: "Começar grátis",
+                features: [
+                  "1 frente ativa",
+                  "1 planejador",
+                  "1 visitante",
+                  "QR Code, turnos, atividades e RDO ilimitados",
+                ],
+              },
+              {
+                name: "Profissional",
+                price: "R$ 249",
+                cta: "Assinar Profissional",
+                features: [
+                  "3 frentes ativas",
+                  "3 planejadores",
+                  "3 visitantes",
+                  "QR Code, turnos, atividades e RDO ilimitados",
+                ],
+              },
+              {
+                name: "Empresarial",
+                price: "R$ 499",
+                cta: "Assinar Empresarial",
+                features: [
+                  "Frentes ativas sem limite",
+                  "Planejadores sem limite",
+                  "Visitantes sem limite",
+                  "Todos os recursos operacionais ilimitados",
+                ],
+              },
+            ].map(({ name, price, cta, features }, index) => (
+              <article className={`price ${index === 1 ? "featured" : ""}`} key={name}>
+                <h3>{name}</h3>
+                <div className="amount">{price} <small>/mês</small></div>
+                <ul>
+                  {features.map((feature) => (
+                    <li key={feature}>{feature}</li>
                   ))}
-                </div>
-              )}
-            </section>
-          </div>
-
-          <div className="space-y-4">
-            <section className="rounded-2xl bg-white p-4 shadow-sm">
-              <h3 className="text-xl font-bold">Campo da frente ativa</h3>
-              <p className="mb-4 text-sm text-slate-500">
-                Acesso direto para {obraAtivaNome}
-                {turnoAtual ? ` - Turno ${turnoAtual}` : ""}.
-              </p>
-
-              {campoObraAtivaUrl && qrCodeUrl ? (
-                <div className="flex flex-col items-center gap-3">
-                  <a href={campoObraAtivaUrl} aria-label="Abrir tela Campo">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      key={qrCodeRenderKey}
-                      src={qrCodeUrl}
-                      alt="QR Code para abrir a tela Campo"
-                      className="h-44 w-44 rounded-xl border border-slate-200 bg-white p-2"
-                    />
-                  </a>
-                  <a
-                    href={campoObraAtivaUrl}
-                    className="w-full rounded-xl bg-teal-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-teal-700"
-                  >
-                    Abrir Campo
-                  </a>
-                </div>
-              ) : (
-                <EstadoVazio
-                  texto={
-                    !obraAtivaId
-                      ? "Selecione uma frente no menu lateral para continuar."
-                      : "Selecione ou publique um turno no Checkin para gerar o acesso ao Campo."
-                  }
-                />
-              )}
-            </section>
-
-            <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm">
-              <h3 className="text-xl font-bold text-red-600">
-                Atenção do Turno
-              </h3>
-              <p className="mb-4 text-sm text-slate-500">
-                Restrições abertas
-              </p>
-
-              <div className="space-y-3">
-                {restricoesPainel.length === 0 ? (
-                  <EstadoVazio texto="Nenhuma restrição registrada no turno atual." />
-                ) : (
-                  restricoesPainel.map((restricao) => (
-                    <RestricaoCard
-                      key={restricao.id}
-                      codigo={restricao.codigo}
-                      titulo={restricao.titulo}
-                      responsavel={restricao.responsavel}
-                      observacao={restricao.observacao}
-                      prazo={dataTurnoFormatada}
-                      criticidade={restricao.criticidade}
-                      status={restricao.status}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-2xl bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-xl font-bold">Observacoes</h3>
-              <p className="text-sm leading-7 text-slate-600">
-                {atividades.length === 0
-                  ? "Nenhuma atividade registrada para o turno atual."
-                  : `${atividades.length} atividades carregadas para acompanhamento do turno.`}
-              </p>
-            </section>
+                </ul>
+                <Link href="/cadastro" className={`btn ${index === 1 ? "btn-primary" : "btn-secondary"}`}>
+                  {cta}
+                </Link>
+              </article>
+            ))}
           </div>
         </div>
-      </div>
-    </DesktopLayout>
-  );
-}
+      </section>
 
-function contarStatus(atividades: Atividade[], status: string) {
-  return atividades.filter((item) => item.status === status).length;
-}
-
-function atividadeContaComoParcial(atividade: Atividade) {
-  return Number(atividade.realizado || 0) < Number(atividade.previsto || 0);
-}
-
-function restricaoEstaAtivaNoTurno(status: string) {
-  return ["aberta", "parada"].includes(status);
-}
-
-function obterDataTurnoAtual(
-  atividades: Array<{ data_turno?: string | null }>
-) {
-  const datas = atividades
-    .map((item) => item.data_turno)
-    .filter((data): data is string => Boolean(data))
-    .sort();
-
-  return datas.at(-1) ?? null;
-}
-
-function formatarDataTurno(dataTurno: string) {
-  const [ano, mes, dia] = dataTurno.split("-");
-
-  if (!ano || !mes || !dia) {
-    return dataTurno;
-  }
-
-  return `${dia}/${mes}/${ano}`;
-}
-
-function formatarDataHora(valor: string) {
-  const data = new Date(valor);
-
-  if (Number.isNaN(data.getTime())) {
-    return valor;
-  }
-
-  return data.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function obterIndicadorOperacao(status: string): {
-  texto: string;
-  detalhe: string;
-  tom: "planejado" | "andamento" | "encerrado";
-} {
-  if (status === "encerrado") {
-    return { texto: "Turno encerrado", detalhe: "Tempo final", tom: "encerrado" };
-  }
-
-  if (status === "em_andamento") {
-    return { texto: "Turno em andamento", detalhe: "Tempo real", tom: "andamento" };
-  }
-
-  if (status === "pausado") {
-    return { texto: "Turno pausado", detalhe: "Tempo pausado", tom: "planejado" };
-  }
-
-  if (status === "publicado") {
-    return { texto: "Turno publicado", detalhe: "Pronto para iniciar", tom: "planejado" };
-  }
-
-  return { texto: "Turno planejado", detalhe: "Aguardando inicio", tom: "planejado" };
-}
-
-function formatarDuracao(ms: number) {
-  const segundosTotais = Math.floor(ms / 1000);
-  const horas = Math.floor(segundosTotais / 3600);
-  const minutos = Math.floor((segundosTotais % 3600) / 60);
-  const segundos = segundosTotais % 60;
-
-  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(
-    2,
-    "0"
-  )}:${String(segundos).padStart(2, "0")}`;
-}
-
-function formatarRelogioTurno(data: Date) {
-  return data.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatarHoras(horas: number) {
-  return `${horas.toLocaleString("pt-BR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: horas % 1 === 0 ? 0 : 1,
-  })} h`;
-}
-
-function CabecalhoSecao({ titulo, texto }: { titulo: string; texto: string }) {
-  return (
-    <div className="border-b p-4">
-      <h3 className="text-lg font-bold">{titulo}</h3>
-      <p className="text-sm text-slate-500">{texto}</p>
-    </div>
-  );
-}
-
-function EstadoVazio({ texto }: { texto: string }) {
-  return (
-    <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm font-semibold text-slate-500">
-      {texto}
-    </p>
-  );
-}
-
-function KpiCard({
-  titulo,
-  valor,
-  destaque = "text-slate-900",
-}: {
-  titulo: string;
-  valor: string;
-  destaque?: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <p className="text-sm text-slate-500">{titulo}</p>
-      <h3 className={`text-4xl font-bold ${destaque}`}>{valor}</h3>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const classe =
-    status === "Finalizada"
-      ? "bg-green-100 text-green-700"
-      : status === "Restrição"
-      ? "bg-red-100 text-red-700"
-      : status === "Parcial"
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-blue-100 text-blue-700";
-
-  return (
-    <span className={`rounded-md px-2 py-1 text-xs font-semibold ${classe}`}>
-      {status}
-    </span>
-  );
-}
-
-function RecursoCard({
-  nome,
-  previsto,
-  hhDisponivel,
-  hhReal,
-}: {
-  nome: string;
-  previsto: number;
-  hhDisponivel: number;
-  hhReal: number;
-}) {
-  const percentual =
-    hhDisponivel > 0 ? Math.round((hhReal / hhDisponivel) * 100) : 0;
-
-  return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <h4 className="font-bold">{nome}</h4>
-        <span className="text-sm font-bold">{percentual}%</span>
-      </div>
-
-      <div className="mb-2 h-2 overflow-hidden rounded-full bg-slate-200">
-        <div
-          className={`h-full rounded-full ${
-            percentual >= 100
-              ? "bg-green-500"
-              : percentual >= 80
-              ? "bg-yellow-500"
-              : "bg-red-500"
-          }`}
-          style={{ width: `${Math.min(percentual, 100)}%` }}
-        />
-      </div>
-
-      <p className="text-xs text-slate-500">
-        Previsto: {previsto}
-      </p>
-      <p className="mt-1 text-xs font-semibold text-teal-700">
-        HH prev {formatarHoras(hhDisponivel)} - Real {formatarHoras(hhReal)}
-      </p>
-    </div>
-  );
-}
-
-function RestricaoCard({
-  codigo,
-  titulo,
-  responsavel,
-  observacao,
-  prazo,
-  criticidade,
-  status,
-}: {
-  codigo: string;
-  titulo: string;
-  responsavel: string;
-  observacao: string;
-  prazo: string;
-  criticidade: string;
-  status: string;
-}) {
-  return (
-    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-bold text-red-600">
-          {codigo}
-        </span>
-        <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-red-500">
-          {criticidade}
-        </span>
-      </div>
-      <h4 className="mb-3 text-lg font-bold">{titulo}</h4>
-      <p className="mb-3 rounded-lg bg-white p-2 text-sm font-semibold text-red-700">
-        {observacao}
-      </p>
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-lg bg-white p-2">
-          <p className="text-xs text-slate-500">Responsável</p>
-          <p className="font-semibold">{responsavel}</p>
+      <section id="faq">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow">Dúvidas comuns</div>
+            <h2>Para testar sem complicar a rotina.</h2>
+          </div>
+          <div className="faq-grid">
+            {[
+              ["O encarregado precisa ter conta?", "Não. O planejador acessa com login e publica o turno. O campo entra pelo QR Code."],
+              ["Precisa instalar aplicativo?", "Não. A proposta é usar pelo navegador do celular."],
+              ["Serve só para obra?", "Não. Serve para manutenção, montagem, paradas, fiscalização e contratos de campo."],
+              ["O RDO sai automático?", "O RDO consolida informações do planejamento, campo, restrições e fechamento."],
+              ["Posso acompanhar planejado x realizado?", "Sim. O Frentia mostra avanço, atividades, recursos, HH, PPC e restrições."],
+              ["A tela Campo continua pública?", "Sim. Ela segue acessível pelo QR Code do turno, sem ser indexada por buscadores."],
+            ].map(([question, answer]) => (
+              <article className="faq" key={question}>
+                <h3>{question}</h3>
+                <p>{answer}</p>
+              </article>
+            ))}
+          </div>
         </div>
-        <div className="rounded-lg bg-white p-2">
-          <p className="text-xs text-slate-500">Status</p>
-          <p className="font-semibold">{status}</p>
+      </section>
+
+      <section className="cta">
+        <div className="container">
+          <h2>Saia do controle por mensagem e planilha.</h2>
+          <p>
+            Experimente o Frentia em uma frente real e acompanhe planejamento, campo,
+            restrições, indicadores e RDO no mesmo fluxo.
+          </p>
+          <Link href="/cadastro" className="btn btn-primary">
+            Começar grátis
+          </Link>
         </div>
-        <div className="rounded-lg bg-white p-2">
-          <p className="text-xs text-slate-500">Data</p>
-          <p className="font-semibold">{prazo}</p>
+      </section>
+
+      <footer>
+        <div className="container footer-row">
+          <div>Frentia</div>
+          <div>Gestão de frentes, turnos, campo e RDO em tempo real.</div>
+          <div className="footer-links">
+            <Link href="/contato">Contato</Link>
+            <Link href="/privacidade">Privacidade</Link>
+            <Link href="/termos">Termos</Link>
+          </div>
         </div>
-      </div>
-    </div>
+      </footer>
+    </main>
   );
 }

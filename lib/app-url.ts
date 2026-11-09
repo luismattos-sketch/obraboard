@@ -1,4 +1,4 @@
-const appUrlPadrao = "https://obraboard-five.vercel.app";
+const appUrlPadrao = "https://www.frentia.com.br";
 
 export function obterAppUrl() {
   const configurada = process.env.NEXT_PUBLIC_APP_URL?.trim() || appUrlPadrao;
@@ -19,4 +19,8 @@ export function obterAppUrl() {
 
 export function obterAuthCallbackUrl() {
   return `${obterAppUrl()}/auth/callback`;
+}
+
+export function obterPasswordRecoveryUrl() {
+  return `${obterAppUrl()}/login?reset=senha`;
 }

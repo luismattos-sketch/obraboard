@@ -80,17 +80,7 @@ export function calcularResumoIndicadores(
   const maoObraPorAtividade = agruparMaoObra(dados.maoObra);
   const restricoesAbertas = dados.restricoes.filter(restricaoAberta);
   const linhas = dados.atividades.map<LinhaAtividadeIndicador>((atividade) => {
-    const tempoRestricaoAtividade = dados.restricoes
-      .filter((item) => item.atividadeId === atividade.id)
-      .reduce(
-        (total, item) => total + calcularDuracaoRestricao(item, agora),
-        0
-      );
-    const horas = obterHorasAtividade(
-      atividade,
-      agora,
-      tempoRestricaoAtividade
-    );
+    const horas = obterHorasAtividade(atividade, agora);
     const pessoasPlanejadas = somarQuantidade(
       recursosPorAtividade.get(atividade.id) ?? [],
       "quantidade_prevista"
@@ -131,17 +121,6 @@ export function calcularResumoIndicadores(
       )
       .map((item) => item.hhConsumido)
   );
-  const tempoProdutivoMs =
-    somar(
-      linhas
-        .filter(
-          (item) =>
-            item.atividade.status !== "Planejada" &&
-            item.hhConsumido > 0 &&
-            item.pessoasReais > 0
-        )
-        .map((item) => item.hhConsumido / item.pessoasReais)
-    ) * 3_600_000;
   const hhPlanejado = somar(linhas.map((item) => item.hhPlanejado));
   const hhConsumido = somar(linhas.map((item) => item.hhConsumido));
   const hhPerdido = dados.restricoes.reduce((total, restricao) => {
@@ -154,6 +133,20 @@ export function calcularResumoIndicadores(
         (calcularDuracaoRestricao(restricao, agora) / 3_600_000)
     );
   }, 0);
+  const pessoasReais = somar(
+    linhas
+      .filter(
+        (item) =>
+          item.atividade.status !== "Planejada" &&
+          item.hhConsumido > 0 &&
+          item.pessoasReais > 0
+      )
+      .map((item) => item.pessoasReais)
+  );
+  const tempoProdutivoMs =
+    pessoasReais > 0
+      ? Math.max(0, (hhConsumido - hhPerdido) / pessoasReais) * 3_600_000
+      : 0;
   const totalPlanejado = somar(
     dados.atividades.map((item) => Number(item.previsto || 0))
   );
@@ -251,9 +244,16 @@ export function formatarNumero(valor: number, casas = 1) {
 
 function obterHorasAtividade(
   atividade: AtividadeIndicador,
-  agora: number,
-  tempoRestricaoMs: number
+  agora: number
 ) {
+  if (atividade.iniciado_em && atividade.finalizado_em) {
+    const duracaoFinalizada =
+      new Date(atividade.finalizado_em).getTime() -
+      new Date(atividade.iniciado_em).getTime();
+
+    return Math.max(0, duracaoFinalizada) / 3_600_000;
+  }
+
   const acumulado = Number(atividade.tempo_acumulado_ms || 0);
   const adicional =
     atividade.status === "Execução" && atividade.iniciado_em
@@ -278,9 +278,7 @@ function obterHorasAtividade(
   }
 
   const duracaoHistorica =
-    new Date(fim).getTime() -
-    new Date(atividade.iniciado_em).getTime() -
-    (atividade.finalizado_em ? tempoRestricaoMs : 0);
+    new Date(fim).getTime() - new Date(atividade.iniciado_em).getTime();
 
   return Math.max(0, duracaoHistorica) / 3_600_000;
 }

@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import DesktopLayout from "../../components/DesktopLayout";
+import { obterPapelAcessoAtual, type PapelAcesso } from "../../lib/acessos";
+import {
+  calcularHHPlanejado,
+  formatarNumeroPtBR,
+  normalizarCatalogoHH,
+  numeroSeguro,
+} from "../../lib/catalogo-hh";
 import { supabase } from "../../lib/supabase";
 import type {
   Atividade,
   AtividadeRecurso,
+  CatalogoHH,
   PrioridadeAtividade,
   RecursoDisponivelTurno,
 } from "../../lib/types";
@@ -17,7 +32,6 @@ import {
   obterDadosObra,
   salvarTurnoAtivo,
   sincronizarCadastroBaseRemoto,
-  type DisciplinaCadastrada,
   type FuncaoPrevistaCadastrada,
   type TurnoCadastrado,
   type UsuarioCadastrado,
@@ -53,6 +67,11 @@ type AtividadeInsert = {
   previsto: number;
   unidade: string;
   tempo_previsto_horas: number;
+  catalogo_hh_id?: string | null;
+  quantidade_planejada?: number | null;
+  indice_hh_aplicado?: number | null;
+  unidade_hh?: string | null;
+  hh_planejado?: number | null;
   realizado: number;
   status: "Planejada";
   progresso: number;
@@ -98,6 +117,16 @@ export default function CheckinPage() {
   const [previsto, setPrevisto] = useState("");
   const [unidade, setUnidade] = useState("un");
   const [tempoPrevistoHoras, setTempoPrevistoHoras] = useState("");
+  const [catalogoDisciplinas, setCatalogoDisciplinas] = useState<string[]>([]);
+  const [carregandoCatalogoDisciplinas, setCarregandoCatalogoDisciplinas] =
+    useState(false);
+  const [catalogoSelecionado, setCatalogoSelecionado] =
+    useState<CatalogoHH | null>(null);
+  const [sugestoesCatalogo, setSugestoesCatalogo] = useState<CatalogoHH[]>([]);
+  const [carregandoSugestoesCatalogo, setCarregandoSugestoesCatalogo] =
+    useState(false);
+  const [catalogoAberto, setCatalogoAberto] = useState(false);
+  const [catalogoIndiceAtivo, setCatalogoIndiceAtivo] = useState(-1);
   const [observacoes, setObservacoes] = useState("");
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [recursosPorAtividade, setRecursosPorAtividade] = useState<
@@ -108,9 +137,6 @@ export default function CheckinPage() {
   >([]);
   const [turnosCadastrados, setTurnosCadastrados] = useState<
     TurnoCadastrado[]
-  >([]);
-  const [disciplinasCadastradas, setDisciplinasCadastradas] = useState<
-    DisciplinaCadastrada[]
   >([]);
   const [usuariosCadastrados, setUsuariosCadastrados] = useState<
     UsuarioCadastrado[]
@@ -148,6 +174,10 @@ export default function CheckinPage() {
   const [fechamentos, setFechamentos] = useState<Record<string, { encerradoEm: string }>>({});
   const [controlesTurno, setControlesTurno] = useState<ControlesTurno>({});
   const [edicaoLiberada, setEdicaoLiberada] = useState(false);
+  const [papelAcesso, setPapelAcesso] = useState<PapelAcesso>("none");
+  const somenteLeitura = papelAcesso === "visitante";
+  const buscaCatalogoSeq = useRef(0);
+  const catalogoContainerRef = useRef<HTMLDivElement | null>(null);
 
   const turnoSelecionado = useMemo(
     () => turnosCadastrados.find((item) => item.nome === turno) ?? null,
@@ -159,8 +189,9 @@ export default function CheckinPage() {
     controleTurno?.status ?? ""
   );
   const checkinBloqueado =
-    (turnoPublicado || turnoEncerrado || controleTurno?.status === "encerrado") &&
-    !edicaoLiberada;
+    somenteLeitura ||
+    ((turnoPublicado || turnoEncerrado || controleTurno?.status === "encerrado") &&
+      !edicaoLiberada);
 
   const atividadesTurno = useMemo(
     () =>
@@ -219,6 +250,12 @@ export default function CheckinPage() {
         0
       ),
     [recursosAtividade, tempoPrevistoHoras]
+  );
+
+  const indiceHHSelecionado = numeroSeguro(catalogoSelecionado?.indice_hh);
+  const hhPlanejadoCatalogo = useMemo(
+    () => calcularHHPlanejado(previsto, indiceHHSelecionado),
+    [indiceHHSelecionado, previsto]
   );
 
   const hhCadastradoTurno = useMemo(() => {
@@ -381,7 +418,78 @@ export default function CheckinPage() {
     setRecursosDisponiveis(banco);
   }
 
+  async function carregarDisciplinasCatalogo() {
+    setCarregandoCatalogoDisciplinas(true);
+
+    const { data, error } = await supabase
+      .from("catalogo_hh")
+      .select("disciplina")
+      .eq("ativo", true)
+      .order("disciplina", { ascending: true });
+
+    if (error) {
+      console.error(error);
+      setErro("Não foi possível consultar o catálogo de HH.");
+      setCatalogoDisciplinas([]);
+      setCarregandoCatalogoDisciplinas(false);
+      return;
+    }
+
+    const disciplinasUnicas = Array.from(
+      new Map(
+        ((data || []) as { disciplina?: string | null }[])
+          .map((item) => String(item.disciplina || "").trim())
+          .filter(Boolean)
+          .map((nome) => [normalizarChaveTexto(nome), nome] as const)
+      ).values()
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    setCatalogoDisciplinas(disciplinasUnicas);
+    setCarregandoCatalogoDisciplinas(false);
+  }
+
+  function limparSelecaoCatalogo() {
+    setCatalogoSelecionado(null);
+    setSugestoesCatalogo([]);
+    setCatalogoAberto(false);
+    setCatalogoIndiceAtivo(-1);
+    setUnidade("un");
+  }
+
+  function alterarDisciplinaCatalogo(novaDisciplina: string) {
+    setDisciplina(novaDisciplina);
+    setAtividade("");
+    setPrevisto("");
+    limparSelecaoCatalogo();
+  }
+
+  function alterarTextoAtividadeCatalogo(texto: string) {
+    setAtividade(texto);
+    setCatalogoAberto(Boolean(disciplina && texto.trim().length >= 2));
+    setCatalogoIndiceAtivo(-1);
+
+    if (catalogoSelecionado && texto !== catalogoSelecionado.atividade) {
+      setCatalogoSelecionado(null);
+      setUnidade("un");
+    }
+  }
+
+  function selecionarAtividadeCatalogo(item: CatalogoHH) {
+    const normalizado = normalizarCatalogoHH(item);
+    setCatalogoSelecionado(normalizado);
+    setDisciplina(normalizado.disciplina);
+    setAtividade(normalizado.atividade);
+    setUnidade(normalizado.unidade);
+    setCatalogoAberto(false);
+    setCatalogoIndiceAtivo(-1);
+  }
+
   useEffect(() => {
+    void obterPapelAcessoAtual().then(setPapelAcesso);
+    queueMicrotask(() => {
+      void carregarDisciplinasCatalogo();
+    });
+
     function carregarContextoObra(cadastro = carregarCadastroBase()) {
       const contexto = getContextoAtual(cadastro);
       const obraAtiva = contexto.obraAtiva;
@@ -395,7 +503,6 @@ export default function CheckinPage() {
           (obraResolvidaId ? "Frente informada no link" : "Sem frente selecionada")
       );
       setTurnosCadastrados(dadosObra.turnos);
-      setDisciplinasCadastradas(dadosObra.disciplinas);
       setUsuariosCadastrados(dadosObra.usuarios);
       setFuncoesPrevistasCadastradas(dadosObra.funcoesPrevistas);
 
@@ -446,6 +553,66 @@ export default function CheckinPage() {
   }, []);
 
   useEffect(() => {
+    const termo = atividade.trim();
+
+    if (!disciplina || termo.length < 2 || catalogoSelecionado?.atividade === atividade) {
+      queueMicrotask(() => {
+        setSugestoesCatalogo([]);
+        setCarregandoSugestoesCatalogo(false);
+      });
+      return;
+    }
+
+    const sequencia = buscaCatalogoSeq.current + 1;
+    buscaCatalogoSeq.current = sequencia;
+
+    const timer = window.setTimeout(async () => {
+      setCarregandoSugestoesCatalogo(true);
+
+      const { data, error } = await supabase
+        .from("catalogo_hh")
+        .select("id, disciplina, atividade, indice_hh, unidade")
+        .eq("disciplina", disciplina)
+        .eq("ativo", true)
+        .ilike("atividade", `%${termo}%`)
+        .order("atividade", { ascending: true })
+        .limit(12);
+
+      if (buscaCatalogoSeq.current !== sequencia) {
+        return;
+      }
+
+      if (error) {
+        console.error(error);
+        setErro("Não foi possível consultar o catálogo de HH.");
+        setSugestoesCatalogo([]);
+        setCarregandoSugestoesCatalogo(false);
+        return;
+      }
+
+      setSugestoesCatalogo(((data || []) as CatalogoHH[]).map(normalizarCatalogoHH));
+      setCatalogoAberto(true);
+      setCarregandoSugestoesCatalogo(false);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [atividade, catalogoSelecionado, disciplina]);
+
+  useEffect(() => {
+    function fecharAoClicarFora(evento: MouseEvent) {
+      if (
+        catalogoContainerRef.current &&
+        !catalogoContainerRef.current.contains(evento.target as Node)
+      ) {
+        setCatalogoAberto(false);
+      }
+    }
+
+    document.addEventListener("mousedown", fecharAoClicarFora);
+    return () => document.removeEventListener("mousedown", fecharAoClicarFora);
+  }, []);
+
+  useEffect(() => {
     queueMicrotask(() => {
       void carregarRecursosDisponiveis(
         obraId,
@@ -461,6 +628,11 @@ export default function CheckinPage() {
   async function adicionarAtividade() {
     setMensagem("");
     setErro("");
+
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
 
     if (checkinBloqueado) {
       setErro("Clique em Editar para alterar o turno publicado.");
@@ -491,16 +663,33 @@ export default function CheckinPage() {
       return;
     }
 
+    if (!atividadeEditandoId && !catalogoSelecionado) {
+      setErro("Selecione uma atividade válida do catálogo.");
+      return;
+    }
+
     if (recursosAtividade.length === 0) {
       setErro("Informe ao menos um recurso previsto para a atividade.");
       return;
     }
 
-    const tempo = Number(tempoPrevistoHoras);
-    const quantidade = Number(previsto);
+    const tempo = numeroSeguro(tempoPrevistoHoras);
+    const quantidade = numeroSeguro(previsto);
+    const indiceCatalogo = numeroSeguro(catalogoSelecionado?.indice_hh);
+    const hhPlanejado = calcularHHPlanejado(quantidade, indiceCatalogo);
 
     if (tempo <= 0 || quantidade <= 0) {
       setErro("Previsão e tempo previsto devem ser maiores que zero.");
+      return;
+    }
+
+    if (!atividadeEditandoId && (!indiceCatalogo || !catalogoSelecionado?.unidade)) {
+      setErro("Não foi possível calcular o HH planejado.");
+      return;
+    }
+
+    if (!atividadeEditandoId && hhPlanejado <= 0) {
+      setErro("Não foi possível calcular o HH planejado.");
       return;
     }
 
@@ -601,9 +790,18 @@ export default function CheckinPage() {
         atividade,
         local,
         responsavel,
-        previsto: Number(previsto),
+        previsto: numeroSeguro(previsto),
         unidade,
-        tempo_previsto_horas: Number(tempoPrevistoHoras),
+        tempo_previsto_horas: numeroSeguro(tempoPrevistoHoras),
+        catalogo_hh_id: catalogoSelecionado?.id ?? null,
+        quantidade_planejada: catalogoSelecionado ? numeroSeguro(previsto) : null,
+        indice_hh_aplicado: catalogoSelecionado
+          ? numeroSeguro(catalogoSelecionado.indice_hh)
+          : null,
+        unidade_hh: catalogoSelecionado?.unidade ?? null,
+        hh_planejado: catalogoSelecionado
+          ? calcularHHPlanejado(previsto, catalogoSelecionado.indice_hh)
+          : null,
       })
       .eq("id", id)
       .select("id");
@@ -709,6 +907,18 @@ export default function CheckinPage() {
       previsto: quantidadePrevista,
       unidade,
       tempo_previsto_horas: tempoPrevisto,
+      catalogo_hh_id: catalogoSelecionado?.id ?? null,
+      quantidade_planejada: quantidadePrevista,
+      indice_hh_aplicado: catalogoSelecionado
+        ? numeroSeguro(catalogoSelecionado.indice_hh)
+        : null,
+      unidade_hh: catalogoSelecionado?.unidade ?? null,
+      hh_planejado: catalogoSelecionado
+        ? calcularHHPlanejado(
+            quantidadePrevista,
+            catalogoSelecionado.indice_hh
+          )
+        : null,
       realizado: 0,
       status: "Planejada",
       progresso: 0,
@@ -925,6 +1135,11 @@ export default function CheckinPage() {
     setMensagem("");
     setErro("");
 
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
+
     if (checkinBloqueado) {
       setErro("Clique em Editar para alterar os recursos do turno publicado.");
       return;
@@ -982,6 +1197,11 @@ export default function CheckinPage() {
     setMensagem("");
     setErro("");
 
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
+
     if (checkinBloqueado) {
       setErro("Clique em Editar para alterar os recursos do turno publicado.");
       return;
@@ -1009,6 +1229,11 @@ export default function CheckinPage() {
   }
 
   function iniciarEdicao(item: Atividade) {
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
+
     if (checkinBloqueado) {
       return;
     }
@@ -1025,6 +1250,17 @@ export default function CheckinPage() {
     setPrevisto(String(item.previsto));
     setUnidade(item.unidade || "un");
     setTempoPrevistoHoras(String(item.tempo_previsto_horas || ""));
+    setCatalogoSelecionado(
+      item.catalogo_hh_id
+        ? {
+            id: item.catalogo_hh_id,
+            disciplina: item.disciplina,
+            atividade: item.atividade,
+            indice_hh: Number(item.indice_hh_aplicado || 0),
+            unidade: item.unidade_hh || item.unidade || "un",
+          }
+        : null
+    );
     setRecursosAtividade(
       (recursosPorAtividade[item.id] ?? []).map((recurso) => ({
         id: recurso.id,
@@ -1058,6 +1294,10 @@ export default function CheckinPage() {
     setPrevisto("");
     setUnidade("un");
     setTempoPrevistoHoras("");
+    setCatalogoSelecionado(null);
+    setSugestoesCatalogo([]);
+    setCatalogoAberto(false);
+    setCatalogoIndiceAtivo(-1);
     setRecursosAtividade([]);
     setFuncaoRecurso("");
     setQuantidadeRecurso("");
@@ -1066,6 +1306,11 @@ export default function CheckinPage() {
   async function salvarEdicao(id: number) {
     setMensagem("");
     setErro("");
+
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
 
     if (checkinBloqueado) {
       setErro("Clique em Editar para alterar o turno publicado.");
@@ -1161,6 +1406,11 @@ export default function CheckinPage() {
   }
 
   function pedirExclusao(id: number) {
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
+
     if (checkinBloqueado) {
       return;
     }
@@ -1178,6 +1428,11 @@ export default function CheckinPage() {
   async function confirmarExclusao(id: number) {
     setMensagem("");
     setErro("");
+
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
 
     if (checkinBloqueado) {
       setErro("Clique em Editar para alterar o turno publicado.");
@@ -1226,6 +1481,11 @@ export default function CheckinPage() {
   }
 
   function liberarEdicaoCheckin() {
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
+
     setMensagem("");
     setErro("");
     setEdicaoLiberada(true);
@@ -1234,6 +1494,11 @@ export default function CheckinPage() {
   async function publicarTurno() {
     setMensagem("");
     setErro("");
+
+    if (somenteLeitura) {
+      setErro("Acesso de visitante: edicao bloqueada.");
+      return;
+    }
 
     if (!obraId || !dataTurno || !planejador) {
       setErro("Complete frente, data e planejador antes de publicar.");
@@ -1282,6 +1547,40 @@ export default function CheckinPage() {
     setSalvando(false);
   }
 
+  function navegarSugestoesCatalogo(evento: KeyboardEvent<HTMLInputElement>) {
+    if (!catalogoAberto && ["ArrowDown", "ArrowUp"].includes(evento.key)) {
+      setCatalogoAberto(true);
+    }
+
+    if (evento.key === "Escape") {
+      setCatalogoAberto(false);
+      return;
+    }
+
+    if (sugestoesCatalogo.length === 0) {
+      return;
+    }
+
+    if (evento.key === "ArrowDown") {
+      evento.preventDefault();
+      setCatalogoIndiceAtivo((atual) =>
+        atual >= sugestoesCatalogo.length - 1 ? 0 : atual + 1
+      );
+    }
+
+    if (evento.key === "ArrowUp") {
+      evento.preventDefault();
+      setCatalogoIndiceAtivo((atual) =>
+        atual <= 0 ? sugestoesCatalogo.length - 1 : atual - 1
+      );
+    }
+
+    if (evento.key === "Enter" && catalogoIndiceAtivo >= 0) {
+      evento.preventDefault();
+      selecionarAtividadeCatalogo(sugestoesCatalogo[catalogoIndiceAtivo]);
+    }
+  }
+
   return (
     <DesktopLayout
       titulo="Check-in Operacional"
@@ -1322,13 +1621,9 @@ export default function CheckinPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-3 text-sm">
               <ResumoCompacto label="Data" valor={formatarData(dataTurno)} />
               <ResumoCompacto label="Turno" valor={turno || "-"} />
-              <ResumoCompacto
-                label="Planejador"
-                valor={planejador || "-"}
-              />
             </div>
           </div>
 
@@ -1429,7 +1724,7 @@ export default function CheckinPage() {
               </span>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[92px_minmax(150px,190px)_1fr]">
+            <div className="grid gap-3 lg:grid-cols-[92px_minmax(170px,220px)_1fr]">
               <CampoRotulado label="Pri">
                 <select
                   value={prioridade}
@@ -1447,29 +1742,93 @@ export default function CheckinPage() {
               <CampoRotulado label="Disciplina">
                 <select
                   value={disciplina}
-                  onChange={(e) => setDisciplina(e.target.value)}
+                  onChange={(e) => alterarDisciplinaCatalogo(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 p-3 text-sm"
                 >
-                  <option value="">Selecionar</option>
-                  {disciplinasCadastradas.map((item) => (
-                    <option key={item.id} value={item.codigo || item.nome}>
-                      {item.codigo ? `${item.codigo} - ${item.nome}` : item.nome}
+                  <option value="">
+                    {carregandoCatalogoDisciplinas
+                      ? "Carregando..."
+                      : "Selecionar"}
+                  </option>
+                  {catalogoDisciplinas.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
                     </option>
                   ))}
                 </select>
               </CampoRotulado>
 
               <CampoRotulado label="Atividade">
-                <input
-                  value={atividade}
-                  onChange={(e) => setAtividade(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 p-3 text-sm"
-                  placeholder="Ex.: Montagem de estrutura"
-                />
+                <div ref={catalogoContainerRef} className="relative">
+                  <input
+                    value={atividade}
+                    onChange={(e) => alterarTextoAtividadeCatalogo(e.target.value)}
+                    onFocus={() =>
+                      setCatalogoAberto(Boolean(disciplina && atividade.trim().length >= 2))
+                    }
+                    onKeyDown={navegarSugestoesCatalogo}
+                    disabled={!disciplina || checkinBloqueado}
+                    role="combobox"
+                    aria-expanded={catalogoAberto}
+                    aria-controls="catalogo-hh-sugestoes"
+                    aria-autocomplete="list"
+                    className="w-full rounded-lg border border-slate-300 p-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                    placeholder={
+                      disciplina
+                        ? "Digite ao menos 2 caracteres"
+                        : "Selecione a disciplina"
+                    }
+                  />
+
+                  {catalogoAberto && (
+                    <div
+                      id="catalogo-hh-sugestoes"
+                      role="listbox"
+                      className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg"
+                    >
+                      {carregandoSugestoesCatalogo ? (
+                        <div className="px-3 py-2 font-semibold text-slate-500">
+                          Consultando catálogo...
+                        </div>
+                      ) : sugestoesCatalogo.length === 0 ? (
+                        <div className="px-3 py-2 font-semibold text-slate-500">
+                          Nenhuma atividade encontrada.
+                        </div>
+                      ) : (
+                        sugestoesCatalogo.map((item, indice) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            role="option"
+                            aria-selected={catalogoIndiceAtivo === indice}
+                            onMouseDown={(evento) => evento.preventDefault()}
+                            onClick={() => selecionarAtividadeCatalogo(item)}
+                            className={`block w-full px-3 py-2 text-left transition ${
+                              catalogoIndiceAtivo === indice
+                                ? "bg-teal-50"
+                                : "hover:bg-slate-50"
+                            }`}
+                          >
+                            <span className="block font-semibold text-slate-900">
+                              {item.atividade}
+                            </span>
+                            <span className="text-xs font-semibold text-teal-700">
+                              {formatarNumeroPtBR(item.indice_hh, {
+                                minimumFractionDigits: 4,
+                                maximumFractionDigits: 4,
+                              })}{" "}
+                              HH/{item.unidade}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </CampoRotulado>
             </div>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_120px_120px_150px]">
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_130px_120px_150px_150px_150px]">
               <CampoRotulado label="Local">
                 <input
                   value={local}
@@ -1494,29 +1853,23 @@ export default function CheckinPage() {
                 </datalist>
               </CampoRotulado>
 
-              <CampoRotulado label="Previsão">
+              <CampoRotulado label="Qtd. planejada">
                 <input
                   value={previsto}
                   onChange={(e) => setPrevisto(e.target.value)}
-                  type="number"
-                  min="0"
+                  inputMode="decimal"
                   className="w-full rounded-lg border border-slate-300 p-3 text-sm"
                   placeholder="0"
                 />
               </CampoRotulado>
 
               <CampoRotulado label="Unidade">
-                <select
+                <input
                   value={unidade}
-                  onChange={(e) => setUnidade(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 p-3 text-sm"
-                >
-                  {unidades.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+                  readOnly
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-600"
+                  placeholder="-"
+                />
               </CampoRotulado>
 
               <CampoRotulado label="Tempo previsto">
@@ -1528,6 +1881,37 @@ export default function CheckinPage() {
                   step="0.5"
                   className="w-full rounded-lg border border-slate-300 p-3 text-sm"
                   placeholder="Horas"
+                />
+              </CampoRotulado>
+
+              <CampoRotulado label="Índice HH">
+                <input
+                  value={
+                    catalogoSelecionado
+                      ? `${formatarNumeroPtBR(indiceHHSelecionado, {
+                          minimumFractionDigits: 4,
+                          maximumFractionDigits: 4,
+                        })} HH/${catalogoSelecionado.unidade}`
+                      : ""
+                  }
+                  readOnly
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-600"
+                  placeholder="-"
+                />
+              </CampoRotulado>
+
+              <CampoRotulado label="HH planejado">
+                <input
+                  value={
+                    hhPlanejadoCatalogo > 0
+                      ? `${formatarNumeroPtBR(hhPlanejadoCatalogo, {
+                          maximumFractionDigits: 4,
+                        })} h`
+                      : ""
+                  }
+                  readOnly
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
+                  placeholder="-"
                 />
               </CampoRotulado>
             </div>
@@ -1741,7 +2125,7 @@ export default function CheckinPage() {
                 Nenhuma atividade cadastrada para esta frente e turno.
               </div>
             ) : (
-              <table className="w-full min-w-[1120px]">
+              <table className="w-full min-w-[1240px]">
                 <thead className="bg-slate-50 text-sm">
                   <tr>
                     <th className="p-3 text-left">Pri</th>
@@ -1750,6 +2134,7 @@ export default function CheckinPage() {
                     <th className="p-3 text-left">Local</th>
                     <th className="p-3 text-left">Responsável</th>
                     <th className="p-3 text-center">Previsão</th>
+                    <th className="p-3 text-center">HH planejado</th>
                     <th className="p-3 text-center">Tempo</th>
                     <th className="p-3 text-center">Equipe prevista</th>
                     <th className="p-3 text-center">Situação</th>
@@ -1858,6 +2243,29 @@ export default function CheckinPage() {
                             />
                           ) : (
                             item.responsavel
+                          )}
+                        </td>
+
+                        <td className="p-3 text-center">
+                          {item.hh_planejado ? (
+                            <div>
+                              <div className="font-semibold">
+                                {formatarNumeroPtBR(item.hh_planejado, {
+                                  maximumFractionDigits: 4,
+                                })}{" "}
+                                h
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {item.indice_hh_aplicado
+                                  ? `${formatarNumeroPtBR(item.indice_hh_aplicado, {
+                                      minimumFractionDigits: 4,
+                                      maximumFractionDigits: 4,
+                                    })} HH/${item.unidade_hh || item.unidade || "un"}`
+                                  : "Índice não informado"}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
 
@@ -2250,6 +2658,14 @@ function formatarData(dataTurno: string) {
   }
 
   return `${dia}/${mes}/${ano}`;
+}
+
+function normalizarChaveTexto(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
 }
 
 function colunaInexistente(error: unknown, coluna: string) {

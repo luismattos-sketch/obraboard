@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { garantirContaAtual } from "../../../lib/conta";
+import { anexarUtmEmUrl, dispararSignupComplete } from "../../../lib/analytics";
 import { supabase } from "../../../lib/supabase";
 
 export default function AuthCallbackPage() {
@@ -41,6 +42,7 @@ export default function AuthCallbackPage() {
         await garantirContaAtual();
 
         if (ativo) {
+          dispararSignupComplete(data.session.user.id);
           setMensagem("Cadastro confirmado com sucesso.");
           setConfirmado(true);
         }
@@ -71,7 +73,7 @@ export default function AuthCallbackPage() {
         {confirmado && (
           <button
             type="button"
-            onClick={() => router.replace("/")}
+            onClick={() => router.replace(anexarUtmEmUrl("/painel"))}
             className="mt-6 w-full rounded-xl bg-[#ff6b00] px-4 py-3 font-bold text-white transition hover:bg-[#e55f00]"
           >
             Acessar o aplicativo

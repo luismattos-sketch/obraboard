@@ -14,11 +14,14 @@ const mensagens: Record<string, string> = {
 
 export default function AcessoBloqueadoPage() {
   const [mensagem, setMensagem] = useState(mensagens.deleted);
+  const [status, setStatus] = useState("deleted");
 
   useEffect(() => {
-    const status = new URLSearchParams(window.location.search).get("status") ?? "deleted";
+    const statusParam =
+      new URLSearchParams(window.location.search).get("status") ?? "deleted";
     queueMicrotask(() => {
-      setMensagem(mensagens[status] ?? mensagens.deleted);
+      setStatus(statusParam);
+      setMensagem(mensagens[statusParam] ?? mensagens.deleted);
     });
   }, []);
 
@@ -35,12 +38,22 @@ export default function AcessoBloqueadoPage() {
           Acesso indisponível
         </h1>
         <p className="mt-3 text-slate-600">{mensagem}</p>
-        <Link
-          href="/login"
-          className="mt-6 inline-flex rounded-xl bg-teal-600 px-5 py-3 font-bold text-white"
-        >
-          Voltar ao login
-        </Link>
+        <div className="mt-6 flex flex-col gap-3">
+          {["suspended", "cancelled"].includes(status) && (
+            <Link
+              href={`/assinatura?status=${encodeURIComponent(status)}`}
+              className="inline-flex justify-center rounded-xl bg-orange-500 px-5 py-3 font-bold text-white"
+            >
+              Regularizar assinatura
+            </Link>
+          )}
+          <Link
+            href="/login"
+            className="inline-flex justify-center rounded-xl bg-teal-600 px-5 py-3 font-bold text-white"
+          >
+            Voltar ao login
+          </Link>
+        </div>
       </section>
     </main>
   );
