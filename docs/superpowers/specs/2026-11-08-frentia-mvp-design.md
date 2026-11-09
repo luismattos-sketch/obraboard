@@ -169,7 +169,9 @@ Meta: nenhum arquivo acima de ~300 linhas.
 
 - **Vitest** para `lib/dominio/`, escrito antes da implementação (TDD).
 - **Playwright**: um teste ponta a ponta do ciclo completo (cadastro → nova obra → planejar →
-  liberar → lançar pelo link → enviar → fechar → baixar PDF) contra o Supabase local (CLI).
+  liberar → lançar pelo link → enviar → fechar → baixar PDF) contra o projeto Supabase de
+  desenvolvimento do Frentia (não há Docker para Supabase local), criando e removendo os próprios
+  dados de teste.
 - `npm run build` e `npm run lint` sem erros antes de cada deploy de preview.
 
 ## 11. Transição do código antigo e deploy
