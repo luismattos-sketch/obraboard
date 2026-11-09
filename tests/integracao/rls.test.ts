@@ -49,7 +49,8 @@ describe.skipIf(!ligado)("RLS", () => {
   it("usuário B não enxerga obras de A", async () => {
     const { data, error } = await b.cliente.from("obras").select("*");
     expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expect(data!.some((o) => o.id === obraA)).toBe(false);
+    expect(data!.every((o) => o.empresa_id === b.empresaId)).toBe(true);
   });
 
   it("usuário B não consegue inserir turno na obra de A", async () => {
