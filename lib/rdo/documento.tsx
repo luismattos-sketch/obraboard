@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, Text, View } from "@react-pdf/renderer";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { ResumoTurno } from "@/lib/dominio/resumo";
@@ -9,12 +9,16 @@ import { estilos as s } from "./estilos";
 import { dataHoraBrasilia } from "./formatar";
 import { Atividades, EfetivoEClima, Identificacao, Restricoes, ResumoBloco } from "./secoes";
 
+// Sem hifenização: as regras padrão do react-pdf são do inglês e quebram palavras em português.
+Font.registerHyphenationCallback((palavra) => [palavra]);
+
 let logo: Buffer | null = null;
 function logoFrentia(): Buffer | null {
   if (logo) return logo;
   try {
     logo = readFileSync(path.join(process.cwd(), "public", "frentia-logo.png"));
-  } catch {
+  } catch (e) {
+    console.warn("RDO: logo não encontrado, seguindo sem ele:", e instanceof Error ? e.message : e);
     return null; // sem logo o RDO continua válido
   }
   return logo;

@@ -25,7 +25,7 @@ export const estilos = StyleSheet.create({
   },
   marcaDagua: {
     position: "absolute", top: 330, left: 20, width: 555, textAlign: "center",
-    fontSize: 96, fontFamily: "Helvetica-Bold", color: COR.marca, transform: "rotate(-40deg)",
+    fontSize: 80, lineHeight: 1, fontFamily: "Helvetica-Bold", color: COR.marca, transform: "rotate(-40deg)",
   },
   titulo: { fontSize: 16, fontFamily: "Helvetica-Bold", color: COR.primaria, marginBottom: 8 },
   secao: { fontSize: 11, fontFamily: "Helvetica-Bold", color: COR.primaria, marginTop: 14, marginBottom: 6 },
