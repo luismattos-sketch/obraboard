@@ -127,7 +127,7 @@ returns boolean
 language sql
 security definer
 stable
-set search_path = public
+set search_path = ''
 as $$
   select exists (
     select 1 from public.membros m
@@ -148,12 +148,15 @@ alter table public.atividades enable row level security;
 alter table public.efetivo enable row level security;
 alter table public.clima enable row level security;
 
--- Grants (anon nao recebe nada)
+-- Grants explicitos nos dois sentidos (nao depender dos default privileges do Supabase):
+-- anon nao recebe nada; authenticated so le empresas/membros; service_role recebe tudo.
 grant usage on schema public to authenticated;
+revoke all on public.empresas, public.membros, public.obras, public.turnos,
+  public.atividades, public.efetivo, public.clima from anon, authenticated;
 grant select on public.empresas, public.membros to authenticated;
-grant select, insert, update, delete
-  on public.obras, public.turnos, public.atividades, public.efetivo, public.clima
-  to authenticated;
+grant select, insert, update, delete on public.obras, public.turnos,
+  public.atividades, public.efetivo, public.clima to authenticated;
+grant all on all tables in schema public to service_role;
 
 create policy empresas_select on public.empresas
   for select to authenticated

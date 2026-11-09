@@ -59,9 +59,15 @@ export async function criarUsuarioTeste(): Promise<UsuarioTeste> {
 
 export async function removerUsuarioTeste(userId: string): Promise<void> {
   const admin = criarClienteAdmin();
-  const { data: ms } = await admin.from("membros").select("empresa_id").eq("user_id", userId);
+  const { data: ms, error: e1 } = await admin
+    .from("membros")
+    .select("empresa_id")
+    .eq("user_id", userId);
+  if (e1) throw new Error(`remover membros: ${e1.message}`);
   for (const m of ms ?? []) {
-    await admin.from("empresas").delete().eq("id", m.empresa_id); // cascata
+    const { error } = await admin.from("empresas").delete().eq("id", m.empresa_id); // cascata
+    if (error) throw new Error(`remover empresa: ${error.message}`);
   }
-  await admin.auth.admin.deleteUser(userId);
+  const { error: e2 } = await admin.auth.admin.deleteUser(userId);
+  if (e2) throw new Error(`remover usuário: ${e2.message}`);
 }
