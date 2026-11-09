@@ -45,6 +45,14 @@ describe("horasEntre", () => {
   it("retorna null se faltar horário", () => {
     expect(horasEntre("07:30", null)).toBeNull();
   });
+  it("aceita HH:MM:SS (time do Postgres), ignorando segundos", () => {
+    expect(horasEntre("07:00:00", "17:00:00")).toBe(10);
+    expect(horasEntre("22:00:00", "06:00:00")).toBe(8);
+  });
+  it("retorna null para horários fora da faixa", () => {
+    expect(horasEntre("25:00", "06:00")).toBeNull();
+    expect(horasEntre("07:75", "17:00")).toBeNull();
+  });
 });
 
 describe("hhTurno", () => {
@@ -57,6 +65,11 @@ describe("hhTurno", () => {
     expect(
       hhTurno([{ quantidade: 4 }], { inicio: "07:00", fim: "17:00" }, { inicio: "07:00", fim: "16:00" }),
     ).toBe(36);
+  });
+  it("aceita horários HH:MM:SS", () => {
+    expect(
+      hhTurno([{ quantidade: 4 }], { inicio: "07:00:00", fim: "17:00:00" }, { inicio: null, fim: null }),
+    ).toBe(40);
   });
   it("retorna null sem horários nem efetivo", () => {
     expect(hhTurno([], { inicio: null, fim: null }, { inicio: null, fim: null })).toBeNull();

@@ -20,9 +20,13 @@ export function percentualCumprimento(
 }
 
 function minutos(hhmm: string): number | null {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(hhmm.trim());
   if (!m) return null;
-  return Number(m[1]) * 60 + Number(m[2]);
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  const seg = m[3] === undefined ? 0 : Number(m[3]);
+  if (h > 23 || min > 59 || seg > 59) return null;
+  return h * 60 + min;
 }
 
 export function horasEntre(inicio: string | null, fim: string | null): number | null {
