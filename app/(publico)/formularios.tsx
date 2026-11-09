@@ -23,10 +23,19 @@ function useForm(acao: Acao) {
   return useActionState<Retorno | null, FormData>(acao, null);
 }
 
-export function FormLogin({ proximo, aviso }: { proximo?: string; aviso?: string }) {
+export function FormLogin({
+  proximo,
+  aviso,
+  sucesso,
+}: {
+  proximo?: string;
+  aviso?: string;
+  sucesso?: string;
+}) {
   const [estado, action, pendente] = useForm(entrar);
   return (
     <form action={action} className="flex flex-col gap-4">
+      {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
       {aviso && <Aviso tom="alerta">{aviso}</Aviso>}
       <Mensagem estado={estado} />
       <input type="hidden" name="proximo" value={proximo ?? ""} />
