@@ -9,6 +9,7 @@ import {
   trazerPendentes,
 } from "@/lib/db/atividades";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
+import { aplicarAcao, gerarNovoLink } from "@/lib/db/turnos";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -91,4 +92,27 @@ export async function trazerPendentesAcao(_: EstadoAcao, form: FormData): Promis
   return ok({
     mensagem: n === 0 ? "Nenhuma atividade pendente nova" : `${n} atividade${n > 1 ? "s" : ""} trazida${n > 1 ? "s" : ""}`,
   });
+}
+
+export type EstadoLink = Resultado<{ token?: string }> | null;
+
+function atualizarTurno(obraId: string, turnoId: string) {
+  revalidatePath(`/obras/${obraId}/turnos/${turnoId}`);
+  revalidatePath(`/obras/${obraId}`);
+}
+
+export async function liberarTurnoAcao(_: EstadoLink, form: FormData): Promise<EstadoLink> {
+  const turnoId = texto(form, "turno_id");
+  const r = await aplicarAcao(await criarClienteServidor(), turnoId, "liberar");
+  if (!r.ok) return falha(r.erro);
+  atualizarTurno(texto(form, "obra_id"), turnoId);
+  return ok({ token: r.dados.token });
+}
+
+export async function gerarNovoLinkAcao(_: EstadoLink, form: FormData): Promise<EstadoLink> {
+  const turnoId = texto(form, "turno_id");
+  const r = await gerarNovoLink(await criarClienteServidor(), turnoId);
+  if (!r.ok) return falha(r.erro);
+  atualizarTurno(texto(form, "obra_id"), turnoId);
+  return ok({ token: r.dados.token });
 }

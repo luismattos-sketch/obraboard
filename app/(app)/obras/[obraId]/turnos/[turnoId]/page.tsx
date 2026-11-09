@@ -9,6 +9,7 @@ import { dataBR, horaCurta, numeroBR, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@
 import { ROTULO_STATUS_ATIVIDADE, ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { ListaAtividades } from "./ListaAtividades";
+import { PainelLink } from "./PainelLink";
 
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
@@ -29,6 +30,15 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
           Previsto: {horaCurta(turno.hora_inicio_prevista)} às {horaCurta(turno.hora_fim_prevista)}
         </p>
       )}
+
+      <PainelLink
+        turnoId={turno.id}
+        obraId={obraId}
+        obraNome={turno.obra.nome}
+        data={turno.data}
+        periodo={ROTULO_PERIODO[turno.periodo].toLowerCase()}
+        status={turno.status}
+      />
 
       {turno.status === "planejado" ? (
         <ListaAtividades turnoId={turno.id} atividades={turno.atividades} />
