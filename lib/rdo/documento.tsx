@@ -7,6 +7,7 @@ import type { ResumoTurno } from "@/lib/dominio/resumo";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
 import { dataHoraBrasilia } from "./formatar";
+import { sanitizarProfundo } from "./texto";
 import { Atividades, EfetivoEClima, Identificacao, Restricoes, ResumoBloco } from "./secoes";
 
 // Sem hifenização: as regras padrão do react-pdf são do inglês e quebram palavras em português.
@@ -24,7 +25,11 @@ function logoFrentia(): Buffer | null {
   return logo;
 }
 
-export function DocumentoRdo({ turno, resumo, geradoEm }: { turno: TurnoCompleto; resumo: ResumoTurno; geradoEm: Date }) {
+export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; geradoEm: Date }) {
+  // Todo texto vindo do usuário passa pelo filtro WinAnsi (Helvetica não tem emoji etc.).
+  const turno = sanitizarProfundo(props.turno);
+  const resumo = sanitizarProfundo(props.resumo);
+  const { geradoEm } = props;
   const img = logoFrentia();
   const titulo = `RDO — ${turno.obra.nome} — ${formatarData(turno.data)} (${ROTULO_PERIODO[turno.periodo]})`;
   return (

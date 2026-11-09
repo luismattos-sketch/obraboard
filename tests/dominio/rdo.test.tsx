@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { DocumentoRdo } from "@/lib/rdo/documento";
 import { nomeArquivoRdo } from "@/lib/rdo/nome-arquivo";
+import { sanitizarProfundo, textoWinAnsi } from "@/lib/rdo/texto";
 import { resumirTurno } from "@/lib/dominio/resumo";
 import type { Causa } from "@/lib/dominio/tipos";
 import type { TurnoCompleto } from "@/lib/db/turnos";
@@ -59,6 +60,29 @@ describe("DocumentoRdo", () => {
       writeFileSync(path.join(dir, "rdo-exemplo-fechado.pdf"), await renderToBuffer(<DocumentoRdo turno={f} resumo={resumirTurno(f)} geradoEm={geradoEm} />));
     }
   }, 60000);
+
+  it("remove caracteres fora do WinAnsi (emoji) e renderiza", async () => {
+    const limpo = textoWinAnsi("👍 ok");
+    expect(limpo).toBe(" ok");
+    expect(/\p{Extended_Pictographic}/u.test(limpo)).toBe(false);
+    // acentos, símbolos do Windows-1252 e m³ continuam
+    expect(textoWinAnsi("Fundação — 3º pav. · 10 m³ “ok” €")).toBe("Fundação — 3º pav. · 10 m³ “ok” €");
+    expect(textoWinAnsi("a−b → c ✅🏗️")).toBe("a-b -> c ");
+
+    const base = turno(2);
+    const t = {
+      ...base,
+      obra: { ...base.obra, nome: "Obra 🚧 Aurora" },
+      atividades: base.atividades.map((a) => ({ ...a, descricao: "👍 ok", observacao: "feito ✅" })),
+      efetivo: [{ id: "e1", turno_id: "t", funcao: "Pedreiro 👷", quantidade: 2 }],
+    } as TurnoCompleto;
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} geradoEm={geradoEm} />);
+    expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
+    const limpos = sanitizarProfundo({ t, n: 1, nada: null });
+    expect(JSON.stringify(limpos)).not.toMatch(/\p{Extended_Pictographic}/u);
+    expect(limpos.n).toBe(1);
+    expect(limpos.nada).toBeNull();
+  }, 30000);
 
   it("renderiza turno vazio fechado", async () => {
     const t = { ...turno(0, "fechado"), efetivo: [], clima: [] } as TurnoCompleto;

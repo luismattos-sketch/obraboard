@@ -2,7 +2,7 @@ import { Text, View } from "@react-pdf/renderer";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { ResumoTurno } from "@/lib/dominio/resumo";
-import { CAUSAS, CONDICOES, ROTULO_STATUS_ATIVIDADE, type PeriodoClima } from "@/lib/dominio/tipos";
+import { CAUSAS, CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
 import { qtdRealizada } from "./formatar";
 
@@ -106,12 +106,6 @@ export function Restricoes({ resumo }: { resumo: ResumoTurno }) {
   );
 }
 
-const PERIODOS: { id: PeriodoClima; rotulo: string }[] = [
-  { id: "manha", rotulo: "Manhã" },
-  { id: "tarde", rotulo: "Tarde" },
-  { id: "noite", rotulo: "Noite" },
-];
-
 const Par = ({ a, b, forte }: { a: string; b: string; forte?: boolean }) => (
   <View style={[s.linha, { justifyContent: "space-between" }]}>
     <Text style={[s.celula, forte ? s.negrito : {}]}>{a}</Text>
@@ -128,7 +122,7 @@ export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo:
       <Par a="Total" b={String(resumo.efetivoTotal)} forte />
 
       <Text style={s.secao}>Clima</Text>
-      {PERIODOS.map((p) => {
+      {PERIODOS_CLIMA.map((p) => {
         const c = turno.clima.find((x) => x.periodo === p.id);
         return <Par key={p.id} a={p.rotulo} b={c ? `${CONDICOES[c.condicao]}${c.impediu ? " · impediu o trabalho" : ""}` : "—"} />;
       })}
