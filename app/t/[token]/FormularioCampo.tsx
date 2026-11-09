@@ -7,10 +7,10 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
-import type { AtividadeExec, StatusTurno } from "@/lib/dominio/tipos";
+import type { StatusTurno } from "@/lib/dominio/tipos";
 import { enviarTurno, limparClima, salvarClima, salvarEfetivo, salvarExecucao, salvarHorarioReal } from "./acoes";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
-import { BlocoAtividades } from "@/components/execucao/BlocoAtividades";
+import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { BlocoEfetivo } from "@/components/execucao/BlocoEfetivo";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
@@ -26,7 +26,7 @@ export type DadosTurnoCampo = {
 
 export function FormularioCampo({ token, turno }: { token: string; turno: DadosTurnoCampo }) {
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
-  const [atividades, setAtividades] = useState<AtividadeExec[]>(turno.atividades);
+  const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
   const { ocupado: salvando, registrar } = useRastreioSalvamento();
   const [enviando, setEnviando] = useState(false);
@@ -62,13 +62,13 @@ export function FormularioCampo({ token, turno }: { token: string; turno: DadosT
         atividades={turno.atividades}
         somenteLeitura={somenteLeitura}
         salvar={(id, d) => salvarExecucao(token, id, d)}
-        onMudar={setAtividades}
+        onMudar={mudar}
         erros={erros}
       />
       <BlocoEfetivo
         inicial={turno.efetivo}
         somenteLeitura={somenteLeitura}
-        salvar={(l) => salvarEfetivo(token, l)}
+        salvar={(l, esperado) => salvarEfetivo(token, l, esperado)}
       />
       <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
         limpar={(p) => limparClima(token, p)}

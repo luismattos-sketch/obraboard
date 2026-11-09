@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { classesTom, type Tom } from "./tons";
+import type { Tom } from "@/lib/dominio/tipos";
+import { classesTom } from "./tons";
 
 export function Selo({ tom, children }: { tom: Tom; children: ReactNode }) {
   return (

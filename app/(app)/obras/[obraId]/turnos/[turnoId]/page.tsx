@@ -5,7 +5,9 @@ import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { Aviso } from "@/components/ui/Aviso";
 import { AcoesTurno } from "./AcoesTurno";
+import { DadosTurno } from "./DadosTurno";
 import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
 import { PainelLink } from "./PainelLink";
@@ -40,21 +42,39 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
       />
 
       {turno.status === "planejado" ? (
-        <ListaAtividades turnoId={turno.id} atividades={turno.atividades} />
+        <>
+          <ListaAtividades turnoId={turno.id} atividades={turno.atividades} />
+          <DadosTurno
+            turnoId={turno.id}
+            data={turno.data}
+            periodo={turno.periodo}
+            hora_inicio_prevista={turno.hora_inicio_prevista}
+            hora_fim_prevista={turno.hora_fim_prevista}
+          />
+        </>
       ) : (
         <>
           <Resumo turno={turno} />
           {turno.status === "fechado" ? (
             <AcoesTurno turnoId={turno.id} fechado />
           ) : (
-            <EdicaoExecucao
-              turnoId={turno.id}
-              hora_inicio_real={turno.hora_inicio_real}
-              hora_fim_real={turno.hora_fim_real}
-              atividades={turno.atividades}
-              efetivo={turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade }))}
-              clima={turno.clima}
-            />
+            <>
+              <details className="rounded-xl border border-borda bg-superficie p-4">
+                <summary className="cursor-pointer text-lg font-semibold text-texto">Editar planejamento</summary>
+                <div className="mt-3 flex flex-col gap-3">
+                  <Aviso tom="info">O encarregado precisa recarregar a página para ver as mudanças.</Aviso>
+                  <ListaAtividades turnoId={turno.id} atividades={turno.atividades} trazerPendentes={false} />
+                </div>
+              </details>
+              <EdicaoExecucao
+                turnoId={turno.id}
+                hora_inicio_real={turno.hora_inicio_real}
+                hora_fim_real={turno.hora_fim_real}
+                atividades={turno.atividades}
+                efetivo={turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade }))}
+                clima={turno.clima}
+              />
+            </>
           )}
         </>
       )}

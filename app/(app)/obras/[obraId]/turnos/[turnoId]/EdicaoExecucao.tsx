@@ -1,6 +1,6 @@
 "use client";
 
-import { BlocoAtividades } from "@/components/execucao/BlocoAtividades";
+import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { BlocoEfetivo } from "@/components/execucao/BlocoEfetivo";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
@@ -10,8 +10,6 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
-import { useState } from "react";
-import type { AtividadeExec } from "@/lib/dominio/tipos";
 import { AcoesTurno } from "./AcoesTurno";
 import { corrigirClima, corrigirEfetivo, corrigirExecucao, corrigirHorario, limparClimaPlanejador } from "./acoesExecucao";
 
@@ -27,9 +25,9 @@ type Props = {
 /** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
 export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, atividades, efetivo, clima }: Props) {
   const { ocupado, registrar } = useRastreioSalvamento();
-  const [estado, setEstado] = useState<AtividadeExec[]>(atividades);
-  const erros = errosDeCausa(estado);
-  const pendentes = estado.filter((a) => erros[a.id]);
+  const { lista, mudar } = useExecucaoLocal(atividades);
+  const erros = errosDeCausa(lista);
+  const pendentes = lista.filter((a) => erros[a.id]);
 
   return (
     <ProvedorSalvamento registrar={registrar}>
@@ -46,10 +44,10 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
         <BlocoAtividades
           atividades={atividades}
           salvar={(id, d) => corrigirExecucao(turnoId, id, d)}
-          onMudar={setEstado}
+          onMudar={mudar}
           erros={erros}
         />
-        <BlocoEfetivo inicial={efetivo} salvar={(l) => corrigirEfetivo(turnoId, l)} />
+        <BlocoEfetivo inicial={efetivo} salvar={(l, esperado) => corrigirEfetivo(turnoId, l, esperado)} />
         <BlocoClima
           inicial={clima}
           salvar={(d) => corrigirClima(turnoId, d)}

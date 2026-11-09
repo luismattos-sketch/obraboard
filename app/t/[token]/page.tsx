@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
-import { ERRO_LINK, obterTurnoPorToken } from "@/lib/db/campo";
+import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken } from "@/lib/db/campo";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 
@@ -34,7 +34,7 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
         </p>
       </header>
       {turno.status === "fechado" && <Aviso tom="info">Turno fechado pelo planejador</Aviso>}
-      {turno.status === "planejado" && <Aviso tom="alerta">Este turno não está aberto para lançamentos.</Aviso>}
+      {turno.status === "planejado" && <Aviso tom="alerta">{ERRO_FECHADO}</Aviso>}
       <FormularioCampo
         token={token}
         turno={{

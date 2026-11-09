@@ -1,53 +1,76 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Selo } from "@/components/ui/Selo";
-import type { Tom } from "@/components/ui/tons";
 import type { Atividade } from "@/lib/db/atividades";
 import type { Resultado } from "@/lib/db/resultado";
+import { tuplaExecucao } from "@/lib/dominio/assinatura";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { numeroBR } from "@/lib/dominio/formato";
-import { CAUSAS, ROTULO_STATUS_ATIVIDADE, type AtividadeExec, type Causa, type StatusAtividade } from "@/lib/dominio/tipos";
+import {
+  CAUSAS,
+  ROTULO_STATUS_ATIVIDADE,
+  type AtividadeExec,
+  type Causa,
+  type DadosExecucao,
+  type StatusAtividade,
+  type Tom,
+} from "@/lib/dominio/tipos";
 import { IndicadorSalvo } from "./IndicadorSalvo";
+import { Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
-
-export type DadosExecucao = { qtd_realizada: number | null; causa: Causa | null; observacao: string | null };
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
 const campoBase =
   "min-h-12 w-full rounded-lg border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria disabled:opacity-70";
 
+const tuplaServidor = (a: Atividade) => tuplaExecucao(a.qtd_planejada, a.qtd_realizada, a.causa, a.observacao);
+
+/** Edição local por atividade, válida só enquanto o servidor ainda mostra a versão de onde ela partiu. */
+type Local = { base: string; qtd_realizada: number | null; causa: Causa | null; observacao: string | null };
+export type MudarExecucao = (atividade: Atividade, local: Omit<Local, "base">) => void;
+
+/**
+ * Estado das atividades para validar o envio (causas pendentes): o que o usuário editou por cima
+ * dos dados do servidor. Quando o servidor muda (revalidação), vale o servidor.
+ */
+export function useExecucaoLocal(atividades: Atividade[]): { lista: AtividadeExec[]; mudar: MudarExecucao } {
+  const [locais, setLocais] = useState<Record<string, Local>>({});
+  const lista = atividades.map((a) => {
+    const l = locais[a.id];
+    if (!l || l.base !== JSON.stringify(tuplaServidor(a))) return a;
+    return { ...a, qtd_realizada: l.qtd_realizada, causa: l.causa, observacao: l.observacao };
+  });
+  const mudar = useCallback<MudarExecucao>((a, local) => {
+    setLocais((m) => ({ ...m, [a.id]: { base: JSON.stringify(tuplaServidor(a)), ...local } }));
+  }, []);
+  return { lista, mudar };
+}
+
 type Props = {
   atividades: Atividade[];
   somenteLeitura?: boolean;
   salvar: (atividadeId: string, dados: DadosExecucao) => Promise<Resultado<unknown>>;
-  /** Estado atual de todas as atividades (para validar o envio). */
-  onMudar?: (atividades: AtividadeExec[]) => void;
+  /** Avisa cada edição (ver useExecucaoLocal). */
+  onMudar?: MudarExecucao;
   erros?: Record<string, string>;
 };
 
 export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, erros = {} }: Props) {
-  const [lista, setLista] = useState<AtividadeExec[]>(atividades);
-
-  function mudou(novo: AtividadeExec) {
-    const nova = lista.map((a) => (a.id === novo.id ? novo : a));
-    setLista(nova);
-    onMudar?.(nova);
-  }
-
   return (
     <section aria-labelledby="titulo-atividades" className="flex flex-col gap-3">
       <h2 id="titulo-atividades" className="text-lg font-semibold">Atividades</h2>
       {atividades.map((a) => (
-        <ItemExecucao
-          key={a.id}
-          atividade={a}
-          somenteLeitura={somenteLeitura}
-          erro={erros[a.id]}
-          salvar={salvar}
-          onMudar={mudou}
-        />
+        <Sincronizar key={a.id} servidor={tuplaServidor(a)}>
+          <ItemExecucao
+            atividade={a}
+            somenteLeitura={somenteLeitura}
+            erro={erros[a.id]}
+            salvar={salvar}
+            onMudar={onMudar}
+          />
+        </Sincronizar>
       ))}
     </section>
   );
@@ -64,7 +87,7 @@ function ItemExecucao({
   somenteLeitura?: boolean;
   erro?: string;
   salvar: Props["salvar"];
-  onMudar: (a: AtividadeExec) => void;
+  onMudar?: MudarExecucao;
 }) {
   const [texto, setTexto] = useState(a.qtd_realizada === null ? "" : String(a.qtd_realizada).replace(".", ","));
   const [causa, setCausa] = useState<Causa | "">(a.causa ?? "");
@@ -84,7 +107,7 @@ function ItemExecucao({
         observacao: naoConcluida && obs.trim() ? obs : null,
       });
     },
-    [texto, causa, obs],
+    tuplaExecucao(a.qtd_planejada, qtdInvalida ? texto : qtd, causa, obs),
   );
 
   function atualizar(t: string, c: Causa | "", o: string) {
@@ -93,14 +116,7 @@ function ItemExecucao({
     setObs(o);
     const q = t.trim() === "" ? null : parseNumero(t);
     if (t.trim() !== "" && q === null) return;
-    onMudar({
-      id: a.id,
-      descricao: a.descricao,
-      qtd_planejada: a.qtd_planejada,
-      qtd_realizada: q,
-      causa: c || null,
-      observacao: o || null,
-    });
+    onMudar?.(a, { qtd_realizada: q, causa: c || null, observacao: o || null });
   }
 
   return (

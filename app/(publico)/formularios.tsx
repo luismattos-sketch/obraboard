@@ -58,8 +58,8 @@ export function FormCadastro() {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Mensagem estado={estado} />
-      <Campo rotulo="Seu nome" name="nome" autoComplete="name" required erro={erroCampo(estado, "nome")} />
-      <Campo rotulo="Nome da empresa" name="empresa" autoComplete="organization" required erro={erroCampo(estado, "empresa")} />
+      <Campo rotulo="Seu nome" name="nome" autoComplete="name" required maxLength={120} erro={erroCampo(estado, "nome")} />
+      <Campo rotulo="Nome da empresa" name="empresa" autoComplete="organization" required maxLength={120} erro={erroCampo(estado, "empresa")} />
       <Campo rotulo="E-mail" name="email" type="email" autoComplete="email" required erro={erroCampo(estado, "email")} />
       <Campo rotulo="Senha (mínimo 8 caracteres)" name="senha" type="password" minLength={8} autoComplete="new-password" required erro={erroCampo(estado, "senha")} />
       <Botao type="submit" carregando={pendente}>Criar conta grátis</Botao>

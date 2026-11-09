@@ -33,11 +33,11 @@ export function FormAtividade({ turnoId, atividade, acao, aoCancelar }: Props) {
       {atividade && <input type="hidden" name="atividade_id" value={atividade.id} />}
       {/* key muda a cada envio com falha: remonta os campos com os valores devolvidos */}
       <div key={falhou?.envio ?? 0} className="flex flex-col gap-3">
-        <Campo rotulo="Descrição" name="descricao" defaultValue={inicial.descricao} erro={campos?.descricao} />
-        <Campo rotulo="Local (opcional)" name="local" defaultValue={inicial.local} />
+        <Campo rotulo="Descrição" name="descricao" maxLength={200} defaultValue={inicial.descricao} erro={campos?.descricao} />
+        <Campo rotulo="Local (opcional)" name="local" maxLength={100} defaultValue={inicial.local} erro={campos?.local} />
         <div className="grid grid-cols-2 gap-3">
           <Campo rotulo="Quantidade" name="qtd_planejada" inputMode="decimal" defaultValue={inicial.qtd} erro={campos?.qtd_planejada} />
-          <Campo rotulo="Unidade" name="unidade" placeholder="m², m³, un" defaultValue={inicial.unidade} erro={campos?.unidade} />
+          <Campo rotulo="Unidade" name="unidade" placeholder="m², m³, un" maxLength={20} defaultValue={inicial.unidade} erro={campos?.unidade} />
         </div>
       </div>
       {erro && <Aviso tom="perigo">{erro}</Aviso>}

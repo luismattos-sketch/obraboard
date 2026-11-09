@@ -1,4 +1,4 @@
-export type Tom = "neutro" | "info" | "sucesso" | "alerta" | "perigo";
+import type { Tom } from "@/lib/dominio/tipos";
 
 export const classesTom: Record<Tom, string> = {
   neutro: "bg-slate-100 text-slate-700",

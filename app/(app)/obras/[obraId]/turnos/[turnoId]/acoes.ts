@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/atividades";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { aplicarAcao, gerarNovoLink } from "@/lib/db/turnos";
+import { errosDeTamanho, LIMITES, QTD_PLANEJADA_MAX } from "@/lib/db/validacao";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
@@ -41,20 +42,26 @@ function lerAtividade(form: FormData): Leitura {
   const descricao = texto(form, "descricao");
   const unidade = texto(form, "unidade");
   const qtd = parseNumero(texto(form, "qtd_planejada"));
-  const campos: Record<string, string> = {};
+  const local = texto(form, "local");
+  const campos: Record<string, string> = errosDeTamanho({
+    descricao: { valor: descricao, max: LIMITES.descricao },
+    local: { valor: local, max: LIMITES.local },
+    unidade: { valor: unidade, max: LIMITES.unidade },
+  });
   if (!descricao) campos.descricao = "Informe a descrição";
   if (!unidade) campos.unidade = "Informe a unidade";
   if (qtd === null) campos.qtd_planejada = "Informe uma quantidade válida";
   else if (qtd <= 0) campos.qtd_planejada = "Quantidade deve ser maior que zero";
+  else if (qtd > QTD_PLANEJADA_MAX) campos.qtd_planejada = "Quantidade deve ser no máximo 1.000.000.000";
   if (Object.keys(campos).length > 0) return { erro: falhaForm(form, "Revise os campos.", campos) };
-  return { dados: { descricao, local: texto(form, "local"), unidade, qtd_planejada: qtd as number } };
+  return { dados: { descricao, local, unidade, qtd_planejada: qtd as number } };
 }
 
 export async function adicionarAtividadeAcao(_: EstadoAcao, form: FormData): Promise<EstadoAcao> {
   const l = lerAtividade(form);
   if (l.erro !== undefined) return l.erro;
   const r = await adicionarAtividade(await criarClienteServidor(), texto(form, "turno_id"), l.dados);
-  if (!r.ok) return falhaForm(form, r.erro);
+  if (!r.ok) return falhaForm(form, r.erro, r.campos);
   atualizar();
   return ok(undefined);
 }
@@ -64,7 +71,7 @@ export async function editarAtividadeAcao(_: EstadoAcao, form: FormData): Promis
   if (l.erro !== undefined) return l.erro;
   // Apenas campos de planejamento; origem_id e demais nunca vêm do formulário.
   const r = await editarAtividade(await criarClienteServidor(), texto(form, "atividade_id"), l.dados);
-  if (!r.ok) return falhaForm(form, r.erro);
+  if (!r.ok) return falhaForm(form, r.erro, r.campos);
   atualizar();
   return ok(undefined);
 }

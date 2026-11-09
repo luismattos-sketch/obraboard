@@ -1,17 +1,11 @@
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
-import type { Tom } from "@/components/ui/tons";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { formatarPercentual, horaCurta, numeroBR } from "@/lib/dominio/formato";
 import { resumirTurno } from "@/lib/dominio/resumo";
-import { CONDICOES, ROTULO_STATUS_ATIVIDADE, type PeriodoClima, type StatusAtividade } from "@/lib/dominio/tipos";
+import { CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE, type StatusAtividade, type Tom } from "@/lib/dominio/tipos";
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
-const PERIODOS: { id: PeriodoClima; rotulo: string }[] = [
-  { id: "manha", rotulo: "Manhã" },
-  { id: "tarde", rotulo: "Tarde" },
-  { id: "noite", rotulo: "Noite" },
-];
 
 function Metrica({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string }) {
   return (
@@ -97,7 +91,7 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
         <Cartao>
           <h3 className="mb-2 font-semibold text-texto">Clima</h3>
           <ul className="flex flex-col gap-1 text-sm">
-            {PERIODOS.map((p) => {
+            {PERIODOS_CLIMA.map((p) => {
               const c = turno.clima.find((x) => x.periodo === p.id);
               return (
                 <li key={p.id} className="flex justify-between gap-3">

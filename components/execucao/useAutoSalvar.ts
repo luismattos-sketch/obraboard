@@ -2,19 +2,23 @@
 
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import type { Resultado } from "@/lib/db/resultado";
+import { decidirRepeticao } from "./repeticao";
 import { ContextoSalvamento } from "./rastreioSalvamento";
+import { ContextoSincronia } from "./Sincronizar";
 
 export type EstadoSalvar = {
   estado: "ocioso" | "salvando" | "salvo" | "erro";
-  /** Presente só em erro de negócio. Em `erro` sem mensagem = falha de rede (repete a cada 5 s). */
+  /** Presente em erro de negócio ou após desistir. Em `erro` sem mensagem = sem conexão (repetindo). */
   mensagem?: string;
 };
 
-const INTERVALO_REPETIR_MS = 5000;
+const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
 
 /**
  * Salva automaticamente quando `deps` mudam (debounce). Falha de rede (a função lançou) repete a
- * cada 5 s mantendo o valor; erro de negócio (ok:false) mostra a mensagem e não repete.
+ * cada 5 s mantendo o valor, até 5 vezes (sem conexão, repete até voltar); erro de negócio
+ * (ok:false) mostra a mensagem e não repete. `deps` deve estar no formato gravado no banco
+ * (ver lib/dominio/assinatura.ts) para o Sincronizar reconhecer o próprio salvamento.
  */
 export function useAutoSalvar(
   salvar: () => Promise<Resultado<unknown>>,
@@ -27,10 +31,13 @@ export function useAutoSalvar(
     salvarRef.current = salvar;
   });
   const registrar = useContext(ContextoSalvamento);
+  const sincronia = useContext(ContextoSincronia);
   const id = useId();
   const registrarRef = useRef(registrar);
+  const sincroniaRef = useRef(sincronia);
   useEffect(() => {
     registrarRef.current = registrar;
+    sincroniaRef.current = sincronia;
   });
   const chave = JSON.stringify(deps);
   const ultima = useRef(chave);
@@ -42,6 +49,7 @@ export function useAutoSalvar(
     ultima.current = chave;
     let cancelado = false;
     let timer: ReturnType<typeof setTimeout>;
+    let falhas = 0;
 
     const tentar = async () => {
       antecipar.current = null;
@@ -50,11 +58,23 @@ export function useAutoSalvar(
         const r = await salvarRef.current();
         if (cancelado) return;
         setEstado(r.ok ? { estado: "salvo" } : { estado: "erro", mensagem: r.erro });
+        if (r.ok) {
+          sincroniaRef.current?.salvo(chave);
+          sincroniaRef.current?.sujo(false);
+        }
         registrarRef.current?.(id, false);
       } catch {
         if (cancelado) return;
-        setEstado({ estado: "erro" });
-        agendar(INTERVALO_REPETIR_MS);
+        const d = decidirRepeticao(falhas, online());
+        if (d.repetir) {
+          falhas = d.falhas;
+          setEstado({ estado: "erro" });
+          agendar(d.emMs);
+        } else {
+          // Desistiu: libera o "Enviar" (nada mais em andamento), mas a edição continua pendente.
+          setEstado({ estado: "erro", mensagem: d.mensagem });
+          registrarRef.current?.(id, false);
+        }
       }
     };
     const agendar = (ms: number) => {
@@ -65,6 +85,7 @@ export function useAutoSalvar(
       };
     };
     registrarRef.current?.(id, true);
+    sincroniaRef.current?.sujo(true);
     agendar(atrasoMs);
     return () => {
       cancelado = true;
@@ -74,7 +95,14 @@ export function useAutoSalvar(
     };
   }, [chave, atrasoMs, id]);
 
-  // Ao sair da aba/página, salva já o que estiver pendente (o debounce não pode perder dados).
+  // Desmontou (ex.: remontagem com dados novos): não há mais edição pendente deste bloco.
+  useEffect(() => {
+    const ref = sincroniaRef;
+    return () => ref.current?.sujo(false);
+  }, []);
+
+  // Ao sair da aba/página, salva já o que estiver pendente (o debounce não pode perder dados);
+  // ao voltar a conexão, repete na hora.
   useEffect(() => {
     const aoEsconder = () => {
       if (document.visibilityState === "hidden") antecipar.current?.();
@@ -82,9 +110,11 @@ export function useAutoSalvar(
     const aoSair = () => antecipar.current?.();
     document.addEventListener("visibilitychange", aoEsconder);
     window.addEventListener("pagehide", aoSair);
+    window.addEventListener("online", aoSair);
     return () => {
       document.removeEventListener("visibilitychange", aoEsconder);
       window.removeEventListener("pagehide", aoSair);
+      window.removeEventListener("online", aoSair);
     };
   }, []);
 

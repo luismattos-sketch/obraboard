@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { criarEmpresaDoDono, deveRemoverUsuario } from "@/lib/db/empresas";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
+import { LIMITES, mensagemMaximo } from "@/lib/db/validacao";
 import { caminhoSeguro } from "@/lib/dominio/caminho";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -22,7 +23,9 @@ export async function cadastrar(_: Estado, form: FormData): Promise<Retorno> {
 
   const campos: Record<string, string> = {};
   if (!nome) campos.nome = "Informe seu nome.";
+  else if (nome.length > LIMITES.nome) campos.nome = mensagemMaximo(LIMITES.nome);
   if (!empresa) campos.empresa = "Informe o nome da empresa.";
+  else if (empresa.length > LIMITES.empresa) campos.empresa = mensagemMaximo(LIMITES.empresa);
   if (!emailValido(email)) campos.email = "Informe um e-mail válido.";
   if (senha.length < 8) campos.senha = "A senha deve ter ao menos 8 caracteres.";
   if (Object.keys(campos).length) return falha("Revise os campos.", campos);

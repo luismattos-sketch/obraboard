@@ -8,20 +8,21 @@ import {
   salvarExecucao as dbSalvarExecucao,
   salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
-import type { Causa, CondicaoClima, PeriodoClima } from "@/lib/dominio/tipos";
+import type { LinhaEfetivo } from "@/lib/db/validacao";
+import type { CondicaoClima, DadosExecucao, PeriodoClima } from "@/lib/dominio/tipos";
 
 // O token vem do cliente (já está na URL); cada função o revalida no servidor. Nunca logar o token.
 
 export async function salvarExecucao(
   token: string,
   atividadeId: string,
-  dados: { qtd_realizada: number | null; causa: Causa | null; observacao: string | null },
+  dados: DadosExecucao,
 ) {
   return dbSalvarExecucao(token, atividadeId, dados);
 }
 
-export async function salvarEfetivo(token: string, linhas: { funcao: string; quantidade: number }[]) {
-  return dbSalvarEfetivo(token, linhas);
+export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) {
+  return dbSalvarEfetivo(token, linhas, esperado);
 }
 
 export async function salvarClima(

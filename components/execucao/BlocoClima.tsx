@@ -3,8 +3,10 @@
 import { useState } from "react";
 import type { Clima } from "@/lib/db/turnos";
 import type { Resultado } from "@/lib/db/resultado";
-import { CONDICOES, type CondicaoClima, type PeriodoClima } from "@/lib/dominio/tipos";
+import { tuplaClima } from "@/lib/dominio/assinatura";
+import { CONDICOES, PERIODOS_CLIMA, type CondicaoClima, type PeriodoClima } from "@/lib/dominio/tipos";
 import { IndicadorSalvo } from "./IndicadorSalvo";
+import { Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
 
 type Dados = { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
@@ -15,27 +17,26 @@ type Props = {
   /** Apaga o registro do período (escolha "—" depois de um valor salvo). */
   limpar: (periodo: PeriodoClima) => Promise<Resultado<unknown>>;
 };
-const PERIODOS: { id: PeriodoClima; rotulo: string }[] = [
-  { id: "manha", rotulo: "Manhã" },
-  { id: "tarde", rotulo: "Tarde" },
-  { id: "noite", rotulo: "Noite" },
-];
 
 export function BlocoClima({ inicial, somenteLeitura, salvar, limpar }: Props) {
   return (
     <section aria-labelledby="titulo-clima" className="flex flex-col gap-3">
       <h2 id="titulo-clima" className="text-lg font-semibold">Clima</h2>
-      {PERIODOS.map((p) => (
-        <LinhaClima
-          key={p.id}
-          periodo={p.id}
-          rotulo={p.rotulo}
-          inicial={inicial.find((c) => c.periodo === p.id)}
-          somenteLeitura={somenteLeitura}
-          salvar={salvar}
-          limpar={limpar}
-        />
-      ))}
+      {PERIODOS_CLIMA.map((p) => {
+        const c = inicial.find((x) => x.periodo === p.id);
+        return (
+          <Sincronizar key={p.id} servidor={tuplaClima(c?.condicao ?? null, c?.impediu ?? false)}>
+            <LinhaClima
+              periodo={p.id}
+              rotulo={p.rotulo}
+              inicial={c}
+              somenteLeitura={somenteLeitura}
+              salvar={salvar}
+              limpar={limpar}
+            />
+          </Sincronizar>
+        );
+      })}
     </section>
   );
 }
@@ -60,7 +61,7 @@ function LinhaClima({
   const estado = useAutoSalvar(async () => {
     if (!condicao) return limpar(periodo);
     return salvar({ periodo, condicao, impediu });
-  }, [condicao, impediu]);
+  }, tuplaClima(condicao, impediu));
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-borda bg-superficie p-3">

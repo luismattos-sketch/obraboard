@@ -2,21 +2,34 @@
 
 import { useRef, useState } from "react";
 import type { Resultado } from "@/lib/db/resultado";
+import { tuplaEfetivo } from "@/lib/dominio/assinatura";
 import { FUNCOES_SUGERIDAS } from "@/lib/dominio/tipos";
 import { IndicadorSalvo } from "./IndicadorSalvo";
+import { Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
 
+type LinhaEfetivo = { funcao: string; quantidade: number };
 type Linha = { chave: number; funcao: string; quantidade: string };
 type Props = {
-  inicial: { funcao: string; quantidade: number }[];
+  inicial: LinhaEfetivo[];
   somenteLeitura?: boolean;
-  salvar: (linhas: { funcao: string; quantidade: number }[]) => Promise<Resultado<unknown>>;
+  /** `esperado`: o efetivo lido/salvo por último por esta tela (checagem otimista no servidor). */
+  salvar: (linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) => Promise<Resultado<unknown>>;
 };
 const campo =
   "min-h-12 rounded-lg border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria disabled:opacity-70";
 
-export function BlocoEfetivo({ inicial, somenteLeitura, salvar }: Props) {
+export function BlocoEfetivo(props: Props) {
+  return (
+    <Sincronizar servidor={[tuplaEfetivo(props.inicial)]}>
+      <Efetivo {...props} />
+    </Sincronizar>
+  );
+}
+
+function Efetivo({ inicial, somenteLeitura, salvar }: Props) {
   const proxima = useRef(inicial.length);
+  const esperado = useRef<LinhaEfetivo[]>(inicial.map((l) => ({ funcao: l.funcao, quantidade: l.quantidade })));
   const [linhas, setLinhas] = useState<Linha[]>(
     inicial.map((l, i) => ({ chave: i, funcao: l.funcao, quantidade: String(l.quantidade) })),
   );
@@ -25,7 +38,11 @@ export function BlocoEfetivo({ inicial, somenteLeitura, salvar }: Props) {
   const validas = linhas
     .map((l) => ({ funcao: l.funcao.trim(), quantidade: Number(l.quantidade) }))
     .filter((l) => l.funcao && Number.isInteger(l.quantidade) && l.quantidade > 0);
-  const estado = useAutoSalvar(() => salvar(validas), [validas]);
+  const estado = useAutoSalvar(async () => {
+    const r = await salvar(validas, esperado.current);
+    if (r.ok) esperado.current = validas;
+    return r;
+  }, [tuplaEfetivo(validas)]);
 
   const mudar = (chave: number, p: Partial<Linha>) =>
     setLinhas((ls) => ls.map((l) => (l.chave === chave ? { ...l, ...p } : l)));

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import type { Resultado } from "@/lib/db/resultado";
+import { tuplaHorario } from "@/lib/dominio/assinatura";
 import { IndicadorSalvo } from "./IndicadorSalvo";
+import { Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
 
 type Props = {
@@ -15,10 +17,18 @@ type Props = {
 const campo =
   "min-h-12 w-full rounded-lg border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria disabled:opacity-70";
 
-export function BlocoHorario({ inicio, fim, somenteLeitura, salvar }: Props) {
+export function BlocoHorario(props: Props) {
+  return (
+    <Sincronizar servidor={tuplaHorario(props.inicio, props.fim)}>
+      <Horario {...props} />
+    </Sincronizar>
+  );
+}
+
+function Horario({ inicio, fim, somenteLeitura, salvar }: Props) {
   const [ini, setIni] = useState(inicio);
   const [fi, setFi] = useState(fim);
-  const estado = useAutoSalvar(() => salvar({ hora_inicio_real: ini || null, hora_fim_real: fi || null }), [ini, fi]);
+  const estado = useAutoSalvar(() => salvar({ hora_inicio_real: ini || null, hora_fim_real: fi || null }), tuplaHorario(ini, fi));
 
   return (
     <section aria-labelledby="titulo-horario" className="flex flex-col gap-3">

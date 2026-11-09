@@ -14,9 +14,9 @@ export function FormNovaObra() {
   return (
     <form action={action} className="flex flex-col gap-4">
       {erro && !erro.campos && <Aviso tom="perigo">{erro.erro}</Aviso>}
-      <Campo rotulo="Nome da obra" name="nome" required erro={erro?.campos?.nome} />
-      <Campo rotulo="Cliente (opcional)" name="cliente" />
-      <Campo rotulo="Endereço (opcional)" name="endereco" autoComplete="street-address" />
+      <Campo rotulo="Nome da obra" name="nome" required maxLength={120} erro={erro?.campos?.nome} />
+      <Campo rotulo="Cliente (opcional)" name="cliente" maxLength={120} erro={erro?.campos?.cliente} />
+      <Campo rotulo="Endereço (opcional)" name="endereco" autoComplete="street-address" maxLength={200} erro={erro?.campos?.endereco} />
       <Botao type="submit" carregando={pendente}>Criar obra</Botao>
       <Link href="/obras" className={classesBotao("secundario")}>Cancelar</Link>
     </form>

@@ -9,7 +9,16 @@ import { trazerPendentesAcao, type EstadoAcao } from "./acoes";
 import { FormAtividade } from "./FormAtividade";
 import { ItemAtividade } from "./ItemAtividade";
 
-export function ListaAtividades({ turnoId, atividades }: { turnoId: string; atividades: Atividade[] }) {
+export function ListaAtividades({
+  turnoId,
+  atividades,
+  trazerPendentes = true,
+}: {
+  turnoId: string;
+  atividades: Atividade[];
+  /** "Trazer pendentes" só faz sentido antes de liberar para campo. */
+  trazerPendentes?: boolean;
+}) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(trazerPendentesAcao, null);
   return (
     <div className="flex flex-col gap-4">
@@ -26,14 +35,16 @@ export function ListaAtividades({ turnoId, atividades }: { turnoId: string; ativ
         )}
       </Cartao>
 
-      <form action={action} className="flex flex-col gap-2">
-        <input type="hidden" name="turno_id" value={turnoId} />
-        <Botao type="submit" variante="secundario" carregando={pendente}>
-          Trazer pendentes do turno anterior
-        </Botao>
-        {estado && !estado.ok && <Aviso tom="alerta">{estado.erro}</Aviso>}
-        {estado?.ok && estado.dados?.mensagem && <Aviso tom="sucesso">{estado.dados.mensagem}</Aviso>}
-      </form>
+      {trazerPendentes && (
+        <form action={action} className="flex flex-col gap-2">
+          <input type="hidden" name="turno_id" value={turnoId} />
+          <Botao type="submit" variante="secundario" carregando={pendente}>
+            Trazer pendentes do turno anterior
+          </Botao>
+          {estado && !estado.ok && <Aviso tom="alerta">{estado.erro}</Aviso>}
+          {estado?.ok && estado.dados?.mensagem && <Aviso tom="sucesso">{estado.dados.mensagem}</Aviso>}
+        </form>
+      )}
 
       <Cartao>
         <h2 className="mb-3 text-lg font-semibold text-texto">Adicionar atividade</h2>
