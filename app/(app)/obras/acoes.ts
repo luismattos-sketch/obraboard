@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { falha, type Resultado } from "@/lib/db/resultado";
 import { criarObra, errosObra } from "@/lib/db/obras";
@@ -16,5 +17,7 @@ export async function novaObra(_: Resultado<undefined> | null, form: FormData): 
   const supabase = await criarClienteServidor();
   const r = await criarObra(supabase, dados);
   if (!r.ok) return falha(r.erro, r.campos);
+  // O menu lateral (no layout) lista as obras: recarrega para a nova aparecer.
+  revalidatePath("/obras", "layout");
   redirect(`/obras/${r.dados.id}`);
 }
