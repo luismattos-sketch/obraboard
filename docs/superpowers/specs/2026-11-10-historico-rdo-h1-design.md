@@ -57,8 +57,8 @@ PDF guardado byte a byte, acesso do encarregado ou do cliente a RDOs, assinatura
 | Coluna | Tipo | Regra |
 |---|---|---|
 | `id` | uuid PK | `gen_random_uuid()` |
-| `turno_id` | uuid not null | FK `turnos(id)` **on delete restrict** |
-| `obra_id` | uuid not null | FK `obras(id)` on delete restrict (denormalizado para filtros) |
+| `turno_id` | uuid not null | FK `turnos(id)` on delete cascade |
+| `obra_id` | uuid not null | FK `obras(id)` on delete cascade (denormalizado para filtros) |
 | `numero` | integer not null | `> 0`; `unique (turno_id, numero)` |
 | `emitido_em` | timestamptz not null | instante do fechamento |
 | `retroativa` | boolean not null default false | true só nas v1 criadas pela migration |
@@ -67,6 +67,11 @@ PDF guardado byte a byte, acesso do encarregado ou do cliente a RDOs, assinatura
 | `created_at` | timestamptz not null default now() | |
 
 Índices: `(obra_id, emitido_em desc)` e o único `(turno_id, numero)`.
+
+FKs em cascata (decisão da fase de plano): a remoção de uma empresa inteira (rollback do cadastro,
+limpeza dos testes) precisa continuar funcionando. O app não consegue apagar turno com versão,
+porque `removerTurno` só apaga turnos `planejado` e um turno que já fechou nunca volta a
+`planejado` (reabrir leva a `enviado`).
 
 ### Formato da foto (`formato = 1`)
 
@@ -190,8 +195,8 @@ testável (`agruparVersoes`, `mesesDisponiveis`).
   `mesesDisponiveis`; renderização do `DocumentoRdo` com `emissao` (estende `tests/dominio/rdo.test.tsx`).
 - **Integração (`SUPABASE_TEST=1`)**: fechar cria v1 com foto correta; reabrir → editar → fechar
   cria v2 e a v1 permanece idêntica; `authenticated` não consegue update/delete em `rdo_versoes`;
-  outra empresa não lê versões; turno com versão não pode ser apagado; função `foto_rdo` usada nas
-  retroativas.
+  outra empresa não lê versões; `removerTurno` recusa turno reaberto que tem versão; função
+  `foto_rdo` usada nas retroativas.
 - **E2E (Playwright)**: fechar turno → "RDOs" da obra → v1 listada e baixável; reabrir e fechar →
   v2 com v1 no expansível; tela geral `/rdos` lista o RDO.
 
