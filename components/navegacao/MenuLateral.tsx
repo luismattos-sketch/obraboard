@@ -39,7 +39,9 @@ const ICONE_SAIR = "M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 1
 export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) {
   const [recolhido, setRecolhido] = useState(recolhidoInicial);
   const [aberto, setAberto] = useState(false); // gaveta do celular
-  const obraAtiva = obraIdDoCaminho(usePathname() ?? "");
+  const caminho = usePathname() ?? "";
+  const obraAtiva = obraIdDoCaminho(caminho);
+  const naLista = caminho === "/obras";
 
   useEffect(() => {
     if (!aberto) return;
@@ -108,8 +110,9 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
         </div>
 
         <nav aria-label="Obras" className={`min-h-0 flex-1 overflow-y-auto px-3 py-2 ${recolhido ? "md:invisible" : ""}`}>
-          <Link href="/obras" onClick={fechar}
-            className={`block rounded-botao px-3 py-1 text-xs font-semibold tracking-wide text-texto-suave uppercase hover:text-operacional ${foco}`}>
+          <Link href="/obras" onClick={fechar} aria-current={naLista ? "page" : undefined}
+            className={`block rounded-botao px-3 py-1 text-xs font-semibold tracking-wide uppercase hover:text-operacional ${foco}
+              ${naLista ? "bg-primaria-clara text-primaria" : "text-texto-suave"}`}>
             Obras
           </Link>
           {obras.length === 0 ? (
@@ -148,7 +151,8 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
       </aside>
 
       <main className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-4xl px-4 py-6">{children}</div>
+        {/* Alinhado à esquerda, junto do menu; o topo acompanha a altura da logo do menu. */}
+        <div className="w-full max-w-5xl px-4 pt-4 pb-8 md:px-8">{children}</div>
       </main>
     </div>
   );
