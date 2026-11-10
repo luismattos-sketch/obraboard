@@ -25,7 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ turnoId
   if (!turno) return Response.json({ erro: "Turno não encontrado" }, { status: 404 });
 
   const pdf = await renderToBuffer(
-    createElement(DocumentoRdo, { turno, resumo: resumirTurno(turno), geradoEm: new Date() }) as ReactElement<DocumentProps>,
+    createElement(DocumentoRdo, { turno, resumo: resumirTurno(turno), emissao: { tipo: "rascunho", geradoEm: new Date() } }) as ReactElement<DocumentProps>,
   );
   return new Response(new Uint8Array(pdf), {
     headers: {
