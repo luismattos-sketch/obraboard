@@ -10,7 +10,9 @@ export default function Pagina() {
       <div className="mt-4 space-y-4 text-texto-suave">
         <p>O Frentia é um serviço para planejamento de turnos, registro de execução e geração de Relatório Diário de Obra (RDO).</p>
         <p>Você é responsável pelas informações que lança e por manter suas credenciais em sigilo. O serviço é oferecido no estado em que se encontra, durante a fase de lançamento, e pode mudar sem aviso prévio.</p>
-        <p>Você pode encerrar o uso a qualquer momento. Dúvidas sobre estes termos podem ser enviadas ao suporte do Frentia.</p>
+        <p>Você pode encerrar o uso a qualquer momento. Dúvidas sobre estes termos podem ser enviadas para{" "}
+          <a href="mailto:contato@frentia.com.br" className="text-primaria underline">contato@frentia.com.br</a>.
+        </p>
       </div>
     </main>
   );
