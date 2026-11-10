@@ -18,7 +18,7 @@ type Props = {
   salvar: (linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) => Promise<Resultado<unknown>>;
 };
 const campo =
-  "min-h-12 rounded-lg border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria disabled:opacity-70";
+  "min-h-12 rounded-botao border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-operacional disabled:opacity-70";
 
 export function BlocoEfetivo(props: Props) {
   return (
@@ -57,7 +57,7 @@ function Efetivo({ inicial, somenteLeitura, salvar }: Props) {
 
   return (
     <section aria-labelledby="titulo-efetivo" className="flex flex-col gap-3">
-      <h2 id="titulo-efetivo" className="text-lg font-semibold">Efetivo</h2>
+      <h2 id="titulo-efetivo" className="text-lg font-semibold text-primaria">Efetivo</h2>
       <datalist id="funcoes-sugeridas">
         {FUNCOES_SUGERIDAS.map((f) => (
           <option key={f} value={f} />
@@ -89,7 +89,7 @@ function Efetivo({ inicial, somenteLeitura, salvar }: Props) {
             <button
               type="button"
               aria-label="Remover linha"
-              className="min-h-12 min-w-12 rounded-lg border border-borda text-perigo"
+              className="min-h-12 min-w-12 rounded-botao border border-borda text-perigo"
               onClick={() => setLinhas((ls) => ls.filter((x) => x.chave !== l.chave))}
             >
               ✕
@@ -100,7 +100,7 @@ function Efetivo({ inicial, somenteLeitura, salvar }: Props) {
       {!somenteLeitura && (
         <button
           type="button"
-          className="min-h-12 rounded-lg border border-borda bg-superficie font-semibold text-primaria hover:bg-primaria-clara"
+          className="min-h-12 rounded-botao border border-operacional bg-superficie font-semibold text-primaria hover:bg-primaria-clara"
           onClick={() => setLinhas((ls) => [...ls, { chave: proxima.current++, funcao: "", quantidade: "" }])}
         >
           + Adicionar função

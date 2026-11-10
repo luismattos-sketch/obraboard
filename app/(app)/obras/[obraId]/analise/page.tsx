@@ -44,15 +44,15 @@ export default async function AnalisePage({
           <Link href={`/obras/${obra.id}`} className="text-sm text-texto-suave hover:underline">
             ← {obra.nome}
           </Link>
-          <h1 className="text-xl font-semibold text-primaria">Análise (PPC)</h1>
+          <h1 className="text-titulo font-semibold text-primaria">Análise (PPC)</h1>
         </div>
-        <nav aria-label="Período" className="flex overflow-hidden rounded-lg border border-borda bg-superficie text-sm">
+        <nav aria-label="Período" className="flex overflow-hidden rounded-botao border border-borda bg-superficie text-sm">
           {OPCOES.map((o) => (
             <Link
               key={o}
               href={`/obras/${obra.id}/analise?semanas=${o}`}
               aria-current={o === n ? "page" : undefined}
-              className={`px-3 py-2 ${o === n ? "bg-primaria font-semibold text-white" : "text-primaria hover:bg-primaria-clara"}`}
+              className={`px-3 py-2 ${o === n ? "bg-operacional font-semibold text-white" : "text-primaria hover:bg-primaria-clara"}`}
             >
               {o} sem
             </Link>
@@ -104,7 +104,7 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
 
       <section aria-labelledby="titulo-semanas" className="flex min-w-0 flex-col gap-2">
         <Cartao className="flex min-w-0 flex-col gap-2">
-          <h2 id="titulo-semanas" className="font-semibold text-texto">PPC por semana</h2>
+          <h2 id="titulo-semanas" className="text-lg font-semibold text-primaria">PPC por semana</h2>
           {analise.semanas.map((s) => {
             const barra = (
               <Barra
@@ -122,7 +122,7 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
                     <li key={t.id}>
                       <Link
                         href={`/obras/${obraId}/turnos/${t.id}`}
-                        className="flex justify-between gap-3 text-sm text-primaria hover:underline"
+                        className="flex justify-between gap-3 text-sm text-operacional hover:underline"
                       >
                         <span>
                           {formatarData(t.data)} · {ROTULO_PERIODO[t.periodo]}
@@ -140,7 +140,7 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
 
       <section aria-labelledby="titulo-causas" className="flex min-w-0 flex-col gap-2">
         <Cartao className="flex min-w-0 flex-col gap-2">
-          <h2 id="titulo-causas" className="font-semibold text-texto">Causas de não cumprimento</h2>
+          <h2 id="titulo-causas" className="text-lg font-semibold text-primaria">Causas de não cumprimento</h2>
           {analise.causas.length === 0 ? (
             <p className="text-sm text-texto-suave">Nenhuma atividade deixou de ser cumprida no período.</p>
           ) : (

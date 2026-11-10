@@ -1,22 +1,37 @@
 @import "tailwindcss";
 
+/* Tokens do Manual da Marca Frentia v1.0 (docs/marca/frentia_manual_da_marca.pdf). */
 @theme {
-  --color-primaria: #0b2a6b;
-  --color-primaria-escura: #081f50;
-  --color-primaria-clara: #e8eefb;
-  --color-destaque: #f97316;
-  --color-destaque-escura: #ea580c;
-  --color-texto: #0f172a;
-  --color-texto-suave: #475569;
-  --color-borda: #cbd5e1;
-  --color-fundo: #f8fafc;
+  /* Azul Frentia: cor dominante (logo, títulos, cabeçalhos, botão primário). */
+  --color-primaria: #002f6c;
+  --color-primaria-escura: #00224f;
+  --color-primaria-clara: #e6edf7;
+  /* Azul Operacional: links, filtros ativos, bordas de botões secundários, navegação. */
+  --color-operacional: #0b4a8f;
+  /* Laranja Avanço: só em ação (CTA) e progresso. */
+  --color-destaque: #ff6b00;
+  --color-destaque-escura: #e05e00;
+  /* Cinza Grafite (texto) e Cinza Campo (fundos de leitura). */
+  --color-texto: #263238;
+  --color-texto-suave: #546e7a;
+  --color-borda: #d7dee8;
+  --color-fundo: #eef2f6;
   --color-superficie: #ffffff;
-  --color-sucesso: #15803d;
-  --color-sucesso-clara: #dcfce7;
-  --color-alerta: #b45309;
-  --color-alerta-clara: #fef3c7;
-  --color-perigo: #b91c1c;
-  --color-perigo-clara: #fee2e2;
+  /* Status: Verde Execução, Amarelo Atenção, Vermelho Crítico. */
+  --color-sucesso: #2e7d32;
+  --color-sucesso-clara: #e8f5e9;
+  --color-alerta: #f9a825;
+  --color-alerta-escura: #7a4f00; /* texto sobre fundo amarelo claro (contraste legível) */
+  --color-alerta-clara: #fef5dc;
+  --color-perigo: #c62828;
+  --color-perigo-clara: #fdecea;
+
+  --radius-botao: 10px;
+  --radius-cartao: 14px;
+
+  /* H1 de página: 28 px, semibold, Azul Frentia. */
+  --text-titulo: 1.75rem;
+  --text-titulo--line-height: 1.2;
 }
 
 body {

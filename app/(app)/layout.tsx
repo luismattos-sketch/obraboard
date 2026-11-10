@@ -17,7 +17,7 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between gap-3 border-b border-borda bg-superficie px-4 py-3">
         <Link href="/obras" aria-label="Frentia, suas obras">
-          <Image src="/frentia-logo.png" alt="Frentia" width={110} height={28} priority />
+          <Image src="/frentia-logo.png" alt="Frentia" width={120} height={30} priority />
         </Link>
         <div className="flex items-center gap-3">
           <span className="max-w-32 truncate text-sm text-texto-suave sm:max-w-64">{nome}</span>

@@ -21,7 +21,7 @@ type Props = {
 export function BlocoClima({ inicial, somenteLeitura, salvar, limpar }: Props) {
   return (
     <section aria-labelledby="titulo-clima" className="flex flex-col gap-3">
-      <h2 id="titulo-clima" className="text-lg font-semibold">Clima</h2>
+      <h2 id="titulo-clima" className="text-lg font-semibold text-primaria">Clima</h2>
       {PERIODOS_CLIMA.map((p) => {
         const c = inicial.find((x) => x.periodo === p.id);
         return (
@@ -64,12 +64,12 @@ function LinhaClima({
   }, tuplaClima(condicao, impediu));
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-borda bg-superficie p-3">
+    <div className="flex flex-col gap-2 rounded-cartao border border-borda bg-superficie p-3">
       <div className="flex items-center gap-3">
         <label htmlFor={`clima-${periodo}`} className="w-16 text-sm font-medium">{rotulo}</label>
         <select
           id={`clima-${periodo}`}
-          className="min-h-12 flex-1 rounded-lg border border-borda bg-superficie px-3 text-base disabled:opacity-70"
+          className="min-h-12 flex-1 rounded-botao border border-borda bg-superficie px-3 text-base disabled:opacity-70"
           value={condicao}
           disabled={somenteLeitura}
           onChange={(e) => {

@@ -11,7 +11,7 @@ export default async function NovoTurnoPage({ params }: { params: Promise<{ obra
   if (!obra) notFound();
   return (
     <Cartao className="mx-auto w-full max-w-lg">
-      <h1 className="text-xl font-semibold text-primaria">Novo turno</h1>
+      <h1 className="text-titulo font-semibold text-primaria">Novo turno</h1>
       <p className="mb-4 text-sm text-texto-suave">{obra.nome}</p>
       <FormNovoTurno obraId={obra.id} hoje={hojeSaoPaulo()} />
     </Cartao>

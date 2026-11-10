@@ -24,7 +24,7 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
 
   return (
     <section aria-labelledby="titulo-resumo" className="flex min-w-0 flex-col gap-4">
-      <h2 id="titulo-resumo" className="text-lg font-semibold text-texto">Resumo do turno</h2>
+      <h2 id="titulo-resumo" className="text-lg font-semibold text-primaria">Resumo do turno</h2>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Metrica
@@ -101,7 +101,7 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
               );
             })}
           </ul>
-          {r.climaImpediu && <p className="mt-2 text-sm font-medium text-alerta">O clima impediu o trabalho neste turno.</p>}
+          {r.climaImpediu && <p className="mt-2 text-sm font-medium text-alerta-escura">O clima impediu o trabalho neste turno.</p>}
           <h3 className="mb-2 mt-4 font-semibold text-texto">Efetivo</h3>
           {turno.efetivo.length === 0 ? (
             <p className="text-sm text-texto-suave">Nenhum efetivo informado.</p>

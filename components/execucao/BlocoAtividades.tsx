@@ -23,7 +23,7 @@ import { useAutoSalvar } from "./useAutoSalvar";
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
 const campoBase =
-  "min-h-12 w-full rounded-lg border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria disabled:opacity-70";
+  "min-h-12 w-full rounded-botao border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-operacional disabled:opacity-70";
 
 const tuplaServidor = (a: Atividade) => tuplaExecucao(a.qtd_planejada, a.qtd_realizada, a.causa, a.observacao);
 
@@ -60,7 +60,7 @@ type Props = {
 export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, erros = {} }: Props) {
   return (
     <section aria-labelledby="titulo-atividades" className="flex flex-col gap-3">
-      <h2 id="titulo-atividades" className="text-lg font-semibold">Atividades</h2>
+      <h2 id="titulo-atividades" className="text-lg font-semibold text-primaria">Atividades</h2>
       {atividades.map((a) => (
         <Sincronizar key={a.id} servidor={tuplaServidor(a)}>
           <ItemExecucao
@@ -120,11 +120,11 @@ function ItemExecucao({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-borda bg-superficie p-4">
+    <div className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium">{a.descricao}</p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-texto-suave">
             {a.local ? `${a.local} · ` : ""}Previsto: {numeroBR(a.qtd_planejada)} {a.unidade}
           </p>
         </div>
@@ -148,7 +148,7 @@ function ItemExecucao({
         {!somenteLeitura && (
           <button
             type="button"
-            className="min-h-12 rounded-lg border border-borda bg-superficie px-4 font-semibold text-primaria hover:bg-primaria-clara"
+            className="min-h-12 rounded-botao border border-operacional bg-superficie px-4 font-semibold text-primaria hover:bg-primaria-clara"
             onClick={() => atualizar(String(a.qtd_planejada).replace(".", ","), causa, obs)}
           >
             100%

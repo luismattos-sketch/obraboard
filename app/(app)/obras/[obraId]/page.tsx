@@ -21,7 +21,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-primaria">{obra.nome}</h1>
+          <h1 className="text-titulo font-semibold text-primaria">{obra.nome}</h1>
           {obra.cliente && <p className="text-sm text-texto-suave">{obra.cliente}</p>}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
@@ -42,7 +42,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
               <li key={t.id}>
                 <Link
                   href={`/obras/${obra.id}/turnos/${t.id}`}
-                  className="block rounded-xl focus-visible:outline-2 focus-visible:outline-primaria"
+                  className="block rounded-cartao focus-visible:outline-2 focus-visible:outline-operacional"
                 >
                   <Cartao className="flex items-center justify-between gap-3 transition-colors hover:bg-primaria-clara">
                     <div>
