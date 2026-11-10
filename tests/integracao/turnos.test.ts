@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { criarObra } from "@/lib/db/obras";
-import { criarTurno, listarTurnos, obterTurnoCompleto } from "@/lib/db/turnos";
+import { aplicarAcao, criarTurno, listarTurnos, listarTurnosFechadosParaAnalise, obterTurnoCompleto } from "@/lib/db/turnos";
+import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { adicionarAtividade, moverAtividade, trazerPendentes, editarAtividade, removerAtividade } from "@/lib/db/atividades";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
@@ -97,5 +98,40 @@ describe.skipIf(!ligado)("turnos e atividades", () => {
   it("obterTurnoCompleto devolve null para id inválido ou inexistente", async () => {
     expect(await obterTurnoCompleto(u.cliente, "nao-e-uuid")).toBeNull();
     expect(await obterTurnoCompleto(u.cliente, crypto.randomUUID())).toBeNull();
+  });
+
+  it("listarTurnosFechadosParaAnalise traz só fechados a partir de desde", { timeout: 60_000 }, async () => {
+    const o = await criarObra(u.cliente, { nome: "Obra Análise" });
+    if (!o.ok) throw new Error(o.erro);
+    const obraAnalise = o.dados.id;
+    const fechar = async (data: string) => {
+      const c = await criarTurno(u.cliente, { obra_id: obraAnalise, data, periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "16:00" });
+      if (!c.ok) throw new Error(c.erro);
+      const t = c.dados;
+      const at = await novaAtiv(t.id, `Ativ ${data}`, 10);
+      const l = await aplicarAcao(u.cliente, t.id, "liberar");
+      if (!l.ok) throw new Error(l.erro);
+      const e = await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 4, causa: "material", observacao: "x" });
+      if (!e.ok) throw new Error(e.erro);
+      const f = await aplicarAcao(u.cliente, t.id, "fechar");
+      if (!f.ok) throw new Error(f.erro);
+      return t;
+    };
+    await fechar("2026-10-01");
+    const dentro = await fechar("2026-11-03");
+    const planejado = await criarTurno(u.cliente, { obra_id: obraAnalise, data: "2026-11-04", periodo: "diurno" });
+    if (!planejado.ok) throw new Error(planejado.erro);
+    await novaAtiv(planejado.dados.id, "Planejada", 5);
+
+    const r = await listarTurnosFechadosParaAnalise(u.cliente, obraAnalise, "2026-11-02");
+    expect(r).toEqual([
+      {
+        id: dentro.id,
+        data: "2026-11-03",
+        periodo: "diurno",
+        status: "fechado",
+        atividades: [{ descricao: "Ativ 2026-11-03", qtd_planejada: 10, qtd_realizada: 4, causa: "material", observacao: "x" }],
+      },
+    ]);
   });
 });
