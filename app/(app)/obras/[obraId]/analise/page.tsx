@@ -9,6 +9,7 @@ import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData, formatarPercentual, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Barra } from "./Barra";
+import { Expansivel } from "./Expansivel";
 
 const OPCOES = [4, 8, 12] as const;
 
@@ -113,10 +114,9 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
                 destaque={s.atual}
               />
             );
-            if (s.turnos.length === 0) return <div key={s.inicio}>{barra}</div>;
+            if (s.turnos.length === 0) return <div key={s.inicio} className="pl-5">{barra}</div>;
             return (
-              <details key={s.inicio} className="group">
-                <summary className="cursor-pointer list-none rounded hover:bg-primaria-clara">{barra}</summary>
+              <Expansivel key={s.inicio} resumo={barra}>
                 <ul className="mt-1 mb-2 flex flex-col gap-1 pl-4">
                   {s.turnos.map((t) => (
                     <li key={t.id}>
@@ -132,7 +132,7 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
                     </li>
                   ))}
                 </ul>
-              </details>
+              </Expansivel>
             );
           })}
         </Cartao>
@@ -145,10 +145,10 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
             <p className="text-sm text-texto-suave">Nenhuma atividade deixou de ser cumprida no período.</p>
           ) : (
             analise.causas.map((c) => (
-              <details key={c.causa}>
-                <summary className="cursor-pointer list-none rounded hover:bg-primaria-clara">
-                  <Barra rotulo={c.rotulo} fracao={c.fracao} texto={`${c.quantidade} (${formatarPercentual(c.fracao)})`} />
-                </summary>
+              <Expansivel
+                key={c.causa}
+                resumo={<Barra rotulo={c.rotulo} fracao={c.fracao} texto={`${c.quantidade} (${formatarPercentual(c.fracao)})`} />}
+              >
                 <ul className="mt-1 mb-2 flex flex-col gap-2 pl-4">
                   {c.atividades.map((a, i) => (
                     <li key={`${a.turnoId}-${i}`} className="text-sm break-words">
@@ -159,7 +159,7 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
                     </li>
                   ))}
                 </ul>
-              </details>
+              </Expansivel>
             ))
           )}
         </Cartao>
