@@ -21,10 +21,19 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   await page.waitForURL("**/obras");
 
   // Obra
-  await page.getByRole("link", { name: "Nova obra" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Nova obra" }).click();
   await page.getByLabel("Nome da obra").fill("Obra E2E");
   await page.getByRole("button", { name: "Criar obra" }).click();
   await expect(page.getByRole("heading", { name: "Obra E2E" })).toBeVisible();
+
+  // Menu lateral: a obra nova aparece destacada; recolher é lembrado após recarregar (cookie)
+  const menuObras = page.getByRole("navigation", { name: "Obras" });
+  await expect(menuObras.getByRole("link", { name: "Obra E2E" })).toHaveAttribute("aria-current", "page");
+  await page.getByRole("button", { name: "Recolher menu" }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Expandir menu" })).toBeVisible();
+  await page.getByRole("button", { name: "Expandir menu" }).click();
+  await expect(menuObras.getByRole("link", { name: "Obra E2E" })).toBeVisible();
 
   // Turno
   await page.getByRole("link", { name: "Novo turno" }).click();
