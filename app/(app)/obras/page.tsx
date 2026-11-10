@@ -19,10 +19,7 @@ export default async function ObrasPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-titulo font-semibold text-primaria">Obras</h1>
-        <Link href="/obras/nova" className={classesBotao()}>Nova obra</Link>
-      </div>
+      <h1 className="text-titulo font-semibold text-primaria">Obras</h1>
       <ul className="grid gap-3 sm:grid-cols-2">
         {obras.map((o) => (
           <li key={o.id}>
