@@ -43,8 +43,8 @@ export function FormLogin({
       <Campo rotulo="Senha" name="senha" type="password" autoComplete="current-password" required />
       <Botao type="submit" carregando={pendente}>Entrar</Botao>
       <div className="flex flex-col gap-1 text-center text-sm">
-        <Link href="/recuperar-senha" className="text-primaria underline">Esqueci minha senha</Link>
-        <Link href="/cadastro" className="text-primaria underline">Criar conta grátis</Link>
+        <Link href="/recuperar-senha" className="text-operacional underline">Esqueci minha senha</Link>
+        <Link href="/cadastro" className="text-operacional underline">Criar conta grátis</Link>
       </div>
     </form>
   );
@@ -69,7 +69,7 @@ export function FormCadastro() {
         <Link href="/privacidade" className="underline">Política de privacidade</Link>.
       </p>
       <p className="text-center text-sm">
-        Já tem conta? <Link href="/login" className="text-primaria underline">Entrar</Link>
+        Já tem conta? <Link href="/login" className="text-operacional underline">Entrar</Link>
       </p>
     </form>
   );
@@ -82,7 +82,7 @@ export function FormRecuperar() {
       <Mensagem estado={estado} />
       <Campo rotulo="E-mail" name="email" type="email" autoComplete="email" required />
       <Botao type="submit" carregando={pendente}>Enviar link de recuperação</Botao>
-      <Link href="/login" className="text-center text-sm text-primaria underline">Voltar para o login</Link>
+      <Link href="/login" className="text-center text-sm text-operacional underline">Voltar para o login</Link>
     </form>
   );
 }

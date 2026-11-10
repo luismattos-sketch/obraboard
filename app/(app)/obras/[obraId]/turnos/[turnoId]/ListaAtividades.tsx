@@ -23,7 +23,7 @@ export function ListaAtividades({
   return (
     <div className="flex flex-col gap-4">
       <Cartao className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-texto">Atividades planejadas</h2>
+        <h2 className="text-lg font-semibold text-primaria">Atividades planejadas</h2>
         {atividades.length === 0 ? (
           <p className="text-texto-suave">Nenhuma atividade ainda.</p>
         ) : (
@@ -47,7 +47,7 @@ export function ListaAtividades({
       )}
 
       <Cartao>
-        <h2 className="mb-3 text-lg font-semibold text-texto">Adicionar atividade</h2>
+        <h2 className="mb-3 text-lg font-semibold text-primaria">Adicionar atividade</h2>
         <FormAtividade key={atividades.length} turnoId={turnoId} />
       </Cartao>
     </div>

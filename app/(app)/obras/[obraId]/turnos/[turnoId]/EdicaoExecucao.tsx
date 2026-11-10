@@ -33,7 +33,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
     <ProvedorSalvamento registrar={registrar}>
       <section aria-labelledby="titulo-correcao" className="flex min-w-0 flex-col gap-6">
         <div>
-          <h2 id="titulo-correcao" className="text-lg font-semibold text-texto">Corrigir execução</h2>
+          <h2 id="titulo-correcao" className="text-lg font-semibold text-primaria">Corrigir execução</h2>
           <p className="text-sm text-texto-suave">As alterações são salvas automaticamente e atualizam o resumo.</p>
         </div>
         <BlocoHorario

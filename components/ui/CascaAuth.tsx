@@ -10,7 +10,7 @@ export function CascaAuth({ titulo, children }: { titulo: string; children: Reac
         <Image src="/frentia-logo.png" alt="Frentia" width={160} height={41} priority />
       </Link>
       <Cartao className="w-full max-w-sm">
-        <h1 className="mb-4 text-xl font-semibold text-primaria">{titulo}</h1>
+        <h1 className="mb-4 text-titulo font-semibold text-primaria">{titulo}</h1>
         {children}
       </Cartao>
     </main>

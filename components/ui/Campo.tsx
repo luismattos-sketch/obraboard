@@ -15,7 +15,7 @@ export function Campo({ rotulo, erro, className = "", id, ...resto }: Props) {
         id={idCampo}
         aria-invalid={erro ? true : undefined}
         aria-describedby={erro ? `${idCampo}-erro` : undefined}
-        className={`min-h-12 rounded-lg border bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria ${erro ? "border-perigo" : "border-borda"} ${className}`}
+        className={`min-h-12 rounded-botao border bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-operacional ${erro ? "border-perigo" : "border-borda"} ${className}`}
       />
       {erro && (
         <p id={`${idCampo}-erro`} className="text-sm text-perigo">

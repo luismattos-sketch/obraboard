@@ -15,7 +15,7 @@ type Props = {
   salvar: (dados: { hora_inicio_real: string | null; hora_fim_real: string | null }) => Promise<Resultado<unknown>>;
 };
 const campo =
-  "min-h-12 w-full rounded-lg border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-primaria disabled:opacity-70";
+  "min-h-12 w-full rounded-botao border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-operacional disabled:opacity-70";
 
 export function BlocoHorario(props: Props) {
   return (
@@ -32,7 +32,7 @@ function Horario({ inicio, fim, somenteLeitura, salvar }: Props) {
 
   return (
     <section aria-labelledby="titulo-horario" className="flex flex-col gap-3">
-      <h2 id="titulo-horario" className="text-lg font-semibold">Horário real</h2>
+      <h2 id="titulo-horario" className="text-lg font-semibold text-primaria">Horário real</h2>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="hora-inicio" className="text-sm font-medium">Início</label>

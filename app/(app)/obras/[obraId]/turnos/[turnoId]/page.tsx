@@ -20,9 +20,9 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href={`/obras/${obraId}`} className="text-sm text-primaria underline">← {turno.obra.nome}</Link>
+      <Link href={`/obras/${obraId}`} className="text-sm text-operacional underline">← {turno.obra.nome}</Link>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold text-primaria">
+        <h1 className="text-titulo font-semibold text-primaria">
           Turno {ROTULO_PERIODO[turno.periodo].toLowerCase()} de {formatarData(turno.data)}
         </h1>
         <Selo tom={TOM_STATUS_TURNO[turno.status]}>{ROTULO_STATUS_TURNO[turno.status]}</Selo>
@@ -59,7 +59,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
             <AcoesTurno turnoId={turno.id} fechado />
           ) : (
             <>
-              <details className="rounded-xl border border-borda bg-superficie p-4">
+              <details className="rounded-cartao border border-borda bg-superficie p-4">
                 <summary className="cursor-pointer text-lg font-semibold text-texto">Editar planejamento</summary>
                 <div className="mt-3 flex flex-col gap-3">
                   <Aviso tom="info">O encarregado precisa recarregar a página para ver as mudanças.</Aviso>

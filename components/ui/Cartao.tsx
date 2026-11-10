@@ -4,7 +4,7 @@ export function Cartao({ className = "", ...resto }: HTMLAttributes<HTMLDivEleme
   return (
     <div
       {...resto}
-      className={`rounded-xl border border-borda bg-superficie p-5 shadow-sm ${className}`}
+      className={`rounded-cartao border border-borda bg-superficie p-5 shadow-sm ${className}`}
     />
   );
 }

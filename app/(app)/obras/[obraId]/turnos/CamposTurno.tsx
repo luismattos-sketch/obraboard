@@ -37,7 +37,7 @@ export function CamposTurno({
         <legend className="text-sm font-medium text-texto">Período</legend>
         <div className="flex gap-3">
           {(["diurno", "noturno"] as const).map((p) => (
-            <label key={p} className="flex min-h-12 flex-1 items-center gap-2 rounded-lg border border-borda bg-superficie px-3">
+            <label key={p} className="flex min-h-12 flex-1 items-center gap-2 rounded-botao border border-borda bg-superficie px-3">
               <input type="radio" name="periodo" value={p} checked={periodo === p} onChange={() => setPeriodo(p)} />
               {p === "diurno" ? "Diurno" : "Noturno"}
             </label>

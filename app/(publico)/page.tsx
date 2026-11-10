@@ -23,7 +23,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
         <Image src="/frentia-logo.png" alt="Frentia" width={128} height={33} priority />
-        <Link href="/login" className="text-sm font-semibold text-primaria underline">
+        <Link href="/login" className="text-sm font-semibold text-operacional underline">
           Entrar
         </Link>
       </header>
@@ -35,7 +35,7 @@ export default function Home() {
             Planeje o turno, acompanhe a execução e gere o RDO direto do canteiro.
           </p>
           <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-            <Link href="/cadastro" className={`${classesBotao("primario")} bg-destaque hover:bg-destaque-escura`}>
+            <Link href="/cadastro" className={classesBotao("destaque")}>
               Criar conta grátis
             </Link>
             <Link href="/login" className={classesBotao("secundario")}>

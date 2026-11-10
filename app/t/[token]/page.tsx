@@ -19,7 +19,7 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
   if (!turno) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-4 py-8">
-        <h1 className="text-xl font-semibold">Frentia</h1>
+        <h1 className="text-titulo font-semibold text-primaria">Frentia</h1>
         <Aviso tom="perigo">{ERRO_LINK}</Aviso>
       </main>
     );
@@ -28,8 +28,8 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6">
       <header>
-        <h1 className="text-xl font-semibold">{turno.obra.nome}</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-titulo font-semibold text-primaria">{turno.obra.nome}</h1>
+        <p className="text-sm text-texto-suave">
           {formatarData(turno.data)} · {ROTULO_PERIODO[turno.periodo]}
         </p>
       </header>

@@ -1,11 +1,11 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
 export const COR = {
-  primaria: "#1F3A5F",
-  texto: "#1F2937",
-  suave: "#6B7280",
-  borda: "#D1D5DB",
-  fundo: "#F3F4F6",
+  primaria: "#002F6C", // Azul Frentia (manual da marca)
+  texto: "#263238", // Cinza Grafite
+  suave: "#546E7A",
+  borda: "#D7DEE8",
+  fundo: "#EEF2F6", // Cinza Campo
   marca: "#E5E7EB",
 };
 

@@ -1,9 +1,10 @@
 import type { Tom } from "@/lib/dominio/tipos";
 
+// Cores de status do manual da marca; a borda só aparece onde o componente usa border (Aviso).
 export const classesTom: Record<Tom, string> = {
-  neutro: "bg-slate-100 text-slate-700",
-  info: "bg-primaria-clara text-primaria",
-  sucesso: "bg-sucesso-clara text-sucesso",
-  alerta: "bg-alerta-clara text-alerta",
-  perigo: "bg-perigo-clara text-perigo",
+  neutro: "bg-fundo text-texto border-borda",
+  info: "bg-primaria-clara text-primaria border-operacional",
+  sucesso: "bg-sucesso-clara text-sucesso border-sucesso",
+  alerta: "bg-alerta-clara text-alerta-escura border-alerta",
+  perigo: "bg-perigo-clara text-perigo border-perigo",
 };
