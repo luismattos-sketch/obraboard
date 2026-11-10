@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TurnoAnalise } from "@/lib/dominio/analise";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
@@ -66,6 +67,40 @@ export async function listarTurnosComAtividades(
     }),
   );
   return lista.sort((a, b) => compararTurnos(b, a));
+}
+
+/** Turnos fechados da obra com data >= `desde` (YYYY-MM-DD), com atividades em ordem, para a análise de PPC. */
+export async function listarTurnosFechadosParaAnalise(
+  c: SupabaseClient,
+  obraId: string,
+  desde: string,
+): Promise<TurnoAnalise[]> {
+  const { data, error } = await c
+    .from("turnos")
+    .select("id, data, periodo, status, atividades(descricao, qtd_planejada, qtd_realizada, causa, observacao, ordem)")
+    .eq("obra_id", obraId)
+    .eq("status", "fechado")
+    .gte("data", desde);
+  if (error) {
+    console.error("listarTurnosFechadosParaAnalise:", error.message);
+    throw new Error(`listarTurnosFechadosParaAnalise: ${error.message}`);
+  }
+  type Linha = Omit<TurnoAnalise, "atividades"> & { atividades: Record<string, unknown>[] | null };
+  return ((data ?? []) as unknown as Linha[]).map((t) => ({
+    id: t.id,
+    data: t.data,
+    periodo: t.periodo,
+    status: t.status,
+    atividades: [...(t.atividades ?? [])]
+      .sort((x, y) => Number(x.ordem) - Number(y.ordem))
+      .map((a) => ({
+        descricao: a.descricao as string,
+        qtd_planejada: Number(a.qtd_planejada),
+        qtd_realizada: a.qtd_realizada === null || a.qtd_realizada === undefined ? null : Number(a.qtd_realizada),
+        causa: (a.causa as TurnoAnalise["atividades"][number]["causa"]) ?? null,
+        observacao: (a.observacao as string | null) ?? null,
+      })),
+  }));
 }
 
 export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Promise<TurnoCompleto | null> {

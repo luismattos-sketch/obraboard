@@ -106,6 +106,22 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     ]);
     expect(download.suggestedFilename()).toBe(`RDO-obra-e2e-${dataTurno}-diurno.pdf`);
 
+    // Análise (PPC) da obra
+    const obraUrl = turnoUrl.replace(/\/turnos\/[0-9a-f-]{36}$/, "");
+    // next dev compila a rota no 1º acesso e recarrega a página aberta; pré-aquecer evita a corrida.
+    await page.request.get(`${obraUrl}/analise`);
+    await page.goto(obraUrl);
+    await page.getByRole("link", { name: "Análise (PPC)" }).click();
+    await page.waitForURL("**/analise");
+    const indicadores = page.locator("section[aria-labelledby='titulo-indicadores']");
+    await expect(indicadores.getByText("50%").first()).toBeVisible();
+    await expect(indicadores.getByText("1 de 2 atividades")).toBeVisible();
+    const causas = page.locator("section[aria-labelledby='titulo-causas']");
+    await expect(causas.getByText("Material")).toBeVisible();
+    await expect(causas.getByText("1 (100%)")).toBeVisible();
+    await causas.getByText("Material").click();
+    await expect(causas.getByText(/Alvenaria/)).toBeVisible();
+
     // Campo após o fechamento
     await campo.reload();
     await expect(campo.getByText("Turno fechado pelo planejador")).toBeVisible();

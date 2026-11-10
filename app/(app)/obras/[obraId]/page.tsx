@@ -24,7 +24,10 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           <h1 className="text-xl font-semibold text-primaria">{obra.nome}</h1>
           {obra.cliente && <p className="text-sm text-texto-suave">{obra.cliente}</p>}
         </div>
-        <Link href={`/obras/${obra.id}/turnos/novo`} className={classesBotao()}>Novo turno</Link>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link href={`/obras/${obra.id}/analise`} className={classesBotao("secundario")}>Análise (PPC)</Link>
+          <Link href={`/obras/${obra.id}/turnos/novo`} className={classesBotao()}>Novo turno</Link>
+        </div>
       </div>
 
       {turnos.length === 0 ? (
