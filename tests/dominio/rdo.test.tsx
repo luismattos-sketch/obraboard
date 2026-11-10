@@ -42,6 +42,10 @@ describe("nomeArquivoRdo", () => {
   it("usa 'obra' quando o slug fica vazio", () => {
     expect(nomeArquivoRdo("!!!", "2026-11-08", "diurno")).toBe("RDO-obra-2026-11-08-diurno.pdf");
   });
+  it("acrescenta a versão ou o rascunho", () => {
+    expect(nomeArquivoRdo("Edifício Aurora", "2026-11-08", "diurno", { versao: 2 })).toBe("RDO-edificio-aurora-2026-11-08-diurno-v2.pdf");
+    expect(nomeArquivoRdo("Edifício Aurora", "2026-11-08", "diurno", "rascunho")).toBe("RDO-edificio-aurora-2026-11-08-diurno-rascunho.pdf");
+  });
 });
 
 describe("DocumentoRdo", () => {
