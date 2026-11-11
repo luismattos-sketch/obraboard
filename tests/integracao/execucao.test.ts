@@ -79,7 +79,7 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     expect(await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "bom", impediu: false })).toEqual(e);
     expect(await removerClimaPlanejador(u.cliente, turnoId, "manha")).toEqual(e);
     expect(await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: null, hora_fim_real: null })).toEqual(e);
-    expect((await aplicarAcao(u.cliente, turnoId, "reabrir")).ok).toBe(true);
+    expect((await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" })).ok).toBe(true);
     expect((await salvarEfetivoPlanejador(u.cliente, turnoId, [], [])).ok).toBe(true);
   });
 

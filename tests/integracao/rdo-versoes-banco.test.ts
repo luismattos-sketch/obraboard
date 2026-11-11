@@ -74,7 +74,7 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
     const { turnoId, atividadeId } = await turnoPronto();
     exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));
     const v1 = (await versoes(turnoId))[0];
-    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir"));
+    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" }));
     exigir(await editarAtividade(u.cliente, atividadeId, { descricao: "Concretagem corrigida" }));
     exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));
     const vs = await versoes(turnoId);
@@ -125,7 +125,7 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
   it("removerTurno recusa turno reaberto com versão", { timeout: 60_000 }, async () => {
     const { turnoId } = await turnoPronto();
     exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));
-    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir"));
+    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" }));
     expect((await removerTurno(u.cliente, turnoId)).ok).toBe(false);
     expect(await versoes(turnoId)).toHaveLength(1);
   });
