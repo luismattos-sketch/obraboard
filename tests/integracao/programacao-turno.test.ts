@@ -9,7 +9,7 @@ import {
   trazerDaProgramacao,
   type EntradaAtividadeProgramada,
 } from "@/lib/db/programacao";
-import { criarTurno } from "@/lib/db/turnos";
+import { criarTurno, editarTurno } from "@/lib/db/turnos";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
 const ENTRADA: EntradaAtividadeProgramada = {
@@ -99,5 +99,14 @@ describe.skipIf(!ligado)("programação chega ao turno", () => {
     const r = await trazerPendentes(u.cliente, qui.id);
     expect(r).toEqual({ ok: true, dados: { adicionadas: 0 } });
     expect(await atividadesDo(qui.id)).toEqual([]);
+  });
+
+  it("editar data de turno com atividade programada explica o bloqueio", { timeout: 60_000 }, async () => {
+    const { obraId } = await cenario();
+    const t = exigir(await turno(obraId, "2026-11-09"));
+    expect(await editarTurno(u.cliente, t.id, { data: "2026-11-12", periodo: "diurno" })).toEqual({
+      ok: false,
+      erro: "Este turno tem atividades da programação. Remova-as antes de mudar a data ou o período.",
+    });
   });
 });

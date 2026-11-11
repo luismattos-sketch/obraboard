@@ -5,7 +5,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import type { Atividade } from "@/lib/db/atividades";
-import { trazerPendentesAcao, type EstadoAcao } from "./acoes";
+import type { StatusSemana } from "@/lib/dominio/programacao";
+import { trazerDaProgramacaoAcao, trazerPendentesAcao, type EstadoAcao } from "./acoes";
 import { FormAtividade } from "./FormAtividade";
 import { ItemAtividade } from "./ItemAtividade";
 
@@ -13,13 +14,17 @@ export function ListaAtividades({
   turnoId,
   atividades,
   trazerPendentes = true,
+  semanaStatus = null,
 }: {
   turnoId: string;
   atividades: Atividade[];
   /** "Trazer pendentes" só faz sentido antes de liberar para campo. */
   trazerPendentes?: boolean;
+  /** Status da semana da programação que contém o turno (null: sem programação). */
+  semanaStatus?: StatusSemana | null;
 }) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(trazerPendentesAcao, null);
+  const [estadoProg, actionProg, pendenteProg] = useActionState<EstadoAcao, FormData>(trazerDaProgramacaoAcao, null);
   return (
     <div className="flex flex-col gap-4">
       <Cartao className="flex flex-col gap-3">
@@ -29,11 +34,28 @@ export function ListaAtividades({
         ) : (
           <ul className="divide-y divide-borda">
             {atividades.map((a, i) => (
-              <ItemAtividade key={a.id} atividade={a} primeira={i === 0} ultima={i === atividades.length - 1} />
+              <ItemAtividade
+                key={a.id}
+                atividade={a}
+                primeira={i === 0}
+                ultima={i === atividades.length - 1}
+                semanaStatus={semanaStatus}
+              />
             ))}
           </ul>
         )}
       </Cartao>
+
+      {trazerPendentes && semanaStatus === "programada" && (
+        <form action={actionProg} className="flex flex-col gap-2">
+          <input type="hidden" name="turno_id" value={turnoId} />
+          <Botao type="submit" variante="secundario" carregando={pendenteProg}>
+            Trazer da programação
+          </Botao>
+          {estadoProg && !estadoProg.ok && <Aviso tom="alerta">{estadoProg.erro}</Aviso>}
+          {estadoProg?.ok && estadoProg.dados?.mensagem && <Aviso tom="sucesso">{estadoProg.dados.mensagem}</Aviso>}
+        </form>
+      )}
 
       {trazerPendentes && (
         <form action={action} className="flex flex-col gap-2">

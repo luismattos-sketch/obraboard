@@ -4,7 +4,9 @@ import { useActionState, useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import type { Atividade } from "@/lib/db/atividades";
+import { Selo } from "@/components/ui/Selo";
 import { numeroBR } from "@/lib/dominio/formato";
+import type { StatusSemana } from "@/lib/dominio/programacao";
 import {
   editarAtividadeAcao,
   moverAtividadeAcao,
@@ -64,10 +66,12 @@ export function ItemAtividade({
   atividade: a,
   primeira,
   ultima,
+  semanaStatus = null,
 }: {
   atividade: Atividade;
   primeira: boolean;
   ultima: boolean;
+  semanaStatus?: StatusSemana | null;
 }) {
   const [editando, setEditando] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
@@ -91,7 +95,14 @@ export function ItemAtividade({
   return (
     <li className="flex flex-col gap-2 py-3">
       <div>
-        <p className="font-medium text-texto">{a.descricao}</p>
+        <p className="flex flex-wrap items-center gap-2 font-medium text-texto">
+          {a.descricao}
+          {a.programacao_atividade_id ? (
+            <Selo tom="info">Programada</Selo>
+          ) : (
+            (semanaStatus === "programada" || semanaStatus === "encerrada") && <Selo tom="alerta">Extra</Selo>
+          )}
+        </p>
         <p className="text-sm text-texto-suave">
           {a.local ? `${a.local} · ` : ""}
           {numeroBR(a.qtd_planejada)} {a.unidade}

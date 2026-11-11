@@ -145,6 +145,9 @@ function lerDadosTurno(dados: DadosTurno): Resultado<Required<DadosTurno>> {
   });
 }
 
+export const ERRO_TURNO_COM_PROGRAMACAO =
+  "Este turno tem atividades da programação. Remova-as antes de mudar a data ou o período.";
+
 const duplicado = (periodo: Periodo) => falha(`Já existe um turno ${periodo} nesse dia`);
 
 export async function criarTurno(c: SupabaseClient, dados: DadosTurno & { obra_id: string }): Promise<Resultado<Turno>> {
@@ -194,6 +197,7 @@ export async function editarTurno(c: SupabaseClient, turnoId: string, dados: Dad
     .select(COLUNAS_TURNO);
   if (error) {
     if (error.code === "23505") return duplicado(d.dados.periodo);
+    if (erroBanco(error) === "programacao_incompativel") return falha(ERRO_TURNO_COM_PROGRAMACAO);
     console.error("editarTurno:", error.message);
     return falha("Não foi possível alterar o turno.");
   }
