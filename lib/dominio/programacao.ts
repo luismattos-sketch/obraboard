@@ -144,10 +144,12 @@ export function realizadoAte(
   programacaoId: string,
   statusValidos?: StatusTurno[],
 ): number {
-  return execucoes
+  const total = execucoes
     .filter((e) => e.programacao_atividade_id === programacaoId)
     .filter((e) => !statusValidos || statusValidos.includes(e.status_turno))
     .reduce((s, e) => s + (e.qtd_realizada ?? 0), 0);
+  // Soma em ponto flutuante (0,3 + 0,6 = 0,8999…): arredonda para comparar com a meta como o banco (numeric).
+  return Math.round(total * 1e6) / 1e6;
 }
 
 const arred2 = (x: number) => Math.round(x * 100) / 100;
@@ -160,8 +162,9 @@ export function sugestaoDoDia(
   if (!a.dias.includes(dia)) return null;
   const saldo = Math.max(a.meta - realizado, 0);
   if (saldo <= 0) return null;
-  if (dia === Math.max(...a.dias)) return arred2(saldo);
-  return Math.min(arred2(a.meta / a.dias.length), arred2(saldo));
+  const sugestao = dia === Math.max(...a.dias) ? arred2(saldo) : Math.min(arred2(a.meta / a.dias.length), arred2(saldo));
+  // Quantidade planejada precisa ser > 0 no banco.
+  return sugestao > 0 ? sugestao : null;
 }
 
 export function situacaoAtividade(meta: number, realizado: number): Situacao {

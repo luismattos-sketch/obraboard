@@ -204,3 +204,15 @@ describe("status e encerramento", () => {
     expect(rotuloTurnosAbertos([turno()])).toBeNull();
   });
 });
+
+describe("arredondamento (revisão final I1)", () => {
+  it("0,3 + 0,6 cumpre a meta 0,9", () => {
+    const execs = [exec({ qtd_realizada: 0.3 }), exec({ qtd_realizada: 0.6 })];
+    expect(realizadoAte(execs, "a1")).toBe(0.9);
+    expect(situacaoAtividade(0.9, realizadoAte(execs, "a1"))).toBe("cumprida");
+  });
+  it("sugestão arredondada para zero não é trazida", () => {
+    expect(sugestaoDoDia({ meta: 0.01, dias: [0, 1, 2] }, 0, 0)).toBeNull();
+    expect(sugestaoDoDia({ meta: 0.9, dias: [0, 1, 2] }, 2, 0.3 + 0.6)).toBeNull();
+  });
+});
