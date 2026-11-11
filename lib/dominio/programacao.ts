@@ -1,7 +1,7 @@
 import { hhTurno } from "./calculos";
 import { formatarData } from "./formato";
 import { compararTurnos } from "./regras";
-import type { Causa, Periodo, StatusTurno } from "./tipos";
+import type { Causa, Periodo, StatusTurno, Tom } from "./tipos";
 
 export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type StatusSemana = "rascunho" | "programada" | "encerrada";
@@ -100,11 +100,24 @@ export const ROTULO_SITUACAO: Record<Situacao, string> = {
   sem_execucao: "Sem execução",
 };
 
-export const ROTULO_DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] as const;
+export const TOM_STATUS_SEMANA: Record<StatusExibido, Tom> = {
+  rascunho: "neutro",
+  programada: "info",
+  aguardando_encerramento: "alerta",
+  encerrada: "sucesso",
+};
+
+export const TOM_SITUACAO: Record<Situacao, Tom> = {
+  cumprida: "sucesso",
+  em_andamento: "alerta",
+  sem_execucao: "neutro",
+};
+
+export const ROTULO_DIAS =["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] as const;
 
 // Aritmética de datas em UTC para não depender do fuso da máquina.
 const paraData = (iso: string) => new Date(`${iso}T00:00:00Z`);
-function somarDias(iso: string, dias: number): string {
+export function somarDias(iso: string, dias: number): string {
   const d = paraData(iso);
   d.setUTCDate(d.getUTCDate() + dias);
   return d.toISOString().slice(0, 10);
