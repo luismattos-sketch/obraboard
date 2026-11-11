@@ -2,6 +2,7 @@ import { falha, ok, type Resultado } from "@/lib/db/resultado";
 
 export const ERRO_MOTIVO = "Informe o motivo da reabertura";
 export const ERRO_MOTIVO_LONGO = "O motivo pode ter até 500 caracteres";
+export const ERRO_MOTIVO_REPETIDO = "Use um motivo diferente do da reabertura anterior";
 const MOTIVO_MIN = 3;
 const MOTIVO_MAX = 500;
 

@@ -9,9 +9,9 @@ export const ERRO_EFETIVO_CONFLITO = "O efetivo foi alterado por outra pessoa. R
 export const ERRO_SO_PLANEJADO = "Só é possível alterar turnos planejados.";
 
 /** Exceções de negócio levantadas pelos triggers/funções do banco (P0001 + mensagem fixa). */
-export type ErroBanco = "turno_fechado" | "causa_pendente" | "efetivo_conflito" | "motivo_obrigatorio";
+export type ErroBanco = "turno_fechado" | "causa_pendente" | "efetivo_conflito" | "motivo_obrigatorio" | "motivo_repetido";
 
-const CONHECIDOS: readonly ErroBanco[] = ["turno_fechado", "causa_pendente", "efetivo_conflito", "motivo_obrigatorio"];
+const CONHECIDOS: readonly ErroBanco[] = ["turno_fechado", "causa_pendente", "efetivo_conflito", "motivo_obrigatorio", "motivo_repetido"];
 
 export function erroBanco(error: { code?: string; message?: string } | null | undefined): ErroBanco | null {
   if (!error || error.code !== "P0001") return null;

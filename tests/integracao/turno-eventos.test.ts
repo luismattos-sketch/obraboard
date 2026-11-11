@@ -108,6 +108,20 @@ describe.skipIf(!ligado)("turno_eventos no banco", () => {
     expect(data!.status).toBe("fechado");
   });
 
+  it("banco recusa a 2ª reabertura que reaproveita o motivo anterior", { timeout: 90_000 }, async () => {
+    const { turnoId } = await turnoLiberado();
+    exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));
+    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Primeiro" }));
+    exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));
+    // Sem informar motivo, a coluna ainda traz o da 1ª reabertura: o banco recusa como repetido.
+    const sem = await u.cliente.from("turnos").update({ status: "enviado", fechado_em: null }).eq("id", turnoId);
+    expect(sem.error?.message).toBe("motivo_repetido");
+    expect(await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: " Primeiro " })).toEqual({
+      ok: false, erro: "Use um motivo diferente do da reabertura anterior",
+    });
+    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Segundo" }));
+  });
+
   it("aplicarAcao valida o motivo", { timeout: 60_000 }, async () => {
     const { turnoId } = await turnoLiberado();
     exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));

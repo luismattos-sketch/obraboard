@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TurnoAnalise } from "@/lib/dominio/analise";
-import { ERRO_MOTIVO, validarMotivo } from "@/lib/dominio/eventos";
+import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/eventos";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
@@ -252,6 +252,7 @@ export async function aplicarAcao(
     if (b === "causa_pendente") return falha(ERRO_CAUSA_PENDENTE);
     if (b === "turno_fechado") return falha(ERRO_FECHADO_PLANEJADOR);
     if (b === "motivo_obrigatorio") return falha(ERRO_MOTIVO);
+    if (b === "motivo_repetido") return falha(ERRO_MOTIVO_REPETIDO);
     console.error("aplicarAcao:", error.message);
     return falha("Não foi possível atualizar o turno.");
   }
