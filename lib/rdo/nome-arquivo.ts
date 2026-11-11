@@ -18,3 +18,8 @@ export function nomeArquivoRdo(obra: string, data: string, periodo: Periodo, suf
   const fim = sufixo === undefined ? "" : sufixo === "rascunho" ? "-rascunho" : `-v${sufixo.versao}`;
   return `RDO-${slug(obra)}-${data}-${periodo}${fim}.pdf`;
 }
+
+/** PDF único do mês: `RDOs-<obra>-AAAA-MM.pdf` ou `RDOs-todas-as-obras-AAAA-MM.pdf`. */
+export function nomeArquivoLote(obraNome: string | null, mes: string): string {
+  return `RDOs-${obraNome === null ? "todas-as-obras" : slug(obraNome)}-${mes}.pdf`;
+}

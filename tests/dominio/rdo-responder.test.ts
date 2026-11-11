@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TurnoCompleto } from "@/lib/db/turnos";
-import { respostaPdf } from "@/lib/rdo/responder";
+import { PDFDocument } from "pdf-lib";
+import { renderizarRdo, respostaPdf } from "@/lib/rdo/responder";
 
 const turno = {
   id: "t", obra_id: "o", data: "2026-11-08", periodo: "diurno",
@@ -18,5 +19,21 @@ describe("respostaPdf", () => {
     expect(r.headers.get("Content-Disposition")).toBe('attachment; filename="RDO-obra-2026-11-08-diurno-rascunho.pdf"');
     expect(r.headers.get("Cache-Control")).toBe("no-store");
     expect(Buffer.from(await r.arrayBuffer()).subarray(0, 4).toString("latin1")).toBe("%PDF");
+  }, 30000);
+});
+
+describe("renderizarRdo", () => {
+  it("devolve o PDF", async () => {
+    const buf = await renderizarRdo(turno, { tipo: "rascunho", geradoEm: new Date() });
+    expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
+    expect((await PDFDocument.load(buf)).getPageCount()).toBeGreaterThanOrEqual(1);
+  }, 30000);
+});
+
+describe("peso do RDO", () => {
+  // O lote junta até 120 RDOs; o Vercel limita a resposta a 4,5 MB e o Gmail anexos a 25 MB.
+  it("um RDO pesa menos de 40 KB", async () => {
+    const buf = await renderizarRdo(turno, { tipo: "rascunho", geradoEm: new Date() });
+    expect(buf.length).toBeLessThan(40_000);
   }, 30000);
 });
