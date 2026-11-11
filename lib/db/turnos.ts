@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TurnoAnalise } from "@/lib/dominio/analise";
+import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/eventos";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
@@ -218,7 +219,14 @@ export async function aplicarAcao(
   c: SupabaseClient,
   turnoId: string,
   acao: AcaoTurno,
+  opcoes: { motivo?: string } = {},
 ): Promise<Resultado<{ status: StatusTurno; token?: string }>> {
+  let motivo: string | undefined;
+  if (acao === "reabrir") {
+    const m = validarMotivo(opcoes.motivo);
+    if (!m.ok) return m;
+    motivo = m.dados;
+  }
   const turno = await obterTurnoCompleto(c, turnoId);
   if (!turno) return falha("Turno não encontrado");
   const t = transicaoTurno(turno.status, acao, { atividades: turno.atividades, horario: turno });
@@ -232,7 +240,10 @@ export async function aplicarAcao(
   }
   if (acao === "enviar") mudancas.enviado_em = new Date().toISOString();
   if (acao === "fechar") mudancas.fechado_em = new Date().toISOString();
-  if (acao === "reabrir") mudancas.fechado_em = null;
+  if (acao === "reabrir") {
+    mudancas.fechado_em = null;
+    mudancas.motivo_reabertura = motivo;
+  }
 
   const { data, error } = await c.from("turnos").update(mudancas).eq("id", turnoId).eq("status", turno.status).select("id");
   if (error) {
@@ -240,6 +251,8 @@ export async function aplicarAcao(
     const b = erroBanco(error);
     if (b === "causa_pendente") return falha(ERRO_CAUSA_PENDENTE);
     if (b === "turno_fechado") return falha(ERRO_FECHADO_PLANEJADOR);
+    if (b === "motivo_obrigatorio") return falha(ERRO_MOTIVO);
+    if (b === "motivo_repetido") return falha(ERRO_MOTIVO_REPETIDO);
     console.error("aplicarAcao:", error.message);
     return falha("Não foi possível atualizar o turno.");
   }

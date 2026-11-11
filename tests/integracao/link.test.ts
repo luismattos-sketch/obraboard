@@ -70,7 +70,7 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
     expect((await gerarNovoLink(u.cliente, t.id)).ok).toBe(false);
 
     const hashAntes = t4?.token_hash;
-    const re = await aplicarAcao(u.cliente, t.id, "reabrir");
+    const re = await aplicarAcao(u.cliente, t.id, "reabrir", { motivo: "Correção de teste" });
     expect(re).toEqual({ ok: true, dados: { status: "enviado" } });
     const t5 = await obterTurnoCompleto(u.cliente, t.id);
     expect(t5?.fechado_em).toBeNull();

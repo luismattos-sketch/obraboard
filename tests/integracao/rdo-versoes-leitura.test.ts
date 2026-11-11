@@ -27,7 +27,7 @@ describe.skipIf(!ligado)("leitura de rdo_versoes", () => {
     exigir(await aplicarAcao(u.cliente, t.id, "liberar"));
     exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 10, causa: null, observacao: null }));
     exigir(await aplicarAcao(u.cliente, t.id, "fechar"));
-    exigir(await aplicarAcao(u.cliente, t.id, "reabrir"));
+    exigir(await aplicarAcao(u.cliente, t.id, "reabrir", { motivo: "Correção de teste" }));
     exigir(await aplicarAcao(u.cliente, t.id, "fechar"));
   }, 90_000);
   afterAll(async () => {

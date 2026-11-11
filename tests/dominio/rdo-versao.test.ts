@@ -53,6 +53,11 @@ describe("linhasEmissao", () => {
       "RDO oficial · Versão 2 · substitui a versão 1, emitida em 09/11/2026 às 18:40 · Emitido em 10/11/2026 às 08:15 (horário de Brasília)",
     );
   });
+  it("v2 com motivo da correção", () => {
+    expect(linhasEmissao({ tipo: "oficial", numero: 2, emitidoEm: emitido, retroativa: false, anterior, motivo: "Corrigir quantidade" }).destaque).toBe(
+      "RDO oficial · Versão 2 · substitui a versão 1, emitida em 09/11/2026 às 18:40 · Motivo da correção: Corrigir quantidade · Emitido em 10/11/2026 às 08:15 (horário de Brasília)",
+    );
+  });
   it("retroativa avisa", () => {
     expect(linhasEmissao({ tipo: "oficial", numero: 1, emitidoEm: emitido, retroativa: true }).destaque).toMatch(
       / · versão registrada retroativamente$/,
@@ -78,6 +83,20 @@ describe("emissaoDaVersao", () => {
       tipo: "oficial", numero: 2, emitidoEm: new Date("2026-11-10T11:15:00Z"), retroativa: true,
       anterior: { numero: 1, emitidoEm: new Date("2026-11-09T21:40:00Z") },
     });
+  });
+});
+
+describe("emissaoDaVersao com motivo", () => {
+  const comMotivo = { ...foto, turno: { ...foto.turno, motivo_reabertura: "X" } };
+  it("v2 lê o motivo da foto", () => {
+    const e = emissaoDaVersao(versao({ numero: 2, dados: comMotivo }), { numero: 1, emitido_em: "2026-11-09T21:40:00Z" });
+    expect(e).toMatchObject({ tipo: "oficial", motivo: "X" });
+  });
+  it("v1 ignora motivo", () => {
+    expect(emissaoDaVersao(versao({ dados: comMotivo }))).not.toHaveProperty("motivo");
+  });
+  it("foto da H1 sem o campo: sem motivo", () => {
+    expect(emissaoDaVersao(versao({ numero: 2 }), { numero: 1, emitido_em: "2026-11-09T21:40:00Z" })).not.toHaveProperty("motivo");
   });
 });
 

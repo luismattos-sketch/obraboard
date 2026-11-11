@@ -138,7 +138,7 @@ describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
     expect(rpc2.error?.message).toBe("turno_fechado");
     // token_hash pode mudar; reabrir (fechado -> enviado) é permitido
     expect((await admin.from("turnos").update({ token_hash: "x".repeat(64) }).eq("id", turnoId)).error).toBeNull();
-    expect((await aplicarAcao(u.cliente, turnoId, "reabrir")).ok).toBe(true);
+    expect((await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" })).ok).toBe(true);
     expect((await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: "07:00", hora_fim_real: "16:00" })).ok).toBe(true);
   });
 
