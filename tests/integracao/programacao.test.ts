@@ -177,4 +177,17 @@ describe.skipIf(!ligado)("camada de dados da programação", () => {
     ]);
     expect(await listarProgramadasParaAnalise(u.cliente, obraId, "2026-11-10")).toEqual([]);
   });
+
+  it("salvar com dias que tiram a execução explica o bloqueio", { timeout: 60_000 }, async () => {
+    const { obraId, semana } = await semanaNova();
+    const { id } = exigir(await salvarAtividadeProgramada(u.cliente, semana.id, ENTRADA));
+    exigir(await programarSemana(u.cliente, semana.id));
+    await turnoComExecucao(obraId, id, 2, false);
+    exigir(await reabrirSemana(u.cliente, semana.id, "Mudar dias"));
+    expect(await salvarAtividadeProgramada(u.cliente, semana.id, { ...ENTRADA, dias: [3, 4] }, id)).toEqual({
+      ok: false,
+      erro: "Esta atividade já foi executada em turnos fora desses dias ou período. Mantenha os dias e o período desses turnos.",
+    });
+  });
 });
+

@@ -212,4 +212,19 @@ describe.skipIf(!ligado)("programação semanal no banco", () => {
     const { data: ats } = await outro.cliente.from("programacao_atividades").select("id").eq("semana_id", semanaId);
     expect(ats).toEqual([]);
   });
+
+  it("rascunho reaberto não muda dias/período que já têm execução (revisão final I2)", async () => {
+    const { obraId, semanaId } = await novaSemana();
+    const id = await novaAtividade(semanaId); // seg+ter diurno
+    semErro(await status(semanaId, "programada"));
+    const seg = await novoTurno(obraId);
+    semErro(await ligar(seg, id, 3, "material"));
+    semErro(await status(semanaId, "rascunho", "Ajustar dias"));
+    const semSegunda = await u.cliente.from("programacao_atividades").update({ dias: [2, 3] }).eq("id", id);
+    expect(semSegunda.error?.message).toBe("programacao_incompativel");
+    const noturno = await u.cliente.from("programacao_atividades").update({ periodo: "noturno" }).eq("id", id);
+    expect(noturno.error?.message).toBe("programacao_incompativel");
+    semErro(await u.cliente.from("programacao_atividades").update({ dias: [0, 2], meta: 20 }).eq("id", id));
+  });
 });
+

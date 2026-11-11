@@ -20,7 +20,7 @@ import {
 } from "@/lib/dominio/programacao";
 import type { Causa, Periodo } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
-import { MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
+import { erroBanco, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { causaValida, errosDeTamanho, LIMITES, QTD_PLANEJADA_MAX } from "./validacao";
 
@@ -33,6 +33,9 @@ export type EntradaAtividadeProgramada = {
   periodo: Periodo;
   equipe: EquipePrevista[];
 };
+
+export const ERRO_DIAS_COM_EXECUCAO =
+  "Esta atividade já foi executada em turnos fora desses dias ou período. Mantenha os dias e o período desses turnos.";
 
 const COLUNAS_SEMANA = "id, obra_id, inicio, status, programada_em, encerrada_em, motivo_reabertura";
 const UNICIDADE = "23505";
@@ -281,6 +284,7 @@ export async function salvarAtividadeProgramada(
     p_dados: v.dados,
   });
   if (error) {
+    if (erroBanco(error) === "programacao_incompativel") return falha(ERRO_DIAS_COM_EXECUCAO);
     console.error("salvarAtividadeProgramada:", error.message);
     return falha(mensagemProgramacao(error, "Não foi possível salvar a atividade."));
   }
