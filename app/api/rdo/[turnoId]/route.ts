@@ -1,16 +1,15 @@
-import { createElement, type ReactElement } from "react";
-import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { redirect } from "next/navigation";
+import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { caminhoSeguro } from "@/lib/dominio/caminho";
-import { resumirTurno } from "@/lib/dominio/resumo";
-import { DocumentoRdo } from "@/lib/rdo/documento";
 import { nomeArquivoRdo } from "@/lib/rdo/nome-arquivo";
+import { ERRO_GERAR_RDO, respostaPdf, respostaVersao } from "@/lib/rdo/responder";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Turno fechado: versão oficial mais recente. Turno aberto: prévia em rascunho. */
 export async function GET(_req: Request, { params }: { params: Promise<{ turnoId: string }> }) {
   const { turnoId } = await params;
   const supabase = await criarClienteServidor();
@@ -24,14 +23,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ turnoId
   const turno = await obterTurnoCompleto(supabase, turnoId);
   if (!turno) return Response.json({ erro: "Turno não encontrado" }, { status: 404 });
 
-  const pdf = await renderToBuffer(
-    createElement(DocumentoRdo, { turno, resumo: resumirTurno(turno), geradoEm: new Date() }) as ReactElement<DocumentProps>,
+  if (turno.status === "fechado") {
+    const ultima = (await versoesDoTurno(supabase, turno.id)).at(-1);
+    if (!ultima) {
+      console.error("RDO: turno fechado sem versão:", turno.id);
+      return Response.json({ erro: ERRO_GERAR_RDO }, { status: 500 });
+    }
+    return respostaVersao(supabase, ultima.id);
+  }
+
+  return respostaPdf(
+    turno,
+    { tipo: "rascunho", geradoEm: new Date() },
+    nomeArquivoRdo(turno.obra.nome, turno.data, turno.periodo, "rascunho"),
   );
-  return new Response(new Uint8Array(pdf), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${nomeArquivoRdo(turno.obra.nome, turno.data, turno.periodo)}"`,
-      "Cache-Control": "no-store",
-    },
-  });
 }

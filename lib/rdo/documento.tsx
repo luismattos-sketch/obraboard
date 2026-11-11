@@ -6,8 +6,8 @@ import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { ResumoTurno } from "@/lib/dominio/resumo";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
-import { dataHoraBrasilia } from "./formatar";
 import { sanitizarProfundo } from "./texto";
+import { linhasEmissao, type Emissao } from "./versao";
 import { Atividades, EfetivoEClima, Identificacao, Restricoes, ResumoBloco } from "./secoes";
 
 // Sem hifenização: as regras padrão do react-pdf são do inglês e quebram palavras em português.
@@ -25,18 +25,24 @@ function logoFrentia(): Buffer | null {
   return logo;
 }
 
-export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; geradoEm: Date }) {
+/** Marca-d'água: só a prévia leva "RASCUNHO"; a versão oficial sai limpa. */
+export function marcaDagua(emissao: Emissao): string | null {
+  return emissao.tipo === "rascunho" ? "RASCUNHO" : null;
+}
+
+export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; emissao: Emissao }) {
   // Todo texto vindo do usuário passa pelo filtro WinAnsi (Helvetica não tem emoji etc.).
   const turno = sanitizarProfundo(props.turno);
   const resumo = sanitizarProfundo(props.resumo);
-  const { geradoEm } = props;
+  const marca = marcaDagua(props.emissao);
+  const { destaque, rodape } = linhasEmissao(props.emissao);
   const img = logoFrentia();
   const titulo = `RDO — ${turno.obra.nome} — ${formatarData(turno.data)} (${ROTULO_PERIODO[turno.periodo]})`;
   return (
     <Document title={titulo} author="Frentia" creator="Frentia">
       <Page size="A4" style={s.pagina}>
-        {turno.status !== "fechado" && (
-          <Text style={s.marcaDagua} fixed>PRELIMINAR</Text>
+        {marca && (
+          <Text style={s.marcaDagua} fixed>{marca}</Text>
         )}
 
         <View style={s.cabecalhoFixo} fixed>
@@ -45,6 +51,7 @@ export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno;
           <Text style={s.tituloFixo}>{`RDO · ${turno.obra.nome} · ${formatarData(turno.data)}`}</Text>
         </View>
 
+        <Text style={s.emissao}>{destaque}</Text>
         <Identificacao turno={turno} />
         <Atividades resumo={resumo} />
         <ResumoBloco resumo={resumo} turno={turno} />
@@ -52,7 +59,7 @@ export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno;
         <EfetivoEClima turno={turno} resumo={resumo} />
 
         <View style={s.rodape} fixed>
-          <Text>{`Gerado em ${dataHoraBrasilia(geradoEm)} (horário de Brasília) · Status: ${ROTULO_STATUS_TURNO[turno.status]}`}</Text>
+          <Text>{`${rodape} · Status: ${ROTULO_STATUS_TURNO[turno.status]}`}</Text>
           <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
         </View>
       </Page>

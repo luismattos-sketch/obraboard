@@ -11,5 +11,10 @@ export function dataHoraBrasilia(d: Date): string {
   return `${p("day")}/${p("month")}/${p("year")} às ${p("hour")}:${p("minute")}`;
 }
 
+/** "09/11 às 18:40" no horário de Brasília (listas e botões). */
+export function dataHoraCurta(d: Date): string {
+  return dataHoraBrasilia(d).replace(/^(\d{2}\/\d{2})\/\d{4}/, "$1");
+}
+
 /** Quantidade realizada: nula (não apontada) aparece como "—", nunca "0". */
 export const qtdRealizada = (q: number | null, unidade: string) => (q === null ? "—" : `${numeroBR(q)} ${unidade}`);

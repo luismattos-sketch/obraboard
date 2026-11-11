@@ -11,6 +11,10 @@ function slug(texto: string): string {
   return s || "obra";
 }
 
-export function nomeArquivoRdo(obra: string, data: string, periodo: Periodo): string {
-  return `RDO-${slug(obra)}-${data}-${periodo}.pdf`;
+/** Sufixo do arquivo: versão oficial (`-v2`) ou prévia (`-rascunho`). */
+export type SufixoRdo = { versao: number } | "rascunho";
+
+export function nomeArquivoRdo(obra: string, data: string, periodo: Periodo, sufixo?: SufixoRdo): string {
+  const fim = sufixo === undefined ? "" : sufixo === "rascunho" ? "-rascunho" : `-v${sufixo.versao}`;
+  return `RDO-${slug(obra)}-${data}-${periodo}${fim}.pdf`;
 }

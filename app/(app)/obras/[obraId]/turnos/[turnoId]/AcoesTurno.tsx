@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
-import { Botao, classesBotao } from "@/components/ui/Botao";
+import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { fecharTurnoAcao, reabrirTurnoAcao, type EstadoFechamento } from "./acoes";
 
@@ -19,9 +19,6 @@ export function AcoesTurno({ turnoId, fechado, salvando }: Props) {
   return (
     <Cartao className="flex flex-col gap-3">
       <div className="flex flex-col gap-2 sm:flex-row">
-        <a href={`/api/rdo/${turnoId}`} className={classesBotao("secundario")}>
-          Baixar RDO (PDF)
-        </a>
         {fechado ? (
           <form action={reabrir}>
             <input type="hidden" name="turno_id" value={turnoId} />

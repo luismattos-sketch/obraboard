@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Barra } from "@/app/(app)/obras/[obraId]/analise/Barra";
-import { Expansivel } from "@/app/(app)/obras/[obraId]/analise/Expansivel";
+import { Expansivel } from "@/components/ui/Expansivel";
 
 describe("Barra", () => {
   it("não corta rótulos longos de causa (quebra a linha em vez de truncar)", () => {

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Selo } from "@/components/ui/Selo";
+import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Aviso } from "@/components/ui/Aviso";
 import { AcoesTurno } from "./AcoesTurno";
+import { BlocoRdo } from "./BlocoRdo";
 import { DadosTurno } from "./DadosTurno";
 import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
@@ -15,7 +17,8 @@ import { Resumo } from "./Resumo";
 
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
-  const turno = await obterTurnoCompleto(await criarClienteServidor(), turnoId);
+  const supabase = await criarClienteServidor();
+  const [turno, versoes] = await Promise.all([obterTurnoCompleto(supabase, turnoId), versoesDoTurno(supabase, turnoId)]);
   if (!turno || turno.obra_id !== obraId) notFound();
 
   return (
@@ -55,6 +58,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
       ) : (
         <>
           <Resumo turno={turno} />
+          <BlocoRdo turnoId={turno.id} fechado={turno.status === "fechado"} versoes={versoes} />
           {turno.status === "fechado" ? (
             <AcoesTurno turnoId={turno.id} fechado />
           ) : (

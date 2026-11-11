@@ -27,6 +27,7 @@ export const estilos = StyleSheet.create({
     position: "absolute", top: 330, left: 20, width: 555, textAlign: "center",
     fontSize: 80, lineHeight: 1, fontFamily: "Helvetica-Bold", color: COR.marca, transform: "rotate(-40deg)",
   },
+  emissao: { fontSize: 9, fontFamily: "Helvetica-Bold", color: COR.primaria, marginBottom: 8 },
   titulo: { fontSize: 16, fontFamily: "Helvetica-Bold", color: COR.primaria, marginBottom: 8 },
   secao: { fontSize: 11, fontFamily: "Helvetica-Bold", color: COR.primaria, marginTop: 14, marginBottom: 6 },
   grade: { flexDirection: "row", flexWrap: "wrap", borderWidth: 1, borderColor: COR.borda },

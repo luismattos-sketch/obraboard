@@ -2,7 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { DocumentoRdo } from "@/lib/rdo/documento";
+import { DocumentoRdo, marcaDagua } from "@/lib/rdo/documento";
+import type { Emissao } from "@/lib/rdo/versao";
 import { nomeArquivoRdo } from "@/lib/rdo/nome-arquivo";
 import { sanitizarProfundo, textoWinAnsi } from "@/lib/rdo/texto";
 import { resumirTurno } from "@/lib/dominio/resumo";
@@ -42,14 +43,30 @@ describe("nomeArquivoRdo", () => {
   it("usa 'obra' quando o slug fica vazio", () => {
     expect(nomeArquivoRdo("!!!", "2026-11-08", "diurno")).toBe("RDO-obra-2026-11-08-diurno.pdf");
   });
+  it("acrescenta a versão ou o rascunho", () => {
+    expect(nomeArquivoRdo("Edifício Aurora", "2026-11-08", "diurno", { versao: 2 })).toBe("RDO-edificio-aurora-2026-11-08-diurno-v2.pdf");
+    expect(nomeArquivoRdo("Edifício Aurora", "2026-11-08", "diurno", "rascunho")).toBe("RDO-edificio-aurora-2026-11-08-diurno-rascunho.pdf");
+  });
 });
 
 describe("DocumentoRdo", () => {
   const geradoEm = new Date("2026-11-08T21:30:00Z");
+  const rascunho: Emissao = { tipo: "rascunho", geradoEm };
+  const oficial: Emissao = { tipo: "oficial", numero: 2, emitidoEm: geradoEm, retroativa: false, anterior: { numero: 1, emitidoEm: geradoEm } };
+
+  it("marca RASCUNHO só no rascunho", async () => {
+    expect(marcaDagua(rascunho)).toBe("RASCUNHO");
+    expect(marcaDagua(oficial)).toBeNull();
+    const t = turno(2, "fechado");
+    for (const e of [rascunho, oficial]) {
+      const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={e} />);
+      expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
+    }
+  }, 30000);
 
   it("renderiza PDF de várias páginas (40 atividades)", async () => {
     const t = turno(40);
-    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} geradoEm={geradoEm} />);
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} />);
     expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
     expect((buf.toString("latin1").match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThan(1);
     if (process.env.RDO_EXEMPLO) {
@@ -57,7 +74,7 @@ describe("DocumentoRdo", () => {
       mkdirSync(dir, { recursive: true });
       writeFileSync(path.join(dir, "rdo-exemplo.pdf"), buf);
       const f = turno(12, "fechado");
-      writeFileSync(path.join(dir, "rdo-exemplo-fechado.pdf"), await renderToBuffer(<DocumentoRdo turno={f} resumo={resumirTurno(f)} geradoEm={geradoEm} />));
+      writeFileSync(path.join(dir, "rdo-exemplo-fechado.pdf"), await renderToBuffer(<DocumentoRdo turno={f} resumo={resumirTurno(f)} emissao={oficial} />));
     }
   }, 60000);
 
@@ -76,7 +93,7 @@ describe("DocumentoRdo", () => {
       atividades: base.atividades.map((a) => ({ ...a, descricao: "👍 ok", observacao: "feito ✅" })),
       efetivo: [{ id: "e1", turno_id: "t", funcao: "Pedreiro 👷", quantidade: 2 }],
     } as TurnoCompleto;
-    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} geradoEm={geradoEm} />);
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} />);
     expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
     const limpos = sanitizarProfundo({ t, n: 1, nada: null });
     expect(JSON.stringify(limpos)).not.toMatch(/\p{Extended_Pictographic}/u);
@@ -86,7 +103,7 @@ describe("DocumentoRdo", () => {
 
   it("renderiza turno vazio fechado", async () => {
     const t = { ...turno(0, "fechado"), efetivo: [], clima: [] } as TurnoCompleto;
-    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} geradoEm={geradoEm} />);
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} />);
     expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
   }, 30000);
 });

@@ -29,6 +29,7 @@ function Icone({ d }: { d: string }) {
 const ICONE_MENU = "M4 6h16M4 12h16M4 18h16";
 const ICONE_FECHAR = "M6 6l12 12M18 6L6 18";
 const ICONE_MAIS = "M12 5v14M5 12h14";
+const ICONE_RDO = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6";
 const ICONE_SAIR = "M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11";
 
 /**
@@ -42,6 +43,7 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
   const caminho = usePathname() ?? "";
   const obraAtiva = obraIdDoCaminho(caminho);
   const naLista = caminho === "/obras";
+  const naRdos = caminho === "/rdos";
 
   useEffect(() => {
     if (!aberto) return;
@@ -134,6 +136,16 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
             </ul>
           )}
         </nav>
+
+        <div className={`border-t border-borda px-3 py-2 ${recolhido ? "md:flex md:justify-center md:px-0" : ""}`}>
+          <Link href="/rdos" onClick={fechar} title={recolhido ? "RDOs" : undefined} aria-current={naRdos ? "page" : undefined}
+            className={`flex min-h-11 items-center gap-2 rounded-botao px-3 text-sm ${foco}
+              ${naRdos ? "bg-primaria-clara font-semibold text-primaria" : "text-texto hover:bg-fundo"}
+              ${recolhido ? "md:h-10 md:w-10 md:justify-center md:px-0" : ""}`}>
+            <Icone d={ICONE_RDO} />
+            <span className={rotulo}>RDOs</span>
+          </Link>
+        </div>
 
         <div className={`flex items-center gap-2 border-t border-borda px-3 py-3 ${recolhido ? "md:flex-col md:px-0" : ""}`}>
           <span aria-hidden="true" title={nome}
