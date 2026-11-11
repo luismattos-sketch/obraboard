@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ListaRdos } from "@/components/rdo/ListaRdos";
 import { FiltrosRdo } from "@/components/rdo/FiltrosRdo";
+import { BaixarLote } from "@/components/rdo/BaixarLote";
 import type { GrupoRdo, ItemVersao } from "@/lib/dominio/historico-rdo";
 
 const item = (over: Partial<ItemVersao>): ItemVersao => ({
@@ -76,5 +77,26 @@ describe("FiltrosRdo", () => {
     );
     expect(html).toContain('name="obra"');
     expect(html).toMatch(/<option value="o1" selected="">Aurora<\/option>/);
+  });
+});
+
+describe("BaixarLote", () => {
+  const html = (p: Parameters<typeof BaixarLote>[0]) => renderToStaticMarkup(<BaixarLote {...p} />);
+  it("sem mês ou sem RDOs não mostra nada", () => {
+    expect(html({ mes: null, quantidade: 5 })).toBe("");
+    expect(html({ mes: "2026-11", quantidade: 0 })).toBe("");
+  });
+  it("um RDO", () => {
+    expect(html({ mes: "2026-11", quantidade: 1 })).toMatch(/href="\/api\/rdo\/lote\?mes=2026-11"[^>]*>Baixar o RDO \(PDF único\)</);
+  });
+  it("vários RDOs de uma obra", () => {
+    expect(html({ mes: "2026-11", quantidade: 23, obraId: "o1" })).toMatch(
+      /href="\/api\/rdo\/lote\?mes=2026-11&amp;obra=o1"[^>]*>Baixar os 23 RDOs \(PDF único\)</,
+    );
+  });
+  it("acima do teto pede uma obra", () => {
+    const h = html({ mes: "2026-11", quantidade: 121 });
+    expect(h).not.toContain("href=");
+    expect(h).toContain("Muitos RDOs neste filtro (121). Escolha uma obra para baixar em PDF único.");
   });
 });

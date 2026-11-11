@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { devices, expect, test } from "@playwright/test";
 import { limparUsuario, prepararUsuario, type UsuarioE2E } from "./preparar";
 
@@ -165,6 +166,20 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await expect(lista.getByText("v2", { exact: true })).toBeVisible();
     await page.getByText("Versões anteriores (1)").click();
     await expect(page.getByText(/v1 · emitida/)).toBeVisible();
+
+    // PDF único do mês
+    const mesTurno = dataTurno.slice(0, 7);
+    const obraId = obraUrl.split("/").at(-1)!;
+    await page.request.get(`/api/rdo/lote?mes=${mesTurno}&obra=${obraId}`);
+    await page.getByLabel("Mês").selectOption(mesTurno);
+    await page.getByRole("button", { name: "Filtrar" }).click();
+    await page.waitForURL(`**/rdos?mes=${mesTurno}`);
+    const [lote] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("link", { name: "Baixar o RDO (PDF único)" }).click(),
+    ]);
+    expect(lote.suggestedFilename()).toBe(`RDOs-obra-e2e-${mesTurno}.pdf`);
+    expect(readFileSync(await lote.path()).subarray(0, 4).toString("latin1")).toBe("%PDF");
 
     await page.goto("/rdos");
     await expect(lista.getByText("Obra E2E")).toBeVisible();

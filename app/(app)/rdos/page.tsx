@@ -1,3 +1,4 @@
+import { BaixarLote } from "@/components/rdo/BaixarLote";
 import { FiltrosRdo } from "@/components/rdo/FiltrosRdo";
 import { ListaRdos } from "@/components/rdo/ListaRdos";
 import { Aviso } from "@/components/ui/Aviso";
@@ -28,6 +29,8 @@ export default async function RdosPage({
     itens = null;
   }
 
+  const grupos = itens ? agruparVersoes(itens, mes) : [];
+
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <h1 className="text-titulo font-semibold text-primaria">RDOs</h1>
@@ -36,7 +39,8 @@ export default async function RdosPage({
       ) : (
         <>
           <FiltrosRdo acao="/rdos" meses={mesesDisponiveis(itens)} mes={mes} obras={obras} obra={obra} />
-          <ListaRdos grupos={agruparVersoes(itens, mes)} mostrarObra filtrado={mes !== null || obra !== null} />
+          <BaixarLote mes={mes} quantidade={grupos.length} obraId={obra} />
+          <ListaRdos grupos={grupos} mostrarObra filtrado={mes !== null || obra !== null} />
         </>
       )}
     </div>
