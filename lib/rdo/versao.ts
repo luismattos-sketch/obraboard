@@ -30,6 +30,8 @@ type FotoV1 = {
     hora_inicio_prevista: string | null; hora_fim_prevista: string | null;
     hora_inicio_real: string | null; hora_fim_real: string | null;
     enviado_em: string | null; fechado_em: string | null;
+    /** Desde a H2; ausente nas fotos da H1. */
+    motivo_reabertura?: string | null;
   };
   atividades: Record<string, unknown>[];
   efetivo: Omit<Efetivo, "turno_id">[];
@@ -41,8 +43,10 @@ export function lerFoto(v: Pick<VersaoRdo, "formato" | "dados">): TurnoCompleto 
   if (v.formato !== 1) throw new FormatoRdoDesconhecido(v.formato);
   const f = v.dados as FotoV1;
   const turnoId = f.turno.id;
+  const { motivo_reabertura, ...turno } = f.turno;
+  void motivo_reabertura; // vai para a Emissao (emissaoDaVersao), não para os dados do PDF
   return {
-    ...f.turno,
+    ...turno,
     status: "fechado",
     token_hash: null,
     obra: { ...f.obra, created_at: "" },
@@ -56,12 +60,15 @@ export function lerFoto(v: Pick<VersaoRdo, "formato" | "dados">): TurnoCompleto 
 
 /** Como o PDF se identifica: versão oficial ou prévia. */
 export type Emissao =
-  | { tipo: "oficial"; numero: number; emitidoEm: Date; retroativa: boolean; anterior?: { numero: number; emitidoEm: Date } }
+  | { tipo: "oficial"; numero: number; emitidoEm: Date; retroativa: boolean; anterior?: { numero: number; emitidoEm: Date }; motivo?: string }
   | { tipo: "rascunho"; geradoEm: Date };
 
 export function emissaoDaVersao(v: VersaoRdo, anterior?: { numero: number; emitido_em: string }): Emissao {
-  const base = { tipo: "oficial" as const, numero: v.numero, emitidoEm: new Date(v.emitido_em), retroativa: v.retroativa };
-  return anterior ? { ...base, anterior: { numero: anterior.numero, emitidoEm: new Date(anterior.emitido_em) } } : base;
+  const e: Emissao = { tipo: "oficial", numero: v.numero, emitidoEm: new Date(v.emitido_em), retroativa: v.retroativa };
+  if (anterior) e.anterior = { numero: anterior.numero, emitidoEm: new Date(anterior.emitido_em) };
+  const motivo = v.numero > 1 ? (v.dados as Partial<FotoV1> | null)?.turno?.motivo_reabertura : null;
+  if (motivo) e.motivo = motivo;
+  return e;
 }
 
 const BRASILIA = "(horário de Brasília)";
@@ -76,9 +83,10 @@ export function linhasEmissao(e: Emissao): { destaque: string; rodape: string } 
   const substitui = e.anterior
     ? ` · substitui a versão ${e.anterior.numero}, emitida em ${dataHoraBrasilia(e.anterior.emitidoEm)}`
     : "";
+  const motivo = e.motivo ? ` · Motivo da correção: ${e.motivo}` : "";
   const retro = e.retroativa ? " · versão registrada retroativamente" : "";
   return {
-    destaque: `RDO oficial · Versão ${e.numero}${substitui} · ${emitido}${retro}`,
+    destaque: `RDO oficial · Versão ${e.numero}${substitui}${motivo} · ${emitido}${retro}`,
     rodape: `Versão ${e.numero} · ${emitido}`,
   };
 }
