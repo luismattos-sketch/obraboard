@@ -5,7 +5,7 @@ import type { Causa } from "@/lib/dominio/tipos";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 
 const at = (id: string, p: number, r: number | null, causa: Causa | null = null, ordem = 0) =>
-  ({ id, turno_id: "t", ordem, descricao: `A${id}`, local: null, unidade: "m", qtd_planejada: p, qtd_realizada: r, causa, observacao: null, origem_id: null });
+  ({ id, turno_id: "t", ordem, descricao: `A${id}`, local: null, unidade: "m", qtd_planejada: p, qtd_realizada: r, causa, observacao: null, origem_id: null, programacao_atividade_id: null });
 
 function turno(over: Partial<TurnoCompleto> = {}): TurnoCompleto {
   return {

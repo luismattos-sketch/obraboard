@@ -3,6 +3,8 @@ import { inicioDaSemana } from "@/lib/dominio/analise";
 import { validarMotivo } from "@/lib/dominio/eventos";
 import {
   dataDoDia,
+  diaDaSemana,
+  realizadoAte,
   resumirSemana,
   rotuloTurnosAbertos,
   type AtividadeProgramada,
@@ -14,8 +16,10 @@ import {
   type Semana,
   type StatusSemana,
   type TurnoDaSemana,
+  sugestaoDoDia,
 } from "@/lib/dominio/programacao";
 import type { Causa, Periodo } from "@/lib/dominio/tipos";
+import { turnoEditavel } from "./atividades";
 import { MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { causaValida, errosDeTamanho, LIMITES, QTD_PLANEJADA_MAX } from "./validacao";
@@ -329,4 +333,66 @@ export async function reabrirSemana(c: SupabaseClient, semanaId: string, motivo:
   const destino = REABRIR_PARA[(data as { status: StatusSemana }).status];
   if (!destino) return falha(MENSAGENS_PROGRAMACAO.transicao_invalida!);
   return mudarStatus(c, semanaId, { status: destino, motivo_reabertura: m.dados }, "Não foi possível reabrir a semana.");
+}
+
+/** Semana da obra que contém `data` (null se ainda não foi criada). */
+export async function semanaDoTurno(c: SupabaseClient, obraId: string, data: string): Promise<Semana | null> {
+  return obterSemana(c, obraId, inicioDaSemana(data));
+}
+
+/**
+ * Insere no turno as atividades programadas do dia/período ainda não trazidas, com a qtd sugerida
+ * (meta ÷ dias, limitada ao saldo; último dia = saldo). Só para semana programada. Idempotente.
+ */
+export async function trazerDaProgramacao(c: SupabaseClient, turnoId: string): Promise<Resultado<{ adicionadas: number }>> {
+  const t = await turnoEditavel(c, turnoId);
+  if (!t.ok) return t;
+  const turno = t.dados;
+  const semana = await semanaDoTurno(c, turno.obra_id, turno.data);
+  if (!semana || semana.status !== "programada") return ok({ adicionadas: 0 });
+  const dia = diaDaSemana(semana.inicio, turno.data);
+  if (dia === null) return ok({ adicionadas: 0 });
+
+  const dados = await obterDadosSemana(c, semana);
+  const jaNoTurno = new Set(dados.execucoes.filter((e) => e.turno_id === turnoId).map((e) => e.programacao_atividade_id));
+  const outras = dados.execucoes.filter((e) => e.turno_id !== turnoId);
+  const { data: ordens, error: eo } = await c.from("atividades").select("ordem").eq("turno_id", turnoId);
+  if (eo) {
+    console.error("trazerDaProgramacao (ordem):", eo.message);
+    return falha("Não foi possível trazer da programação.");
+  }
+  let ordem = (ordens ?? []).reduce((m, r) => Math.max(m, Number(r.ordem)), -1) + 1;
+
+  const novas = dados.atividades
+    .filter((a) => a.periodo === turno.periodo && !jaNoTurno.has(a.id))
+    .map((a) => ({ a, qtd: sugestaoDoDia(a, dia, realizadoAte(outras, a.id)) }))
+    .filter((x): x is { a: AtividadeProgramada; qtd: number } => x.qtd !== null)
+    .map(({ a, qtd }) => ({
+      turno_id: turnoId,
+      ordem: ordem++,
+      descricao: a.descricao,
+      local: a.local,
+      unidade: a.unidade,
+      qtd_planejada: qtd,
+      programacao_atividade_id: a.id,
+    }));
+  if (novas.length === 0) return ok({ adicionadas: 0 });
+
+  const { error } = await c.from("atividades").insert(novas);
+  if (!error) return ok({ adicionadas: novas.length });
+  if (error.code !== UNICIDADE) {
+    console.error("trazerDaProgramacao (insert):", error.message);
+    return falha(mensagemProgramacao(error, "Não foi possível trazer da programação."));
+  }
+  // Corrida com outra chamada: insere uma a uma e pula as já presentes (índice turno_id+programacao_atividade_id).
+  let adicionadas = 0;
+  for (const nova of novas) {
+    const { error: e1 } = await c.from("atividades").insert(nova);
+    if (!e1) adicionadas++;
+    else if (e1.code !== UNICIDADE) {
+      console.error("trazerDaProgramacao (insert 1 a 1):", e1.message);
+      return falha(mensagemProgramacao(e1, "Não foi possível trazer da programação."));
+    }
+  }
+  return ok({ adicionadas });
 }

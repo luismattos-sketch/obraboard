@@ -7,6 +7,7 @@ import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/do
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
 import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
+import { trazerDaProgramacao } from "./programacao";
 import { falha, ok, type Resultado } from "./resultado";
 import { validarHorariosPrevistos } from "./validacao";
 
@@ -159,6 +160,10 @@ export async function criarTurno(c: SupabaseClient, dados: DadosTurno & { obra_i
     console.error("criarTurno:", error.message);
     return falha("Não foi possível criar o turno.");
   }
+  // Semana programada: o turno já nasce com as atividades do dia. Falha aqui não desfaz o turno
+  // (o botão "Trazer da programação" resolve depois).
+  const trazidas = await trazerDaProgramacao(c, (data as Turno).id).catch((e: unknown) => falha(String(e)));
+  if (!trazidas.ok) console.error("criarTurno (trazer da programação):", trazidas.erro);
   return ok(data as Turno);
 }
 

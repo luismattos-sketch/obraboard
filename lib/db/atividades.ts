@@ -13,10 +13,12 @@ export type Atividade = AtividadeExec & {
   local: string | null;
   unidade: string;
   origem_id: string | null;
+  /** Ligação com a atividade da programação semanal; null = avulsa (extra, se a semana estiver programada). */
+  programacao_atividade_id: string | null;
 };
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 const ERRO_QTD_MAX = "Quantidade deve ser no máximo 1.000.000.000";
@@ -52,13 +54,14 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     causa: (r.causa as Causa | null) ?? null,
     observacao: (r.observacao as string | null) ?? null,
     origem_id: (r.origem_id as string | null) ?? null,
+    programacao_atividade_id: (r.programacao_atividade_id as string | null) ?? null,
   };
 }
 
 const vazioParaNull = (s: string | null | undefined) => (s?.trim() ? s.trim() : null);
 
 /** Lê o turno (via RLS) e confirma que existe e não está fechado. */
-async function turnoEditavel(c: SupabaseClient, turnoId: string): Promise<Resultado<Turno>> {
+export async function turnoEditavel(c: SupabaseClient, turnoId: string): Promise<Resultado<Turno>> {
   const { data, error } = await c.from("turnos").select(COLUNAS_TURNO).eq("id", turnoId).maybeSingle();
   if (error || !data) {
     if (error && error.code !== "22P02") console.error("turnoEditavel:", error.message);
@@ -252,6 +255,8 @@ export async function trazerPendentes(
   let ordem = (nesse ?? []).reduce((m, r) => Math.max(m, Number(r.ordem)), -1) + 1;
   const novas = (ant ?? [])
     .map(normalizarAtividade)
+    // Atividades da programação semanal não são copiadas: o saldo da meta já as leva aos próximos turnos.
+    .filter((a) => a.programacao_atividade_id === null)
     .filter((a) => statusAtividade(a.qtd_planejada, a.qtd_realizada) !== "concluida" && !jaTrazidas.has(a.id))
     .map((a) => ({
       turno_id: turnoId,
