@@ -111,9 +111,9 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // RDO
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("link", { name: "Baixar RDO (PDF)" }).click(),
+      page.getByRole("link", { name: "Baixar RDO (v1)" }).click(),
     ]);
-    expect(download.suggestedFilename()).toBe(`RDO-obra-e2e-${dataTurno}-diurno.pdf`);
+    expect(download.suggestedFilename()).toBe(`RDO-obra-e2e-${dataTurno}-diurno-v1.pdf`);
 
     // Análise (PPC) da obra
     const obraUrl = turnoUrl.replace(/\/turnos\/[0-9a-f-]{36}$/, "");
@@ -134,6 +134,32 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // Campo após o fechamento
     await campo.reload();
     await expect(campo.getByText("Turno fechado pelo planejador")).toBeVisible();
+
+    // Histórico de RDO: v1 na lista da obra; reabrir → prévia + v1 oficial; fechar de novo → v2
+    await page.request.get(`${obraUrl}/rdos`);
+    await page.request.get("/rdos");
+    await page.goto(obraUrl);
+    await page.getByRole("main").getByRole("link", { name: "RDOs" }).click();
+    await page.waitForURL("**/rdos");
+    const lista = page.getByRole("main").getByRole("list");
+    await expect(lista.getByText("v1", { exact: true })).toBeVisible();
+
+    await page.goto(turnoUrl);
+    await page.getByRole("button", { name: "Reabrir turno" }).click();
+    await expect(page.getByRole("link", { name: "Baixar prévia (rascunho)" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Baixar v1 oficial" })).toBeVisible();
+    await page.getByRole("button", { name: "Fechar turno" }).click();
+    await page.getByRole("button", { name: "Confirmar fechamento" }).click();
+    await expect(page.getByRole("link", { name: "Baixar RDO (v2)" })).toBeVisible();
+    await expect(page.getByText("Versões anteriores:")).toBeVisible();
+
+    await page.goto(`${obraUrl}/rdos`);
+    await expect(lista.getByText("v2", { exact: true })).toBeVisible();
+    await page.getByText("Versões anteriores (1)").click();
+    await expect(page.getByText(/v1 · emitida/)).toBeVisible();
+
+    await page.goto("/rdos");
+    await expect(lista.getByText("Obra E2E")).toBeVisible();
   } finally {
     await ctx.close();
   }
