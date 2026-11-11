@@ -29,3 +29,11 @@ describe("renderizarRdo", () => {
     expect((await PDFDocument.load(buf)).getPageCount()).toBeGreaterThanOrEqual(1);
   }, 30000);
 });
+
+describe("peso do RDO", () => {
+  // O lote junta até 120 RDOs; o Vercel limita a resposta a 4,5 MB e o Gmail anexos a 25 MB.
+  it("um RDO pesa menos de 40 KB", async () => {
+    const buf = await renderizarRdo(turno, { tipo: "rascunho", geradoEm: new Date() });
+    expect(buf.length).toBeLessThan(40_000);
+  }, 30000);
+});

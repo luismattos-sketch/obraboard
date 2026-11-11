@@ -17,7 +17,7 @@ let logo: Buffer | null = null;
 export function logoFrentia(): Buffer | null {
   if (logo) return logo;
   try {
-    logo = readFileSync(path.join(process.cwd(), "public", "frentia-logo.png"));
+    logo = readFileSync(path.join(process.cwd(), "public", "frentia-logo-pdf.png"));
   } catch (e) {
     console.warn("RDO: logo não encontrado, seguindo sem ele:", e instanceof Error ? e.message : e);
     return null; // sem logo o RDO continua válido

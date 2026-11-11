@@ -48,6 +48,12 @@ describe("montarLote", () => {
     expect((await PDFDocument.load(pdf)).getTitle()).toBe("RDOs — Obra — novembro de 2026");
   }, 60000);
 
+  it("lote de 30 RDOs cabe folgado no limite de resposta", async () => {
+    const datas = Array.from({ length: 30 }, (_, i) => `2026-11-${String(i + 1).padStart(2, "0")}`);
+    const pdf = await montarLote(datas.map((d) => itemLote(`v${d}`, d)), datas.map((d) => versao(`v${d}`, d)), cab);
+    expect(pdf.length).toBeLessThan(1_500_000);
+  }, 60000);
+
   it("versão faltando falha", async () => {
     await expect(montarLote([itemLote("v1", "2026-11-02")], [], cab)).rejects.toThrow();
   });
