@@ -115,6 +115,12 @@ export const TOM_SITUACAO: Record<Situacao, Tom> = {
 
 export const ROTULO_DIAS =["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] as const;
 
+export const resumoDias = (dias: DiaSemana[]) =>
+  [...dias].sort((a, b) => a - b).map((d) => ROTULO_DIAS[d]).join(", ");
+
+export const resumoEquipe = (equipe: EquipePrevista[]) =>
+  equipe.length === 0 ? "Sem equipe prevista" : equipe.map((e) => `${e.quantidade} ${e.funcao}`).join(" + ");
+
 // Aritmética de datas em UTC para não depender do fuso da máquina.
 const paraData = (iso: string) => new Date(`${iso}T00:00:00Z`);
 export function somarDias(iso: string, dias: number): string {

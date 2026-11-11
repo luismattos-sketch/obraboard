@@ -5,15 +5,9 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { numeroBR } from "@/lib/dominio/formato";
-import { ROTULO_DIAS, type AtividadeProgramada } from "@/lib/dominio/programacao";
+import { resumoDias, resumoEquipe, type AtividadeProgramada } from "@/lib/dominio/programacao";
 import { programarSemanaAcao, removerAtividadeProgramadaAcao, type EstadoSemana } from "./acoes";
 import { FormAtividadeProgramada } from "./FormAtividadeProgramada";
-
-export const resumoDias = (dias: AtividadeProgramada["dias"]) =>
-  [...dias].sort((a, b) => a - b).map((d) => ROTULO_DIAS[d]).join(", ");
-
-export const resumoEquipe = (equipe: AtividadeProgramada["equipe"]) =>
-  equipe.length === 0 ? "Sem equipe prevista" : equipe.map((e) => `${e.quantidade} ${e.funcao}`).join(" + ");
 
 function ItemRascunho({ semanaId, atividade: a }: { semanaId: string; atividade: AtividadeProgramada }) {
   const [editando, setEditando] = useState(false);

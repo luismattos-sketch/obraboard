@@ -7,9 +7,10 @@ import { dadosOficiais, obterSemana } from "@/lib/db/programacao";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData } from "@/lib/dominio/formato";
-import { dataDoDia, ROTULO_STATUS_SEMANA, statusExibido, TOM_STATUS_SEMANA } from "@/lib/dominio/programacao";
+import { dataDoDia, resumirSemana, ROTULO_STATUS_SEMANA, statusExibido, TOM_STATUS_SEMANA } from "@/lib/dominio/programacao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { AbrirSemana } from "../AbrirSemana";
+import { Acompanhamento } from "./Acompanhamento";
 import { ListaRascunho } from "./ListaRascunho";
 
 const diaMes = (iso: string) => formatarData(iso).slice(0, 5);
@@ -70,9 +71,7 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
       {semana.status === "rascunho" ? (
         <ListaRascunho semanaId={semana.id} atividades={dados.atividades} />
       ) : (
-        <Cartao>
-          <p className="text-texto-suave">Semana programada.</p>
-        </Cartao>
+        <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} />
       )}
     </div>
   );
