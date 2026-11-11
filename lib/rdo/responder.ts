@@ -10,11 +10,16 @@ import { emissaoDaVersao, lerFoto, type Emissao } from "./versao";
 
 export const ERRO_GERAR_RDO = "Não foi possível gerar o RDO";
 
-/** PDF do RDO como anexo para download. */
-export async function respostaPdf(turno: TurnoCompleto, emissao: Emissao, nomeArquivo: string): Promise<Response> {
-  const pdf = await renderToBuffer(
+/** O PDF de um RDO. Download individual e lote passam por aqui (saem idênticos). */
+export async function renderizarRdo(turno: TurnoCompleto, emissao: Emissao): Promise<Buffer> {
+  return renderToBuffer(
     createElement(DocumentoRdo, { turno, resumo: resumirTurno(turno), emissao }) as ReactElement<DocumentProps>,
   );
+}
+
+/** PDF do RDO como anexo para download. */
+export async function respostaPdf(turno: TurnoCompleto, emissao: Emissao, nomeArquivo: string): Promise<Response> {
+  const pdf = await renderizarRdo(turno, emissao);
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",

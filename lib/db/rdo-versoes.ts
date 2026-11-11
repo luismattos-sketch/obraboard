@@ -78,6 +78,21 @@ export async function obterVersao(c: SupabaseClient, id: string): Promise<Versao
   return (data as VersaoRdo | null) ?? null;
 }
 
+/** Várias versões com a foto, numa consulta só (ids inválidos ou invisíveis ficam de fora). */
+export async function obterVersoes(c: SupabaseClient, ids: string[]): Promise<VersaoRdo[]> {
+  const validos = ids.filter((id) => UUID.test(id));
+  if (validos.length === 0) return [];
+  const { data, error } = await c
+    .from("rdo_versoes")
+    .select("id, turno_id, obra_id, numero, emitido_em, retroativa, formato, dados")
+    .in("id", validos);
+  if (error) {
+    console.error("obterVersoes:", error.message);
+    throw new Error(`obterVersoes: ${error.message}`);
+  }
+  return (data ?? []) as VersaoRdo[];
+}
+
 /** Versões de um turno, v1 primeiro (sem a foto). */
 export async function versoesDoTurno(
   c: SupabaseClient,

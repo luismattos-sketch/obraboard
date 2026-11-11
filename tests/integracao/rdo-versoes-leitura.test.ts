@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade } from "@/lib/db/atividades";
 import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { criarObra } from "@/lib/db/obras";
-import { listarVersoes, obterVersao, versoesDoTurno } from "@/lib/db/rdo-versoes";
+import { listarVersoes, obterVersao, obterVersoes, versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
@@ -52,6 +52,19 @@ describe.skipIf(!ligado)("leitura de rdo_versoes", () => {
     }
     expect(itens.map((i) => i.numero).sort()).toEqual([1, 2]);
     expect(await listarVersoes(u.cliente, {})).toHaveLength(2);
+  });
+
+  it("obterVersoes traz as fotos pedidas", async () => {
+    const ids = (await versoesDoTurno(u.cliente, turnoId)).map((v) => v.id);
+    const vs = await obterVersoes(u.cliente, ids);
+    expect(vs.map((v) => v.id).sort()).toEqual([...ids].sort());
+    for (const v of vs) {
+      expect(v.formato).toBe(1);
+      expect(typeof v.dados).toBe("object");
+    }
+    expect(await obterVersoes(outro.cliente, ids)).toEqual([]);
+    expect(await obterVersoes(u.cliente, [])).toEqual([]);
+    expect(await obterVersoes(u.cliente, ["abc"])).toEqual([]);
   });
 
   it("obterVersao devolve a foto", async () => {
