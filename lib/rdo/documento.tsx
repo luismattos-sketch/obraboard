@@ -14,7 +14,7 @@ import { Atividades, EfetivoEClima, Identificacao, Restricoes, ResumoBloco } fro
 Font.registerHyphenationCallback((palavra) => [palavra]);
 
 let logo: Buffer | null = null;
-function logoFrentia(): Buffer | null {
+export function logoFrentia(): Buffer | null {
   if (logo) return logo;
   try {
     logo = readFileSync(path.join(process.cwd(), "public", "frentia-logo.png"));
