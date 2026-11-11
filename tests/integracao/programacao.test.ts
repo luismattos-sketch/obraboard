@@ -4,6 +4,7 @@ import {
   criarRascunho,
   dadosOficiais,
   encerrarSemana,
+  listarProgramadasParaAnalise,
   listarSemanasComResumo,
   obterDadosSemana,
   obterSemana,
@@ -157,5 +158,23 @@ describe.skipIf(!ligado)("camada de dados da programação", () => {
     expect(await removerAtividadeProgramada(u.cliente, id)).toEqual({
       ok: false, erro: "Esta atividade já tem execução em turnos e não pode ser apagada.",
     });
+  });
+
+  it("listarProgramadasParaAnalise: programadas/encerradas a partir da data, com causas", { timeout: 60_000 }, async () => {
+    const { obraId, semana } = await semanaNova();
+    const { id } = exigir(await salvarAtividadeProgramada(u.cliente, semana.id, ENTRADA));
+    exigir(await salvarAtividadeProgramada(u.cliente, semana.id, { ...ENTRADA, descricao: "Pintar" }));
+    exigir(await programarSemana(u.cliente, semana.id));
+    await turnoComExecucao(obraId, id, 4, false);
+    exigir(await criarRascunho(u.cliente, obraId, "2026-11-16"));
+
+    const lista = await listarProgramadasParaAnalise(u.cliente, obraId, "2026-11-02");
+    expect(lista).toEqual([
+      {
+        inicio: "2026-11-09", encerrada: false, cumpridas: 0, total: 2,
+        naoCumpridas: [{ descricao: "Montar tubulação", causa: "material" }, { descricao: "Pintar", causa: null }],
+      },
+    ]);
+    expect(await listarProgramadasParaAnalise(u.cliente, obraId, "2026-11-10")).toEqual([]);
   });
 });

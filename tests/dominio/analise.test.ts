@@ -5,6 +5,7 @@ import {
   normalizarSemanas,
   semanasDaAnalise,
   type AtividadeAnalise,
+  type SemanaProgramadaAnalise,
   type TurnoAnalise,
 } from "@/lib/dominio/analise";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
@@ -77,7 +78,7 @@ describe("analisarObra", () => {
   it("semana sem turno tem ppc nulo e só a última é atual", () => {
     const r = analisarObra([t("A", "2026-11-09", "diurno", [a(1, 1)])], SEMANAS);
     expect(r.semanas.map((s) => s.inicio)).toEqual(SEMANAS);
-    expect(r.semanas[0]).toEqual({ inicio: "2026-10-26", concluidas: 0, total: 0, ppc: null, atual: false, turnos: [] });
+    expect(r.semanas[0]).toEqual({ inicio: "2026-10-26", concluidas: 0, total: 0, ppc: null, atual: false, programada: false, provisorio: false, turnos: [] });
     expect(r.semanas.map((s) => s.atual)).toEqual([false, false, true]);
   });
 
@@ -144,8 +145,8 @@ describe("analisarObra", () => {
       { causa: "clima", rotulo: "Clima", quantidade: 1, fracao: 1 / 3 },
     ]);
     expect(r.causas[0].atividades).toEqual([
-      { turnoId: "T1", data: "2026-11-03", periodo: "noturno", descricao: "Alvenaria", observacao: "atrasou" },
-      { turnoId: "T2", data: "2026-11-10", periodo: "diurno", descricao: "Reboco", observacao: null },
+      { origem: "turno", turnoId: "T1", data: "2026-11-03", periodo: "noturno", descricao: "Alvenaria", observacao: "atrasou" },
+      { origem: "turno", turnoId: "T2", data: "2026-11-10", periodo: "diurno", descricao: "Reboco", observacao: null },
     ]);
   });
 
@@ -178,5 +179,45 @@ describe("analisarObra", () => {
     expect(r.periodo.concluidas).toBe(2);
     expect(r.periodo.total).toBe(3);
     expect(r.periodo.ppc).toBeCloseTo(2 / 3);
+  });
+});
+
+describe("analisarObra com programação", () => {
+  const prog = (p: Partial<SemanaProgramadaAnalise> = {}): SemanaProgramadaAnalise => ({
+    inicio: "2026-11-02", encerrada: true, cumpridas: 1, total: 4, naoCumpridas: [], ...p,
+  });
+  const turnos = [
+    t("P1", "2026-11-03", "diurno", [a(1, 1), a(1, 0, "clima", null, "Turno da semana programada")]),
+    t("L1", "2026-11-10", "diurno", [a(1, 1), a(1, 1)]),
+  ];
+
+  it("semana programada usa o PPC da programação e mantém o detalhe dos turnos", () => {
+    const r = analisarObra(turnos, SEMANAS, [prog()]);
+    const s = r.semanas[1];
+    expect(s).toMatchObject({ inicio: "2026-11-02", concluidas: 1, total: 4, ppc: 0.25, programada: true, provisorio: false });
+    expect(s.turnos.map((x) => x.id)).toEqual(["P1"]);
+    expect(r.semanas[0]).toMatchObject({ programada: false, provisorio: false });
+    expect(r.semanas[2]).toMatchObject({ concluidas: 2, total: 2, programada: false });
+  });
+
+  it("PPC do período soma as duas fontes", () => {
+    expect(analisarObra(turnos, SEMANAS, [prog()]).periodo).toEqual({ concluidas: 3, total: 6, ppc: 0.5 });
+  });
+
+  it("programada não encerrada é provisória", () => {
+    expect(analisarObra(turnos, SEMANAS, [prog({ encerrada: false })]).semanas[1].provisorio).toBe(true);
+  });
+
+  it("causas da semana programada vêm da programação; sem causa não entra", () => {
+    const r = analisarObra(turnos, SEMANAS, [
+      prog({ naoCumpridas: [{ descricao: "Montar linha 3", causa: "material" }, { descricao: "Pintar", causa: null }] }),
+    ]);
+    expect(r.causas.map((c) => [c.causa, c.quantidade])).toEqual([["material", 1]]);
+    expect(r.causas[0].atividades).toEqual([{ origem: "semana", semanaInicio: "2026-11-02", descricao: "Montar linha 3" }]);
+  });
+
+  it("semana programada fora do período é ignorada", () => {
+    const r = analisarObra(turnos, SEMANAS, [prog({ inicio: "2026-10-19" })]);
+    expect(r.semanas.every((s) => !s.programada)).toBe(true);
   });
 });

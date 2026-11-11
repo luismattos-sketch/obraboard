@@ -26,15 +26,33 @@ export type SemanaAnalise = {
   total: number;
   ppc: number | null;
   atual: boolean;
+  /** PPC vem da programação semanal (compromisso), não dos turnos. */
+  programada: boolean;
+  /** Semana programada ainda não encerrada. */
+  provisorio: boolean;
   turnos: { id: string; data: string; periodo: Periodo; ppc: number | null }[];
 };
+
+/** Resumo de uma semana programada/encerrada para a análise. */
+export type SemanaProgramadaAnalise = {
+  inicio: string;
+  encerrada: boolean;
+  cumpridas: number;
+  total: number;
+  /** causa: confirmada (encerrada) ou sugerida (provisória). */
+  naoCumpridas: { descricao: string; causa: Causa | null }[];
+};
+
+export type ItemCausa =
+  | { origem: "turno"; turnoId: string; data: string; periodo: Periodo; descricao: string; observacao: string | null }
+  | { origem: "semana"; semanaInicio: string; descricao: string };
 
 export type CausaAnalise = {
   causa: Causa;
   rotulo: string;
   quantidade: number;
   fracao: number;
-  atividades: { turnoId: string; data: string; periodo: Periodo; descricao: string; observacao: string | null }[];
+  atividades: ItemCausa[];
 };
 
 export type Analise = {
@@ -75,13 +93,27 @@ export function semanasDaAnalise(hoje: string, n: number): string[] {
 const concluida = (a: AtividadeAnalise) => statusAtividade(a.qtd_planejada, a.qtd_realizada) === "concluida";
 const fracao = (concluidas: number, total: number) => (total === 0 ? null : concluidas / total);
 
-export function analisarObra(turnos: TurnoAnalise[], semanas: string[]): Analise {
+export function analisarObra(
+  turnos: TurnoAnalise[],
+  semanas: string[],
+  programadas: SemanaProgramadaAnalise[] = [],
+): Analise {
   const porSemana = new Map<string, SemanaAnalise>(
     semanas.map((inicio, i) => [
       inicio,
-      { inicio, concluidas: 0, total: 0, ppc: null, atual: i === semanas.length - 1, turnos: [] },
+      {
+        inicio,
+        concluidas: 0,
+        total: 0,
+        ppc: null,
+        atual: i === semanas.length - 1,
+        programada: false,
+        provisorio: false,
+        turnos: [],
+      },
     ]),
   );
+  const programadaDe = new Map(programadas.filter((p) => porSemana.has(p.inicio)).map((p) => [p.inicio, p]));
   const porCausa = new Map<Causa, CausaAnalise["atividades"]>();
 
   const validos = turnos
@@ -91,14 +123,31 @@ export function analisarObra(turnos: TurnoAnalise[], semanas: string[]): Analise
   for (const t of validos) {
     const semana = porSemana.get(inicioDaSemana(t.data));
     if (!semana) continue;
+    semana.turnos.push({ id: t.id, data: t.data, periodo: t.periodo, ppc: percentualCumprimento(t.atividades) });
+    // Semana programada: PPC e causas vêm da programação; os turnos ficam só como detalhe.
+    if (programadaDe.has(semana.inicio)) continue;
     semana.concluidas += t.atividades.filter(concluida).length;
     semana.total += t.atividades.length;
-    semana.turnos.push({ id: t.id, data: t.data, periodo: t.periodo, ppc: percentualCumprimento(t.atividades) });
     for (const a of t.atividades) {
       if (concluida(a) || !a.causa) continue;
       const lista = porCausa.get(a.causa) ?? [];
-      lista.push({ turnoId: t.id, data: t.data, periodo: t.periodo, descricao: a.descricao, observacao: a.observacao });
+      lista.push({ origem: "turno", turnoId: t.id, data: t.data, periodo: t.periodo, descricao: a.descricao, observacao: a.observacao });
       porCausa.set(a.causa, lista);
+    }
+  }
+
+  for (const semana of porSemana.values()) {
+    const p = programadaDe.get(semana.inicio);
+    if (!p) continue;
+    semana.programada = true;
+    semana.provisorio = !p.encerrada;
+    semana.concluidas = p.cumpridas;
+    semana.total = p.total;
+    for (const n of p.naoCumpridas) {
+      if (!n.causa) continue;
+      const lista = porCausa.get(n.causa) ?? [];
+      lista.push({ origem: "semana", semanaInicio: p.inicio, descricao: n.descricao });
+      porCausa.set(n.causa, lista);
     }
   }
 

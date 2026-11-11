@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { inicioDaSemana } from "@/lib/dominio/analise";
+import { inicioDaSemana, type SemanaProgramadaAnalise } from "@/lib/dominio/analise";
 import { validarMotivo } from "@/lib/dominio/eventos";
 import {
   dataDoDia,
@@ -395,4 +395,38 @@ export async function trazerDaProgramacao(c: SupabaseClient, turnoId: string): P
     }
   }
   return ok({ adicionadas });
+}
+
+/** Semanas programadas/encerradas com início >= `desde`, resumidas para a análise de PPC. */
+export async function listarProgramadasParaAnalise(
+  c: SupabaseClient,
+  obraId: string,
+  desde: string,
+): Promise<SemanaProgramadaAnalise[]> {
+  const { data, error } = await c
+    .from("semanas")
+    .select(COLUNAS_SEMANA)
+    .eq("obra_id", obraId)
+    .in("status", ["programada", "encerrada"])
+    .gte("inicio", desde)
+    .order("inicio");
+  if (error) {
+    console.error("listarProgramadasParaAnalise:", error.message);
+    throw new Error(`listarProgramadasParaAnalise: ${error.message}`);
+  }
+  return Promise.all(
+    ((data ?? []) as Semana[]).map(async (semana) => {
+      const r = resumirSemana(await dadosOficiais(c, semana));
+      const encerrada = semana.status === "encerrada";
+      return {
+        inicio: semana.inicio,
+        encerrada,
+        cumpridas: r.ppc.cumpridas,
+        total: r.ppc.total,
+        naoCumpridas: r.atividades
+          .filter((a) => a.situacao !== "cumprida")
+          .map((a) => ({ descricao: a.descricao, causa: encerrada ? a.causa : (a.causa ?? a.causaSugerida) })),
+      };
+    }),
+  );
 }
