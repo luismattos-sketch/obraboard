@@ -66,3 +66,13 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 export function rotuloMes(mes: string): string {
   return `${MESES[Number(mes.slice(5, 7)) - 1]} de ${mes.slice(0, 4)}`;
 }
+
+/** Lê tudo em páginas (`de`..`ate`, inclusivo) até vir uma página incompleta — a API limita linhas por pedido. */
+export async function lerEmPaginas<T>(buscar: (de: number, ate: number) => Promise<T[]>, tamanho: number): Promise<T[]> {
+  const tudo: T[] = [];
+  for (let de = 0; ; de += tamanho) {
+    const pagina = await buscar(de, de + tamanho - 1);
+    tudo.push(...pagina);
+    if (pagina.length < tamanho) return tudo;
+  }
+}

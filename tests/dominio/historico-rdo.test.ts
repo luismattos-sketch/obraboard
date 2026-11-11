@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparVersoes, mesesDisponiveis, normalizarMes, rotuloMes, type ItemVersao } from "@/lib/dominio/historico-rdo";
+import { agruparVersoes, lerEmPaginas, mesesDisponiveis, normalizarMes, rotuloMes, type ItemVersao } from "@/lib/dominio/historico-rdo";
 
 const item = (over: Partial<ItemVersao>): ItemVersao => ({
   id: "v", turnoId: "t", obraId: "o", obraNome: "Obra", numero: 1, emitidoEm: "2026-11-09T21:40:00Z",
@@ -49,4 +49,22 @@ describe("agruparVersoes", () => {
 
 describe("rotuloMes", () => {
   it("por extenso", () => expect(rotuloMes("2026-11")).toBe("novembro de 2026"));
+});
+
+describe("lerEmPaginas", () => {
+  it("busca página a página até vir uma página incompleta", async () => {
+    const dados = Array.from({ length: 2500 }, (_, i) => i);
+    const pedidos: [number, number][] = [];
+    const tudo = await lerEmPaginas(async (de, ate) => {
+      pedidos.push([de, ate]);
+      return dados.slice(de, ate + 1);
+    }, 1000);
+    expect(tudo).toHaveLength(2500);
+    expect(pedidos).toEqual([[0, 999], [1000, 1999], [2000, 2999]]);
+  });
+  it("lista vazia: um pedido só", async () => {
+    let n = 0;
+    expect(await lerEmPaginas(async () => { n++; return []; }, 1000)).toEqual([]);
+    expect(n).toBe(1);
+  });
 });

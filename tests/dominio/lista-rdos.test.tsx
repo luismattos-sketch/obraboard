@@ -42,6 +42,12 @@ describe("ListaRdos", () => {
     expect(html).toContain("Edifício Aurora");
   });
 
+  it("lista vazia com filtro ativo não diz que não há RDO", () => {
+    const html = renderToStaticMarkup(<ListaRdos grupos={[]} mostrarObra={false} filtrado />);
+    expect(html).toContain("Nenhum RDO neste filtro.");
+    expect(html).not.toContain("Nenhum RDO emitido ainda");
+  });
+
   it("lista vazia explica quando o RDO nasce", () => {
     const html = renderToStaticMarkup(<ListaRdos grupos={[]} mostrarObra={false} />);
     expect(html).toContain("Nenhum RDO emitido ainda. O RDO é registrado quando você fecha um turno.");

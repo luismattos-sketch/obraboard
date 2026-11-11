@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { percentualCumprimento } from "@/lib/dominio/calculos";
-import type { ItemVersao } from "@/lib/dominio/historico-rdo";
+import { lerEmPaginas, type ItemVersao } from "@/lib/dominio/historico-rdo";
 import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
 import type { VersaoRdo } from "@/lib/rdo/versao";
 
 const UUID_INVALIDO = "22P02";
+/** Linhas por pedido (o limite padrão da API do Supabase é 1000). */
+const PAGINA = 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type LinhaLista = {
@@ -24,18 +26,24 @@ type LinhaLista = {
 /** Versões oficiais visíveis ao usuário (RLS), com o necessário para as listas. */
 export async function listarVersoes(c: SupabaseClient, filtro: { obraId?: string }): Promise<ItemVersao[]> {
   if (filtro.obraId !== undefined && !UUID.test(filtro.obraId)) return [];
-  let q = c
-    .from("rdo_versoes")
-    .select(
-      "id, turno_id, obra_id, numero, emitido_em, retroativa, data:dados->turno->>data, periodo:dados->turno->>periodo, obra_nome:dados->obra->>nome, atividades:dados->atividades, turno:turnos(status)",
-    );
-  if (filtro.obraId) q = q.eq("obra_id", filtro.obraId);
-  const { data, error } = await q;
-  if (error) {
-    console.error("listarVersoes:", error.message);
-    throw new Error(`listarVersoes: ${error.message}`);
-  }
-  return ((data ?? []) as unknown as LinhaLista[]).map((l) => ({
+  const linhas = await lerEmPaginas<LinhaLista>(async (de, ate) => {
+    let q = c
+      .from("rdo_versoes")
+      .select(
+        "id, turno_id, obra_id, numero, emitido_em, retroativa, data:dados->turno->>data, periodo:dados->turno->>periodo, obra_nome:dados->obra->>nome, atividades:dados->atividades, turno:turnos(status)",
+      )
+      .order("emitido_em", { ascending: false })
+      .order("id")
+      .range(de, ate);
+    if (filtro.obraId) q = q.eq("obra_id", filtro.obraId);
+    const { data, error } = await q;
+    if (error) {
+      console.error("listarVersoes:", error.message);
+      throw new Error(`listarVersoes: ${error.message}`);
+    }
+    return (data ?? []) as unknown as LinhaLista[];
+  }, PAGINA);
+  return linhas.map((l) => ({
     id: l.id,
     turnoId: l.turno_id,
     obraId: l.obra_id,

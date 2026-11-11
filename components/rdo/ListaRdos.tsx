@@ -9,11 +9,13 @@ import { dataHoraCurta } from "@/lib/rdo/formatar";
 const linkVersao = (id: string) => `/api/rdo/versao/${id}`;
 
 /** Lista de RDOs oficiais: uma linha por turno, versões anteriores no expansível. */
-export function ListaRdos({ grupos, mostrarObra }: { grupos: GrupoRdo[]; mostrarObra: boolean }) {
+export function ListaRdos({ grupos, mostrarObra, filtrado = false }: { grupos: GrupoRdo[]; mostrarObra: boolean; filtrado?: boolean }) {
   if (grupos.length === 0) {
     return (
       <Cartao>
-        <p className="text-texto-suave">Nenhum RDO emitido ainda. O RDO é registrado quando você fecha um turno.</p>
+        <p className="text-texto-suave">
+          {filtrado ? "Nenhum RDO neste filtro." : "Nenhum RDO emitido ainda. O RDO é registrado quando você fecha um turno."}
+        </p>
       </Cartao>
     );
   }

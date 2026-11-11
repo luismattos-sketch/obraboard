@@ -41,7 +41,7 @@ export default async function RdosObraPage({
       ) : (
         <>
           <FiltrosRdo acao={`/obras/${obra.id}/rdos`} meses={mesesDisponiveis(itens)} mes={mes} />
-          <ListaRdos grupos={agruparVersoes(itens, mes)} mostrarObra={false} />
+          <ListaRdos grupos={agruparVersoes(itens, mes)} mostrarObra={false} filtrado={mes !== null} />
         </>
       )}
     </div>
