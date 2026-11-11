@@ -9,7 +9,7 @@ import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData, formatarPercentual, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Barra } from "./Barra";
-import { Expansivel } from "./Expansivel";
+import { Expansivel } from "@/components/ui/Expansivel";
 
 const OPCOES = [4, 8, 12] as const;
 
