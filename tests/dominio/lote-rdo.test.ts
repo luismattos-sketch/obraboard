@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ItemVersao } from "@/lib/dominio/historico-rdo";
-import { paginasIniciais, selecionarLote } from "@/lib/dominio/lote-rdo";
+import { paginasIniciais, retornoDoLote, selecionarLote } from "@/lib/dominio/lote-rdo";
 import { validarLote } from "@/lib/rdo/lote";
 import { nomeArquivoLote } from "@/lib/rdo/nome-arquivo";
 
@@ -76,5 +76,14 @@ describe("validarLote", () => {
     expect(validarLote(lote(0))).toEqual({ status: 404, erro: "Nenhum RDO neste filtro" });
     expect(validarLote(lote(120))).toBeNull();
     expect(validarLote(lote(121))).toEqual({ status: 422, erro: "Muitos RDOs neste filtro; escolha uma obra" });
+  });
+});
+
+describe("retornoDoLote", () => {
+  // Login devolve para a lista (não para a rota do PDF, que seria gerada de novo a cada salto).
+  it("lista da obra, lista geral ou /rdos", () => {
+    expect(retornoDoLote("2026-11", "o1")).toBe("/obras/o1/rdos?mes=2026-11");
+    expect(retornoDoLote("2026-11", null)).toBe("/rdos?mes=2026-11");
+    expect(retornoDoLote("lixo", "o/../x")).toBe("/rdos");
   });
 });

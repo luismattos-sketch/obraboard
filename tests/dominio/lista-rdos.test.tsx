@@ -94,6 +94,9 @@ describe("BaixarLote", () => {
       /href="\/api\/rdo\/lote\?mes=2026-11&amp;obra=o1"[^>]*>Baixar os 23 RDOs \(PDF único\)</,
     );
   });
+  it("avisa que pode demorar (sem JS não há indicador de carregamento)", () => {
+    expect(html({ mes: "2026-11", quantidade: 23 })).toContain("Pode levar até 1 minuto. Clique uma vez só.");
+  });
   it("acima do teto pede uma obra", () => {
     const h = html({ mes: "2026-11", quantidade: 121 });
     expect(h).not.toContain("href=");

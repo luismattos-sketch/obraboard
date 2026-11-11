@@ -1,4 +1,4 @@
-import { agruparVersoes, type ItemVersao } from "./historico-rdo";
+import { agruparVersoes, normalizarMes, type ItemVersao } from "./historico-rdo";
 import { compararTurnos } from "./regras";
 
 /** Máximo de RDOs num único PDF. */
@@ -49,4 +49,14 @@ export function paginasIniciais(paginasCapa: number, paginasPorRdo: number[]): n
     proxima += n;
   }
   return inicios;
+}
+
+/**
+ * Para onde o login volta quando a sessão expirou no clique do PDF único: a lista de onde ele saiu.
+ * Voltar direto para a rota do PDF faria o servidor gerá-lo várias vezes (pré-busca da action + RSC + download).
+ */
+export function retornoDoLote(mes: unknown, obra: unknown): string {
+  const base = typeof obra === "string" && /^[0-9a-zA-Z-]+$/.test(obra) ? `/obras/${obra}/rdos` : "/rdos";
+  const m = normalizarMes(mes);
+  return m ? `${base}?mes=${m}` : base;
 }
