@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ItemVersao } from "@/lib/dominio/historico-rdo";
 import { paginasIniciais, selecionarLote } from "@/lib/dominio/lote-rdo";
+import { validarLote } from "@/lib/rdo/lote";
 import { nomeArquivoLote } from "@/lib/rdo/nome-arquivo";
 
 const item = (over: Partial<ItemVersao>): ItemVersao => ({
@@ -66,5 +67,14 @@ describe("nomeArquivoLote", () => {
   it("obra ou todas as obras", () => {
     expect(nomeArquivoLote("Edifício Aurora 🏗", "2026-11")).toBe("RDOs-edificio-aurora-2026-11.pdf");
     expect(nomeArquivoLote(null, "2026-11")).toBe("RDOs-todas-as-obras-2026-11.pdf");
+  });
+});
+
+describe("validarLote", () => {
+  const lote = (n: number) => selecionarLote(Array.from({ length: n }, (_, i) => item({ id: `v${i}`, turnoId: `t${i}` })), "2026-11", null);
+  it("vazio, no teto e acima", () => {
+    expect(validarLote(lote(0))).toEqual({ status: 404, erro: "Nenhum RDO neste filtro" });
+    expect(validarLote(lote(120))).toBeNull();
+    expect(validarLote(lote(121))).toEqual({ status: 422, erro: "Muitos RDOs neste filtro; escolha uma obra" });
   });
 });

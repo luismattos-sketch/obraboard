@@ -29,3 +29,9 @@ describe("caminhoSeguro", () => {
     expect(caminhoSeguro(null, "/x")).toBe("/x");
   });
 });
+
+describe("caminhoSeguro com query", () => {
+  it("preserva a query do download em lote", () => {
+    expect(caminhoSeguro("/api/rdo/lote?mes=2026-11&obra=x")).toBe("/api/rdo/lote?mes=2026-11&obra=x");
+  });
+});
