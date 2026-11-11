@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade } from "@/lib/db/atividades";
 import { enviarTurnoCampo } from "@/lib/db/campo";
 import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
+import { listarEventos } from "@/lib/db/eventos";
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno, gerarNovoLink } from "@/lib/db/turnos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -74,6 +75,14 @@ describe.skipIf(!ligado)("turno_eventos no banco", () => {
 
     expect(await motivoDaFoto(turnoId, 1)).toBeNull();
     expect(await motivoDaFoto(turnoId, 2)).toBe("Corrigir quantidade");
+
+    const lidos = await listarEventos(u.cliente, turnoId);
+    expect(lidos.map((e) => e.tipo)).toEqual(es.map((e) => e.tipo));
+    expect(lidos[3]).toMatchObject({ atorTipo: "encarregado", atorNome: null });
+    expect(lidos[4]).toMatchObject({ atorTipo: "planejador", atorNome: u.email, versao: 1 });
+    expect(lidos[5].motivo).toBe("Corrigir quantidade");
+    expect(await listarEventos(outro.cliente, turnoId)).toEqual([]);
+    expect(await listarEventos(u.cliente, "xyz")).toEqual([]);
   });
 
   it("reabrir duas vezes: v3 com o 2º motivo", { timeout: 90_000 }, async () => {

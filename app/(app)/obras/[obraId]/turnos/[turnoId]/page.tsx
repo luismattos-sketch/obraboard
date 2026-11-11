@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Selo } from "@/components/ui/Selo";
+import { listarEventos } from "@/lib/db/eventos";
 import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
@@ -10,6 +11,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { AcoesTurno } from "./AcoesTurno";
 import { BlocoRdo } from "./BlocoRdo";
 import { DadosTurno } from "./DadosTurno";
+import { HistoricoTurno } from "./HistoricoTurno";
 import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
 import { PainelLink } from "./PainelLink";
@@ -18,7 +20,11 @@ import { Resumo } from "./Resumo";
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
   const supabase = await criarClienteServidor();
-  const [turno, versoes] = await Promise.all([obterTurnoCompleto(supabase, turnoId), versoesDoTurno(supabase, turnoId)]);
+  const [turno, versoes, eventos] = await Promise.all([
+    obterTurnoCompleto(supabase, turnoId),
+    versoesDoTurno(supabase, turnoId),
+    listarEventos(supabase, turnoId).catch(() => null),
+  ]);
   if (!turno || turno.obra_id !== obraId) notFound();
 
   return (
@@ -82,6 +88,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
           )}
         </>
       )}
+      <HistoricoTurno eventos={eventos} versoes={versoes} />
     </div>
   );
 }

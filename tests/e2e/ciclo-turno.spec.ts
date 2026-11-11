@@ -146,12 +146,20 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
 
     await page.goto(turnoUrl);
     await page.getByRole("button", { name: "Reabrir turno" }).click();
+    await page.getByLabel("Motivo da reabertura").fill("Corrigir quantidade");
+    await page.getByRole("button", { name: "Confirmar reabertura" }).click();
     await expect(page.getByRole("link", { name: "Baixar prévia (rascunho)" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Baixar v1 oficial" })).toBeVisible();
     await page.getByRole("button", { name: "Fechar turno" }).click();
     await page.getByRole("button", { name: "Confirmar fechamento" }).click();
     await expect(page.getByRole("link", { name: "Baixar RDO (v2)" })).toBeVisible();
     await expect(page.getByText("Versões anteriores:")).toBeVisible();
+
+    // Linha do tempo do turno
+    await page.getByText(/^Histórico \(\d+\)$/).click();
+    await expect(page.getByText(/Enviado pelo campo · Encarregado \(link de campo\)/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "RDO v2" })).toBeVisible();
+    await expect(page.getByText("Motivo: Corrigir quantidade")).toBeVisible();
 
     await page.goto(`${obraUrl}/rdos`);
     await expect(lista.getByText("v2", { exact: true })).toBeVisible();
