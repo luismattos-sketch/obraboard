@@ -132,7 +132,7 @@ export async function gerarNovoLinkAcao(_: EstadoLink, form: FormData): Promise<
   return ok({ token: r.dados.token });
 }
 
-async function mudarStatus(form: FormData, acao: "fechar" | "reabrir"): Promise<EstadoFechamento> {
+async function mudarStatus(form: FormData, acao: "fechar"): Promise<EstadoFechamento> {
   const turnoId = texto(form, "turno_id");
   const c = await criarClienteServidor();
   const r = await aplicarAcao(c, turnoId, acao);
@@ -146,5 +146,10 @@ export async function fecharTurnoAcao(_: EstadoFechamento, form: FormData): Prom
 }
 
 export async function reabrirTurnoAcao(_: EstadoFechamento, form: FormData): Promise<EstadoFechamento> {
-  return mudarStatus(form, "reabrir");
+  const turnoId = texto(form, "turno_id");
+  const c = await criarClienteServidor();
+  const r = await aplicarAcao(c, turnoId, "reabrir", { motivo: texto(form, "motivo") });
+  if (!r.ok) return falha(r.erro);
+  await atualizarTurno(c, turnoId);
+  return ok(undefined);
 }
