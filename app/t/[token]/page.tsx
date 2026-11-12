@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
-import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo } from "@/lib/db/campo";
+import Link from "next/link";
+import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo, responsaveisDoTurno } from "@/lib/db/campo";
+import { resolverEscolhaCampo } from "@/lib/dominio/quadro";
+import { EscolhaResponsavel } from "./EscolhaResponsavel";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 
@@ -12,8 +15,15 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
-export default async function PaginaCampo({ params }: { params: Promise<{ token: string }> }) {
+export default async function PaginaCampo({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ [k: string]: string | string[] | undefined }>;
+}) {
   const { token } = await params;
+  const { r } = await searchParams;
   const turno = await obterTurnoPorToken(token);
 
   if (!turno) {
@@ -25,7 +35,11 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
     );
   }
 
-  const opcoesFuncao = await opcoesFuncaoCampo(turno);
+  const [opcoesFuncao, responsaveis] = await Promise.all([opcoesFuncaoCampo(turno), responsaveisDoTurno(turno)]);
+  const escolha = resolverEscolhaCampo(r, responsaveis.map((x) => x.id));
+  const atual = escolha.modo === "responsavel" ? responsaveis.find((x) => x.id === escolha.id) ?? null : null;
+  const daEquipe = <T extends { responsavel_id: string | null }>(xs: T[]) =>
+    atual ? xs.filter((x) => x.responsavel_id === atual.id) : xs;
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6">
@@ -37,18 +51,34 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
       </header>
       {turno.status === "fechado" && <Aviso tom="info">Turno fechado pelo planejador</Aviso>}
       {turno.status === "planejado" && <Aviso tom="alerta">{ERRO_FECHADO}</Aviso>}
-      <FormularioCampo
-        token={token}
-        opcoesFuncao={opcoesFuncao}
-        turno={{
-          status: turno.status,
-          hora_inicio_real: turno.hora_inicio_real,
-          hora_fim_real: turno.hora_fim_real,
-          atividades: turno.atividades,
-          efetivo: turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade })),
-          clima: turno.clima,
-        }}
-      />
+      {escolha.modo === "escolher" ? (
+        <EscolhaResponsavel responsaveis={responsaveis} />
+      ) : (
+        <>
+          {responsaveis.length > 0 && (
+            <p className="text-sm text-texto">
+              {atual ? <>Lançando como <strong>{atual.nome}</strong></> : <>Vendo <strong>tudo</strong></>}
+              {" · "}
+              <Link href="?" className="text-operacional underline">Trocar</Link>
+            </p>
+          )}
+          <FormularioCampo
+            key={atual?.id ?? "todos"}
+            token={token}
+            opcoesFuncao={opcoesFuncao}
+            responsaveis={responsaveis}
+            responsavelId={atual?.id ?? null}
+            turno={{
+              status: turno.status,
+              hora_inicio_real: turno.hora_inicio_real,
+              hora_fim_real: turno.hora_fim_real,
+              atividades: daEquipe(turno.atividades),
+              efetivo: daEquipe(turno.efetivo).map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id })),
+              clima: turno.clima,
+            }}
+          />
+        </>
+      )}
     </main>
   );
 }

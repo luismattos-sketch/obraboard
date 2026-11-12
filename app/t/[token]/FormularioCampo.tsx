@@ -12,7 +12,8 @@ import { enviarTurno, limparClima, salvarClima, salvarEfetivo, salvarExecucao, s
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
-import { BlocoEfetivo } from "@/components/execucao/BlocoEfetivo";
+import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
+import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 
 export type DadosTurnoCampo = {
@@ -20,11 +21,27 @@ export type DadosTurnoCampo = {
   hora_inicio_real: string | null;
   hora_fim_real: string | null;
   atividades: Atividade[];
-  efetivo: Pick<Efetivo, "funcao" | "quantidade">[];
+  efetivo: Pick<Efetivo, "funcao" | "quantidade" | "responsavel_id">[];
   clima: Clima[];
 };
 
-export function FormularioCampo({ token, turno, opcoesFuncao }: { token: string; turno: DadosTurnoCampo; opcoesFuncao: string[] }) {
+export function FormularioCampo({
+  token,
+  turno,
+  opcoesFuncao,
+  responsaveis = [],
+  responsavelId = null,
+}: {
+  token: string;
+  turno: DadosTurnoCampo;
+  opcoesFuncao: string[];
+  responsaveis?: ResponsavelRef[];
+  /** Responsável escolhido no link (null = "Ver tudo"): sem botão Enviar. */
+  responsavelId?: string | null;
+}) {
+  const agrupar = responsavelId === null && turno.atividades.some((a) => a.responsavel_id !== null);
+  const ordenadas = agrupar ? ordenarPorResponsavel(turno.atividades, responsaveis) : turno.atividades;
+  const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
   const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
@@ -59,23 +76,33 @@ export function FormularioCampo({ token, turno, opcoesFuncao }: { token: string;
         salvar={(d) => salvarHorarioReal(token, d)}
       />
       <BlocoAtividades
-        atividades={turno.atividades}
+        atividades={ordenadas}
+        grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
         somenteLeitura={somenteLeitura}
-        salvar={(id, d) => salvarExecucao(token, id, d)}
+        salvar={(id, d) => salvarExecucao(token, id, d, responsavelId)}
         onMudar={mudar}
         erros={erros}
       />
-      <BlocoEfetivo
-        inicial={turno.efetivo}
-        opcoes={opcoesFuncao}
+      <EfetivoPorEquipe
+        obraId=""
+        responsaveis={responsaveis}
+        efetivo={turno.efetivo}
+        opcoesFuncao={opcoesFuncao}
         somenteLeitura={somenteLeitura}
-        salvar={(l, esperado) => salvarEfetivo(token, l, esperado)}
+        adicionarEquipe={false}
+        equipesIniciais={responsavelId !== null ? [responsavelId] : [...new Set(turno.atividades.map((a) => a.responsavel_id))]}
+        salvar={(id, l, esperado) => salvarEfetivo(token, l, esperado, id)}
       />
       <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
         limpar={(p) => limparClima(token, p)}
       />
 
-      {!somenteLeitura && (
+      {!somenteLeitura && responsavelId !== null && (
+        <section className="pb-8">
+          <Aviso tom="info">Terminou? Avise o planejador.</Aviso>
+        </section>
+      )}
+      {!somenteLeitura && responsavelId === null && (
         <section className="flex flex-col gap-3 pb-8">
           {pendentes.length > 0 && (
             <Aviso tom="alerta">

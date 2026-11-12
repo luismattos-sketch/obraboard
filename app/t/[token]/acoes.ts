@@ -17,12 +17,13 @@ export async function salvarExecucao(
   token: string,
   atividadeId: string,
   dados: DadosExecucao,
+  responsavelId: string | null = null,
 ) {
-  return dbSalvarExecucao(token, atividadeId, dados);
+  return dbSalvarExecucao(token, atividadeId, dados, responsavelId);
 }
 
-export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) {
-  return dbSalvarEfetivo(token, linhas, esperado);
+export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[], responsavelId: string | null = null) {
+  return dbSalvarEfetivo(token, linhas, esperado, responsavelId);
 }
 
 export async function salvarClima(

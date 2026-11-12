@@ -3,7 +3,8 @@ import { statusAtividade } from "@/lib/dominio/calculos";
 import { hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_CAMPO, erroBanco } from "./mensagens";
+import type { ResponsavelRef } from "@/lib/dominio/quadro";
+import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_CAMPO, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { opcoesFuncaoDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
@@ -68,10 +69,32 @@ export async function opcoesFuncaoCampo(turno: Pick<TurnoCompleto, "obra_id" | "
   return opcoesFuncaoDoTurno(criarClienteAdmin(), turno.obra_id, turno.data, turno.periodo);
 }
 
+/** Responsáveis com atividade ou efetivo no turno, em ordem alfabética (para "Quem é você?"). */
+export async function responsaveisDoTurno(turno: Pick<TurnoCompleto, "obra_id" | "atividades" | "efetivo">): Promise<ResponsavelRef[]> {
+  const ids = [...new Set([...turno.atividades.map((a) => a.responsavel_id), ...turno.efetivo.map((e) => e.responsavel_id)])]
+    .filter((x): x is string => x !== null);
+  if (ids.length === 0) return [];
+  const { data, error } = await criarClienteAdmin()
+    .from("responsaveis")
+    .select("id, nome, ativo")
+    .eq("obra_id", turno.obra_id)
+    .in("id", ids);
+  if (error) {
+    console.error("responsaveisDoTurno:", error.message);
+    throw new Error("responsaveisDoTurno");
+  }
+  return ((data ?? []) as ResponsavelRef[]).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/**
+ * `responsavelId` (escolhido no link): só aceita atividade dessa equipe e grava `lancado_por_id`.
+ * null ("Ver tudo"): qualquer atividade do turno, sem autor.
+ */
 export async function salvarExecucao(
   token: string,
   atividadeId: string,
   dados: DadosExecucao,
+  responsavelId: string | null = null,
 ): Promise<Resultado> {
   const v = validarExecucao(dados);
   if (!v.ok) return v;
@@ -82,7 +105,7 @@ export async function salvarExecucao(
 
   const { data: at, error: ea } = await admin
     .from("atividades")
-    .select("id, qtd_planejada")
+    .select("id, qtd_planejada, responsavel_id")
     .eq("id", atividadeId)
     .eq("turno_id", t.dados.id)
     .maybeSingle();
@@ -91,14 +114,17 @@ export async function salvarExecucao(
     return falha(ERRO_GENERICO);
   }
   if (!at) return falha(ERRO_ATIVIDADE);
+  if (responsavelId !== null && at.responsavel_id !== responsavelId) return falha(ERRO_ATIVIDADE);
 
   const concluida = statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
-  const { data, error } = await admin
+  let gravar = admin
     .from("atividades")
-    .update(camposExecucao(concluida, dados))
+    .update({ ...camposExecucao(concluida, dados), lancado_por_id: responsavelId })
     .eq("id", atividadeId)
-    .eq("turno_id", t.dados.id)
-    .select("id");
+    .eq("turno_id", t.dados.id);
+  // Troca de responsável entre a leitura e a gravação: não grava na equipe de outro.
+  if (responsavelId !== null) gravar = gravar.eq("responsavel_id", responsavelId);
+  const { data, error } = await gravar.select("id");
   if (error) {
     console.error("salvarExecucao:", error.message);
     return erroGravacao(error);
@@ -111,7 +137,12 @@ export async function salvarExecucao(
  * Substitui o efetivo do turno de forma atômica. `esperado` é o efetivo que o cliente leu/salvou
  * por último: se o banco tiver outro, ninguém sobrescreve ninguém (efetivo_conflito, sem repetir).
  */
-export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]): Promise<Resultado> {
+export async function salvarEfetivo(
+  token: string,
+  linhas: LinhaEfetivo[],
+  esperado: LinhaEfetivo[],
+  responsavelId: string | null = null,
+): Promise<Resultado> {
   const v = validarEfetivo(linhas);
   if (!v.ok) return v;
   const e = validarEfetivoEsperado(esperado);
@@ -121,11 +152,13 @@ export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esper
   if (!t.ok) return t;
   const { error } = await criarClienteAdmin().rpc("substituir_efetivo", {
     p_turno_id: t.dados.id,
+    p_responsavel_id: responsavelId,
     p_esperado: e.dados,
     p_linhas: v.dados,
   });
   if (error) {
     if (erroBanco(error) === "efetivo_conflito") return falha(ERRO_EFETIVO_CONFLITO);
+    if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivo:", error.message);
     return erroGravacao(error);
   }
