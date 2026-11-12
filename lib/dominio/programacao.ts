@@ -121,6 +121,28 @@ export const resumoDias = (dias: DiaSemana[]) =>
 export const resumoEquipe = (equipe: EquipePrevista[]) =>
   equipe.length === 0 ? "Sem equipe prevista" : equipe.map((e) => `${e.quantidade} ${e.funcao}`).join(" + ");
 
+export type GradeSemana = {
+  /** Colunas visíveis: Seg–Sáb sempre; Dom só se alguma atividade usa o domingo. */
+  dias: DiaSemana[];
+  /** Faixas visíveis, na ordem diurno → noturno; só as usadas (padrão: diurno). */
+  periodos: Periodo[];
+  /** Efetivo previsto por período, alinhado com `dias`; a equipe vale para cada dia programado. */
+  totais: Record<Periodo, number[]>;
+};
+
+export function gradeSemana(atividades: Pick<AtividadeProgramada, "dias" | "periodo" | "equipe">[]): GradeSemana {
+  const usaDomingo = atividades.some((a) => a.dias.includes(6));
+  const dias: DiaSemana[] = usaDomingo ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4, 5];
+  const usados = (["diurno", "noturno"] as const).filter((p) => atividades.some((a) => a.periodo === p));
+  const periodos: Periodo[] = usados.length > 0 ? [...usados] : ["diurno"];
+  const totais: Record<Periodo, number[]> = { diurno: dias.map(() => 0), noturno: dias.map(() => 0) };
+  for (const a of atividades) {
+    const pessoas = a.equipe.reduce((s, e) => s + e.quantidade, 0);
+    for (const d of a.dias) totais[a.periodo][dias.indexOf(d)] += pessoas;
+  }
+  return { dias, periodos, totais };
+}
+
 // Aritmética de datas em UTC para não depender do fuso da máquina.
 const paraData = (iso: string) => new Date(`${iso}T00:00:00Z`);
 export function somarDias(iso: string, dias: number): string {

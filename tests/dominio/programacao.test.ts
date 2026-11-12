@@ -5,6 +5,7 @@ import {
   diaDaSemana,
   efetivoPrevistoReal,
   encerramentoLiberado,
+  gradeSemana,
   normalizarFuncao,
   ppcSemanal,
   realizadoAte,
@@ -214,5 +215,43 @@ describe("arredondamento (revisão final I1)", () => {
   it("sugestão arredondada para zero não é trazida", () => {
     expect(sugestaoDoDia({ meta: 0.01, dias: [0, 1, 2] }, 0, 0)).toBeNull();
     expect(sugestaoDoDia({ meta: 0.9, dias: [0, 1, 2] }, 2, 0.3 + 0.6)).toBeNull();
+  });
+});
+
+describe("gradeSemana", () => {
+  it("sem atividades: Seg–Sáb, só diurno, totais zerados", () => {
+    const g = gradeSemana([]);
+    expect(g.dias).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(g.periodos).toEqual(["diurno"]);
+    expect(g.totais.diurno).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("soma a equipe prevista em cada dia programado (efetivo não é dividido entre os dias)", () => {
+    const g = gradeSemana([
+      ativ({ dias: [1, 2], equipe: [{ funcao: "Soldador", quantidade: 2 }, { funcao: "Mecânico", quantidade: 4 }] }),
+      ativ({ id: "a2", dias: [2], equipe: [{ funcao: "Montador", quantidade: 3 }] }),
+    ]);
+    expect(g.totais.diurno).toEqual([0, 6, 9, 0, 0, 0]);
+  });
+
+  it("mostra a faixa noturna só quando a semana tem atividade noturna", () => {
+    const g = gradeSemana([
+      ativ({ dias: [0], equipe: [{ funcao: "Montador", quantidade: 5 }] }),
+      ativ({ id: "a2", dias: [0, 1], periodo: "noturno", equipe: [{ funcao: "Soldador", quantidade: 2 }] }),
+    ]);
+    expect(g.periodos).toEqual(["diurno", "noturno"]);
+    expect(g.totais.diurno).toEqual([5, 0, 0, 0, 0, 0]);
+    expect(g.totais.noturno).toEqual([2, 2, 0, 0, 0, 0]);
+  });
+
+  it("semana só noturna mostra só a faixa noturna", () => {
+    const g = gradeSemana([ativ({ dias: [3], periodo: "noturno" })]);
+    expect(g.periodos).toEqual(["noturno"]);
+  });
+
+  it("inclui o domingo só quando alguma atividade usa o domingo", () => {
+    const g = gradeSemana([ativ({ dias: [5, 6], equipe: [{ funcao: "Montador", quantidade: 4 }] })]);
+    expect(g.dias).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(g.totais.diurno).toEqual([0, 0, 0, 0, 0, 4, 4]);
   });
 });
