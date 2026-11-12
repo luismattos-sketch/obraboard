@@ -1,18 +1,13 @@
 import { Cartao } from "@/components/ui/Cartao";
-import { Selo } from "@/components/ui/Selo";
 import { formatarData, formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import {
   encerramentoLiberado,
-  resumoDias,
-  resumoEquipe,
-  ROTULO_SITUACAO,
-  TOM_SITUACAO,
   type ResumoSemana,
   type Semana,
 } from "@/lib/dominio/programacao";
-import { CAUSAS } from "@/lib/dominio/tipos";
 import { FormEncerrar } from "./FormEncerrar";
 import { FormReabrir } from "./FormReabrir";
+import { GradeSemana } from "./GradeSemana";
 import { PrevistoReal } from "./PrevistoReal";
 
 export function Acompanhamento({ semana, resumo, hoje }: { semana: Semana; resumo: ResumoSemana; hoje: string }) {
@@ -35,26 +30,7 @@ export function Acompanhamento({ semana, resumo, hoje }: { semana: Semana; resum
 
       <Cartao className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-primaria">Atividades programadas</h2>
-        <ul className="divide-y divide-borda">
-          {resumo.atividades.map((a) => {
-            const un = a.unidade ? ` ${a.unidade}` : "";
-            return (
-              <li key={a.id} className="flex flex-col gap-1 py-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-semibold text-texto">{a.descricao}</p>
-                  <Selo tom={TOM_SITUACAO[a.situacao]}>{ROTULO_SITUACAO[a.situacao]}</Selo>
-                </div>
-                <p className="text-sm text-texto">
-                  Meta {numeroBR(a.meta)}{un} · realizado {numeroBR(a.realizado)}{un} · saldo {numeroBR(a.saldo)}{un}
-                </p>
-                <p className="text-sm text-texto-suave">
-                  {resumoDias(a.dias)} · {ROTULO_PERIODO[a.periodo]} · {resumoEquipe(a.equipe)}
-                </p>
-                {encerrada && a.causa && <p className="text-sm text-texto-suave">Causa: {CAUSAS[a.causa]}</p>}
-              </li>
-            );
-          })}
-        </ul>
+        <GradeSemana atividades={resumo.atividades} encerrada={encerrada} />
       </Cartao>
 
       <Cartao className="flex flex-col gap-3">
