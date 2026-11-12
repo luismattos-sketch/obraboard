@@ -34,6 +34,7 @@ export type EntradaAtividadeProgramada = {
   dias: DiaSemana[];
   periodo: Periodo;
   equipe: EquipePrevista[];
+  responsavel_id?: string | null;
 };
 
 export const ERRO_DIAS_COM_EXECUCAO =
@@ -111,6 +112,7 @@ function atividadeDe(r: Record<string, unknown>, equipe: EquipePrevista[]): Ativ
     dias: ((r.dias as number[] | null) ?? []).map((d) => Number(d) as DiaSemana),
     periodo: r.periodo as Periodo,
     causa: (r.causa as Causa | null) ?? null,
+    responsavel_id: (r.responsavel_id as string | null) ?? null,
     equipe,
   };
 }
@@ -121,7 +123,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
   const [pa, tu] = await Promise.all([
     c
       .from("programacao_atividades")
-      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
+      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
       .eq("semana_id", semana.id),
     c
       .from("turnos")
@@ -269,6 +271,7 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
     dias: [...dias].sort((a, b) => a - b),
     periodo: d.periodo,
     equipe,
+    responsavel_id: typeof d.responsavel_id === "string" && d.responsavel_id ? d.responsavel_id : null,
   });
 }
 
@@ -381,6 +384,7 @@ export async function trazerDaProgramacao(c: SupabaseClient, turnoId: string): P
       unidade: a.unidade,
       qtd_planejada: qtd,
       programacao_atividade_id: a.id,
+      responsavel_id: a.responsavel_id,
     }));
   if (novas.length === 0) return ok({ adicionadas: 0 });
 

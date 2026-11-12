@@ -9,6 +9,7 @@ import {
   salvarClima,
   salvarEfetivo,
   salvarExecucao,
+  responsaveisDoTurno,
   salvarHorarioReal,
 } from "@/lib/db/campo";
 import { hashToken } from "@/lib/dominio/token";
@@ -144,5 +145,53 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect((await obterTurnoPorToken(A.token))?.clima.map((c) => c.periodo)).toEqual(["tarde"]);
     expect((await obterTurnoPorToken(B.token))?.clima).toHaveLength(1);
     expect(await removerClima(A.token, "dia" as never)).toMatchObject({ ok: false });
+  });
+  describe("por responsável", () => {
+    async function cenario(data: string) {
+      const T = await turnoLiberado(data, [10, 5]);
+      const admin = criarClienteAdmin();
+      const ana = (await admin.from("responsaveis").insert({ obra_id: obraId, nome: `Ana ${data}` }).select("id").single()).data!.id as string;
+      const bia = (await admin.from("responsaveis").insert({ obra_id: obraId, nome: `Bia ${data}` }).select("id").single()).data!.id as string;
+      await admin.from("atividades").update({ responsavel_id: ana }).eq("id", T.ids[0]);
+      await admin.from("atividades").update({ responsavel_id: bia }).eq("id", T.ids[1]);
+      return { ...T, ana, bia };
+    }
+    const lancadoPor = async (id: string) =>
+      (await criarClienteAdmin().from("atividades").select("lancado_por_id").eq("id", id).single()).data!.lancado_por_id;
+
+    it("campo com responsável salva só a sua equipe", { timeout: 60_000 }, async () => {
+      const c = await cenario("2026-12-10");
+      expect(await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, c.ana)).toEqual({ ok: false, erro: FORA });
+      expect(await salvarExecucao(c.token, c.ids[0], { qtd_realizada: 10, causa: null, observacao: null }, c.ana)).toEqual({ ok: true, dados: undefined });
+      expect(await lancadoPor(c.ids[0])).toBe(c.ana);
+      expect(await responsaveisDoTurno((await obterTurnoPorToken(c.token))!)).toEqual([
+        { id: c.ana, nome: "Ana 2026-12-10", ativo: true },
+        { id: c.bia, nome: "Bia 2026-12-10", ativo: true },
+      ]);
+    });
+
+    it("campo ver tudo", { timeout: 60_000 }, async () => {
+      const c = await cenario("2026-12-11");
+      expect((await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null })).ok).toBe(true);
+      expect(await lancadoPor(c.ids[1])).toBeNull();
+    });
+
+    it("efetivo do campo por equipe", { timeout: 60_000 }, async () => {
+      const c = await cenario("2026-12-12");
+      expect((await salvarEfetivo(c.token, [{ funcao: "Pedreiro", quantidade: 2 }], [], c.ana)).ok).toBe(true);
+      expect((await salvarEfetivo(c.token, [{ funcao: "Servente", quantidade: 1 }], [], c.bia)).ok).toBe(true);
+      const ef = (await obterTurnoPorToken(c.token))!.efetivo.map((e) => [e.funcao, e.responsavel_id]);
+      expect(ef).toHaveLength(2);
+      expect(ef).toContainEqual(["Pedreiro", c.ana]);
+    });
+
+    it("responsável de outra obra no campo", { timeout: 60_000 }, async () => {
+      const c = await cenario("2026-12-13");
+      const o2 = await criarObra(u.cliente, { nome: "Outra obra campo" });
+      if (!o2.ok) throw new Error(o2.erro);
+      const alheio = (await criarClienteAdmin().from("responsaveis").insert({ obra_id: o2.dados.id, nome: "Zé" }).select("id").single()).data!.id as string;
+      expect((await salvarExecucao(c.token, c.ids[0], { qtd_realizada: 1, causa: null, observacao: null }, alheio)).ok).toBe(false);
+      expect((await salvarEfetivo(c.token, [{ funcao: "Pedreiro", quantidade: 1 }], [], alheio)).ok).toBe(false);
+    });
   });
 });

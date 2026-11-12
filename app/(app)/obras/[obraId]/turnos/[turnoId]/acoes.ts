@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import {
   adicionarAtividade,
+  definirResponsavel,
   editarAtividade,
   moverAtividade,
   removerAtividade,
@@ -24,6 +25,12 @@ const texto = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
 function atualizar() {
   revalidatePath("/obras/[obraId]/turnos/[turnoId]", "page");
+}
+
+export async function definirResponsavelAcao(atividadeId: string, responsavelId: string | null): Promise<Resultado> {
+  const r = await definirResponsavel(await criarClienteServidor(), atividadeId, responsavelId);
+  if (r.ok) atualizar();
+  return r;
 }
 
 const CAMPOS_FORM = ["descricao", "local", "unidade", "qtd_planejada"] as const;

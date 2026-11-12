@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { saldoPendente, statusAtividade } from "@/lib/dominio/calculos";
 import { compararTurnos } from "@/lib/dominio/regras";
 import type { AtividadeExec, Causa } from "@/lib/dominio/tipos";
-import { ERRO_FECHADO_PLANEJADOR, erroBanco } from "./mensagens";
+import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { COLUNAS_TURNO, type Turno } from "./turnos";
 import { causaValida, errosDeTamanho, falhaCampos, LIMITES, QTD_PLANEJADA_MAX } from "./validacao";
@@ -15,10 +15,14 @@ export type Atividade = AtividadeExec & {
   origem_id: string | null;
   /** Ligação com a atividade da programação semanal; null = avulsa (extra, se a semana estiver programada). */
   programacao_atividade_id: string | null;
+  /** Quem assume a atividade no turno (null = "Sem responsável"). */
+  responsavel_id: string | null;
+  /** Quem salvou a execução pelo link de campo por último (null = "Ver tudo" ou planejador). */
+  lancado_por_id: string | null;
 };
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 const ERRO_QTD_MAX = "Quantidade deve ser no máximo 1.000.000.000";
@@ -55,6 +59,8 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     observacao: (r.observacao as string | null) ?? null,
     origem_id: (r.origem_id as string | null) ?? null,
     programacao_atividade_id: (r.programacao_atividade_id as string | null) ?? null,
+    responsavel_id: (r.responsavel_id as string | null) ?? null,
+    lancado_por_id: (r.lancado_por_id as string | null) ?? null,
   };
 }
 
@@ -133,6 +139,23 @@ export type CamposEditaveis = Partial<
   Pick<Atividade, "descricao" | "local" | "unidade" | "qtd_planejada" | "qtd_realizada" | "causa" | "observacao">
 >;
 
+/** Troca o responsável da atividade (turno não fechado; o banco confere que é da mesma obra). */
+export async function definirResponsavel(
+  c: SupabaseClient,
+  atividadeId: string,
+  responsavelId: string | null,
+): Promise<Resultado> {
+  const a = await atividadeEditavel(c, atividadeId);
+  if (!a.ok) return a;
+  const { error } = await c.from("atividades").update({ responsavel_id: responsavelId }).eq("id", atividadeId);
+  if (error) {
+    if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
+    console.error("definirResponsavel:", error.message);
+    return erroGravacao(error, "Não foi possível trocar o responsável.");
+  }
+  return ok(undefined);
+}
+
 export async function editarAtividade(
   c: SupabaseClient,
   atividadeId: string,
@@ -196,7 +219,7 @@ export async function moverAtividade(
   if (!a.ok) return a;
   const { data, error } = await c
     .from("atividades")
-    .select("id, ordem")
+    .select("id, ordem, responsavel_id")
     .eq("turno_id", a.dados.turno_id)
     .order("ordem")
     .order("created_at");
@@ -204,10 +227,14 @@ export async function moverAtividade(
     console.error("moverAtividade:", error?.message);
     return falha("Não foi possível reordenar.");
   }
-  const lista = data.map((r) => ({ id: r.id as string, ordem: Number(r.ordem) }));
+  const lista = data.map((r) => ({ id: r.id as string, ordem: Number(r.ordem), resp: (r.responsavel_id as string | null) ?? null }));
   const i = lista.findIndex((r) => r.id === atividadeId);
-  const j = direcao === "cima" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= lista.length) return ok(undefined);
+  if (i < 0) return ok(undefined);
+  // A lista é exibida agrupada por responsável: troca com a vizinha mais próxima da MESMA equipe.
+  const passo = direcao === "cima" ? -1 : 1;
+  let j = i + passo;
+  while (j >= 0 && j < lista.length && lista[j].resp !== lista[i].resp) j += passo;
+  if (j < 0 || j >= lista.length) return ok(undefined);
   [lista[i], lista[j]] = [lista[j], lista[i]];
   // Renumera a lista inteira para 0..n-1 (corrige lacunas e duplicatas), gravando só o que mudou.
   for (let k = 0; k < lista.length; k++) {
@@ -269,6 +296,7 @@ export async function trazerPendentes(
       causa: null,
       observacao: null,
       origem_id: a.id,
+      responsavel_id: a.responsavel_id,
     }));
   if (novas.length === 0) return ok({ adicionadas: 0 });
 

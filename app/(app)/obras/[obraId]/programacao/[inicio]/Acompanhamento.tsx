@@ -5,12 +5,13 @@ import {
   type ResumoSemana,
   type Semana,
 } from "@/lib/dominio/programacao";
+import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { FormEncerrar } from "./FormEncerrar";
 import { FormReabrir } from "./FormReabrir";
 import { GradeSemana } from "./GradeSemana";
 import { PrevistoReal } from "./PrevistoReal";
 
-export function Acompanhamento({ semana, resumo, hoje }: { semana: Semana; resumo: ResumoSemana; hoje: string }) {
+export function Acompanhamento({ semana, resumo, hoje, responsaveis }: { semana: Semana; resumo: ResumoSemana; hoje: string; responsaveis: ResponsavelRef[] }) {
   const encerrada = semana.status === "encerrada";
   const { ppc } = resumo;
   const naoCumpridas = resumo.atividades.filter((a) => a.situacao !== "cumprida");
@@ -30,7 +31,7 @@ export function Acompanhamento({ semana, resumo, hoje }: { semana: Semana; resum
 
       <Cartao className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-primaria">Atividades programadas</h2>
-        <GradeSemana atividades={resumo.atividades} encerrada={encerrada} />
+        <GradeSemana atividades={resumo.atividades} encerrada={encerrada} responsaveis={responsaveis} />
       </Cartao>
 
       <Cartao className="flex flex-col gap-3">

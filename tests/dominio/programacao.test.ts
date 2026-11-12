@@ -23,7 +23,7 @@ import {
 const INICIO = "2026-11-09";
 
 const ativ = (p: Partial<AtividadeProgramada> = {}): AtividadeProgramada => ({
-  id: "a1", ordem: 0, descricao: "Montar tubulação", local: null, unidade: "m", meta: 10,
+  id: "a1", ordem: 0, descricao: "Montar tubulação", local: null, unidade: "m", meta: 10, responsavel_id: null,
   dias: [0, 1], periodo: "diurno", causa: null, equipe: [], ...p,
 });
 

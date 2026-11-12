@@ -25,7 +25,7 @@ export type Turno = {
   enviado_em: string | null;
   fechado_em: string | null;
 };
-export type Efetivo = { id: string; turno_id: string; funcao: string; quantidade: number };
+export type Efetivo = { id: string; turno_id: string; funcao: string; quantidade: number; responsavel_id: string | null };
 export type Clima = { turno_id: string; periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
 export type TurnoCompleto = Turno & { obra: Obra; atividades: Atividade[]; efetivo: Efetivo[]; clima: Clima[] };
 export type TurnoComAtividades = Turno & {
@@ -109,7 +109,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at), atividades(*), efetivo(id, turno_id, funcao, quantidade), clima(turno_id, periodo, condicao, impediu)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at), atividades(*), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -263,7 +263,7 @@ export async function aplicarAcao(
     if (b === "motivo_obrigatorio") return falha(ERRO_MOTIVO);
     if (b === "motivo_repetido") return falha(ERRO_MOTIVO_REPETIDO);
     console.error("aplicarAcao:", error.message);
-    return falha("Não foi possível atualizar o turno.");
+    return falha(acao === "liberar" ? "Não foi possível liberar o turno. Tente de novo." : "Não foi possível atualizar o turno.");
   }
   if (!data || data.length === 0) return falha(MSG_CONCORRENCIA);
   return ok(token ? { status: t.novo, token } : { status: t.novo });

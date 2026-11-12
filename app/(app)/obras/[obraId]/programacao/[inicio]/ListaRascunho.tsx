@@ -6,16 +6,21 @@ import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { numeroBR } from "@/lib/dominio/formato";
 import { resumoDias, resumoEquipe, type AtividadeProgramada } from "@/lib/dominio/programacao";
+import { contarSemResponsavel, textoSemResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { programarSemanaAcao, removerAtividadeProgramadaAcao, type EstadoSemana } from "./acoes";
 import { FormAtividadeProgramada } from "./FormAtividadeProgramada";
 
-function ItemRascunho({ semanaId, atividade: a, sugestoesFuncao }: { semanaId: string; atividade: AtividadeProgramada; sugestoesFuncao: string[] }) {
+type Comum = { semanaId: string; obraId: string; responsaveis: ResponsavelRef[]; sugestoesFuncao: string[] };
+
+function ItemRascunho({ atividade: a, ...comum }: Comum & { atividade: AtividadeProgramada }) {
+  const { responsaveis } = comum;
+  const nome = a.responsavel_id ? responsaveis.find((r) => r.id === a.responsavel_id)?.nome : null;
   const [editando, setEditando] = useState(false);
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(removerAtividadeProgramadaAcao, null);
   if (editando) {
     return (
       <li className="py-3">
-        <FormAtividadeProgramada semanaId={semanaId} atividade={a} sugestoesFuncao={sugestoesFuncao} aoConcluir={() => setEditando(false)} />
+        <FormAtividadeProgramada {...comum} atividade={a} aoConcluir={() => setEditando(false)} />
       </li>
     );
   }
@@ -28,6 +33,7 @@ function ItemRascunho({ semanaId, atividade: a, sugestoesFuncao }: { semanaId: s
           {a.local ? ` · ${a.local}` : ""}
         </p>
         <p className="text-sm text-texto-suave">{resumoEquipe(a.equipe)}</p>
+        <p className="text-sm text-texto-suave">Responsável: {nome ?? "sem responsável"}</p>
       </div>
       <div className="flex gap-2">
         <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={() => setEditando(true)}>
@@ -50,15 +56,9 @@ function ItemRascunho({ semanaId, atividade: a, sugestoesFuncao }: { semanaId: s
   );
 }
 
-export function ListaRascunho({
-  semanaId,
-  atividades,
-  sugestoesFuncao,
-}: {
-  semanaId: string;
-  atividades: AtividadeProgramada[];
-  sugestoesFuncao: string[];
-}) {
+export function ListaRascunho({ atividades, ...comum }: Comum & { atividades: AtividadeProgramada[] }) {
+  const { semanaId } = comum;
+  const semResponsavel = textoSemResponsavel(contarSemResponsavel(atividades));
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(programarSemanaAcao, null);
   return (
     <div className="flex flex-col gap-4">
@@ -69,7 +69,7 @@ export function ListaRascunho({
         ) : (
           <ul className="divide-y divide-borda">
             {atividades.map((a) => (
-              <ItemRascunho key={a.id} semanaId={semanaId} atividade={a} sugestoesFuncao={sugestoesFuncao} />
+              <ItemRascunho key={a.id} {...comum} atividade={a} />
             ))}
           </ul>
         )}
@@ -77,11 +77,12 @@ export function ListaRascunho({
 
       <Cartao>
         <h2 className="mb-3 text-lg font-semibold text-primaria">Nova atividade</h2>
-        <FormAtividadeProgramada key={atividades.length} semanaId={semanaId} sugestoesFuncao={sugestoesFuncao} />
+        <FormAtividadeProgramada key={atividades.length} {...comum} />
       </Cartao>
 
       <form action={action} className="flex flex-col gap-2">
         <input type="hidden" name="semana_id" value={semanaId} />
+        {semResponsavel && <Aviso tom="info">{semResponsavel}</Aviso>}
         <Botao type="submit" variante="destaque" carregando={pendente}>
           Programar semana
         </Botao>

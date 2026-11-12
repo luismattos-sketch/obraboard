@@ -8,17 +8,23 @@ import { parseNumero } from "@/lib/dominio/entrada";
 import { numeroBR } from "@/lib/dominio/formato";
 import { canonizarFuncao, ROTULO_DIAS, sugestaoDoDia, type AtividadeProgramada, type DiaSemana } from "@/lib/dominio/programacao";
 import type { Periodo } from "@/lib/dominio/tipos";
+import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
+import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { salvarAtividadeProgramadaAcao, type EstadoSemana } from "./acoes";
 
 type Linha = { funcao: string; quantidade: string };
 
 export function FormAtividadeProgramada({
   semanaId,
+  obraId,
+  responsaveis,
   atividade,
   sugestoesFuncao,
   aoConcluir,
 }: {
   semanaId: string;
+  obraId: string;
+  responsaveis: ResponsavelRef[];
   atividade?: AtividadeProgramada;
   /** Funções já usadas na obra + padrão (evita duas grafias da mesma função). */
   sugestoesFuncao: string[];
@@ -32,6 +38,7 @@ export function FormAtividadeProgramada({
   const [meta, setMeta] = useState(atividade ? String(atividade.meta).replace(".", ",") : "");
   const [dias, setDias] = useState<DiaSemana[]>(atividade?.dias ?? []);
   const [periodo, setPeriodo] = useState<Periodo>(atividade?.periodo ?? "diurno");
+  const [responsavel, setResponsavel] = useState<string | null>(atividade?.responsavel_id ?? null);
   const [equipe, setEquipe] = useState<Linha[]>(
     atividade?.equipe.length
       ? atividade.equipe.map((e) => ({ funcao: e.funcao, quantidade: String(e.quantidade) }))
@@ -104,6 +111,9 @@ export function FormAtividadeProgramada({
           ))}
         </div>
       </fieldset>
+
+      <input type="hidden" name="responsavel_id" value={responsavel ?? ""} />
+      <MenuResponsavel obraId={obraId} responsaveis={responsaveis} valor={responsavel} aoMudar={setResponsavel} />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium text-texto">Equipe prevista</legend>

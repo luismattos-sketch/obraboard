@@ -4,6 +4,7 @@ import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
 import { dadosOficiais, obterSemana, sugestoesFuncaoDaObra } from "@/lib/db/programacao";
+import { listarResponsaveis } from "@/lib/db/responsaveis";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData } from "@/lib/dominio/formato";
@@ -64,20 +65,21 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
     );
   }
 
-  const [dados, sugestoesFuncao] = await Promise.all([
+  const [dados, sugestoesFuncao, responsaveis] = await Promise.all([
     dadosOficiais(supabase, semana),
     semana.status === "rascunho"
       ? sugestoesFuncaoDaObra(supabase, obra.id).catch(() => [...FUNCOES_SUGERIDAS])
       : Promise.resolve([]),
+    listarResponsaveis(supabase, obra.id),
   ]);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {cabecalho}
       {semana.status === "rascunho" ? (
-        <ListaRascunho semanaId={semana.id} atividades={dados.atividades} sugestoesFuncao={sugestoesFuncao} />
+        <ListaRascunho semanaId={semana.id} obraId={obra.id} responsaveis={responsaveis} atividades={dados.atividades} sugestoesFuncao={sugestoesFuncao} />
       ) : (
-        <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} />
+        <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} responsaveis={responsaveis} />
       )}
     </div>
   );

@@ -4,12 +4,17 @@ import { Expansivel } from "@/components/ui/Expansivel";
 import { rotuloAtor, rotuloEvento, type EventoTurno } from "@/lib/dominio/eventos";
 import { dataHoraCurta } from "@/lib/rdo/formatar";
 
-type Props = { eventos: EventoTurno[] | null; versoes: { id: string; numero: number }[] };
+type Props = {
+  eventos: EventoTurno[] | null;
+  versoes: { id: string; numero: number }[];
+  /** Página da foto do check-in (null = turno liberado antes do registro oficial). */
+  checkinHref?: string | null;
+};
 
 export const NOTA_INICIO = "Histórico registrado a partir de 10/11/2026";
 
 /** Linha do tempo dos marcos do turno (recolhida). `eventos = null` indica falha de leitura. */
-export function HistoricoTurno({ eventos, versoes }: Props) {
+export function HistoricoTurno({ eventos, versoes, checkinHref = null }: Props) {
   if (eventos === null) {
     return <Aviso tom="perigo">Não foi possível carregar o histórico.</Aviso>;
   }
@@ -31,6 +36,12 @@ export function HistoricoTurno({ eventos, versoes }: Props) {
                       {`${hora} · Fechado · `}
                       <a href={`/api/rdo/versao/${versao.id}`} className="text-operacional underline">{`RDO v${versao.numero}`}</a>
                       {` emitido · ${ator}`}
+                    </span>
+                  ) : e.tipo === "liberado" && checkinHref ? (
+                    <span>
+                      {`${hora} · `}
+                      <a href={checkinHref} className="text-operacional underline">Check-in registrado</a>
+                      {` · ${ator}`}
                     </span>
                   ) : (
                     <span>{`${hora} · ${rotuloEvento(e)} · ${ator}`}</span>

@@ -1,5 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 import type { TurnoCompleto } from "@/lib/db/turnos";
+import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { ResumoTurno } from "@/lib/dominio/resumo";
 import { CAUSAS, CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
@@ -118,7 +119,7 @@ export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo:
     <View wrap={false}>
       <Text style={s.secao}>Efetivo</Text>
       {turno.efetivo.length === 0 && <Text style={s.suave}>Nenhum efetivo informado.</Text>}
-      {turno.efetivo.map((e) => <Par key={e.id} a={e.funcao} b={String(e.quantidade)} />)}
+      {somarEfetivoPorFuncao(turno.efetivo).map((e) => <Par key={e.funcao} a={e.funcao} b={String(e.quantidade)} />)}
       <Par a="Total" b={String(resumo.efetivoTotal)} forte />
 
       <Text style={s.secao}>Clima</Text>

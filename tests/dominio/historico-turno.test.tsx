@@ -33,7 +33,7 @@ describe("HistoricoTurno", () => {
     const html = renderToStaticMarkup(
       <HistoricoTurno eventos={[ev({}), ev({ id: "4", tipo: "enviado", atorTipo: "encarregado", atorNome: null })]} versoes={[]} />,
     );
-    expect(html).toContain("Enviado pelo campo · Encarregado (link de campo)");
+    expect(html).toContain("Enviado pelo campo · Equipe de campo (link)");
   });
 
   it("turno anterior à H2 mostra a nota", () => {
@@ -46,5 +46,13 @@ describe("HistoricoTurno", () => {
     expect(vazio).toContain("Histórico (0)");
     expect(vazio).toContain("Histórico registrado a partir de 10/11/2026");
     expect(renderToStaticMarkup(<HistoricoTurno eventos={null} versoes={[]} />)).toContain("Não foi possível carregar o histórico");
+  });
+
+  it("liberado vira \"Check-in registrado\" com link para a foto", () => {
+    const html = renderToStaticMarkup(
+      <HistoricoTurno eventos={[ev({}), ev({ id: "5", tipo: "liberado" })]} versoes={[]} checkinHref="/obras/o/turnos/t/checkin" />,
+    );
+    expect(html).toMatch(/Check-in registrado/);
+    expect(html).toContain(`href="/obras/o/turnos/t/checkin"`);
   });
 });

@@ -4,18 +4,26 @@ import { classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
+import { listarResponsaveis } from "@/lib/db/responsaveis";
+import { temLinkQuadro } from "@/lib/db/quadro";
 import { listarTurnosComAtividades } from "@/lib/db/turnos";
 import { percentualCumprimento } from "@/lib/dominio/calculos";
 import { formatarData, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { LinkQuadro } from "./LinkQuadro";
+import { Responsaveis } from "./Responsaveis";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
   const supabase = await criarClienteServidor();
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
-  const turnos = await listarTurnosComAtividades(supabase, obraId);
+  const [turnos, responsaveis, linkQuadro] = await Promise.all([
+    listarTurnosComAtividades(supabase, obraId),
+    listarResponsaveis(supabase, obraId),
+    temLinkQuadro(supabase, obraId),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -25,7 +33,10 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           {obra.cliente && <p className="text-sm text-texto-suave">{obra.cliente}</p>}
         </div>
         {/* Programação, RDOs e Análise ficam no menu lateral; aqui só a ação do dia a dia. */}
-        <Link href={`/obras/${obra.id}/turnos/novo`} className={`${classesBotao()} shrink-0`}>Novo turno</Link>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <Link href={`/obras/${obra.id}/quadro`} className={classesBotao("secundario")}>Quadro</Link>
+          <Link href={`/obras/${obra.id}/turnos/novo`} className={classesBotao()}>Novo turno</Link>
+        </div>
       </div>
 
       {turnos.length === 0 ? (
@@ -60,6 +71,9 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           })}
         </ul>
       )}
+
+      <Responsaveis obraId={obra.id} responsaveis={responsaveis} />
+      <LinkQuadro obraId={obra.id} existe={linkQuadro} />
     </div>
   );
 }

@@ -42,6 +42,6 @@ export function rotuloEvento(e: Pick<EventoTurno, "tipo" | "versao">): string {
 }
 
 export function rotuloAtor(e: Pick<EventoTurno, "atorTipo" | "atorNome">): string {
-  if (e.atorTipo === "encarregado") return "Encarregado (link de campo)";
+  if (e.atorTipo === "encarregado") return "Equipe de campo (link)";
   return e.atorNome ?? "—";
 }

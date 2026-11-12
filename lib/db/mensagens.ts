@@ -8,6 +8,8 @@ export const ERRO_FECHADO_CAMPO = "Este turno não está aberto para lançamento
 export { ERRO_CAUSA_PENDENTE } from "@/lib/dominio/regras";
 export const ERRO_EFETIVO_CONFLITO = "O efetivo foi alterado por outra pessoa. Recarregue a página.";
 export const ERRO_SO_PLANEJADO = "Só é possível alterar turnos planejados.";
+export const ERRO_RESPONSAVEL_DUPLICADO = "Já existe um responsável com esse nome nesta obra.";
+export const ERRO_RESPONSAVEL_INVALIDO = "Responsável inválido para esta obra.";
 
 /** Exceções de negócio levantadas pelos triggers/funções do banco (P0001 + mensagem fixa). */
 export type ErroBanco =
@@ -21,7 +23,8 @@ export type ErroBanco =
   | "programacao_vazia"
   | "atividade_com_execucao"
   | "programacao_incompativel"
-  | "transicao_invalida";
+  | "transicao_invalida"
+  | "responsavel_invalido";
 
 const CONHECIDOS: readonly ErroBanco[] = [
   "turno_fechado",
@@ -35,6 +38,7 @@ const CONHECIDOS: readonly ErroBanco[] = [
   "atividade_com_execucao",
   "programacao_incompativel",
   "transicao_invalida",
+  "responsavel_invalido",
 ];
 
 export function erroBanco(error: { code?: string; message?: string } | null | undefined): ErroBanco | null {

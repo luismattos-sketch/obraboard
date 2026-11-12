@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { canonizarFuncao, funcoesDaProgramacao, unirFuncoes, type AtividadeProgramada } from "@/lib/dominio/programacao";
 
 const ativ = (p: Partial<AtividadeProgramada> = {}): AtividadeProgramada => ({
-  id: "a1", ordem: 0, descricao: "x", local: null, unidade: "m", meta: 10,
+  id: "a1", ordem: 0, descricao: "x", local: null, unidade: "m", meta: 10, responsavel_id: null,
   dias: [0], periodo: "diurno", causa: null, equipe: [], ...p,
 });
 
