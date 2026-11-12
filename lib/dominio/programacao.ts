@@ -29,6 +29,7 @@ export type AtividadeProgramada = {
   dias: DiaSemana[];
   periodo: Periodo;
   causa: Causa | null;
+  responsavel_id: string | null;
   equipe: EquipePrevista[];
 };
 

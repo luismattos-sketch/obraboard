@@ -11,6 +11,7 @@ import {
   type DiaSemana,
   type Situacao,
 } from "@/lib/dominio/programacao";
+import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { CAUSAS, type Periodo } from "@/lib/dominio/tipos";
 
 const COR_BARRA: Record<Situacao, string> = {
@@ -30,7 +31,8 @@ function Linha({ colunas, rotulo, children }: { colunas: number; rotulo: ReactNo
   );
 }
 
-export function GradeSemana({ atividades, encerrada }: { atividades: AtividadeResumida[]; encerrada: boolean }) {
+export function GradeSemana({ atividades, encerrada, responsaveis }: { atividades: AtividadeResumida[]; encerrada: boolean; responsaveis: ResponsavelRef[] }) {
+  const nomeDe = (id: string | null | undefined) => (id ? responsaveis.find((r) => r.id === id)?.nome ?? null : null);
   const grade = gradeSemana(atividades);
   const n = grade.dias.length;
   const marcado = (a: AtividadeResumida, d: DiaSemana | undefined) => d !== undefined && a.dias.includes(d);
@@ -55,7 +57,10 @@ export function GradeSemana({ atividades, encerrada }: { atividades: AtividadeRe
               <p className="text-sm text-texto">
                 Meta {numeroBR(a.meta)}{un} · realizado {numeroBR(a.realizado)}{un} · saldo {numeroBR(a.saldo)}{un}
               </p>
-              <p className="text-sm text-texto-suave">{resumoEquipe(a.equipe)}</p>
+              <p className="text-sm text-texto-suave">
+                {resumoEquipe(a.equipe)}
+                {nomeDe(a.responsavel_id) && <span className="text-xs"> · {nomeDe(a.responsavel_id)}</span>}
+              </p>
               {encerrada && a.causa && <p className="text-sm text-texto-suave">Causa: {CAUSAS[a.causa]}</p>}
               <div className="mt-1 flex flex-col gap-0.5">
                 {grade.periodos.map((p) => (

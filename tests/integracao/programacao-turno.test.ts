@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { removerAtividade, trazerPendentes } from "@/lib/db/atividades";
 import { criarObra } from "@/lib/db/obras";
+import { criarResponsavel } from "@/lib/db/responsaveis";
 import {
   criarRascunho,
   programarSemana,
@@ -108,5 +109,20 @@ describe.skipIf(!ligado)("programação chega ao turno", () => {
       ok: false,
       erro: "Este turno tem atividades da programação. Remova-as antes de mudar a data ou o período.",
     });
+  });
+
+  it("trazer da programação copia o responsável", { timeout: 60_000 }, async () => {
+    const obra = exigir(await criarObra(u.cliente, { nome: "Obra Prog Resp" }));
+    const resp = exigir(await criarResponsavel(u.cliente, obra.id, { nome: "Ana" }));
+    const semana = exigir(await criarRascunho(u.cliente, obra.id, "2026-11-09"));
+    const { id: progId } = exigir(await salvarAtividadeProgramada(u.cliente, semana.id, { ...ENTRADA, responsavel_id: resp.id }));
+    exigir(await programarSemana(u.cliente, semana.id));
+    const seg = exigir(await turno(obra.id, "2026-11-09"));
+    const { data } = await u.cliente.from("atividades").select("id, responsavel_id").eq("turno_id", seg.id);
+    expect(data).toEqual([expect.objectContaining({ responsavel_id: resp.id })]);
+
+    await u.cliente.from("atividades").update({ responsavel_id: null }).eq("id", data![0].id);
+    const { data: prog } = await u.cliente.from("programacao_atividades").select("responsavel_id").eq("id", progId).single();
+    expect(prog!.responsavel_id).toBe(resp.id);
   });
 });

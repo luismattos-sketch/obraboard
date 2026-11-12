@@ -44,6 +44,7 @@ export async function salvarAtividadeProgramadaAcao(_: EstadoSemana, form: FormD
       dias: form.getAll("dias").map((d) => Number(d) as DiaSemana),
       periodo: texto(form, "periodo") as Periodo,
       equipe,
+      responsavel_id: texto(form, "responsavel_id") || null,
     },
     id,
   );
