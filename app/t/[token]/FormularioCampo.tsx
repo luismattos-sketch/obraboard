@@ -24,7 +24,7 @@ export type DadosTurnoCampo = {
   clima: Clima[];
 };
 
-export function FormularioCampo({ token, turno }: { token: string; turno: DadosTurnoCampo }) {
+export function FormularioCampo({ token, turno, opcoesFuncao }: { token: string; turno: DadosTurnoCampo; opcoesFuncao: string[] }) {
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
   const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
@@ -67,6 +67,7 @@ export function FormularioCampo({ token, turno }: { token: string; turno: DadosT
       />
       <BlocoEfetivo
         inicial={turno.efetivo}
+        opcoes={opcoesFuncao}
         somenteLeitura={somenteLeitura}
         salvar={(l, esperado) => salvarEfetivo(token, l, esperado)}
       />

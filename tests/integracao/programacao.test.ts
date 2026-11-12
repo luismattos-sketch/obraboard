@@ -8,14 +8,17 @@ import {
   listarSemanasComResumo,
   obterDadosSemana,
   obterSemana,
+  opcoesFuncaoDoTurno,
   programarSemana,
   reabrirSemana,
   removerAtividadeProgramada,
   salvarAtividadeProgramada,
+  sugestoesFuncaoDaObra,
   type EntradaAtividadeProgramada,
 } from "@/lib/db/programacao";
 import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO } from "@/lib/dominio/eventos";
 import { resumirSemana } from "@/lib/dominio/programacao";
+import { FUNCOES_SUGERIDAS } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
@@ -60,6 +63,24 @@ describe.skipIf(!ligado)("camada de dados da programação", () => {
     }
     return t.id as string;
   }
+
+  it("opções de função do turno vêm da programação (dia/período primeiro) e as sugestões ficam na obra", async () => {
+    const { obraId, semana } = await semanaNova();
+    exigir(await salvarAtividadeProgramada(u.cliente, semana.id, ENTRADA)); // seg e ter, diurno
+    exigir(await salvarAtividadeProgramada(u.cliente, semana.id, {
+      ...ENTRADA, descricao: "Pintura", dias: [2], equipe: [{ funcao: "Pintor Industrial", quantidade: 1 }],
+    }));
+    // Segunda diurno: as da tubulação primeiro, depois as do resto da semana
+    expect(await opcoesFuncaoDoTurno(u.cliente, obraId, "2026-11-09", "diurno")).toEqual(["Caldeireiro", "Ajudante", "Pintor Industrial"]);
+    // Semana sem rascunho: sugeridas padrão
+    expect(await opcoesFuncaoDoTurno(u.cliente, obraId, "2026-12-07", "diurno")).toEqual([...FUNCOES_SUGERIDAS]);
+
+    const sug = await sugestoesFuncaoDaObra(u.cliente, obraId);
+    expect(sug.slice(0, 3)).toEqual(["Ajudante", "Caldeireiro", "Pintor Industrial"]);
+    // Outra obra não enxerga as funções desta
+    const outra = exigir(await criarObra(u.cliente, { nome: "Obra Sem Prog" }));
+    expect(await sugestoesFuncaoDaObra(u.cliente, outra.id)).not.toContain("Pintor Industrial");
+  });
 
   it("criarRascunho converte para a segunda e é idempotente", async () => {
     const { obraId, semana } = await semanaNova();

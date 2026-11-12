@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
-import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken } from "@/lib/db/campo";
+import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo } from "@/lib/db/campo";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 
@@ -25,6 +25,8 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
     );
   }
 
+  const opcoesFuncao = await opcoesFuncaoCampo(turno);
+
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6">
       <header>
@@ -37,6 +39,7 @@ export default async function PaginaCampo({ params }: { params: Promise<{ token:
       {turno.status === "planejado" && <Aviso tom="alerta">{ERRO_FECHADO}</Aviso>}
       <FormularioCampo
         token={token}
+        opcoesFuncao={opcoesFuncao}
         turno={{
           status: turno.status,
           hora_inicio_real: turno.hora_inicio_real,

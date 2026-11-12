@@ -187,6 +187,31 @@ export function normalizarFuncao(texto: string): string {
   return texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/** Junta listas de funções sem repetir grafias equivalentes (vale a primeira que aparecer). */
+export function unirFuncoes(...listas: string[][]): string[] {
+  const vistas = new Map<string, string>();
+  for (const lista of listas) {
+    for (const f of lista) {
+      const chave = normalizarFuncao(f);
+      if (chave && !vistas.has(chave)) vistas.set(chave, f.trim().replace(/\s+/g, " "));
+    }
+  }
+  return [...vistas.values()];
+}
+
+/** Funções da equipe prevista: primeiro as do dia/período do turno, depois as do resto da semana. */
+export function funcoesDaProgramacao(atividades: AtividadeProgramada[], dia: DiaSemana | null, periodo: Periodo): string[] {
+  const doTurno = atividades.filter((a) => dia !== null && a.periodo === periodo && a.dias.includes(dia));
+  const nomes = (as: AtividadeProgramada[]) => as.flatMap((a) => a.equipe.map((e) => e.funcao));
+  return unirFuncoes(nomes(doTurno), nomes(atividades));
+}
+
+/** Usa a grafia já cadastrada quando o texto é a mesma função (acento, maiúscula, espaços). */
+export function canonizarFuncao(texto: string, opcoes: string[]): string {
+  const chave = normalizarFuncao(texto);
+  return opcoes.find((o) => normalizarFuncao(o) === chave) ?? texto.trim().replace(/\s+/g, " ");
+}
+
 type Acumulado = Map<string, { funcao: string; previsto: number; real: number }>;
 
 function somar(acc: Acumulado, linhas: EquipePrevista[], lado: "previsto" | "real") {

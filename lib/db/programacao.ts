@@ -4,6 +4,8 @@ import { validarMotivo } from "@/lib/dominio/eventos";
 import {
   dataDoDia,
   diaDaSemana,
+  funcoesDaProgramacao,
+  unirFuncoes,
   realizadoAte,
   resumirSemana,
   rotuloTurnosAbertos,
@@ -18,7 +20,7 @@ import {
   type TurnoDaSemana,
   sugestaoDoDia,
 } from "@/lib/dominio/programacao";
-import type { Causa, Periodo } from "@/lib/dominio/tipos";
+import { FUNCOES_SUGERIDAS, type Causa, type Periodo } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
 import { erroBanco, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
@@ -433,4 +435,42 @@ export async function listarProgramadasParaAnalise(
       };
     }),
   );
+}
+
+/**
+ * Opções de função para o efetivo do turno: as da equipe prevista na semana (as do dia/período do turno
+ * primeiro). Sem programação com equipe, volta às funções sugeridas padrão.
+ */
+export async function opcoesFuncaoDoTurno(c: SupabaseClient, obraId: string, data: string, periodo: Periodo): Promise<string[]> {
+  const semana = await semanaDoTurno(c, obraId, data);
+  if (!semana) return [...FUNCOES_SUGERIDAS];
+  const { data: linhas, error } = await c
+    .from("programacao_atividades")
+    .select("dias, periodo, programacao_efetivo(funcao)")
+    .eq("semana_id", semana.id);
+  if (error) {
+    console.error("opcoesFuncaoDoTurno:", error.message);
+    throw new Error(`opcoesFuncaoDoTurno: ${error.message}`);
+  }
+  const atividades = (linhas ?? []).map((r) => ({
+    dias: ((r.dias as number[] | null) ?? []).map(Number) as DiaSemana[],
+    periodo: r.periodo as Periodo,
+    equipe: ((r.programacao_efetivo as { funcao: string }[] | null) ?? []).map((e) => ({ funcao: e.funcao, quantidade: 1 })),
+  })) as AtividadeProgramada[];
+  const funcoes = funcoesDaProgramacao(atividades, diaDaSemana(semana.inicio, data), periodo);
+  return funcoes.length > 0 ? funcoes : [...FUNCOES_SUGERIDAS];
+}
+
+/** Sugestões de função na programação: as já usadas nas programações da obra, depois as padrão. */
+export async function sugestoesFuncaoDaObra(c: SupabaseClient, obraId: string): Promise<string[]> {
+  const { data, error } = await c
+    .from("programacao_efetivo")
+    .select("funcao, programacao_atividades!inner(semanas!inner(obra_id))")
+    .eq("programacao_atividades.semanas.obra_id", obraId);
+  if (error) {
+    console.error("sugestoesFuncaoDaObra:", error.message);
+    throw new Error(`sugestoesFuncaoDaObra: ${error.message}`);
+  }
+  const usadas = (data ?? []).map((r) => r.funcao as string).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  return unirFuncoes(usadas, [...FUNCOES_SUGERIDAS]);
 }
