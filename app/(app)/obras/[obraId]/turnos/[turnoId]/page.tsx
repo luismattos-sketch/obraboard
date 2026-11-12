@@ -5,6 +5,7 @@ import { listarEventos } from "@/lib/db/eventos";
 import { opcoesFuncaoDoTurno, semanaDoTurno } from "@/lib/db/programacao";
 import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { listarResponsaveis } from "@/lib/db/responsaveis";
+import { fotoCheckin } from "@/lib/db/quadro";
 import { classesBotao } from "@/components/ui/Botao";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
@@ -34,6 +35,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const semanaStatus = semana?.status ?? null;
   const opcoesFuncao = await opcoesFuncaoDoTurno(supabase, obraId, turno.data, turno.periodo).catch(() => [...FUNCOES_SUGERIDAS]);
   const responsaveis = (await listarResponsaveis(supabase, obraId)).map(({ id, nome, ativo }) => ({ id, nome, ativo }));
+  const temFoto = turno.status !== "planejado" && (await fotoCheckin(supabase, turno.id).catch(() => null)) !== null;
   const efetivo = turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id }));
   const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
 
@@ -121,7 +123,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
           )}
         </>
       )}
-      <HistoricoTurno eventos={eventos} versoes={versoes} />
+      <HistoricoTurno eventos={eventos} versoes={versoes} checkinHref={temFoto ? `/obras/${obraId}/turnos/${turno.id}/checkin` : null} />
     </div>
   );
 }
