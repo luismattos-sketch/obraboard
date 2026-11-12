@@ -20,3 +20,28 @@ export function obraIdDoCaminho(caminho: string): string | null {
   if (raiz !== "obras" || !id || id === "nova") return null;
   return id;
 }
+
+/** Etapas da obra no menu lateral, na ordem do ciclo: programar → executar → registrar → medir. */
+export type Etapa = "programacao" | "turnos" | "rdos" | "analise";
+
+export const ETAPAS: { id: Etapa; rotulo: string; sufixo: string }[] = [
+  { id: "programacao", rotulo: "Programação", sufixo: "/programacao" },
+  { id: "turnos", rotulo: "Turnos", sufixo: "" },
+  { id: "rdos", rotulo: "RDOs", sufixo: "/rdos" },
+  { id: "analise", rotulo: "Análise (PPC)", sufixo: "/analise" },
+];
+
+export const caminhoEtapa = (obraId: string, etapa: Etapa) =>
+  `/obras/${obraId}${ETAPAS.find((e) => e.id === etapa)!.sufixo}`;
+
+/** Etapa em que o endereço está (/obras/{id} e /obras/{id}/turnos/... contam como Turnos), ou null. */
+export function etapaDoCaminho(caminho: string): Etapa | null {
+  const [, raiz, id, secao] = caminho.split("/");
+  if (raiz !== "obras" || !id || id === "nova") return null;
+  if (!secao || secao === "turnos") return "turnos";
+  return ETAPAS.find((e) => e.sufixo === `/${secao}`)?.id ?? null;
+}
+
+/** Ao trocar de obra no menu suspenso, continua na mesma etapa (ou na lista de turnos). */
+export const caminhoAoTrocarObra = (caminho: string, novaObraId: string) =>
+  caminhoEtapa(novaObraId, etapaDoCaminho(caminho) ?? "turnos");
