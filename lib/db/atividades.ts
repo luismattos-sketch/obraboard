@@ -219,7 +219,7 @@ export async function moverAtividade(
   if (!a.ok) return a;
   const { data, error } = await c
     .from("atividades")
-    .select("id, ordem")
+    .select("id, ordem, responsavel_id")
     .eq("turno_id", a.dados.turno_id)
     .order("ordem")
     .order("created_at");
@@ -227,10 +227,14 @@ export async function moverAtividade(
     console.error("moverAtividade:", error?.message);
     return falha("Não foi possível reordenar.");
   }
-  const lista = data.map((r) => ({ id: r.id as string, ordem: Number(r.ordem) }));
+  const lista = data.map((r) => ({ id: r.id as string, ordem: Number(r.ordem), resp: (r.responsavel_id as string | null) ?? null }));
   const i = lista.findIndex((r) => r.id === atividadeId);
-  const j = direcao === "cima" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= lista.length) return ok(undefined);
+  if (i < 0) return ok(undefined);
+  // A lista é exibida agrupada por responsável: troca com a vizinha mais próxima da MESMA equipe.
+  const passo = direcao === "cima" ? -1 : 1;
+  let j = i + passo;
+  while (j >= 0 && j < lista.length && lista[j].resp !== lista[i].resp) j += passo;
+  if (j < 0 || j >= lista.length) return ok(undefined);
   [lista[i], lista[j]] = [lista[j], lista[i]];
   // Renumera a lista inteira para 0..n-1 (corrige lacunas e duplicatas), gravando só o que mudou.
   for (let k = 0; k < lista.length; k++) {
@@ -292,6 +296,7 @@ export async function trazerPendentes(
       causa: null,
       observacao: null,
       origem_id: a.id,
+      responsavel_id: a.responsavel_id,
     }));
   if (novas.length === 0) return ok({ adicionadas: 0 });
 

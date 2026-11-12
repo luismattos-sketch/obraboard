@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { adicionarAtividade, definirResponsavel } from "@/lib/db/atividades";
+import { adicionarAtividade, definirResponsavel, moverAtividade, trazerPendentes } from "@/lib/db/atividades";
 import { salvarEfetivoPlanejador, salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO } from "@/lib/db/mensagens";
 import { criarObra } from "@/lib/db/obras";
@@ -56,5 +56,31 @@ describe.skipIf(!ligado)("turno por responsável", () => {
     expect(ef).toHaveLength(2);
     expect(ef).toContainEqual(["Pedreiro", 3, c.ana]);
     expect(ef).toContainEqual(["Servente", 1, c.bruno]);
+  });
+
+  it("setas movem só dentro da equipe", { timeout: 60_000 }, async () => {
+    const c = await cenario(); // atividade 0 (sem responsável)
+    const a1 = exigir(await adicionarAtividade(u.cliente, c.turnoId, { descricao: "A1", unidade: "m", qtd_planejada: 1 }));
+    const b1 = exigir(await adicionarAtividade(u.cliente, c.turnoId, { descricao: "B1", unidade: "m", qtd_planejada: 1 }));
+    const a2 = exigir(await adicionarAtividade(u.cliente, c.turnoId, { descricao: "A2", unidade: "m", qtd_planejada: 1 }));
+    for (const x of [a1, a2]) exigir(await definirResponsavel(u.cliente, x.id, c.ana));
+    exigir(await definirResponsavel(u.cliente, b1.id, c.bruno));
+    exigir(await moverAtividade(u.cliente, a2.id, "cima"));
+    const ordem = (await obterTurnoCompleto(u.cliente, c.turnoId))!.atividades
+      .filter((x) => x.responsavel_id === c.ana).map((x) => x.descricao);
+    expect(ordem).toEqual(["A2", "A1"]);
+  });
+
+  it("trazer pendentes copia o responsável", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    exigir(await definirResponsavel(u.cliente, c.atividadeId, c.ana));
+    exigir(await aplicarAcao(u.cliente, c.turnoId, "liberar"));
+    exigir(await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.atividadeId, { qtd_realizada: 4, causa: "material", observacao: null }));
+    exigir(await aplicarAcao(u.cliente, c.turnoId, "fechar"));
+    const t2 = exigir(await criarTurno(u.cliente, {
+      obra_id: c.obraId, data: "2026-11-11", periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "16:00",
+    }));
+    exigir(await trazerPendentes(u.cliente, t2.id));
+    expect((await obterTurnoCompleto(u.cliente, t2.id))!.atividades.map((x) => x.responsavel_id)).toEqual([c.ana]);
   });
 });

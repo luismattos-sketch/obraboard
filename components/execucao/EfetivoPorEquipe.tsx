@@ -39,7 +39,13 @@ export function EfetivoPorEquipe({
 
   const nome = (id: string | null) =>
     id === null ? "Sem responsável" : (responsaveis.find((r) => r.id === id)?.nome ?? "Responsável removido");
-  const chaves = new Set<string | null>([...equipesIniciais, ...efetivo.map((e) => e.responsavel_id), ...extras]);
+  // Planejador: a equipe "Sem responsável" fica sempre disponível (apoio, segurança…).
+  const chaves = new Set<string | null>([
+    ...(adicionarEquipe ? [null] : []),
+    ...equipesIniciais,
+    ...efetivo.map((e) => e.responsavel_id),
+    ...extras,
+  ]);
   const nomeadas = [...chaves].filter((k): k is string => k !== null).sort((a, b) => nome(a).localeCompare(nome(b), "pt-BR"));
   const equipes: (string | null)[] = [...nomeadas, ...(chaves.has(null) ? [null] : [])];
 

@@ -53,8 +53,8 @@ export function ListaAtividades({
                   )}
                   <ItemAtividade
                     atividade={a}
-                    primeira={atividades[0]?.id === a.id}
-                    ultima={atividades[atividades.length - 1]?.id === a.id}
+                    primeira={i === 0 || grupo(lista[i - 1]) !== grupo(a)}
+                    ultima={i === lista.length - 1 || grupo(lista[i + 1]) !== grupo(a)}
                     semanaStatus={semanaStatus}
                     obraId={obraId}
                     responsaveis={responsaveis}

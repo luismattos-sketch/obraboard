@@ -55,6 +55,20 @@ export function hhTurno(
   return pessoas * horas;
 }
 
+const chaveFuncao = (f: string) => f.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Uma linha por função (soma as equipes; vale a primeira grafia), na ordem em que aparecem. Usado no RDO. */
+export function somarEfetivoPorFuncao(efetivo: { funcao: string; quantidade: number }[]): { funcao: string; quantidade: number }[] {
+  const porChave = new Map<string, { funcao: string; quantidade: number }>();
+  for (const e of efetivo) {
+    const k = chaveFuncao(e.funcao);
+    const atual = porChave.get(k);
+    if (atual) atual.quantidade += e.quantidade;
+    else porChave.set(k, { funcao: e.funcao.trim(), quantidade: e.quantidade });
+  }
+  return [...porChave.values()];
+}
+
 export function saldoPendente(qtd_planejada: number, qtd_realizada: number | null): number {
   return Math.max(0, qtd_planejada - (qtd_realizada ?? 0));
 }
