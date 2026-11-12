@@ -3,11 +3,20 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/components/ui/Aviso";
 import { Cartao } from "@/components/ui/Cartao";
 import { obterObra } from "@/lib/db/obras";
+import { listarProgramadasParaAnalise } from "@/lib/db/programacao";
 import { listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
-import { analisarObra, normalizarSemanas, semanasDaAnalise, type Analise, type TurnoAnalise } from "@/lib/dominio/analise";
+import {
+  analisarObra,
+  normalizarSemanas,
+  semanasDaAnalise,
+  type Analise,
+  type SemanaProgramadaAnalise,
+  type TurnoAnalise,
+} from "@/lib/dominio/analise";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData, formatarPercentual, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { Selo } from "@/components/ui/Selo";
 import { Barra } from "./Barra";
 import { Expansivel } from "@/components/ui/Expansivel";
 
@@ -31,8 +40,12 @@ export default async function AnalisePage({
 
   const semanas = semanasDaAnalise(hojeSaoPaulo(), n);
   let turnos: TurnoAnalise[] | null = null;
+  let programadas: SemanaProgramadaAnalise[] = [];
   try {
-    turnos = await listarTurnosFechadosParaAnalise(supabase, obraId, semanas[0]);
+    [turnos, programadas] = await Promise.all([
+      listarTurnosFechadosParaAnalise(supabase, obraId, semanas[0]),
+      listarProgramadasParaAnalise(supabase, obraId, semanas[0]),
+    ]);
   } catch {
     turnos = null;
   }
@@ -63,7 +76,7 @@ export default async function AnalisePage({
       {turnos === null ? (
         <Aviso tom="perigo">Não foi possível carregar a análise. Tente novamente.</Aviso>
       ) : (
-        <Conteudo analise={analisarObra(turnos, semanas)} obraId={obra.id} />
+        <Conteudo analise={analisarObra(turnos, semanas, programadas)} obraId={obra.id} />
       )}
     </div>
   );
@@ -106,13 +119,32 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
         <Cartao className="flex min-w-0 flex-col gap-2">
           <h2 id="titulo-semanas" className="text-lg font-semibold text-primaria">PPC por semana</h2>
           {analise.semanas.map((s) => {
+            const marca = s.programada ? (
+              s.provisorio ? (
+                <Selo tom="alerta">provisório</Selo>
+              ) : null
+            ) : s.turnos.length > 0 ? (
+              <Selo tom="neutro">sem programação</Selo>
+            ) : null;
             const barra = (
-              <Barra
-                rotulo={`${diaMes(s.inicio)}${s.atual ? " (atual)" : ""}`}
-                fracao={s.ppc}
-                texto={formatarPercentual(s.ppc)}
-                destaque={s.atual}
-              />
+              <div className="flex flex-col gap-1">
+                <Barra
+                  rotulo={`${diaMes(s.inicio)}${s.atual ? " (atual)" : ""}`}
+                  fracao={s.ppc}
+                  texto={formatarPercentual(s.ppc)}
+                  destaque={s.atual}
+                />
+                {(marca || s.programada) && (
+                  <span className="flex flex-wrap items-center gap-2 text-xs">
+                    {marca}
+                    {s.programada && (
+                      <Link href={`/obras/${obraId}/programacao/${s.inicio}`} className="text-operacional hover:underline">
+                        Ver programação
+                      </Link>
+                    )}
+                  </span>
+                )}
+              </div>
             );
             if (s.turnos.length === 0) return <div key={s.inicio} className="pl-5">{barra}</div>;
             return (
@@ -150,14 +182,22 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
                 resumo={<Barra rotulo={c.rotulo} fracao={c.fracao} texto={`${c.quantidade} (${formatarPercentual(c.fracao)})`} />}
               >
                 <ul className="mt-1 mb-2 flex flex-col gap-2 pl-4">
-                  {c.atividades.map((a, i) => (
-                    <li key={`${a.turnoId}-${i}`} className="text-sm break-words">
-                      <p className="text-texto">
-                        {formatarData(a.data)} · {ROTULO_PERIODO[a.periodo]} · {a.descricao}
-                      </p>
-                      {a.observacao && <p className="text-xs text-texto-suave">{a.observacao}</p>}
-                    </li>
-                  ))}
+                  {c.atividades.map((a, i) =>
+                    a.origem === "turno" ? (
+                      <li key={`${a.turnoId}-${i}`} className="text-sm break-words">
+                        <p className="text-texto">
+                          {formatarData(a.data)} · {ROTULO_PERIODO[a.periodo]} · {a.descricao}
+                        </p>
+                        {a.observacao && <p className="text-xs text-texto-suave">{a.observacao}</p>}
+                      </li>
+                    ) : (
+                      <li key={`${a.semanaInicio}-${i}`} className="text-sm break-words">
+                        <Link href={`/obras/${obraId}/programacao/${a.semanaInicio}`} className="text-operacional hover:underline">
+                          Semana de {diaMes(a.semanaInicio)} · {a.descricao}
+                        </Link>
+                      </li>
+                    ),
+                  )}
                 </ul>
               </Expansivel>
             ))

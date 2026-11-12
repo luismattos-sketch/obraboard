@@ -7,6 +7,7 @@ import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/do
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
 import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
+import { trazerDaProgramacao } from "./programacao";
 import { falha, ok, type Resultado } from "./resultado";
 import { validarHorariosPrevistos } from "./validacao";
 
@@ -144,6 +145,9 @@ function lerDadosTurno(dados: DadosTurno): Resultado<Required<DadosTurno>> {
   });
 }
 
+export const ERRO_TURNO_COM_PROGRAMACAO =
+  "Este turno tem atividades da programação. Remova-as antes de mudar a data ou o período.";
+
 const duplicado = (periodo: Periodo) => falha(`Já existe um turno ${periodo} nesse dia`);
 
 export async function criarTurno(c: SupabaseClient, dados: DadosTurno & { obra_id: string }): Promise<Resultado<Turno>> {
@@ -159,6 +163,10 @@ export async function criarTurno(c: SupabaseClient, dados: DadosTurno & { obra_i
     console.error("criarTurno:", error.message);
     return falha("Não foi possível criar o turno.");
   }
+  // Semana programada: o turno já nasce com as atividades do dia. Falha aqui não desfaz o turno
+  // (o botão "Trazer da programação" resolve depois).
+  const trazidas = await trazerDaProgramacao(c, (data as Turno).id).catch((e: unknown) => falha(String(e)));
+  if (!trazidas.ok) console.error("criarTurno (trazer da programação):", trazidas.erro);
   return ok(data as Turno);
 }
 
@@ -189,6 +197,7 @@ export async function editarTurno(c: SupabaseClient, turnoId: string, dados: Dad
     .select(COLUNAS_TURNO);
   if (error) {
     if (error.code === "23505") return duplicado(d.dados.periodo);
+    if (erroBanco(error) === "programacao_incompativel") return falha(ERRO_TURNO_COM_PROGRAMACAO);
     console.error("editarTurno:", error.message);
     return falha("Não foi possível alterar o turno.");
   }

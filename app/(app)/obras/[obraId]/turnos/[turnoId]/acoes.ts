@@ -9,6 +9,7 @@ import {
   removerAtividade,
   trazerPendentes,
 } from "@/lib/db/atividades";
+import { trazerDaProgramacao } from "@/lib/db/programacao";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { aplicarAcao, gerarNovoLink } from "@/lib/db/turnos";
 import { errosDeTamanho, LIMITES, QTD_PLANEJADA_MAX } from "@/lib/db/validacao";
@@ -99,6 +100,17 @@ export async function trazerPendentesAcao(_: EstadoAcao, form: FormData): Promis
   const n = r.dados.adicionadas;
   return ok({
     mensagem: n === 0 ? "Nenhuma atividade pendente nova" : `${n} atividade${n > 1 ? "s" : ""} trazida${n > 1 ? "s" : ""}`,
+  });
+}
+
+export async function trazerDaProgramacaoAcao(_: EstadoAcao, form: FormData): Promise<EstadoAcao> {
+  const r = await trazerDaProgramacao(await criarClienteServidor(), texto(form, "turno_id"));
+  if (!r.ok) return falha(r.erro);
+  atualizar();
+  const n = r.dados.adicionadas;
+  return ok({
+    mensagem:
+      n === 0 ? "Nada a trazer da programação" : `${n} atividade${n > 1 ? "s" : ""} trazida${n > 1 ? "s" : ""} da programação`,
   });
 }
 

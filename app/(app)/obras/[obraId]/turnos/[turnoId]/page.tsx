@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Selo } from "@/components/ui/Selo";
 import { listarEventos } from "@/lib/db/eventos";
+import { semanaDoTurno } from "@/lib/db/programacao";
 import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
@@ -26,6 +27,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
     listarEventos(supabase, turnoId).catch(() => null),
   ]);
   if (!turno || turno.obra_id !== obraId) notFound();
+  const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
+  const semanaStatus = semana?.status ?? null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -52,7 +55,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
 
       {turno.status === "planejado" ? (
         <>
-          <ListaAtividades turnoId={turno.id} atividades={turno.atividades} />
+          <ListaAtividades turnoId={turno.id} atividades={turno.atividades} semanaStatus={semanaStatus} />
           <DadosTurno
             turnoId={turno.id}
             data={turno.data}
@@ -73,7 +76,12 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 <summary className="cursor-pointer text-lg font-semibold text-texto">Editar planejamento</summary>
                 <div className="mt-3 flex flex-col gap-3">
                   <Aviso tom="info">O encarregado precisa recarregar a página para ver as mudanças.</Aviso>
-                  <ListaAtividades turnoId={turno.id} atividades={turno.atividades} trazerPendentes={false} />
+                  <ListaAtividades
+                    turnoId={turno.id}
+                    atividades={turno.atividades}
+                    trazerPendentes={false}
+                    semanaStatus={semanaStatus}
+                  />
                 </div>
               </details>
               <EdicaoExecucao
