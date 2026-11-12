@@ -97,7 +97,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
               <details className="rounded-cartao border border-borda bg-superficie p-4">
                 <summary className="cursor-pointer text-lg font-semibold text-texto">Editar planejamento</summary>
                 <div className="mt-3 flex flex-col gap-3">
-                  <Aviso tom="info">O encarregado precisa recarregar a página para ver as mudanças.</Aviso>
+                  <Aviso tom="info">Quem estiver com o link de campo precisa recarregar a página para ver as mudanças.</Aviso>
                   <ListaAtividades
                     turnoId={turno.id}
                     obraId={obraId}

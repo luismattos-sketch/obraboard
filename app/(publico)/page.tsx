@@ -9,8 +9,8 @@ const blocos = [
     texto: "Monte o plano do dia com as frentes de serviço, equipes e metas, seguindo o Last Planner.",
   },
   {
-    titulo: "Encarregado lança pelo celular",
-    texto: "O encarregado registra o que foi feito e a causa do que não foi, sem instalar nada.",
+    titulo: "A equipe de campo lança pelo celular",
+    texto: "A equipe de campo registra o que foi feito e a causa do que não foi, sem instalar nada.",
   },
   {
     titulo: "RDO em PDF",

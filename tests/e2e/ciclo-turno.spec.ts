@@ -166,7 +166,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
 
     // Linha do tempo do turno
     await page.getByText(/^Histórico \(\d+\)$/).click();
-    await expect(page.getByText(/Enviado pelo campo · Encarregado \(link de campo\)/)).toBeVisible();
+    await expect(page.getByText(/Enviado pelo campo · Equipe de campo \(link\)/)).toBeVisible();
     await expect(page.getByRole("link", { name: "RDO v2" })).toBeVisible();
     await expect(page.getByText("Motivo: Corrigir quantidade")).toBeVisible();
 

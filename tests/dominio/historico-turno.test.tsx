@@ -33,7 +33,7 @@ describe("HistoricoTurno", () => {
     const html = renderToStaticMarkup(
       <HistoricoTurno eventos={[ev({}), ev({ id: "4", tipo: "enviado", atorTipo: "encarregado", atorNome: null })]} versoes={[]} />,
     );
-    expect(html).toContain("Enviado pelo campo · Encarregado (link de campo)");
+    expect(html).toContain("Enviado pelo campo · Equipe de campo (link)");
   });
 
   it("turno anterior à H2 mostra a nota", () => {

@@ -28,6 +28,6 @@ describe("rotuloEvento", () => {
 
 describe("rotuloAtor", () => {
   it("planejador com nome", () => expect(rotuloAtor({ atorTipo: "planejador", atorNome: "Luis" })).toBe("Luis"));
-  it("encarregado", () => expect(rotuloAtor({ atorTipo: "encarregado", atorNome: null })).toBe("Encarregado (link de campo)"));
+  it("encarregado", () => expect(rotuloAtor({ atorTipo: "encarregado", atorNome: null })).toBe("Equipe de campo (link)"));
   it("planejador sem nome", () => expect(rotuloAtor({ atorTipo: "planejador", atorNome: null })).toBe("—"));
 });
