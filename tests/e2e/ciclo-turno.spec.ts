@@ -27,14 +27,21 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   await page.getByRole("button", { name: "Criar obra" }).click();
   await expect(page.getByRole("heading", { name: "Obra E2E" })).toBeVisible();
 
-  // Menu lateral: a obra nova aparece destacada; recolher é lembrado após recarregar (cookie)
-  const menuObras = page.getByRole("navigation", { name: "Obras" });
-  await expect(menuObras.getByRole("link", { name: "Obra E2E" })).toHaveAttribute("aria-current", "page");
+  // Menu lateral: a obra nova vem escolhida no menu suspenso e "Turnos" fica destacado;
+  // recolher é lembrado após recarregar (cookie)
+  const seletor = page.getByRole("button", { name: "Obra: Obra E2E" });
+  const etapas = page.getByRole("navigation", { name: "Etapas da obra" });
+  await expect(seletor).toBeVisible();
+  await expect(etapas.getByRole("link", { name: "Turnos" })).toHaveAttribute("aria-current", "page");
+  await seletor.click();
+  await expect(page.locator("#lista-obras").getByRole("link", { name: "Obra E2E" })).toHaveAttribute("aria-current", "true");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#lista-obras")).toHaveCount(0);
   await page.getByRole("button", { name: "Recolher menu" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Expandir menu" })).toBeVisible();
   await page.getByRole("button", { name: "Expandir menu" }).click();
-  await expect(menuObras.getByRole("link", { name: "Obra E2E" })).toBeVisible();
+  await expect(etapas.getByRole("link", { name: "Programação" })).toBeVisible();
 
   // Turno
   await page.getByRole("link", { name: "Novo turno" }).click();
@@ -140,7 +147,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.request.get(`${obraUrl}/rdos`);
     await page.request.get("/rdos");
     await page.goto(obraUrl);
-    await page.getByRole("main").getByRole("link", { name: "RDOs" }).click();
+    await page.getByRole("navigation", { name: "Etapas da obra" }).getByRole("link", { name: "RDOs" }).click();
     await page.waitForURL("**/rdos");
     const lista = page.getByRole("main").getByRole("list");
     await expect(lista.getByText("v1", { exact: true })).toBeVisible();
