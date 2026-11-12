@@ -4,18 +4,23 @@ import { classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
+import { listarResponsaveis } from "@/lib/db/responsaveis";
 import { listarTurnosComAtividades } from "@/lib/db/turnos";
 import { percentualCumprimento } from "@/lib/dominio/calculos";
 import { formatarData, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { Responsaveis } from "./Responsaveis";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
   const supabase = await criarClienteServidor();
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
-  const turnos = await listarTurnosComAtividades(supabase, obraId);
+  const [turnos, responsaveis] = await Promise.all([
+    listarTurnosComAtividades(supabase, obraId),
+    listarResponsaveis(supabase, obraId),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,6 +65,8 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           })}
         </ul>
       )}
+
+      <Responsaveis obraId={obra.id} responsaveis={responsaveis} />
     </div>
   );
 }
