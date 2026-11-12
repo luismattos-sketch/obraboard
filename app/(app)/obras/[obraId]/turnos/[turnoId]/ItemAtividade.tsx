@@ -7,7 +7,10 @@ import type { Atividade } from "@/lib/db/atividades";
 import { Selo } from "@/components/ui/Selo";
 import { numeroBR } from "@/lib/dominio/formato";
 import type { StatusSemana } from "@/lib/dominio/programacao";
+import type { ResponsavelRef } from "@/lib/dominio/quadro";
+import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
 import {
+  definirResponsavelAcao,
   editarAtividadeAcao,
   moverAtividadeAcao,
   removerAtividadeAcao,
@@ -67,14 +70,32 @@ export function ItemAtividade({
   primeira,
   ultima,
   semanaStatus = null,
+  obraId,
+  responsaveis,
 }: {
   atividade: Atividade;
   primeira: boolean;
   ultima: boolean;
   semanaStatus?: StatusSemana | null;
+  obraId: string;
+  responsaveis: ResponsavelRef[];
 }) {
   const [editando, setEditando] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [trocando, setTrocando] = useState(false);
+
+  async function trocarResponsavel(id: string | null) {
+    setTrocando(true);
+    setErroAcao(null);
+    try {
+      const r = await definirResponsavelAcao(a.id, id);
+      if (!r.ok) setErroAcao(r.erro);
+    } catch {
+      setErroAcao("Sem conexão — tente de novo.");
+    } finally {
+      setTrocando(false);
+    }
+  }
 
   if (editando) {
     return (
@@ -108,6 +129,9 @@ export function ItemAtividade({
           {numeroBR(a.qtd_planejada)} {a.unidade}
           {a.origem_id ? " · pendente do turno anterior" : ""}
         </p>
+      </div>
+      <div className="max-w-xs">
+        <MenuResponsavel obraId={obraId} responsaveis={responsaveis} valor={a.responsavel_id} aoMudar={trocarResponsavel} desabilitado={trocando} />
       </div>
       {erroAcao && <Aviso tom="perigo">{erroAcao}</Aviso>}
       <div className="flex flex-wrap gap-2">

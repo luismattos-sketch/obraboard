@@ -13,7 +13,7 @@ import { FormAtividadeProgramada } from "./FormAtividadeProgramada";
 type Comum = { semanaId: string; obraId: string; responsaveis: ResponsavelRef[]; sugestoesFuncao: string[] };
 
 function ItemRascunho({ atividade: a, ...comum }: Comum & { atividade: AtividadeProgramada }) {
-  const { semanaId, responsaveis } = comum;
+  const { responsaveis } = comum;
   const nome = a.responsavel_id ? responsaveis.find((r) => r.id === a.responsavel_id)?.nome : null;
   const [editando, setEditando] = useState(false);
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(removerAtividadeProgramadaAcao, null);

@@ -4,6 +4,8 @@ import { Selo } from "@/components/ui/Selo";
 import { listarEventos } from "@/lib/db/eventos";
 import { opcoesFuncaoDoTurno, semanaDoTurno } from "@/lib/db/programacao";
 import { versoesDoTurno } from "@/lib/db/rdo-versoes";
+import { listarResponsaveis } from "@/lib/db/responsaveis";
+import { classesBotao } from "@/components/ui/Botao";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { FUNCOES_SUGERIDAS, ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
@@ -12,6 +14,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { AcoesTurno } from "./AcoesTurno";
 import { BlocoRdo } from "./BlocoRdo";
 import { DadosTurno } from "./DadosTurno";
+import { EfetivoTurno } from "./EfetivoTurno";
 import { HistoricoTurno } from "./HistoricoTurno";
 import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
@@ -30,6 +33,9 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
   const semanaStatus = semana?.status ?? null;
   const opcoesFuncao = await opcoesFuncaoDoTurno(supabase, obraId, turno.data, turno.periodo).catch(() => [...FUNCOES_SUGERIDAS]);
+  const responsaveis = (await listarResponsaveis(supabase, obraId)).map(({ id, nome, ativo }) => ({ id, nome, ativo }));
+  const efetivo = turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id }));
+  const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,6 +45,9 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
           Turno {ROTULO_PERIODO[turno.periodo].toLowerCase()} de {formatarData(turno.data)}
         </h1>
         <Selo tom={TOM_STATUS_TURNO[turno.status]}>{ROTULO_STATUS_TURNO[turno.status]}</Selo>
+        <Link href={`/obras/${obraId}/quadro?turno=${turno.id}`} className={`${classesBotao("secundario")} ml-auto min-h-10 px-3 text-sm`}>
+          Ver quadro
+        </Link>
       </div>
       {turno.hora_inicio_prevista && turno.hora_fim_prevista && (
         <p className="text-sm text-texto-suave">
@@ -56,7 +65,17 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
 
       {turno.status === "planejado" ? (
         <>
-          <ListaAtividades turnoId={turno.id} atividades={turno.atividades} semanaStatus={semanaStatus} />
+          <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} />
+          <section className="rounded-cartao border border-borda bg-superficie p-4">
+            <EfetivoTurno
+              turnoId={turno.id}
+              obraId={obraId}
+              responsaveis={responsaveis}
+              efetivo={efetivo}
+              opcoesFuncao={opcoesFuncao}
+              equipesIniciais={equipesIniciais}
+            />
+          </section>
           <DadosTurno
             turnoId={turno.id}
             data={turno.data}
@@ -79,6 +98,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                   <Aviso tom="info">O encarregado precisa recarregar a página para ver as mudanças.</Aviso>
                   <ListaAtividades
                     turnoId={turno.id}
+                    obraId={obraId}
+                    responsaveis={responsaveis}
                     atividades={turno.atividades}
                     trazerPendentes={false}
                     semanaStatus={semanaStatus}
@@ -90,9 +111,11 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 hora_inicio_real={turno.hora_inicio_real}
                 hora_fim_real={turno.hora_fim_real}
                 atividades={turno.atividades}
-                efetivo={turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade }))}
+                efetivo={efetivo}
                 clima={turno.clima}
                 opcoesFuncao={opcoesFuncao}
+                obraId={obraId}
+                responsaveis={responsaveis}
               />
             </>
           )}

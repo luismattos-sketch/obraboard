@@ -150,3 +150,21 @@ export function textoSemResponsavel(n: number): string | null {
   if (n <= 0) return null;
   return n === 1 ? "1 atividade sem responsável" : `${n} atividades sem responsável`;
 }
+
+/** Ordena como as faixas do quadro: responsáveis em ordem alfabética, "Sem responsável" por último; `ordem` dentro do grupo. */
+export function ordenarPorResponsavel<T extends { ordem: number; responsavel_id: string | null }>(
+  itens: T[],
+  responsaveis: Pick<ResponsavelRef, "id" | "nome">[],
+): T[] {
+  const nome = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
+  return [...itens].sort((x, y) => {
+    const nx = nome(x.responsavel_id);
+    const ny = nome(y.responsavel_id);
+    if (nx !== ny) {
+      if (nx === null) return 1;
+      if (ny === null) return -1;
+      return nx.localeCompare(ny, "pt-BR") || (x.responsavel_id ?? "").localeCompare(y.responsavel_id ?? "");
+    }
+    return x.ordem - y.ordem;
+  });
+}

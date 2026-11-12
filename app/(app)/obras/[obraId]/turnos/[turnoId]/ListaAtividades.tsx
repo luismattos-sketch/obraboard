@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { Fragment, useActionState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import type { Atividade } from "@/lib/db/atividades";
 import type { StatusSemana } from "@/lib/dominio/programacao";
+import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { trazerDaProgramacaoAcao, trazerPendentesAcao, type EstadoAcao } from "./acoes";
 import { FormAtividade } from "./FormAtividade";
 import { ItemAtividade } from "./ItemAtividade";
@@ -15,8 +16,12 @@ export function ListaAtividades({
   atividades,
   trazerPendentes = true,
   semanaStatus = null,
+  obraId,
+  responsaveis,
 }: {
   turnoId: string;
+  obraId: string;
+  responsaveis: ResponsavelRef[];
   atividades: Atividade[];
   /** "Trazer pendentes" só faz sentido antes de liberar para campo. */
   trazerPendentes?: boolean;
@@ -25,6 +30,9 @@ export function ListaAtividades({
 }) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(trazerPendentesAcao, null);
   const [estadoProg, actionProg, pendenteProg] = useActionState<EstadoAcao, FormData>(trazerDaProgramacaoAcao, null);
+  const agrupar = atividades.some((a) => a.responsavel_id !== null);
+  const nomeDe = (id: string | null) =>
+    id === null ? "Sem responsável" : (responsaveis.find((r) => r.id === id)?.nome ?? "—");
   return (
     <div className="flex flex-col gap-4">
       <Cartao className="flex flex-col gap-3">
@@ -33,15 +41,27 @@ export function ListaAtividades({
           <p className="text-texto-suave">Nenhuma atividade ainda.</p>
         ) : (
           <ul className="divide-y divide-borda">
-            {atividades.map((a, i) => (
-              <ItemAtividade
-                key={a.id}
-                atividade={a}
-                primeira={i === 0}
-                ultima={i === atividades.length - 1}
-                semanaStatus={semanaStatus}
-              />
-            ))}
+            {ordenarPorResponsavel(atividades, responsaveis).map((a, i, lista) => {
+              const grupo = (x: Atividade) => x.responsavel_id;
+              const novoGrupo = agrupar && (i === 0 || grupo(lista[i - 1]) !== grupo(a));
+              return (
+                <Fragment key={a.id}>
+                  {novoGrupo && (
+                    <li className="pt-3 text-sm font-semibold uppercase tracking-wide text-operacional">
+                      {nomeDe(a.responsavel_id)}
+                    </li>
+                  )}
+                  <ItemAtividade
+                    atividade={a}
+                    primeira={atividades[0]?.id === a.id}
+                    ultima={atividades[atividades.length - 1]?.id === a.id}
+                    semanaStatus={semanaStatus}
+                    obraId={obraId}
+                    responsaveis={responsaveis}
+                  />
+                </Fragment>
+              );
+            })}
           </ul>
         )}
       </Cartao>

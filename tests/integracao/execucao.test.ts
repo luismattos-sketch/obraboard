@@ -54,9 +54,9 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
 
     const pedreiro = [{ funcao: "Pedreiro", quantidade: 3 }];
     const servente = [{ funcao: "Servente", quantidade: 2 }];
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, pedreiro, [])).ok).toBe(true);
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, servente, pedreiro)).ok).toBe(true);
-    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, [{ funcao: "", quantidade: 2 }], servente)).toMatchObject({ ok: false });
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, pedreiro, [])).ok).toBe(true);
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, servente, pedreiro)).ok).toBe(true);
+    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, [{ funcao: "", quantidade: 2 }], servente)).toMatchObject({ ok: false });
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo.map((e) => e.funcao)).toEqual(["Servente"]);
 
     expect((await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "chuva_leve", impediu: true })).ok).toBe(true);
@@ -75,12 +75,12 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     expect((await aplicarAcao(u.cliente, turnoId, "fechar")).ok).toBe(true);
     const e = { ok: false, erro: FECHADO };
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: null, observacao: null })).toEqual(e);
-    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, [], [])).toEqual(e);
+    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, [], [])).toEqual(e);
     expect(await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "bom", impediu: false })).toEqual(e);
     expect(await removerClimaPlanejador(u.cliente, turnoId, "manha")).toEqual(e);
     expect(await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: null, hora_fim_real: null })).toEqual(e);
     expect((await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" })).ok).toBe(true);
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, [], [])).ok).toBe(true);
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, [], [])).ok).toBe(true);
   });
 
   it("outra empresa não altera nada (RLS)", { timeout: 60_000 }, async () => {

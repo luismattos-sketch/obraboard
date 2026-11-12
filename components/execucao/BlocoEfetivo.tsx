@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { Resultado } from "@/lib/db/resultado";
 import { tuplaEfetivo } from "@/lib/dominio/assinatura";
 import { canonizarFuncao, normalizarFuncao } from "@/lib/dominio/programacao";
@@ -20,6 +20,8 @@ type Props = {
   somenteLeitura?: boolean;
   /** `esperado`: o efetivo lido/salvo por último por esta tela (checagem otimista no servidor). */
   salvar: (linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) => Promise<Resultado<unknown>>;
+  /** Dentro do efetivo por equipe: subtítulo (h3) com o nome da equipe. */
+  equipe?: string;
 };
 const campo =
   "min-h-12 rounded-botao border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-operacional disabled:opacity-70";
@@ -32,7 +34,9 @@ export function BlocoEfetivo(props: Props) {
   );
 }
 
-function Efetivo({ inicial, opcoes, somenteLeitura, salvar }: Props) {
+function Efetivo({ inicial, opcoes, somenteLeitura, salvar, equipe }: Props) {
+  const idEquipe = useId();
+  const idTitulo = equipe === undefined ? "titulo-efetivo" : idEquipe;
   const naLista = (f: string) => opcoes.some((o) => normalizarFuncao(o) === normalizarFuncao(f));
   const proxima = useRef(inicial.length);
   const esperado = useRef<LinhaEfetivo[]>(inicial.map((l) => ({ funcao: l.funcao, quantidade: l.quantidade })));
@@ -64,8 +68,12 @@ function Efetivo({ inicial, opcoes, somenteLeitura, salvar }: Props) {
     setLinhas((ls) => ls.map((l) => (l.chave === chave ? { ...l, ...p } : l)));
 
   return (
-    <section aria-labelledby="titulo-efetivo" className="flex flex-col gap-3">
-      <h2 id="titulo-efetivo" className="text-lg font-semibold text-primaria">Efetivo</h2>
+    <section aria-labelledby={idTitulo} className="flex flex-col gap-3">
+      {equipe === undefined ? (
+        <h2 id={idTitulo} className="text-lg font-semibold text-primaria">Efetivo</h2>
+      ) : (
+        <h3 id={idTitulo} className="font-semibold text-texto">{equipe}</h3>
+      )}
       {linhas.map((l) => (
         <div key={l.chave} className="flex items-start gap-2">
           <div className="flex min-w-0 flex-1 flex-col gap-2">

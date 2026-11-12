@@ -30,8 +30,8 @@ export async function corrigirExecucao(turnoId: string, atividadeId: string, dad
   return comRevalidacao(turnoId, (c) => salvarExecucaoPlanejador(c, turnoId, atividadeId, dados));
 }
 
-export async function corrigirEfetivo(turnoId: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) {
-  return comRevalidacao(turnoId, (c) => salvarEfetivoPlanejador(c, turnoId, linhas, esperado));
+export async function corrigirEfetivo(turnoId: string, responsavelId: string | null, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) {
+  return comRevalidacao(turnoId, (c) => salvarEfetivoPlanejador(c, turnoId, responsavelId, linhas, esperado));
 }
 
 export async function corrigirClima(turnoId: string, dados: DadosClima) {

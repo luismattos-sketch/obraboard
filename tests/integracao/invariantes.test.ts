@@ -98,11 +98,11 @@ describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
     const servente = [{ funcao: "Servente", quantidade: 2 }];
     expect((await salvarEfetivo(token, pedreiro, [])).ok).toBe(true);
     // planejador com a tela antiga (efetivo vazio) não sobrescreve
-    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, servente, [])).toEqual({ ok: false, erro: CONFLITO });
+    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, servente, [])).toEqual({ ok: false, erro: CONFLITO });
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo.map((e) => e.funcao)).toEqual(["Pedreiro"]);
     // com o esperado certo (ordem não importa), substitui
     const dois = [{ funcao: "Servente", quantidade: 2 }, { funcao: "Pedreiro", quantidade: 3 }];
-    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, dois, pedreiro)).ok).toBe(true);
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, dois, pedreiro)).ok).toBe(true);
     expect(await salvarEfetivo(token, [], pedreiro)).toEqual({ ok: false, erro: CONFLITO });
     expect((await salvarEfetivo(token, [], [...dois].reverse())).ok).toBe(true);
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo).toEqual([]);
@@ -128,10 +128,10 @@ describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
       expect(d.error?.message).toBe("turno_fechado");
     }
     // efetivo pela função também é barrado (trigger dentro da transação)
-    const rpc = await admin.rpc("substituir_efetivo", { p_turno_id: turnoId, p_esperado: [], p_linhas: [] });
+    const rpc = await admin.rpc("substituir_efetivo", { p_turno_id: turnoId, p_responsavel_id: null, p_esperado: [], p_linhas: [] });
     expect(rpc.error).toBeNull(); // nada a apagar/inserir: nenhuma linha tocada
     const rpc2 = await admin.rpc("substituir_efetivo", {
-      p_turno_id: turnoId,
+      p_turno_id: turnoId, p_responsavel_id: null,
       p_esperado: [],
       p_linhas: [{ funcao: "Pedreiro", quantidade: 1 }],
     });

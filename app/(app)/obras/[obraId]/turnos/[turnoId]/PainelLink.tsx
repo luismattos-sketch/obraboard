@@ -62,6 +62,7 @@ export function PainelLink({ turnoId, obraNome, data, periodo, status }: Props) 
         <Botao type="submit" carregando={liberando}>
           Liberar para campo
         </Botao>
+        <p className="text-sm text-texto-suave">Ao liberar, o check-in fica registrado.</p>
         {estadoLiberar && !estadoLiberar.ok && <Aviso tom="alerta">{estadoLiberar.erro}</Aviso>}
       </form>
     );

@@ -3,6 +3,7 @@ import {
   contarSemResponsavel,
   escolherTurno,
   montarQuadro,
+  ordenarPorResponsavel,
   resolverEscolhaCampo,
   resumoEquipe,
   textoSemResponsavel,
@@ -163,5 +164,18 @@ describe("sem responsável", () => {
     expect(textoSemResponsavel(0)).toBeNull();
     expect(textoSemResponsavel(1)).toBe("1 atividade sem responsável");
     expect(textoSemResponsavel(3)).toBe("3 atividades sem responsável");
+  });
+});
+
+describe("ordenarPorResponsavel", () => {
+  it("agrupa na ordem do quadro mantendo a ordem dentro do grupo", () => {
+    const resps = [{ id: "j", nome: "João", ativo: true }, { id: "a", nome: "Ana", ativo: true }];
+    const lista = [
+      { id: "1", ordem: 0, responsavel_id: null },
+      { id: "2", ordem: 1, responsavel_id: "j" },
+      { id: "3", ordem: 2, responsavel_id: "a" },
+      { id: "4", ordem: 3, responsavel_id: "j" },
+    ];
+    expect(ordenarPorResponsavel(lista, resps).map((x) => x.id)).toEqual(["3", "2", "4", "1"]);
   });
 });

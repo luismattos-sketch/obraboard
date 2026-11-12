@@ -36,7 +36,7 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
     exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, comCausa
       ? { qtd_realizada: 4, causa: "material", observacao: "faltou cimento" }
       : { qtd_realizada: 4, causa: null, observacao: null }));
-    exigir(await salvarEfetivoPlanejador(u.cliente, t.id, [{ funcao: "Pedreiro", quantidade: 3 }], []));
+    exigir(await salvarEfetivoPlanejador(u.cliente, t.id, null, [{ funcao: "Pedreiro", quantidade: 3 }], []));
     exigir(await salvarClimaPlanejador(u.cliente, t.id, { periodo: "manha", condicao: "bom", impediu: false }));
     return { obraId: obra.id, turnoId: t.id, atividadeId: at.id };
   }

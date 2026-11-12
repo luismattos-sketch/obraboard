@@ -2,7 +2,8 @@
 
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
-import { BlocoEfetivo } from "@/components/execucao/BlocoEfetivo";
+import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
+import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
 import { Aviso } from "@/components/ui/Aviso";
@@ -18,13 +19,18 @@ type Props = {
   hora_inicio_real: string | null;
   hora_fim_real: string | null;
   atividades: Atividade[];
-  efetivo: Pick<Efetivo, "funcao" | "quantidade">[];
+  efetivo: Pick<Efetivo, "funcao" | "quantidade" | "responsavel_id">[];
   clima: Clima[];
   opcoesFuncao: string[];
+  obraId: string;
+  responsaveis: ResponsavelRef[];
 };
 
 /** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
-export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, atividades, efetivo, clima, opcoesFuncao }: Props) {
+export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, atividades, efetivo, clima, opcoesFuncao, obraId, responsaveis }: Props) {
+  const agrupar = atividades.some((a) => a.responsavel_id !== null);
+  const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
+  const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
   const { ocupado, registrar } = useRastreioSalvamento();
   const { lista, mudar } = useExecucaoLocal(atividades);
   const erros = errosDeCausa(lista);
@@ -43,12 +49,20 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
           salvar={(d) => corrigirHorario(turnoId, d)}
         />
         <BlocoAtividades
-          atividades={atividades}
+          atividades={ordenadas}
+          grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
           salvar={(id, d) => corrigirExecucao(turnoId, id, d)}
           onMudar={mudar}
           erros={erros}
         />
-        <BlocoEfetivo inicial={efetivo} opcoes={opcoesFuncao} salvar={(l, esperado) => corrigirEfetivo(turnoId, l, esperado)} />
+        <EfetivoPorEquipe
+          obraId={obraId}
+          responsaveis={responsaveis}
+          efetivo={efetivo}
+          opcoesFuncao={opcoesFuncao}
+          equipesIniciais={[...new Set(atividades.map((a) => a.responsavel_id))]}
+          salvar={(id, l, esperado) => corrigirEfetivo(turnoId, id, l, esperado)}
+        />
         <BlocoClima
           inicial={clima}
           salvar={(d) => corrigirClima(turnoId, d)}

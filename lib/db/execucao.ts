@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import type { PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
-import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_PLANEJADOR, erroBanco } from "./mensagens";
+import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import {
   camposExecucao,
@@ -83,6 +83,7 @@ export async function salvarExecucaoPlanejador(
 export async function salvarEfetivoPlanejador(
   c: SupabaseClient,
   turnoId: string,
+  responsavelId: string | null,
   linhas: LinhaEfetivo[],
   esperado: LinhaEfetivo[],
 ): Promise<Resultado> {
@@ -92,9 +93,15 @@ export async function salvarEfetivoPlanejador(
   if (!e.ok) return e;
   const t = await turnoAbertoParaCorrecao(c, turnoId);
   if (!t.ok) return t;
-  const { error } = await c.rpc("substituir_efetivo", { p_turno_id: turnoId, p_esperado: e.dados, p_linhas: v.dados });
+  const { error } = await c.rpc("substituir_efetivo", {
+    p_turno_id: turnoId,
+    p_responsavel_id: responsavelId,
+    p_esperado: e.dados,
+    p_linhas: v.dados,
+  });
   if (error) {
     if (erroBanco(error) === "efetivo_conflito") return falha(ERRO_EFETIVO_CONFLITO);
+    if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivoPlanejador:", error.message);
     return erroGravacao(error);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { Selo } from "@/components/ui/Selo";
 import type { Atividade } from "@/lib/db/atividades";
 import type { Resultado } from "@/lib/db/resultado";
@@ -55,14 +55,20 @@ type Props = {
   /** Avisa cada edição (ver useExecucaoLocal). */
   onMudar?: MudarExecucao;
   erros?: Record<string, string>;
+  /** Agrupa por responsável: subtítulo antes da 1ª atividade de cada grupo (na ordem recebida). */
+  grupoDe?: (a: Atividade) => string | null;
 };
 
-export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, erros = {} }: Props) {
+export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, erros = {}, grupoDe }: Props) {
   return (
     <section aria-labelledby="titulo-atividades" className="flex flex-col gap-3">
       <h2 id="titulo-atividades" className="text-lg font-semibold text-primaria">Atividades</h2>
-      {atividades.map((a) => (
-        <Sincronizar key={a.id} servidor={tuplaServidor(a)}>
+      {atividades.map((a, i) => (
+        <Fragment key={a.id}>
+        {grupoDe && (i === 0 || grupoDe(atividades[i - 1]) !== grupoDe(a)) && (
+          <h3 className="mt-2 font-semibold text-texto">{grupoDe(a) ?? "Sem responsável"}</h3>
+        )}
+        <Sincronizar servidor={tuplaServidor(a)}>
           <ItemExecucao
             atividade={a}
             somenteLeitura={somenteLeitura}
@@ -71,6 +77,7 @@ export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, e
             onMudar={onMudar}
           />
         </Sincronizar>
+        </Fragment>
       ))}
     </section>
   );
