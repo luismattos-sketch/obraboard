@@ -20,10 +20,11 @@ type Props = {
   atividades: Atividade[];
   efetivo: Pick<Efetivo, "funcao" | "quantidade">[];
   clima: Clima[];
+  opcoesFuncao: string[];
 };
 
 /** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
-export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, atividades, efetivo, clima }: Props) {
+export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, atividades, efetivo, clima, opcoesFuncao }: Props) {
   const { ocupado, registrar } = useRastreioSalvamento();
   const { lista, mudar } = useExecucaoLocal(atividades);
   const erros = errosDeCausa(lista);
@@ -47,7 +48,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
           onMudar={mudar}
           erros={erros}
         />
-        <BlocoEfetivo inicial={efetivo} salvar={(l, esperado) => corrigirEfetivo(turnoId, l, esperado)} />
+        <BlocoEfetivo inicial={efetivo} opcoes={opcoesFuncao} salvar={(l, esperado) => corrigirEfetivo(turnoId, l, esperado)} />
         <BlocoClima
           inicial={clima}
           salvar={(d) => corrigirClima(turnoId, d)}

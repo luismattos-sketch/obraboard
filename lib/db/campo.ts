@@ -5,6 +5,7 @@ import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_CAMPO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
+import { opcoesFuncaoDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
 import {
   camposExecucao,
@@ -60,6 +61,11 @@ export async function obterTurnoPorToken(token: string): Promise<TurnoCompleto |
   const t = await resolverTurno(token);
   if (!t) return null;
   return obterTurnoCompleto(criarClienteAdmin(), t.id);
+}
+
+/** Funções do menu do efetivo para o turno já resolvido pelo token (escopo: a obra do próprio turno). */
+export async function opcoesFuncaoCampo(turno: Pick<TurnoCompleto, "obra_id" | "data" | "periodo">): Promise<string[]> {
+  return opcoesFuncaoDoTurno(criarClienteAdmin(), turno.obra_id, turno.data, turno.periodo);
 }
 
 export async function salvarExecucao(

@@ -145,13 +145,14 @@ function ItemExecucao({
             onChange={(e) => atualizar(e.target.value, causa, obs)}
           />
         </div>
-        {!somenteLeitura && (
+        {!somenteLeitura && naoConcluida && (
           <button
             type="button"
+            aria-label={`Marcar como concluída: ${a.descricao}`}
             className="min-h-12 rounded-botao border border-operacional bg-superficie px-4 font-semibold text-primaria hover:bg-primaria-clara"
             onClick={() => atualizar(String(a.qtd_planejada).replace(".", ","), causa, obs)}
           >
-            100%
+            ✓ Concluída
           </button>
         )}
       </div>

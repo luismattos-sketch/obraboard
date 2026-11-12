@@ -88,7 +88,8 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
     await card.getByLabel("Causa do não cumprimento").selectOption({ label: "Material" });
     await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
     await campo.getByRole("button", { name: "+ Adicionar função" }).click();
-    await campo.getByLabel("Função").fill("Caldeireiro");
+    // Menu traz a função programada para o turno
+    await campo.getByLabel("Função").selectOption("Caldeireiro");
     await campo.getByLabel("Quantidade").fill("2");
     await salvo("titulo-efetivo");
     await campo.getByRole("button", { name: "Enviar turno" }).click();

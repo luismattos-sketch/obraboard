@@ -3,11 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
-import { dadosOficiais, obterSemana } from "@/lib/db/programacao";
+import { dadosOficiais, obterSemana, sugestoesFuncaoDaObra } from "@/lib/db/programacao";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData } from "@/lib/dominio/formato";
 import { dataDoDia, resumirSemana, ROTULO_STATUS_SEMANA, statusExibido, TOM_STATUS_SEMANA } from "@/lib/dominio/programacao";
+import { FUNCOES_SUGERIDAS } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { AbrirSemana } from "../AbrirSemana";
 import { Acompanhamento } from "./Acompanhamento";
@@ -63,13 +64,18 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
     );
   }
 
-  const dados = await dadosOficiais(supabase, semana);
+  const [dados, sugestoesFuncao] = await Promise.all([
+    dadosOficiais(supabase, semana),
+    semana.status === "rascunho"
+      ? sugestoesFuncaoDaObra(supabase, obra.id).catch(() => [...FUNCOES_SUGERIDAS])
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {cabecalho}
       {semana.status === "rascunho" ? (
-        <ListaRascunho semanaId={semana.id} atividades={dados.atividades} />
+        <ListaRascunho semanaId={semana.id} atividades={dados.atividades} sugestoesFuncao={sugestoesFuncao} />
       ) : (
         <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} />
       )}

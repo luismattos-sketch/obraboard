@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Selo } from "@/components/ui/Selo";
 import { listarEventos } from "@/lib/db/eventos";
-import { semanaDoTurno } from "@/lib/db/programacao";
+import { opcoesFuncaoDoTurno, semanaDoTurno } from "@/lib/db/programacao";
 import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
-import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
+import { FUNCOES_SUGERIDAS, ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Aviso } from "@/components/ui/Aviso";
 import { AcoesTurno } from "./AcoesTurno";
@@ -29,6 +29,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   if (!turno || turno.obra_id !== obraId) notFound();
   const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
   const semanaStatus = semana?.status ?? null;
+  const opcoesFuncao = await opcoesFuncaoDoTurno(supabase, obraId, turno.data, turno.periodo).catch(() => [...FUNCOES_SUGERIDAS]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -91,6 +92,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 atividades={turno.atividades}
                 efetivo={turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade }))}
                 clima={turno.clima}
+                opcoesFuncao={opcoesFuncao}
               />
             </>
           )}

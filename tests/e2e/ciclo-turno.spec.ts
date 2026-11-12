@@ -85,7 +85,8 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
 
     // Atividades
     const cards = campo.locator("section[aria-labelledby='titulo-atividades'] > div");
-    await cards.nth(0).getByRole("button", { name: "100%" }).click();
+    await cards.nth(0).getByRole("button", { name: /Marcar como concluída/ }).click();
+    await expect(cards.nth(0).getByRole("button", { name: /Marcar como concluída/ })).toHaveCount(0);
     await expect(cards.nth(0).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
     await cards.nth(1).getByLabel(/Executado/).fill("8");
     await cards.nth(1).getByLabel("Causa do não cumprimento").selectOption({ label: "Material" });
@@ -93,7 +94,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
 
     // Efetivo
     await campo.getByRole("button", { name: "+ Adicionar função" }).click();
-    await campo.getByLabel("Função").fill("Pedreiro");
+    await campo.getByLabel("Função").selectOption("Pedreiro");
     await campo.getByLabel("Quantidade").fill("4");
     await salvo("titulo-efetivo");
 

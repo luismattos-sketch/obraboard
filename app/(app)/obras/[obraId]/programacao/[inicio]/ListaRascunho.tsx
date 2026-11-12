@@ -9,13 +9,13 @@ import { resumoDias, resumoEquipe, type AtividadeProgramada } from "@/lib/domini
 import { programarSemanaAcao, removerAtividadeProgramadaAcao, type EstadoSemana } from "./acoes";
 import { FormAtividadeProgramada } from "./FormAtividadeProgramada";
 
-function ItemRascunho({ semanaId, atividade: a }: { semanaId: string; atividade: AtividadeProgramada }) {
+function ItemRascunho({ semanaId, atividade: a, sugestoesFuncao }: { semanaId: string; atividade: AtividadeProgramada; sugestoesFuncao: string[] }) {
   const [editando, setEditando] = useState(false);
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(removerAtividadeProgramadaAcao, null);
   if (editando) {
     return (
       <li className="py-3">
-        <FormAtividadeProgramada semanaId={semanaId} atividade={a} aoConcluir={() => setEditando(false)} />
+        <FormAtividadeProgramada semanaId={semanaId} atividade={a} sugestoesFuncao={sugestoesFuncao} aoConcluir={() => setEditando(false)} />
       </li>
     );
   }
@@ -50,7 +50,15 @@ function ItemRascunho({ semanaId, atividade: a }: { semanaId: string; atividade:
   );
 }
 
-export function ListaRascunho({ semanaId, atividades }: { semanaId: string; atividades: AtividadeProgramada[] }) {
+export function ListaRascunho({
+  semanaId,
+  atividades,
+  sugestoesFuncao,
+}: {
+  semanaId: string;
+  atividades: AtividadeProgramada[];
+  sugestoesFuncao: string[];
+}) {
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(programarSemanaAcao, null);
   return (
     <div className="flex flex-col gap-4">
@@ -61,7 +69,7 @@ export function ListaRascunho({ semanaId, atividades }: { semanaId: string; ativ
         ) : (
           <ul className="divide-y divide-borda">
             {atividades.map((a) => (
-              <ItemRascunho key={a.id} semanaId={semanaId} atividade={a} />
+              <ItemRascunho key={a.id} semanaId={semanaId} atividade={a} sugestoesFuncao={sugestoesFuncao} />
             ))}
           </ul>
         )}
@@ -69,7 +77,7 @@ export function ListaRascunho({ semanaId, atividades }: { semanaId: string; ativ
 
       <Cartao>
         <h2 className="mb-3 text-lg font-semibold text-primaria">Nova atividade</h2>
-        <FormAtividadeProgramada key={atividades.length} semanaId={semanaId} />
+        <FormAtividadeProgramada key={atividades.length} semanaId={semanaId} sugestoesFuncao={sugestoesFuncao} />
       </Cartao>
 
       <form action={action} className="flex flex-col gap-2">
