@@ -71,6 +71,16 @@ export function lerValores(linha: { qtd_realizada: unknown; causa: unknown; obse
 }
 
 /**
+ * Nada gravado porque o banco não confere com o `esperado`. Se o banco já tem exatamente o que
+ * esta gravação queria (repetição após resposta perdida na rede, ou o mesmo valor vindo de outra
+ * aba), é sucesso; senão, conflito com os valores atuais.
+ */
+export function conflitoOuJaGravado(atual: ValoresExecucao, campos: ValoresExecucao): Resultado<ValoresExecucao> {
+  const igual = atual.qtd_realizada === campos.qtd_realizada && atual.causa === campos.causa && atual.observacao === campos.observacao;
+  return igual ? ok(atual) : falhaConflito(ERRO_EXECUCAO_CONFLITO, atual);
+}
+
+/**
  * `esperado`: a execução como a tela a viu/gravou por último. Se o banco tiver outra (outra aba,
  * outra pessoa), não grava e devolve o conflito com os valores atuais. Sucesso devolve o gravado.
  */
@@ -118,7 +128,7 @@ export async function salvarExecucaoPlanejador(
       .eq("turno_id", turnoId)
       .maybeSingle();
     if (!atual) return falha("Atividade não encontrada");
-    return falhaConflito(ERRO_EXECUCAO_CONFLITO, lerValores(atual));
+    return conflitoOuJaGravado(lerValores(atual), campos);
   }
   return ok(campos);
 }

@@ -5,10 +5,9 @@ import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
-import { filtrarEsperado, lerValores } from "./execucao";
+import { conflitoOuJaGravado, filtrarEsperado, lerValores } from "./execucao";
 import {
   ERRO_EFETIVO_CONFLITO,
-  ERRO_EXECUCAO_CONFLITO,
   ERRO_FECHADO_CAMPO,
   ERRO_RESPONSAVEL_INVALIDO,
   erroBanco,
@@ -150,7 +149,7 @@ export async function salvarExecucao(
       .eq("turno_id", t.dados.id)
       .maybeSingle();
     if (!atual || (responsavelId !== null && atual.responsavel_id !== responsavelId)) return falha(ERRO_ATIVIDADE);
-    return falhaConflito(ERRO_EXECUCAO_CONFLITO, lerValores(atual));
+    return conflitoOuJaGravado(lerValores(atual), campos);
   }
   return ok(campos);
 }

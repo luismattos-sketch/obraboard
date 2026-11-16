@@ -120,6 +120,22 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect({ ...data, qtd_realizada: Number(data!.qtd_realizada) }).toEqual({ qtd_realizada: 46, causa: null, observacao: null });
   });
 
+  it("repetição de um salvamento já gravado (resposta perdida na rede) não é conflito", { timeout: 60_000 }, async () => {
+    const T = await turnoLiberado("2026-12-14", [10]);
+    const dados = { qtd_realizada: 4, causa: "clima" as const, observacao: " chuva " };
+    const gravado = { qtd_realizada: 4, causa: "clima", observacao: "chuva" };
+    expect(await salvarExecucao(T.token, T.ids[0], dados, VAZIO)).toEqual({ ok: true, dados: gravado });
+    // a tela não recebeu a resposta e repete com o esperado antigo
+    expect(await salvarExecucao(T.token, T.ids[0], dados, VAZIO)).toEqual({ ok: true, dados: gravado });
+    // concluída: o banco guarda causa/observação nulas; repetir com texto também bate
+    const fim = { qtd_realizada: 10, causa: "clima" as const, observacao: "x" };
+    expect((await salvarExecucao(T.token, T.ids[0], fim, gravado as never)).ok).toBe(true);
+    expect(await salvarExecucao(T.token, T.ids[0], fim, gravado as never)).toEqual({
+      ok: true,
+      dados: { qtd_realizada: 10, causa: null, observacao: null },
+    });
+  });
+
   it("decimal e observação com espaços no esperado", { timeout: 60_000 }, async () => {
     const T = await turnoLiberado("2026-12-09", [10]);
     const r1 = await salvarExecucao(T.token, T.ids[0], { qtd_realizada: 2.5, causa: "clima", observacao: "  chuva  " }, VAZIO);
