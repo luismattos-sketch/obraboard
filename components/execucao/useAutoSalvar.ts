@@ -26,8 +26,11 @@ export function useAutoSalvar(
   salvar: () => Promise<Resultado<unknown>>,
   deps: unknown[],
   atrasoMs = 800,
-): EstadoSalvar {
-  const [estado, setEstado] = useState<EstadoSalvar>({ estado: "ocioso" });
+): EstadoSalvar & { tentar: () => void } {
+  const chave = JSON.stringify(deps);
+  // O estado vale para a edição `de`; outra edição na tela já é "salvando" na hora (sem esperar o
+  // debounce), para o "Salvo ✓" antigo nunca aparecer junto de um valor ainda não gravado.
+  const [estado, setEstado] = useState<EstadoSalvar & { de: string }>({ estado: "ocioso", de: chave });
   const salvarRef = useRef(salvar);
   useEffect(() => {
     salvarRef.current = salvar;
@@ -41,10 +44,10 @@ export function useAutoSalvar(
     registrarRef.current = registrar;
     sincroniaRef.current = sincronia;
   });
-  const chave = JSON.stringify(deps);
   const ultima = useRef(chave);
   // Há um salvamento agendado (ou uma repetição de rede) que pode ser antecipado.
   const antecipar = useRef<(() => void) | null>(null);
+  const [tentarJa] = useState(() => () => antecipar.current?.());
 
   useEffect(() => {
     if (chave === ultima.current) return; // montagem inicial: nada a salvar
@@ -55,22 +58,23 @@ export function useAutoSalvar(
 
     const tentar = async () => {
       antecipar.current = null;
-      setEstado({ estado: "salvando" });
+      setEstado({ estado: "salvando", de: chave });
       try {
         const r = await salvarRef.current();
         if (cancelado) return;
-        setEstado(r.ok ? { estado: "salvo" } : { estado: "erro", mensagem: r.erro, conflito: r.conflito });
+        setEstado(r.ok ? { estado: "salvo", de: chave } : { estado: "erro", mensagem: r.erro, conflito: r.conflito, de: chave });
         if (r.ok) {
           sincroniaRef.current?.salvo(chave);
           sincroniaRef.current?.sujo(false);
         }
-        registrarRef.current?.(id, false);
+        registrarRef.current?.(id, null);
       } catch {
         if (cancelado) return;
         const d = decidirRepeticao(falhas, online());
         falhas = d.falhas;
-        setEstado({ estado: "erro" });
+        setEstado({ estado: "erro", de: chave });
         agendar(d.emMs);
+        registrarRef.current?.(id, "falhou", tentarJa);
       }
     };
     const agendar = (ms: number) => {
@@ -80,16 +84,16 @@ export function useAutoSalvar(
         void tentar();
       };
     };
-    registrarRef.current?.(id, true);
+    registrarRef.current?.(id, "salvando");
     sincroniaRef.current?.sujo(true);
     agendar(atrasoMs);
     return () => {
       cancelado = true;
       clearTimeout(timer);
       antecipar.current = null;
-      registrarRef.current?.(id, false);
+      registrarRef.current?.(id, null);
     };
-  }, [chave, atrasoMs, id]);
+  }, [chave, atrasoMs, id, tentarJa]);
 
   // Desmontou (ex.: remontagem com dados novos): não há mais edição pendente deste bloco.
   useEffect(() => {
@@ -97,22 +101,20 @@ export function useAutoSalvar(
     return () => ref.current?.sujo(false);
   }, []);
 
-  // Ao sair da aba/página, salva já o que estiver pendente (o debounce não pode perder dados);
-  // ao voltar a conexão, repete na hora.
+  // Ao sair ou voltar para a aba, e quando a conexão volta, tenta já o que estiver pendente.
   useEffect(() => {
-    const aoEsconder = () => {
-      if (document.visibilityState === "hidden") antecipar.current?.();
-    };
+    const aoMudarVisibilidade = () => antecipar.current?.();
     const aoSair = () => antecipar.current?.();
-    document.addEventListener("visibilitychange", aoEsconder);
+    document.addEventListener("visibilitychange", aoMudarVisibilidade);
     window.addEventListener("pagehide", aoSair);
     window.addEventListener("online", aoSair);
     return () => {
-      document.removeEventListener("visibilitychange", aoEsconder);
+      document.removeEventListener("visibilitychange", aoMudarVisibilidade);
       window.removeEventListener("pagehide", aoSair);
       window.removeEventListener("online", aoSair);
     };
   }, []);
 
-  return estado;
+  const { de, ...visivel } = estado;
+  return { ...(de === chave ? visivel : { estado: "salvando" as const }), tentar: tentarJa };
 }
