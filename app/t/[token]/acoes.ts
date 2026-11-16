@@ -9,6 +9,7 @@ import {
   salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
 import type { LinhaEfetivo } from "@/lib/db/validacao";
+import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { CondicaoClima, DadosExecucao, PeriodoClima } from "@/lib/dominio/tipos";
 
 // O token vem do cliente (já está na URL); cada função o revalida no servidor. Nunca logar o token.
@@ -17,9 +18,10 @@ export async function salvarExecucao(
   token: string,
   atividadeId: string,
   dados: DadosExecucao,
+  esperado: ValoresExecucao,
   responsavelId: string | null = null,
 ) {
-  return dbSalvarExecucao(token, atividadeId, dados, responsavelId);
+  return dbSalvarExecucao(token, atividadeId, dados, esperado, responsavelId);
 }
 
 export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[], responsavelId: string | null = null) {

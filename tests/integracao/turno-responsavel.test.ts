@@ -5,7 +5,7 @@ import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO } from "@/lib/db/men
 import { criarObra } from "@/lib/db/obras";
 import { criarResponsavel } from "@/lib/db/responsaveis";
 import { aplicarAcao, criarTurno, obterTurnoCompleto } from "@/lib/db/turnos";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("turno por responsável", () => {
   let u: UsuarioTeste;
@@ -42,7 +42,7 @@ describe.skipIf(!ligado)("turno por responsável", () => {
     const outra = await cenario();
     expect(await definirResponsavel(u.cliente, c.atividadeId, outra.ana)).toEqual({ ok: false, erro: ERRO_RESPONSAVEL_INVALIDO });
 
-    exigir(await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.atividadeId, { qtd_realizada: 10, causa: null, observacao: null }));
+    exigir(await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.atividadeId, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO));
     exigir(await aplicarAcao(u.cliente, c.turnoId, "fechar"));
     expect(await definirResponsavel(u.cliente, c.atividadeId, null)).toEqual({ ok: false, erro: ERRO_FECHADO_PLANEJADOR });
   });
@@ -75,7 +75,7 @@ describe.skipIf(!ligado)("turno por responsável", () => {
     const c = await cenario();
     exigir(await definirResponsavel(u.cliente, c.atividadeId, c.ana));
     exigir(await aplicarAcao(u.cliente, c.turnoId, "liberar"));
-    exigir(await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.atividadeId, { qtd_realizada: 4, causa: "material", observacao: null }));
+    exigir(await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.atividadeId, { qtd_realizada: 4, causa: "material", observacao: null }, VAZIO));
     exigir(await aplicarAcao(u.cliente, c.turnoId, "fechar"));
     const t2 = exigir(await criarTurno(u.cliente, {
       obra_id: c.obraId, data: "2026-11-11", periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "16:00",

@@ -71,3 +71,6 @@ export async function removerUsuarioTeste(userId: string): Promise<void> {
   const { error: e2 } = await admin.auth.admin.deleteUser(userId);
   if (e2) throw new Error(`remover usuário: ${e2.message}`);
 }
+
+/** Execução de atividade nova (nada gravado): `esperado` do primeiro salvamento. */
+export const VAZIO = { qtd_realizada: null, causa: null, observacao: null };

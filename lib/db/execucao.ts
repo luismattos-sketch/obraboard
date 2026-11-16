@@ -1,8 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import type { PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
-import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
-import { falha, ok, type Resultado } from "./resultado";
+import type { ValoresExecucao } from "@/lib/dominio/conflito";
+import {
+  ERRO_EFETIVO_CONFLITO,
+  ERRO_EXECUCAO_CONFLITO,
+  ERRO_FECHADO_PLANEJADOR,
+  ERRO_RESPONSAVEL_INVALIDO,
+  erroBanco,
+} from "./mensagens";
+import { falha, falhaConflito, ok, type Resultado } from "./resultado";
 import {
   camposExecucao,
   validarClima,
@@ -41,14 +48,43 @@ async function turnoAbertoParaCorrecao(c: SupabaseClient, turnoId: string): Prom
   return ok(undefined);
 }
 
+/** Filtros da checagem otimista: só grava se a linha ainda tiver os valores que a tela viu. */
+export function filtrarEsperado<Q extends { eq(c: string, v: unknown): Q; is(c: string, v: null): Q }>(
+  q: Q,
+  e: ValoresExecucao,
+): Q {
+  let r = q;
+  for (const col of ["qtd_realizada", "causa", "observacao"] as const) {
+    const v = e[col];
+    r = v === null ? r.is(col, null) : r.eq(col, v);
+  }
+  return r;
+}
+
+/** Valores da execução como estão no banco (numeric chega como string ou número). */
+export function lerValores(linha: { qtd_realizada: unknown; causa: unknown; observacao: unknown }): ValoresExecucao {
+  return {
+    qtd_realizada: linha.qtd_realizada === null ? null : Number(linha.qtd_realizada),
+    causa: (linha.causa as ValoresExecucao["causa"]) ?? null,
+    observacao: (linha.observacao as string | null) ?? null,
+  };
+}
+
+/**
+ * `esperado`: a execução como a tela a viu/gravou por último. Se o banco tiver outra (outra aba,
+ * outra pessoa), não grava e devolve o conflito com os valores atuais. Sucesso devolve o gravado.
+ */
 export async function salvarExecucaoPlanejador(
   c: SupabaseClient,
   turnoId: string,
   atividadeId: string,
   dados: DadosExecucao,
-): Promise<Resultado> {
+  esperado: ValoresExecucao,
+): Promise<Resultado<ValoresExecucao>> {
   const v = validarExecucao(dados);
   if (!v.ok) return v;
+  const e = validarExecucao(esperado);
+  if (!e.ok) return e;
   const t = await turnoAbertoParaCorrecao(c, turnoId);
   if (!t.ok) return t;
 
@@ -65,18 +101,26 @@ export async function salvarExecucaoPlanejador(
   if (!at) return falha("Atividade não encontrada");
 
   const concluida = statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
-  const { data, error } = await c
-    .from("atividades")
-    .update(camposExecucao(concluida, dados))
-    .eq("id", atividadeId)
-    .eq("turno_id", turnoId)
-    .select("id");
+  const campos = camposExecucao(concluida, dados);
+  const { data, error } = await filtrarEsperado(
+    c.from("atividades").update(campos).eq("id", atividadeId).eq("turno_id", turnoId),
+    esperado,
+  ).select("id");
   if (error) {
     console.error("salvarExecucaoPlanejador:", error.message);
     return erroGravacao(error);
   }
-  if (!data || data.length === 0) return falha("Atividade não encontrada");
-  return ok(undefined);
+  if (!data || data.length === 0) {
+    const { data: atual } = await c
+      .from("atividades")
+      .select("qtd_realizada, causa, observacao")
+      .eq("id", atividadeId)
+      .eq("turno_id", turnoId)
+      .maybeSingle();
+    if (!atual) return falha("Atividade não encontrada");
+    return falhaConflito(ERRO_EXECUCAO_CONFLITO, lerValores(atual));
+  }
+  return ok(campos);
 }
 
 /** Substituição atômica com checagem otimista (ver salvarEfetivo em campo.ts). */
@@ -100,7 +144,7 @@ export async function salvarEfetivoPlanejador(
     p_linhas: v.dados,
   });
   if (error) {
-    if (erroBanco(error) === "efetivo_conflito") return falha(ERRO_EFETIVO_CONFLITO);
+    if (erroBanco(error) === "efetivo_conflito") return falhaConflito(ERRO_EFETIVO_CONFLITO);
     if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivoPlanejador:", error.message);
     return erroGravacao(error);

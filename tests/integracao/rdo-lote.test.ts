@@ -5,7 +5,7 @@ import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { respostaLote } from "@/lib/rdo/lote";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("PDF único do mês", () => {
   let u: UsuarioTeste;
@@ -25,7 +25,7 @@ describe.skipIf(!ligado)("PDF único do mês", () => {
       }));
       const at = exigir(await adicionarAtividade(u.cliente, t.id, { descricao: "Alvenaria", unidade: "m²", qtd_planejada: 10 }));
       exigir(await aplicarAcao(u.cliente, t.id, "liberar"));
-      exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 10, causa: null, observacao: null }));
+      exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO));
       exigir(await aplicarAcao(u.cliente, t.id, "fechar"));
       if (data === "2026-11-06") {
         exigir(await aplicarAcao(u.cliente, t.id, "reabrir", { motivo: "Correção de teste" }));
