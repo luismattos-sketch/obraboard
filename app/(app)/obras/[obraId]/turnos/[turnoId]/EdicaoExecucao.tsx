@@ -6,6 +6,7 @@ import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
 import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
+import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
 import { Aviso } from "@/components/ui/Aviso";
 import type { Atividade } from "@/lib/db/atividades";
@@ -32,7 +33,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
   const agrupar = atividades.some((a) => a.responsavel_id !== null);
   const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
   const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
-  const { ocupado, registrar } = useRastreioSalvamento();
+  const { ocupado, falhas, tentarTodos, registrar } = useRastreioSalvamento();
   useAtualizarAoVoltar(ocupado);
   const { lista, mudar } = useExecucaoLocal(atividades);
   const erros = errosDeCausa(lista);
@@ -41,6 +42,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
   return (
     <ProvedorSalvamento registrar={registrar}>
       <section aria-labelledby="titulo-correcao" className="flex min-w-0 flex-col gap-6">
+        <AvisoPendentes falhas={falhas} tentar={tentarTodos} />
         <div>
           <h2 id="titulo-correcao" className="text-lg font-semibold text-primaria">Corrigir execução</h2>
           <p className="text-sm text-texto-suave">As alterações são salvas automaticamente e atualizam o resumo.</p>

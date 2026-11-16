@@ -153,7 +153,10 @@ function ItemExecucao({
             {a.local ? `${a.local} · ` : ""}Previsto: {numeroBR(a.qtd_planejada)} {a.unidade}
           </p>
         </div>
-        <Selo tom={TOM[status]}>{ROTULO_STATUS_ATIVIDADE[status]}</Selo>
+        {/* Cor só depois de o banco confirmar: antes disso, cinza. */}
+        <Selo tom={estado.estado === "ocioso" || estado.estado === "salvo" ? TOM[status] : "neutro"}>
+          {ROTULO_STATUS_ATIVIDADE[status]}
+        </Selo>
       </div>
 
       <div className="flex items-end gap-2">
