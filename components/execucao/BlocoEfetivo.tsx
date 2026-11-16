@@ -55,12 +55,31 @@ function Efetivo({ inicial, opcoes, somenteLeitura, salvar, equipe }: Props) {
   // Em série: o próximo salvamento só lê `esperado` depois que o anterior gravou (senão, um
   // salvamento disparado durante outro lento iria com o esperado velho e daria conflito falso).
   const [fila] = useState(criarFila);
+  // Envios que caíram sem resposta (podem ter sido gravados mesmo assim).
+  const semResposta = useRef<LinhaEfetivo[][]>([]);
   const sincronia = useContext(ContextoSincronia);
   const estado = useAutoSalvar(
     () =>
       fila(async () => {
-        const r = await salvar(validas, esperado.current);
-        if (r.ok) esperado.current = validas;
+        const enviar = async (base: LinhaEfetivo[]) => {
+          try {
+            return await salvar(validas, base);
+          } catch (e) {
+            const k = JSON.stringify(tuplaEfetivo(validas));
+            semResposta.current = [...semResposta.current.filter((l) => JSON.stringify(tuplaEfetivo(l)) !== k), validas].slice(-5);
+            throw e;
+          }
+        };
+        let r = await enviar(esperado.current);
+        // Envio anterior sem resposta pode ter sido gravado: tenta com ele como base (o banco confere).
+        for (const base of [...semResposta.current].reverse()) {
+          if (r.ok || !r.conflito) break;
+          r = await enviar(base);
+        }
+        if (r.ok) {
+          esperado.current = validas;
+          semResposta.current = [];
+        }
         return r;
       }),
     [tuplaEfetivo(validas)],

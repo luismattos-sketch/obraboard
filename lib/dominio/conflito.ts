@@ -1,8 +1,19 @@
+import { statusAtividade } from "./calculos";
 import { numeroBR } from "./formato";
 import { CAUSAS, type Causa } from "./tipos";
 
 /** Execução de uma atividade no formato gravado no banco (base da checagem otimista). */
 export type ValoresExecucao = { qtd_realizada: number | null; causa: Causa | null; observacao: string | null };
+
+/** O que o banco grava para esta edição (mesma regra de camposExecucao no servidor). */
+export function normalizarExecucao(qtdPlanejada: number, d: ValoresExecucao): ValoresExecucao {
+  const concluida = d.qtd_realizada !== null && statusAtividade(qtdPlanejada, d.qtd_realizada) === "concluida";
+  const obs = d.observacao?.trim() ? d.observacao.trim() : null;
+  return { qtd_realizada: d.qtd_realizada, causa: concluida ? null : d.causa, observacao: concluida ? null : obs };
+}
+
+export const mesmaExecucao = (a: ValoresExecucao, b: ValoresExecucao) =>
+  a.qtd_realizada === b.qtd_realizada && a.causa === b.causa && a.observacao === b.observacao;
 
 export const PREFIXO_CONFLITO = "Mudou em outra tela (pode ter sido você em outra aba).";
 

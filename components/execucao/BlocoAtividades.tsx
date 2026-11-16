@@ -5,7 +5,13 @@ import { Selo } from "@/components/ui/Selo";
 import type { Atividade } from "@/lib/db/atividades";
 import type { Resultado } from "@/lib/db/resultado";
 import { tuplaExecucao } from "@/lib/dominio/assinatura";
-import { notaDigitadoExecucao, textoConflitoExecucao, type ValoresExecucao } from "@/lib/dominio/conflito";
+import {
+  mesmaExecucao,
+  normalizarExecucao,
+  notaDigitadoExecucao,
+  textoConflitoExecucao,
+  type ValoresExecucao,
+} from "@/lib/dominio/conflito";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { numeroBR } from "@/lib/dominio/formato";
@@ -112,6 +118,8 @@ function ItemExecucao({
   // O que o banco tem segundo esta tela; em série para um salvamento lento não gerar conflito falso.
   const esperado = useRef<ValoresExecucao>({ qtd_realizada: a.qtd_realizada, causa: a.causa, observacao: a.observacao });
   const digitado = useRef<ValoresExecucao | null>(null);
+  // Envios que caíram sem resposta (podem ter sido gravados mesmo assim), no formato do banco.
+  const semResposta = useRef<ValoresExecucao[]>([]);
   const [fila] = useState(criarFila);
   const estado = useAutoSalvar(
     async () => {
@@ -123,8 +131,24 @@ function ItemExecucao({
       };
       digitado.current = dados;
       return fila(async () => {
-        const r = await salvar(a.id, dados, esperado.current);
-        if (r.ok) esperado.current = r.dados;
+        const enviar = async (base: ValoresExecucao) => {
+          try {
+            return await salvar(a.id, dados, base);
+          } catch (e) {
+            const n = normalizarExecucao(a.qtd_planejada, dados);
+            semResposta.current = [...semResposta.current.filter((d) => !mesmaExecucao(d, n)), n].slice(-5);
+            throw e;
+          }
+        };
+        let r = await enviar(esperado.current);
+        // Um envio anterior sem resposta pode ter sido gravado: se o banco tem exatamente ele, não é
+        // conflito — reenvia tomando-o como base (o servidor confere de novo, atomicamente).
+        const atual = !r.ok ? (r.conflito?.atual as ValoresExecucao | undefined) : undefined;
+        if (atual && semResposta.current.some((d) => mesmaExecucao(d, atual))) r = await enviar(atual);
+        if (r.ok) {
+          esperado.current = r.dados;
+          semResposta.current = [];
+        }
         else if (r.conflito?.atual) return { ...r, erro: textoConflitoExecucao(r.conflito.atual as ValoresExecucao, dados, a.unidade) };
         return r;
       });
@@ -153,7 +177,10 @@ function ItemExecucao({
             {a.local ? `${a.local} · ` : ""}Previsto: {numeroBR(a.qtd_planejada)} {a.unidade}
           </p>
         </div>
-        <Selo tom={TOM[status]}>{ROTULO_STATUS_ATIVIDADE[status]}</Selo>
+        {/* Cor só depois de o banco confirmar: antes disso, cinza. */}
+        <Selo tom={estado.estado === "ocioso" || estado.estado === "salvo" ? TOM[status] : "neutro"}>
+          {ROTULO_STATUS_ATIVIDADE[status]}
+        </Selo>
       </div>
 
       <div className="flex items-end gap-2">

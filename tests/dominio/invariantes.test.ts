@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decidirRepeticao, ERRO_DESISTIU, MAX_REPETICOES } from "@/components/execucao/repeticao";
+import { decidirRepeticao, MSG_SEM_SINAL, textoPendentes } from "@/components/execucao/repeticao";
 import { erroBanco } from "@/lib/db/mensagens";
 import {
   causaValida,
@@ -14,21 +14,27 @@ import { tuplaClima, tuplaEfetivo, tuplaExecucao, tuplaHorario } from "@/lib/dom
 import { PERIODOS_CLIMA } from "@/lib/dominio/tipos";
 
 describe("decidirRepeticao (auto-salvamento)", () => {
-  it("repete até 5 vezes e depois desiste com mensagem de negócio", () => {
-    let falhas = 0;
-    for (let i = 1; i <= MAX_REPETICOES; i++) {
-      const d = decidirRepeticao(falhas, true);
-      expect(d).toEqual({ repetir: true, falhas: i, emMs: 5000 });
-      if (d.repetir) falhas = d.falhas;
+  it("nunca desiste e aumenta o intervalo até 30 s", () => {
+    let f = 0;
+    const vistos: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const d = decidirRepeticao(f, true);
+      vistos.push(d.emMs);
+      f = d.falhas;
     }
-    expect(decidirRepeticao(falhas, true)).toEqual({ repetir: false, mensagem: ERRO_DESISTIU });
-    expect(ERRO_DESISTIU).toBe("Não foi possível salvar. Recarregue a página.");
+    expect(vistos).toEqual([5000, 10000, 20000, 30000, 30000, 30000, 30000, 30000]);
+    expect(f).toBe(8);
   });
-  it("sem conexão repete sempre e zera a contagem", () => {
-    expect(decidirRepeticao(4, false)).toEqual({ repetir: true, falhas: 0, emMs: 5000 });
-    expect(decidirRepeticao(99, false)).toMatchObject({ repetir: true, falhas: 0 });
+  it("sem conexão espera 30 s sem contar falha", () => {
+    expect(decidirRepeticao(2, false)).toEqual({ falhas: 2, emMs: 30000 });
+  });
+  it("texto do aviso no topo", () => {
+    expect(textoPendentes(1)).toBe("⚠ 1 lançamento não salvo. Não feche nem atualize esta tela.");
+    expect(textoPendentes(2)).toBe("⚠ 2 lançamentos não salvos. Não feche nem atualize esta tela.");
+    expect(MSG_SEM_SINAL).toBe("Não salvo — sem sinal. Tentando de novo…");
   });
 });
+
 
 describe("erroBanco", () => {
   it("reconhece só exceções P0001 conhecidas", () => {

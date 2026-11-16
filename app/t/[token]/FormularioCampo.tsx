@@ -10,6 +10,7 @@ import { horaCurta } from "@/lib/dominio/formato";
 import type { StatusTurno } from "@/lib/dominio/tipos";
 import { enviarTurno, limparClima, salvarClima, salvarEfetivo, salvarExecucao, salvarHorarioReal } from "./acoes";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
+import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
@@ -46,7 +47,7 @@ export function FormularioCampo({
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
   const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
-  const { ocupado: salvando, registrar } = useRastreioSalvamento();
+  const { ocupado: salvando, falhas, tentarTodos, registrar } = useRastreioSalvamento();
   useAtualizarAoVoltar(salvando);
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export function FormularioCampo({
   return (
     <ProvedorSalvamento registrar={registrar}>
     <div className="flex flex-col gap-8">
+      <AvisoPendentes falhas={falhas} tentar={tentarTodos} />
       <BlocoHorario
         inicio={horaCurta(turno.hora_inicio_real)}
         fim={horaCurta(turno.hora_fim_real)}
