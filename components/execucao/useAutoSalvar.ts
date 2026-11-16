@@ -17,8 +17,8 @@ export type EstadoSalvar = {
 const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
 
 /**
- * Salva automaticamente quando `deps` mudam (debounce). Falha de rede (a função lançou) repete a
- * cada 5 s mantendo o valor, até 5 vezes (sem conexão, repete até voltar); erro de negócio
+ * Salva automaticamente quando `deps` mudam (debounce). Falha de rede (a função lançou) repete
+ * sempre, com intervalo crescente (ver repeticao.ts), mantendo o valor; erro de negócio
  * (ok:false) mostra a mensagem e não repete. `deps` deve estar no formato gravado no banco
  * (ver lib/dominio/assinatura.ts) para o Sincronizar reconhecer o próprio salvamento.
  */
@@ -68,15 +68,9 @@ export function useAutoSalvar(
       } catch {
         if (cancelado) return;
         const d = decidirRepeticao(falhas, online());
-        if (d.repetir) {
-          falhas = d.falhas;
-          setEstado({ estado: "erro" });
-          agendar(d.emMs);
-        } else {
-          // Desistiu: libera o "Enviar" (nada mais em andamento), mas a edição continua pendente.
-          setEstado({ estado: "erro", mensagem: d.mensagem });
-          registrarRef.current?.(id, false);
-        }
+        falhas = d.falhas;
+        setEstado({ estado: "erro" });
+        agendar(d.emMs);
       }
     };
     const agendar = (ms: number) => {
