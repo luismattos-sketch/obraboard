@@ -62,3 +62,13 @@ describe("falhaConflito e mensagens", () => {
     expect(ERRO_EFETIVO_CONFLITO).toBe("O efetivo mudou em outra tela (pode ter sido você em outra aba).");
   });
 });
+
+describe("normalizarExecucao (formato gravado no banco)", () => {
+  it("apara a observação e limpa causa/observação quando concluída", async () => {
+    const { normalizarExecucao } = await import("@/lib/dominio/conflito");
+    expect(normalizarExecucao(10, v(4, "clima", "  chuva "))).toEqual(v(4, "clima", "chuva"));
+    expect(normalizarExecucao(10, v(4, null, "   "))).toEqual(v(4, null, null));
+    expect(normalizarExecucao(10, v(10, "clima", "x"))).toEqual(v(10, null, null));
+    expect(normalizarExecucao(10, v(null, "clima", "x"))).toEqual(v(null, "clima", "x"));
+  });
+});

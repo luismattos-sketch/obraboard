@@ -91,6 +91,36 @@ test("sinal fraco: nunca desiste, avisa, não mostra verde antes de salvar e per
   await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
   expect(await qtdNoBanco()).toBe(8);
 
+  // 7b. Resposta perdida: o 6 chega ao banco mas a tela não fica sabendo; a próxima edição não é "conflito"
+  await campo.route("**/*", async (r) => {
+    if (r.request().method() !== "POST") return r.continue();
+    await r.fetch();
+    await r.abort("connectionreset");
+  });
+  await c0.getByLabel(/Executado/).fill("6");
+  await expect(c0.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
+  await expect.poll(qtdNoBanco, { timeout: 15_000 }).toBe(6);
+  await campo.unroute("**/*");
+  await c0.getByLabel(/Executado/).fill("5");
+  await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
+  await expect(c0.getByText(/Mudou em outra tela/)).toHaveCount(0);
+  expect(await qtdNoBanco()).toBe(5);
+  // efetivo: mesma situação
+  await campo.route("**/*", async (r) => {
+    if (r.request().method() !== "POST") return r.continue();
+    await r.fetch();
+    await r.abort("connectionreset");
+  });
+  const efetivo = campo.locator("section[aria-labelledby='titulo-efetivo']");
+  await efetivo.getByRole("button", { name: "+ Adicionar função" }).click();
+  await efetivo.getByLabel("Função").selectOption({ index: 1 });
+  await efetivo.getByLabel("Quantidade").fill("3");
+  await expect(efetivo.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
+  await campo.unroute("**/*");
+  await efetivo.getByLabel("Quantidade").fill("4");
+  await expect(efetivo.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
+  await expect(efetivo.getByText(/mudou em outra tela/)).toHaveCount(0);
+
   // 8. Sair com pendência: o navegador pergunta
   await fingir(campo);
   await c0.getByLabel(/Executado/).fill("9");
