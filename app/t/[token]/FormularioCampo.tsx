@@ -79,7 +79,7 @@ export function FormularioCampo({
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
         somenteLeitura={somenteLeitura}
-        salvar={(id, d) => salvarExecucao(token, id, d, responsavelId)}
+        salvar={(id, d, esperado) => salvarExecucao(token, id, d, esperado, responsavelId)}
         onMudar={mudar}
         erros={erros}
       />

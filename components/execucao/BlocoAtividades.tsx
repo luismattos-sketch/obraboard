@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment, useCallback, useState } from "react";
+import { Fragment, useCallback, useContext, useRef, useState } from "react";
 import { Selo } from "@/components/ui/Selo";
 import type { Atividade } from "@/lib/db/atividades";
 import type { Resultado } from "@/lib/db/resultado";
 import { tuplaExecucao } from "@/lib/dominio/assinatura";
+import { notaDigitadoExecucao, textoConflitoExecucao, type ValoresExecucao } from "@/lib/dominio/conflito";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { numeroBR } from "@/lib/dominio/formato";
@@ -17,8 +18,9 @@ import {
   type StatusAtividade,
   type Tom,
 } from "@/lib/dominio/tipos";
+import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
-import { Sincronizar } from "./Sincronizar";
+import { ContextoSincronia, Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
@@ -51,7 +53,8 @@ export function useExecucaoLocal(atividades: Atividade[]): { lista: AtividadeExe
 type Props = {
   atividades: Atividade[];
   somenteLeitura?: boolean;
-  salvar: (atividadeId: string, dados: DadosExecucao) => Promise<Resultado<unknown>>;
+  /** `esperado`: a execução como esta tela a viu/gravou por último (checagem otimista no servidor). */
+  salvar: (atividadeId: string, dados: DadosExecucao, esperado: ValoresExecucao) => Promise<Resultado<ValoresExecucao>>;
   /** Avisa cada edição (ver useExecucaoLocal). */
   onMudar?: MudarExecucao;
   erros?: Record<string, string>;
@@ -105,17 +108,32 @@ function ItemExecucao({
   const status = statusAtividade(a.qtd_planejada, qtd);
   const naoConcluida = status !== "concluida";
 
+  const sincronia = useContext(ContextoSincronia);
+  // O que o banco tem segundo esta tela; em série para um salvamento lento não gerar conflito falso.
+  const esperado = useRef<ValoresExecucao>({ qtd_realizada: a.qtd_realizada, causa: a.causa, observacao: a.observacao });
+  const digitado = useRef<ValoresExecucao | null>(null);
+  const [fila] = useState(criarFila);
   const estado = useAutoSalvar(
     async () => {
       if (qtdInvalida) return { ok: false as const, erro: "Digite um número válido" };
-      return salvar(a.id, {
+      const dados: ValoresExecucao = {
         qtd_realizada: qtd,
         causa: naoConcluida && causa ? causa : null,
         observacao: naoConcluida && obs.trim() ? obs : null,
+      };
+      digitado.current = dados;
+      return fila(async () => {
+        const r = await salvar(a.id, dados, esperado.current);
+        if (r.ok) esperado.current = r.dados;
+        else if (r.conflito?.atual) return { ...r, erro: textoConflitoExecucao(r.conflito.atual as ValoresExecucao, dados, a.unidade) };
+        return r;
       });
     },
     tuplaExecucao(a.qtd_planejada, qtdInvalida ? texto : qtd, causa, obs),
   );
+  const verAtual = () => {
+    if (digitado.current) sincronia?.recarregar(notaDigitadoExecucao(digitado.current));
+  };
 
   function atualizar(t: string, c: Causa | "", o: string) {
     setTexto(t);
@@ -197,7 +215,7 @@ function ItemExecucao({
           {erro && <p className="text-sm text-perigo">{erro}</p>}
         </>
       )}
-      {!somenteLeitura && <IndicadorSalvo {...estado} />}
+      {!somenteLeitura && <IndicadorSalvo {...estado} onVerAtual={verAtual} nota={sincronia?.nota} />}
     </div>
   );
 }

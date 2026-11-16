@@ -51,7 +51,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
         <BlocoAtividades
           atividades={ordenadas}
           grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
-          salvar={(id, d) => corrigirExecucao(turnoId, id, d)}
+          salvar={(id, d, esperado) => corrigirExecucao(turnoId, id, d, esperado)}
           onMudar={mudar}
           erros={erros}
         />

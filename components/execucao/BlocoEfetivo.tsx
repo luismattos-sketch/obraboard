@@ -1,12 +1,13 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useContext, useId, useRef, useState } from "react";
 import type { Resultado } from "@/lib/db/resultado";
 import { tuplaEfetivo } from "@/lib/dominio/assinatura";
+import { notaDigitadoEfetivo } from "@/lib/dominio/conflito";
 import { canonizarFuncao, normalizarFuncao } from "@/lib/dominio/programacao";
 import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
-import { Sincronizar } from "./Sincronizar";
+import { ContextoSincronia, Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
 
 type LinhaEfetivo = { funcao: string; quantidade: number };
@@ -54,6 +55,7 @@ function Efetivo({ inicial, opcoes, somenteLeitura, salvar, equipe }: Props) {
   // Em série: o próximo salvamento só lê `esperado` depois que o anterior gravou (senão, um
   // salvamento disparado durante outro lento iria com o esperado velho e daria conflito falso).
   const [fila] = useState(criarFila);
+  const sincronia = useContext(ContextoSincronia);
   const estado = useAutoSalvar(
     () =>
       fila(async () => {
@@ -140,7 +142,9 @@ function Efetivo({ inicial, opcoes, somenteLeitura, salvar, equipe }: Props) {
           + Adicionar função
         </button>
       )}
-      {!somenteLeitura && <IndicadorSalvo {...estado} />}
+      {!somenteLeitura && (
+        <IndicadorSalvo {...estado} onVerAtual={() => sincronia?.recarregar(notaDigitadoEfetivo(validas))} nota={sincronia?.nota} />
+      )}
     </section>
   );
 }
