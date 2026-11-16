@@ -4,7 +4,7 @@ import { salvarClimaPlanejador, salvarEfetivoPlanejador, salvarExecucaoPlanejado
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno, obterTurnoCompleto, removerTurno } from "@/lib/db/turnos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 type Linha = { id: string; numero: number; retroativa: boolean; formato: number; emitido_em: string; dados: Record<string, unknown> };
 
@@ -35,7 +35,7 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
     exigir(await aplicarAcao(u.cliente, t.id, "liberar"));
     exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, comCausa
       ? { qtd_realizada: 4, causa: "material", observacao: "faltou cimento" }
-      : { qtd_realizada: 4, causa: null, observacao: null }));
+      : { qtd_realizada: 4, causa: null, observacao: null }, VAZIO));
     exigir(await salvarEfetivoPlanejador(u.cliente, t.id, null, [{ funcao: "Pedreiro", quantidade: 3 }], []));
     exigir(await salvarClimaPlanejador(u.cliente, t.id, { periodo: "manha", condicao: "bom", impediu: false }));
     return { obraId: obra.id, turnoId: t.id, atividadeId: at.id };

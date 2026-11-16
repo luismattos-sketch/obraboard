@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/campo";
 import { hashToken } from "@/lib/dominio/token";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 const LINK_INVALIDO = "Link inválido ou substituído. Peça um novo link ao planejador.";
 const FECHADO = "Este turno não está aberto para lançamentos.";
@@ -65,28 +65,31 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect(turno?.id).toBe(A.turnoId);
     expect(turno?.atividades).toHaveLength(2);
 
-    expect(await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 3, causa: "material", observacao: null })).toEqual({
-      ok: true,
-      dados: undefined,
-    });
+    const g1 = { qtd_realizada: 3, causa: "material" as const, observacao: null };
+    expect(await salvarExecucao(A.token, A.ids[0], g1, VAZIO)).toEqual({ ok: true, dados: g1 });
     const admin = criarClienteAdmin();
     const { data } = await admin.from("atividades").select("qtd_realizada, causa").eq("id", A.ids[0]).single();
     expect(Number(data!.qtd_realizada)).toBe(3);
     expect(data!.causa).toBe("material");
 
-    // concluída limpa causa
-    await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 10, causa: "material", observacao: "x" });
+    // concluída limpa causa e devolve o que gravou (próximo esperado)
+    const c2 = await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 10, causa: "material", observacao: "x" }, g1);
+    expect(c2).toEqual({ ok: true, dados: { qtd_realizada: 10, causa: null, observacao: null } });
     const { data: d2 } = await admin.from("atividades").select("causa, observacao").eq("id", A.ids[0]).single();
     expect(d2).toEqual({ causa: null, observacao: null });
+    if (!c2.ok) throw new Error();
+    expect((await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 10, causa: null, observacao: null }, c2.dados)).ok).toBe(true);
 
-    expect(await salvarExecucao(A.token, B.ids[0], { qtd_realizada: 1, causa: null, observacao: null })).toEqual({ ok: false, erro: FORA });
-    expect(await salvarExecucao(A.token, A.ids[1], { qtd_realizada: -1, causa: null, observacao: null })).toMatchObject({ ok: false });
-    expect(await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 1, causa: "xx" as never, observacao: null })).toMatchObject({ ok: false });
+    expect(await salvarExecucao(A.token, B.ids[0], { qtd_realizada: 1, causa: null, observacao: null }, VAZIO)).toEqual({ ok: false, erro: FORA });
+    expect(await salvarExecucao(A.token, A.ids[1], { qtd_realizada: -1, causa: null, observacao: null }, VAZIO)).toMatchObject({ ok: false });
+    expect(await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 1, causa: "xx" as never, observacao: null }, VAZIO)).toMatchObject({ ok: false });
+    expect(await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 1, causa: null, observacao: null }, { ...VAZIO, qtd_realizada: -1 })).toMatchObject({ ok: false });
 
     // parcial sem causa
-    await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 2, causa: null, observacao: null });
+    const p1 = { qtd_realizada: 2, causa: null, observacao: null };
+    expect((await salvarExecucao(A.token, A.ids[1], p1, VAZIO)).ok).toBe(true);
     expect(await enviarTurnoCampo(A.token)).toEqual({ ok: false, erro: "Há atividades sem causa informada" });
-    await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 2, causa: "clima", observacao: null });
+    expect((await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 2, causa: "clima", observacao: null }, p1)).ok).toBe(true);
     expect(await enviarTurnoCampo(A.token)).toEqual({ ok: true, dados: { status: "enviado" } });
     expect(await enviarTurnoCampo(A.token)).toEqual({ ok: true, dados: { status: "enviado" } });
     // ainda editável após enviado
@@ -95,8 +98,51 @@ describe.skipIf(!ligado)("campo (token)", () => {
 
     const novo = await gerarNovoLink(u.cliente, A.turnoId);
     expect(novo.ok).toBe(true);
-    expect(await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 1, causa: null, observacao: null })).toEqual({ ok: false, erro: LINK_INVALIDO });
+    expect(await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 1, causa: null, observacao: null }, VAZIO)).toEqual({ ok: false, erro: LINK_INVALIDO });
     expect(await obterTurnoPorToken(A.token)).toBeNull();
+  });
+
+  it("aba velha não sobrescreve: conflito com os valores atuais (roteiro da Rita)", { timeout: 60_000 }, async () => {
+    const T = await turnoLiberado("2026-12-08", [100]);
+    const admin = criarClienteAdmin();
+    const a45 = { qtd_realizada: 45, causa: null, observacao: null };
+    expect((await salvarExecucao(T.token, T.ids[0], a45, VAZIO)).ok).toBe(true);
+    // aba A (atualizada) grava 46
+    expect((await salvarExecucao(T.token, T.ids[0], { ...a45, qtd_realizada: 46 }, a45)).ok).toBe(true);
+    // aba B ainda vê 45 e mexe só na observação
+    const r = await salvarExecucao(T.token, T.ids[0], { qtd_realizada: 45, causa: "material", observacao: "aba velha" }, a45);
+    expect(r).toEqual({
+      ok: false,
+      erro: "Mudou em outra tela (pode ter sido você em outra aba).",
+      conflito: { atual: { qtd_realizada: 46, causa: null, observacao: null } },
+    });
+    const { data } = await admin.from("atividades").select("qtd_realizada, causa, observacao").eq("id", T.ids[0]).single();
+    expect({ ...data, qtd_realizada: Number(data!.qtd_realizada) }).toEqual({ qtd_realizada: 46, causa: null, observacao: null });
+  });
+
+  it("repetição de um salvamento já gravado (resposta perdida na rede) não é conflito", { timeout: 60_000 }, async () => {
+    const T = await turnoLiberado("2026-12-14", [10]);
+    const dados = { qtd_realizada: 4, causa: "clima" as const, observacao: " chuva " };
+    const gravado = { qtd_realizada: 4, causa: "clima", observacao: "chuva" };
+    expect(await salvarExecucao(T.token, T.ids[0], dados, VAZIO)).toEqual({ ok: true, dados: gravado });
+    // a tela não recebeu a resposta e repete com o esperado antigo
+    expect(await salvarExecucao(T.token, T.ids[0], dados, VAZIO)).toEqual({ ok: true, dados: gravado });
+    // concluída: o banco guarda causa/observação nulas; repetir com texto também bate
+    const fim = { qtd_realizada: 10, causa: "clima" as const, observacao: "x" };
+    expect((await salvarExecucao(T.token, T.ids[0], fim, gravado as never)).ok).toBe(true);
+    expect(await salvarExecucao(T.token, T.ids[0], fim, gravado as never)).toEqual({
+      ok: true,
+      dados: { qtd_realizada: 10, causa: null, observacao: null },
+    });
+  });
+
+  it("decimal e observação com espaços no esperado", { timeout: 60_000 }, async () => {
+    const T = await turnoLiberado("2026-12-09", [10]);
+    const r1 = await salvarExecucao(T.token, T.ids[0], { qtd_realizada: 2.5, causa: "clima", observacao: "  chuva  " }, VAZIO);
+    expect(r1).toEqual({ ok: true, dados: { qtd_realizada: 2.5, causa: "clima", observacao: "chuva" } });
+    if (!r1.ok) throw new Error();
+    expect((await salvarExecucao(T.token, T.ids[0], { qtd_realizada: 3.75, causa: "clima", observacao: "chuva" }, r1.dados)).ok).toBe(true);
+    expect((await salvarExecucao(T.token, T.ids[0], { qtd_realizada: 4, causa: "clima", observacao: "chuva" }, { ...r1.dados, qtd_realizada: 3.75 })).ok).toBe(true);
   });
 
   it("fechado bloqueia; efetivo substitui", { timeout: 60_000 }, async () => {
@@ -115,7 +161,7 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect(t2?.clima).toEqual([{ turno_id: C.turnoId, periodo: "manha", condicao: "chuva_leve", impediu: true }]);
     expect(await salvarClima(C.token, { periodo: "dia" as never, condicao: "bom", impediu: false })).toMatchObject({ ok: false });
 
-    await salvarExecucao(C.token, C.ids[0], { qtd_realizada: 4, causa: null, observacao: null });
+    await salvarExecucao(C.token, C.ids[0], { qtd_realizada: 4, causa: null, observacao: null }, VAZIO);
     const f = await aplicarAcao(u.cliente, C.turnoId, "fechar");
     expect(f.ok).toBe(true);
     expect(await salvarClima(C.token, { periodo: "tarde", condicao: "bom", impediu: false })).toEqual({ ok: false, erro: FECHADO });
@@ -161,8 +207,9 @@ describe.skipIf(!ligado)("campo (token)", () => {
 
     it("campo com responsável salva só a sua equipe", { timeout: 60_000 }, async () => {
       const c = await cenario("2026-12-10");
-      expect(await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, c.ana)).toEqual({ ok: false, erro: FORA });
-      expect(await salvarExecucao(c.token, c.ids[0], { qtd_realizada: 10, causa: null, observacao: null }, c.ana)).toEqual({ ok: true, dados: undefined });
+      expect(await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, VAZIO, c.ana)).toEqual({ ok: false, erro: FORA });
+      expect(await salvarExecucao(c.token, c.ids[0], { qtd_realizada: 10, causa: null, observacao: null }, VAZIO, c.ana)).toEqual({ ok: true, dados: { qtd_realizada: 10, causa: null, observacao: null } });
+      expect(await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, { ...VAZIO, qtd_realizada: 99 }, c.ana)).toEqual({ ok: false, erro: FORA });
       expect(await lancadoPor(c.ids[0])).toBe(c.ana);
       expect(await responsaveisDoTurno((await obterTurnoPorToken(c.token))!)).toEqual([
         { id: c.ana, nome: "Ana 2026-12-10", ativo: true },
@@ -172,7 +219,7 @@ describe.skipIf(!ligado)("campo (token)", () => {
 
     it("campo ver tudo", { timeout: 60_000 }, async () => {
       const c = await cenario("2026-12-11");
-      expect((await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null })).ok).toBe(true);
+      expect((await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, VAZIO)).ok).toBe(true);
       expect(await lancadoPor(c.ids[1])).toBeNull();
     });
 
@@ -190,7 +237,7 @@ describe.skipIf(!ligado)("campo (token)", () => {
       const o2 = await criarObra(u.cliente, { nome: "Outra obra campo" });
       if (!o2.ok) throw new Error(o2.erro);
       const alheio = (await criarClienteAdmin().from("responsaveis").insert({ obra_id: o2.dados.id, nome: "Zé" }).select("id").single()).data!.id as string;
-      expect((await salvarExecucao(c.token, c.ids[0], { qtd_realizada: 1, causa: null, observacao: null }, alheio)).ok).toBe(false);
+      expect((await salvarExecucao(c.token, c.ids[0], { qtd_realizada: 1, causa: null, observacao: null }, VAZIO, alheio)).ok).toBe(false);
       expect((await salvarEfetivo(c.token, [{ funcao: "Pedreiro", quantidade: 1 }], [], alheio)).ok).toBe(false);
     });
   });

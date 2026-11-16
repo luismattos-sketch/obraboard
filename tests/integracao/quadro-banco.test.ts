@@ -4,7 +4,7 @@ import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("quadro no banco", () => {
   let u: UsuarioTeste;
@@ -117,7 +117,7 @@ describe.skipIf(!ligado)("quadro no banco", () => {
     expect(dados.efetivo[0]).toMatchObject({ funcao: "Carpinteiro", quantidade: 2, responsavel_id: a });
     expect(dados.turno.status).toBe("em_campo");
 
-    exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 10, causa: null, observacao: null }));
+    exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO));
     exigir(await aplicarAcao(u.cliente, t.id, "fechar"));
     exigir(await aplicarAcao(u.cliente, t.id, "reabrir", { motivo: "Ajuste de quantidade" }));
     exigir(await aplicarAcao(u.cliente, t.id, "fechar"));

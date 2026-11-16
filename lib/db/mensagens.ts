@@ -6,7 +6,8 @@ export const ERRO_FECHADO_PLANEJADOR = "Turno fechado: reabra para editar";
 /** Encarregado: turno fora de em_campo/enviado. */
 export const ERRO_FECHADO_CAMPO = "Este turno não está aberto para lançamentos.";
 export { ERRO_CAUSA_PENDENTE } from "@/lib/dominio/regras";
-export const ERRO_EFETIVO_CONFLITO = "O efetivo foi alterado por outra pessoa. Recarregue a página.";
+export const ERRO_EFETIVO_CONFLITO = "O efetivo mudou em outra tela (pode ter sido você em outra aba).";
+export { PREFIXO_CONFLITO as ERRO_EXECUCAO_CONFLITO } from "@/lib/dominio/conflito";
 export const ERRO_SO_PLANEJADO = "Só é possível alterar turnos planejados.";
 export const ERRO_RESPONSAVEL_DUPLICADO = "Já existe um responsável com esse nome nesta obra.";
 export const ERRO_RESPONSAVEL_INVALIDO = "Responsável inválido para esta obra.";

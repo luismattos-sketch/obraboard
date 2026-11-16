@@ -9,7 +9,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
 const SO_PLANEJADO = "Só é possível alterar turnos planejados.";
-const CONFLITO = "O efetivo foi alterado por outra pessoa. Recarregue a página.";
+const CONFLITO = "O efetivo mudou em outra tela (pode ter sido você em outra aba).";
 const HORAS = { hora_inicio_prevista: "07:00", hora_fim_prevista: "17:00" };
 
 describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
@@ -98,12 +98,12 @@ describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
     const servente = [{ funcao: "Servente", quantidade: 2 }];
     expect((await salvarEfetivo(token, pedreiro, [])).ok).toBe(true);
     // planejador com a tela antiga (efetivo vazio) não sobrescreve
-    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, servente, [])).toEqual({ ok: false, erro: CONFLITO });
+    expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, servente, [])).toEqual({ ok: false, erro: CONFLITO, conflito: {} });
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo.map((e) => e.funcao)).toEqual(["Pedreiro"]);
     // com o esperado certo (ordem não importa), substitui
     const dois = [{ funcao: "Servente", quantidade: 2 }, { funcao: "Pedreiro", quantidade: 3 }];
     expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, dois, pedreiro)).ok).toBe(true);
-    expect(await salvarEfetivo(token, [], pedreiro)).toEqual({ ok: false, erro: CONFLITO });
+    expect(await salvarEfetivo(token, [], pedreiro)).toEqual({ ok: false, erro: CONFLITO, conflito: {} });
     expect((await salvarEfetivo(token, [], [...dois].reverse())).ok).toBe(true);
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo).toEqual([]);
   });

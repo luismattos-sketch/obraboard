@@ -3,7 +3,7 @@ import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno, listarTurnos, listarTurnosFechadosParaAnalise, obterTurnoCompleto } from "@/lib/db/turnos";
 import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { adicionarAtividade, moverAtividade, trazerPendentes, editarAtividade, removerAtividade } from "@/lib/db/atividades";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("turnos e atividades", () => {
   let u: UsuarioTeste;
@@ -111,7 +111,7 @@ describe.skipIf(!ligado)("turnos e atividades", () => {
       const at = await novaAtiv(t.id, `Ativ ${data}`, 10);
       const l = await aplicarAcao(u.cliente, t.id, "liberar");
       if (!l.ok) throw new Error(l.erro);
-      const e = await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 4, causa: "material", observacao: "x" });
+      const e = await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 4, causa: "material", observacao: "x" }, VAZIO);
       if (!e.ok) throw new Error(e.erro);
       const f = await aplicarAcao(u.cliente, t.id, "fechar");
       if (!f.ok) throw new Error(f.erro);

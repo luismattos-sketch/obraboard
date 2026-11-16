@@ -4,8 +4,15 @@ import { hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
-import { ERRO_EFETIVO_CONFLITO, ERRO_FECHADO_CAMPO, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
-import { falha, ok, type Resultado } from "./resultado";
+import type { ValoresExecucao } from "@/lib/dominio/conflito";
+import { conflitoOuJaGravado, filtrarEsperado, lerValores } from "./execucao";
+import {
+  ERRO_EFETIVO_CONFLITO,
+  ERRO_FECHADO_CAMPO,
+  ERRO_RESPONSAVEL_INVALIDO,
+  erroBanco,
+} from "./mensagens";
+import { falha, falhaConflito, ok, type Resultado } from "./resultado";
 import { opcoesFuncaoDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
 import {
@@ -94,10 +101,13 @@ export async function salvarExecucao(
   token: string,
   atividadeId: string,
   dados: DadosExecucao,
+  esperado: ValoresExecucao,
   responsavelId: string | null = null,
-): Promise<Resultado> {
+): Promise<Resultado<ValoresExecucao>> {
   const v = validarExecucao(dados);
   if (!v.ok) return v;
+  const e = validarExecucao(esperado);
+  if (!e.ok) return e;
 
   const t = await turnoAberto(token);
   if (!t.ok) return t;
@@ -117,20 +127,31 @@ export async function salvarExecucao(
   if (responsavelId !== null && at.responsavel_id !== responsavelId) return falha(ERRO_ATIVIDADE);
 
   const concluida = statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
+  const campos = camposExecucao(concluida, dados);
   let gravar = admin
     .from("atividades")
-    .update({ ...camposExecucao(concluida, dados), lancado_por_id: responsavelId })
+    .update({ ...campos, lancado_por_id: responsavelId })
     .eq("id", atividadeId)
     .eq("turno_id", t.dados.id);
   // Troca de responsável entre a leitura e a gravação: não grava na equipe de outro.
   if (responsavelId !== null) gravar = gravar.eq("responsavel_id", responsavelId);
-  const { data, error } = await gravar.select("id");
+  // Checagem otimista: aba/tela desatualizada não sobrescreve o que foi gravado em outro lugar.
+  const { data, error } = await filtrarEsperado(gravar, esperado).select("id");
   if (error) {
     console.error("salvarExecucao:", error.message);
     return erroGravacao(error);
   }
-  if (!data || data.length === 0) return falha(ERRO_ATIVIDADE);
-  return ok(undefined);
+  if (!data || data.length === 0) {
+    const { data: atual } = await admin
+      .from("atividades")
+      .select("qtd_realizada, causa, observacao, responsavel_id")
+      .eq("id", atividadeId)
+      .eq("turno_id", t.dados.id)
+      .maybeSingle();
+    if (!atual || (responsavelId !== null && atual.responsavel_id !== responsavelId)) return falha(ERRO_ATIVIDADE);
+    return conflitoOuJaGravado(lerValores(atual), campos);
+  }
+  return ok(campos);
 }
 
 /**
@@ -157,7 +178,7 @@ export async function salvarEfetivo(
     p_linhas: v.dados,
   });
   if (error) {
-    if (erroBanco(error) === "efetivo_conflito") return falha(ERRO_EFETIVO_CONFLITO);
+    if (erroBanco(error) === "efetivo_conflito") return falhaConflito(ERRO_EFETIVO_CONFLITO);
     if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivo:", error.message);
     return erroGravacao(error);

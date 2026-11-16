@@ -6,6 +6,7 @@ import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
 import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
+import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
 import { Aviso } from "@/components/ui/Aviso";
 import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
@@ -32,6 +33,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
   const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
   const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
   const { ocupado, registrar } = useRastreioSalvamento();
+  useAtualizarAoVoltar(ocupado);
   const { lista, mudar } = useExecucaoLocal(atividades);
   const erros = errosDeCausa(lista);
   const pendentes = lista.filter((a) => erros[a.id]);
@@ -51,7 +53,7 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
         <BlocoAtividades
           atividades={ordenadas}
           grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
-          salvar={(id, d) => corrigirExecucao(turnoId, id, d)}
+          salvar={(id, d, esperado) => corrigirExecucao(turnoId, id, d, esperado)}
           onMudar={mudar}
           erros={erros}
         />

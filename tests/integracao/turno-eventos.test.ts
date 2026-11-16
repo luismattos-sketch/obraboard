@@ -6,7 +6,7 @@ import { listarEventos } from "@/lib/db/eventos";
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno, gerarNovoLink } from "@/lib/db/turnos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 type Evento = { id: string; tipo: string; ator_tipo: string; ator_nome: string | null; versao: number | null; motivo: string | null };
 
@@ -35,7 +35,7 @@ describe.skipIf(!ligado)("turno_eventos no banco", () => {
     }));
     const at = exigir(await adicionarAtividade(u.cliente, t.id, { descricao: "Forma", unidade: "m²", qtd_planejada: 10 }));
     exigir(await aplicarAcao(u.cliente, t.id, "liberar"));
-    exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 4, causa: "material", observacao: "x" }));
+    exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 4, causa: "material", observacao: "x" }, VAZIO));
     return { turnoId: t.id };
   }
 

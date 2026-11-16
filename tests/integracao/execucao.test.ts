@@ -10,7 +10,7 @@ import {
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno, obterTurnoCompleto } from "@/lib/db/turnos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 const FECHADO = "Turno fechado: reabra para editar";
 
@@ -42,15 +42,28 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
 
   it("corrige execução, efetivo, clima e horário; concluída limpa causa", { timeout: 60_000 }, async () => {
     const { turnoId, atividadeId } = await turnoEmCampo("2027-01-10");
-    expect((await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 4, causa: "material", observacao: " x " })).ok).toBe(true);
+    const r1 = await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 4, causa: "material", observacao: " x " }, VAZIO);
+    expect(r1).toEqual({ ok: true, dados: { qtd_realizada: 4, causa: "material", observacao: "x" } });
+    if (!r1.ok) throw new Error();
     let t = await obterTurnoCompleto(u.cliente, turnoId);
     expect(t?.atividades[0]).toMatchObject({ qtd_realizada: 4, causa: "material", observacao: "x" });
-    await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: "material", observacao: "x" });
+    // esperado velho (outra aba): conflito, banco intacto
+    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 9, causa: "material", observacao: "x" }, VAZIO)).toEqual({
+      ok: false,
+      erro: "Mudou em outra tela (pode ter sido você em outra aba).",
+      conflito: { atual: { qtd_realizada: 4, causa: "material", observacao: "x" } },
+    });
+    expect((await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: "material", observacao: "x" }, r1.dados)).ok).toBe(true);
+    // repetição com esperado antigo de um valor já gravado: sucesso, não conflito
+    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: "material", observacao: "x" }, r1.dados)).toEqual({
+      ok: true,
+      dados: { qtd_realizada: 10, causa: null, observacao: null },
+    });
     t = await obterTurnoCompleto(u.cliente, turnoId);
     expect(t?.atividades[0]).toMatchObject({ qtd_realizada: 10, causa: null, observacao: null });
 
-    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: -1, causa: null, observacao: null })).toMatchObject({ ok: false });
-    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: "zz" as never, observacao: null })).toMatchObject({ ok: false });
+    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: -1, causa: null, observacao: null }, VAZIO)).toMatchObject({ ok: false });
+    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: "zz" as never, observacao: null }, VAZIO)).toMatchObject({ ok: false });
 
     const pedreiro = [{ funcao: "Pedreiro", quantidade: 3 }];
     const servente = [{ funcao: "Servente", quantidade: 2 }];
@@ -71,10 +84,10 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
 
   it("recusa turno fechado e volta a aceitar ao reabrir", { timeout: 60_000 }, async () => {
     const { turnoId, atividadeId } = await turnoEmCampo("2027-01-11");
-    await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: null, observacao: null });
+    await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO);
     expect((await aplicarAcao(u.cliente, turnoId, "fechar")).ok).toBe(true);
     const e = { ok: false, erro: FECHADO };
-    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: null, observacao: null })).toEqual(e);
+    expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: null, observacao: null }, { qtd_realizada: 10, causa: null, observacao: null })).toEqual(e);
     expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, [], [])).toEqual(e);
     expect(await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "bom", impediu: false })).toEqual(e);
     expect(await removerClimaPlanejador(u.cliente, turnoId, "manha")).toEqual(e);
@@ -85,7 +98,7 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
 
   it("outra empresa não altera nada (RLS)", { timeout: 60_000 }, async () => {
     const { turnoId, atividadeId } = await turnoEmCampo("2027-01-12");
-    expect(await salvarExecucaoPlanejador(outro.cliente, turnoId, atividadeId, { qtd_realizada: 5, causa: null, observacao: null })).toMatchObject({ ok: false });
+    expect(await salvarExecucaoPlanejador(outro.cliente, turnoId, atividadeId, { qtd_realizada: 5, causa: null, observacao: null }, VAZIO)).toMatchObject({ ok: false });
     expect(await salvarHorarioPlanejador(outro.cliente, turnoId, { hora_inicio_real: "07:00", hora_fim_real: null })).toMatchObject({ ok: false });
     const { data } = await criarClienteAdmin().from("atividades").select("qtd_realizada").eq("id", atividadeId).single();
     expect(data!.qtd_realizada).toBeNull();

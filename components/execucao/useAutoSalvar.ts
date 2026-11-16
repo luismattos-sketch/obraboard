@@ -10,6 +10,8 @@ export type EstadoSalvar = {
   estado: "ocioso" | "salvando" | "salvo" | "erro";
   /** Presente em erro de negócio ou após desistir. Em `erro` sem mensagem = sem conexão (repetindo). */
   mensagem?: string;
+  /** Erro de negócio por conflito: o valor mudou em outra tela (ver Resultado.conflito). */
+  conflito?: { atual?: unknown };
 };
 
 const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
@@ -57,7 +59,7 @@ export function useAutoSalvar(
       try {
         const r = await salvarRef.current();
         if (cancelado) return;
-        setEstado(r.ok ? { estado: "salvo" } : { estado: "erro", mensagem: r.erro });
+        setEstado(r.ok ? { estado: "salvo" } : { estado: "erro", mensagem: r.erro, conflito: r.conflito });
         if (r.ok) {
           sincroniaRef.current?.salvo(chave);
           sincroniaRef.current?.sujo(false);

@@ -10,6 +10,7 @@ import { horaCurta } from "@/lib/dominio/formato";
 import type { StatusTurno } from "@/lib/dominio/tipos";
 import { enviarTurno, limparClima, salvarClima, salvarEfetivo, salvarExecucao, salvarHorarioReal } from "./acoes";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
+import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
@@ -46,6 +47,7 @@ export function FormularioCampo({
   const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
   const { ocupado: salvando, registrar } = useRastreioSalvamento();
+  useAtualizarAoVoltar(salvando);
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
 
@@ -79,7 +81,7 @@ export function FormularioCampo({
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
         somenteLeitura={somenteLeitura}
-        salvar={(id, d) => salvarExecucao(token, id, d, responsavelId)}
+        salvar={(id, d, esperado) => salvarExecucao(token, id, d, esperado, responsavelId)}
         onMudar={mudar}
         erros={erros}
       />

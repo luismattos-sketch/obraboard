@@ -10,12 +10,13 @@ import {
 } from "@/lib/db/execucao";
 import type { Resultado } from "@/lib/db/resultado";
 import type { DadosClima, DadosExecucao, DadosHorario, LinhaEfetivo } from "@/lib/db/validacao";
+import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { PeriodoClima } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 // Correções do planejador: sessão + RLS. A página é revalidada para o resumo refletir a correção.
 
-async function comRevalidacao(turnoId: string, fn: (c: Awaited<ReturnType<typeof criarClienteServidor>>) => Promise<Resultado>) {
+async function comRevalidacao<T>(turnoId: string, fn: (c: Awaited<ReturnType<typeof criarClienteServidor>>) => Promise<Resultado<T>>) {
   const c = await criarClienteServidor();
   const r = await fn(c);
   if (r.ok) {
@@ -26,8 +27,8 @@ async function comRevalidacao(turnoId: string, fn: (c: Awaited<ReturnType<typeof
   return r;
 }
 
-export async function corrigirExecucao(turnoId: string, atividadeId: string, dados: DadosExecucao) {
-  return comRevalidacao(turnoId, (c) => salvarExecucaoPlanejador(c, turnoId, atividadeId, dados));
+export async function corrigirExecucao(turnoId: string, atividadeId: string, dados: DadosExecucao, esperado: ValoresExecucao) {
+  return comRevalidacao(turnoId, (c) => salvarExecucaoPlanejador(c, turnoId, atividadeId, dados, esperado));
 }
 
 export async function corrigirEfetivo(turnoId: string, responsavelId: string | null, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) {
