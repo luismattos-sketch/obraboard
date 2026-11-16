@@ -75,6 +75,8 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   try {
     const campo = await ctx.newPage();
     await campo.goto(urlCampo!);
+    const campo2 = await ctx.newPage();
+    await campo2.goto(urlCampo!);
     const salvo = (secao: string) =>
       expect(campo.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
 
@@ -91,6 +93,17 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await cards.nth(1).getByLabel(/Executado/).fill("8");
     await cards.nth(1).getByLabel("Causa do não cumprimento").selectOption({ label: "Material" });
     await expect(cards.nth(1).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
+
+    // Aba velha (aberta antes dos lançamentos) não sobrescreve: avisa e oferece o valor atual
+    const cards2 = campo2.locator("section[aria-labelledby='titulo-atividades'] > div");
+    await cards2.nth(1).getByLabel("Observação").fill("aba velha");
+    await expect(cards2.nth(1).getByText(/Mudou em outra tela/)).toBeVisible({ timeout: 15_000 });
+    await expect(cards2.nth(1).getByText(/Agora está 8 m²/)).toBeVisible();
+    await cards2.nth(1).getByRole("button", { name: "Ver valor atual" }).click();
+    await expect(cards2.nth(1).getByLabel(/Executado/)).toHaveValue("8", { timeout: 15_000 });
+    await expect(cards2.nth(1).getByText(/Você tinha digitado/)).toBeVisible();
+    await campo2.close();
+    await expect(cards.nth(1).getByLabel(/Executado/)).toHaveValue("8");
 
     // Efetivo
     await campo.getByRole("button", { name: "+ Adicionar função" }).click();
