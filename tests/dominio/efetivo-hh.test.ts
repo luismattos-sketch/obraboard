@@ -239,3 +239,22 @@ describe("descreverOcorrencia", () => {
     expect(descreverOcorrencia(oc({ tipo: "saida", quantidade: 1, hora_inicio: "12:00:00" }), nome)).toBe("1 saiu às 12:00");
   });
 });
+
+describe("parada aberta (sem fim)", () => {
+  const joao2 = { funcao: "Mecânico", quantidade: 2, responsavel_id: RITA };
+  const aberta = () => oc({ tipo: "parado", funcao: "Mecânico", quantidade: 2, hora_inicio: "10:00", causa: "material" });
+  it("sem agora: vai até o fim do turno (descontando o almoço)", () => {
+    const r = calcularHH(entrada({ efetivo: [joao2], ocorrencias: [aberta()] }));
+    expect(r.hhParado).toBeCloseTo(12);
+    expect(r.hhProdutivo).toBeCloseTo(6);
+  });
+  it("com agora: vai até agora", () => {
+    expect(calcularHH(entrada({ efetivo: [joao2], ocorrencias: [aberta()], agora: "11:00" })).hhParado).toBeCloseTo(2);
+  });
+  it("agora depois do fim: limitada ao fim do turno", () => {
+    expect(calcularHH(entrada({ efetivo: [joao2], ocorrencias: [aberta()], agora: "18:30" })).hhParado).toBeCloseTo(12);
+  });
+  it("agora antes do início da parada: zero", () => {
+    expect(calcularHH(entrada({ efetivo: [joao2], ocorrencias: [aberta()], agora: "09:00" })).hhParado).toBeCloseTo(0);
+  });
+});
