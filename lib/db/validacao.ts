@@ -6,6 +6,9 @@ import {
   type DadosExecucao,
   type PeriodoClima,
 } from "@/lib/dominio/tipos";
+import { horasEntre, minutos } from "@/lib/dominio/calculos";
+import type { Janela, Ocorrencia, TipoOcorrencia } from "@/lib/dominio/efetivoHH";
+import type { Causa, Periodo } from "@/lib/dominio/tipos";
 import { falha, ok, type Resultado } from "./resultado";
 
 /** Validação de entrada compartilhada (encarregado, planejador e cadastros). */
@@ -87,12 +90,19 @@ export function camposExecucao(concluida: boolean, dados: DadosExecucao) {
   };
 }
 
-export function validarEfetivo(linhas: LinhaEfetivo[]): Resultado<LinhaEfetivo[]> {
+/** Função digitada que descreve gente parada/ociosa (deve ir para "Parados", não virar função). */
+export const pareceParado = (funcao: string) => /(^|[^\p{L}])(parad[oa]s?|ocios[oa]s?)($|[^\p{L}])/iu.test(funcao);
+export const ERRO_FUNCAO_PARADO = "Para gente parada use o botão Parados.";
+
+/** `esperado`: o efetivo já gravado; linhas antigas com "parado" continuam aceitas. */
+export function validarEfetivo(linhas: LinhaEfetivo[], esperado: LinhaEfetivo[] = []): Resultado<LinhaEfetivo[]> {
   if (!Array.isArray(linhas) || linhas.length > 50) return falha("Efetivo inválido");
+  const antigas = new Set(esperado.map((l) => l.funcao.trim()));
   const limpas: LinhaEfetivo[] = [];
   for (const l of linhas) {
     const funcao = typeof l?.funcao === "string" ? l.funcao.trim() : "";
     if (!funcao || funcao.length > 60) return falha("Informe a função (até 60 caracteres)");
+    if (pareceParado(funcao) && !antigas.has(funcao)) return falha(ERRO_FUNCAO_PARADO);
     if (!Number.isInteger(l.quantidade) || l.quantidade < 1 || l.quantidade > 999) {
       return falha("Quantidade deve ser um número inteiro entre 1 e 999");
     }
@@ -130,4 +140,73 @@ export function validarHorario(dados: DadosHorario): Resultado {
     if (h !== null && !horaValida(h)) return falha("Horário inválido");
   }
   return ok(undefined);
+}
+
+export type DadosOcorrencia = Omit<Ocorrencia, "created_at" | "responsavel_id">;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ehUuid = (x: unknown): x is string => typeof x === "string" && UUID.test(x);
+const TIPOS_OCORRENCIA: readonly TipoOcorrencia[] = ["emprestimo", "saida", "parado"];
+
+/** Ocorrência do efetivo (empréstimo, saída antes, parados). `janela` = horário do turno, quando conhecido. */
+export function validarOcorrencia(d: DadosOcorrencia, janela: Janela | null): Resultado<DadosOcorrencia> {
+  if (!d || !ehUuid(d.id) || !TIPOS_OCORRENCIA.includes(d.tipo)) return falha("Registro inválido");
+  const funcao = typeof d.funcao === "string" ? d.funcao.trim() : "";
+  if (!funcao || funcao.length > 80) return falha("Informe a função");
+  if (!Number.isInteger(d.quantidade) || d.quantidade < 1 || d.quantidade > 999) {
+    return falha("Quantidade deve ser um número inteiro entre 1 e 999");
+  }
+  if (!horaValida(d.hora_inicio)) return falha("Informe o horário");
+  const fim = d.hora_fim ?? null;
+  if (fim !== null && !horaValida(fim)) return falha("Informe o horário");
+  const emprestimoId = d.emprestimo_id ?? null;
+  if (emprestimoId !== null && (!ehUuid(emprestimoId) || d.tipo === "emprestimo")) return falha("Registro inválido");
+
+  let destino: string | null = null;
+  let causa: Causa | null = null;
+  if (d.tipo === "emprestimo") {
+    if (!ehUuid(d.destino_responsavel_id)) return falha("Escolha a equipe que recebe");
+    destino = d.destino_responsavel_id;
+  } else if (d.tipo === "saida") {
+    if (fim !== null) return falha("Registro inválido");
+  } else {
+    if (fim === null) return falha("Informe até que horas ficaram parados");
+    if (!causaValida(d.causa)) return falha("Informe a causa");
+    causa = d.causa as Causa;
+  }
+
+  const ini = minutos(d.hora_inicio)!;
+  if (janela) {
+    const j0 = minutos(janela.inicio);
+    const dur = horasEntre(janela.inicio, janela.fim);
+    if (j0 !== null && dur !== null) {
+      const rel = (h: string) => (minutos(h)! - j0 + 1440) % 1440;
+      const foraDoTurno = `Horário fora do turno (${janela.inicio.slice(0, 5)}–${janela.fim.slice(0, 5)})`;
+      if (rel(d.hora_inicio) > dur * 60) return falha(foraDoTurno);
+      if (fim !== null) {
+        if (rel(fim) > dur * 60) return falha(foraDoTurno);
+        if (rel(fim) <= rel(d.hora_inicio)) return falha("O fim deve ser depois do início");
+      }
+    }
+  } else if (fim !== null && minutos(fim) === ini) {
+    return falha("O fim deve ser depois do início");
+  }
+
+  return ok({
+    id: d.id, tipo: d.tipo, funcao, quantidade: d.quantidade, hora_inicio: d.hora_inicio, hora_fim: fim,
+    destino_responsavel_id: destino, emprestimo_id: emprestimoId, causa,
+  });
+}
+
+/** Intervalo de refeição digitado ("" nos dois = sem intervalo). Diurno não atravessa a meia-noite. */
+export function validarIntervalo(j: { inicio: string; fim: string } | null, periodo: Periodo): Resultado<Janela | null> {
+  const inicio = j?.inicio?.trim() ?? "";
+  const fim = j?.fim?.trim() ?? "";
+  if (!inicio && !fim) return ok(null);
+  if (!inicio || !fim) return falha("Informe início e fim do intervalo");
+  if (!horaValida(inicio) || !horaValida(fim)) return falha("Horário inválido");
+  const a = minutos(inicio)!;
+  const b = minutos(fim)!;
+  if (a === b || (periodo === "diurno" && b < a)) return falha("O fim do intervalo deve ser depois do início");
+  return ok({ inicio, fim });
 }

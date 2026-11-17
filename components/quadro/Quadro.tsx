@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { FaixaQuadro, ModeloQuadro, ResumoEquipe, Visao } from "@/lib/dominio/quadro";
 import { CAUSAS, type StatusAtividade } from "@/lib/dominio/tipos";
+import { nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 
 /** Quadro de check-in/check-out: só leitura, faixas horizontais por responsável (planejador, TV, gestor e foto). */
 
@@ -34,7 +35,30 @@ function textoResumo(r: ResumoEquipe): string {
   return `${r.concluidas} de ${r.total} ${rotulo} · ${formatarPercentual(r.percentual)}`;
 }
 
-function Faixa({ faixa, visao, mostrarExtra, unidadeVazia }: { faixa: FaixaQuadro; visao: Visao; mostrarExtra: boolean; unidadeVazia: string }) {
+function Recebidos({ r, nome }: { r: ResumoEquipe; nome: (id: string | null) => string }) {
+  if (r.recebidos.length === 0) return null;
+  return (
+    <ul className="text-sm text-operacional xl:text-base">
+      {r.recebidos.map((x) => (
+        <li key={x.emprestimo_id}>{`+${x.quantidade} ${x.funcao} (de ${nome(x.de)}, ${x.inicio}–${x.fim})`}</li>
+      ))}
+    </ul>
+  );
+}
+
+function Faixa({
+  faixa,
+  visao,
+  mostrarExtra,
+  unidadeVazia,
+  nome: nomeDe,
+}: {
+  faixa: FaixaQuadro;
+  visao: Visao;
+  mostrarExtra: boolean;
+  unidadeVazia: string;
+  nome: (id: string | null) => string;
+}) {
   const nome = faixa.responsavel ? `${faixa.responsavel.nome}${faixa.responsavel.ativo ? "" : " (inativo)"}` : "Sem responsável";
   const r = faixa.resumo;
   return (
@@ -46,21 +70,26 @@ function Faixa({ faixa, visao, mostrarExtra, unidadeVazia }: { faixa: FaixaQuadr
       <div className="flex flex-col gap-1">
         <h3 className="text-base font-bold text-primaria xl:text-xl">{nome}</h3>
         {visao === "checkin" ? (
-          faixa.efetivo.length === 0 ? (
-            <p className="text-sm text-texto-suave">Efetivo não informado</p>
-          ) : (
-            <ul className="text-sm text-operacional xl:text-base">
-              {faixa.efetivo.map((e, i) => (
-                <li key={i}>{`${e.quantidade} ${e.funcao}`}</li>
-              ))}
-            </ul>
-          )
+          <>
+            {faixa.efetivo.length === 0 && r.recebidos.length === 0 ? (
+              <p className="text-sm text-texto-suave">Efetivo não informado</p>
+            ) : (
+              <ul className="text-sm text-operacional xl:text-base">
+                {faixa.efetivo.map((e, i) => (
+                  <li key={i}>{`${e.quantidade} ${e.funcao}`}</li>
+                ))}
+              </ul>
+            )}
+            <Recebidos r={r} nome={nomeDe} />
+          </>
         ) : (
           <>
             <p className="text-sm text-operacional xl:text-base">
               {`${r.pessoas} ${r.pessoas === 1 ? "pessoa" : "pessoas"}`}
               {r.hh !== null && ` · ${hh(r.hh)} HH`}
+              {r.hhParado ? ` · ${hh(r.hhParado)} HH parados` : ""}
             </p>
+            <Recebidos r={r} nome={nomeDe} />
             <p className="text-sm font-semibold text-texto xl:text-base">
               {textoResumo(r)}
               {r.extras > 0 && <span className="ml-1 text-destaque">{`+${r.extras} extra`}</span>}
@@ -115,6 +144,7 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
   const { entrada: e, faixas } = modelo;
   const fechado = e.turno.status === "fechado";
   const mostrarExtra = e.atividades.some((a) => a.programada);
+  const nomeEquipe = nomeDaEquipe(e.responsaveis);
   const seloEtapa = visao === "checkin" ? "CHECK-IN" : "CHECK-OUT";
   const link = "rounded px-2 py-1 text-sm font-semibold underline-offset-2 hover:underline";
 
@@ -166,7 +196,7 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
         <p className="rounded-cartao bg-superficie p-4 text-texto-suave">Nenhuma atividade neste turno.</p>
       ) : (
         faixas.map((f) => (
-          <Faixa key={f.responsavel?.id ?? "sem"} faixa={f} visao={visao} mostrarExtra={mostrarExtra} unidadeVazia="un" />
+          <Faixa key={f.responsavel?.id ?? "sem"} faixa={f} visao={visao} mostrarExtra={mostrarExtra} unidadeVazia="un" nome={nomeEquipe} />
         ))
       )}
     </div>

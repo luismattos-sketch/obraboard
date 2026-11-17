@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { lerOcorrencias } from "@/lib/dominio/efetivoHH";
 import type { EntradaQuadro, ResponsavelRef, TurnoRef } from "@/lib/dominio/quadro";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { Causa, Periodo, StatusTurno } from "@/lib/dominio/tipos";
@@ -21,7 +22,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
   const { data, error } = await c
     .from("turnos")
     .select(
-      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id), efetivo(id, funcao, quantidade, responsavel_id, created_at)",
+      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*)",
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -35,6 +36,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     obra: { id: string; nome: string };
     atividades: Record<string, unknown>[] | null;
     efetivo: Record<string, unknown>[] | null;
+    efetivo_ocorrencias: unknown;
   };
 
   const atividades: EntradaQuadro["atividades"] = (t.atividades ?? []).map((a) => ({
@@ -53,7 +55,10 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     .sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)) || String(x.id).localeCompare(String(y.id)))
     .map((e) => ({ funcao: e.funcao as string, quantidade: Number(e.quantidade), responsavel_id: (e.responsavel_id as string | null) ?? null }));
 
-  const ids = [...new Set([...atividades, ...efetivo].map((x) => x.responsavel_id))].filter((x): x is string => x !== null);
+  const ocorrencias = lerOcorrencias(t.efetivo_ocorrencias);
+  const ids = [
+    ...new Set([...atividades, ...efetivo].map((x) => x.responsavel_id).concat(ocorrencias.map((o) => o.destino_responsavel_id))),
+  ].filter((x): x is string => x !== null);
   let responsaveis: ResponsavelRef[] = [];
   if (ids.length > 0) {
     const r = await c.from("responsaveis").select("id, nome, ativo").eq("obra_id", t.obra_id as string).in("id", ids);
@@ -75,10 +80,13 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
       hora_fim_prevista: (t.hora_fim_prevista as string | null) ?? null,
       hora_inicio_real: (t.hora_inicio_real as string | null) ?? null,
       hora_fim_real: (t.hora_fim_real as string | null) ?? null,
+      intervalo_inicio: (t.intervalo_inicio as string | null) ?? null,
+      intervalo_fim: (t.intervalo_fim as string | null) ?? null,
     },
     responsaveis,
     atividades,
     efetivo,
+    ocorrencias,
   };
 }
 
@@ -105,6 +113,7 @@ export async function fotoCheckin(c: SupabaseClient, turnoId: string): Promise<F
   const dados: EntradaQuadro = {
     ...d.dados,
     atividades: d.dados.atividades.map((a) => ({ ...a, qtd_planejada: Number(a.qtd_planejada), qtd_realizada: numOuNull(a.qtd_realizada) })),
+    ocorrencias: lerOcorrencias(d.dados.ocorrencias),
   };
   return { emitido_em: d.emitido_em, dados };
 }

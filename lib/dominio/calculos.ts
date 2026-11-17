@@ -19,7 +19,7 @@ export function percentualCumprimento(
   return concluidas / atividades.length;
 }
 
-function minutos(hhmm: string): number | null {
+export function minutos(hhmm: string): number | null {
   const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(hhmm.trim());
   if (!m) return null;
   const h = Number(m[1]);
@@ -55,7 +55,7 @@ export function hhTurno(
   return pessoas * horas;
 }
 
-const chaveFuncao = (f: string) => f.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase().replace(/\s+/g, " ");
+export const chaveFuncao = (f: string) => f.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase().replace(/\s+/g, " ");
 
 /** Uma linha por função (soma as equipes; vale a primeira grafia), na ordem em que aparecem. Usado no RDO. */
 export function somarEfetivoPorFuncao(efetivo: { funcao: string; quantidade: number }[]): { funcao: string; quantidade: number }[] {

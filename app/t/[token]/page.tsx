@@ -6,6 +6,7 @@ import { resolverEscolhaCampo } from "@/lib/dominio/quadro";
 import { EscolhaResponsavel } from "./EscolhaResponsavel";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
+import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
 
 // Página de token: nunca cacheada, nunca indexada, sem vazar o link por Referer.
 export const dynamic = "force-dynamic";
@@ -74,6 +75,10 @@ export default async function PaginaCampo({
               hora_fim_real: turno.hora_fim_real,
               atividades: daEquipe(turno.atividades),
               efetivo: daEquipe(turno.efetivo).map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id })),
+              efetivoTodo: turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id })),
+              ocorrencias: turno.ocorrencias,
+              janela: janelaDoTurno(turno),
+              intervalo: intervaloDoTurno(turno),
               clima: turno.clima,
             }}
           />

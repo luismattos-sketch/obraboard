@@ -18,6 +18,8 @@ const foto = (data: string, obraNome = "Obra") => ({
   ],
   efetivo: [],
   clima: [],
+  ocorrencias: [],
+  responsaveis: [],
 });
 
 const versao = (id: string, data: string, obraNome?: string): VersaoRdo => ({

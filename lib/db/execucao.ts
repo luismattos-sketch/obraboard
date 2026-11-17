@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statusAtividade } from "@/lib/dominio/calculos";
-import type { PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { Janela } from "@/lib/dominio/efetivoHH";
+import type { Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import {
   ERRO_EFETIVO_CONFLITO,
@@ -17,6 +18,7 @@ import {
   validarEfetivoEsperado,
   validarExecucao,
   validarHorario,
+  validarIntervalo,
   validarPeriodoClima,
   type DadosClima,
   type DadosExecucao,
@@ -36,7 +38,7 @@ const ERRO_GENERICO = "Não foi possível salvar. Tente novamente.";
 const erroGravacao = (error: { code?: string; message?: string }) =>
   falha(erroBanco(error) === "turno_fechado" ? ERRO_FECHADO : ERRO_GENERICO);
 
-async function turnoAbertoParaCorrecao(c: SupabaseClient, turnoId: string): Promise<Resultado> {
+export async function turnoAbertoParaCorrecao(c: SupabaseClient, turnoId: string): Promise<Resultado> {
   const { data, error } = await c.from("turnos").select("status").eq("id", turnoId).maybeSingle();
   if (error && error.code !== "22P02") {
     console.error("turnoAbertoParaCorrecao:", error.message);
@@ -141,10 +143,10 @@ export async function salvarEfetivoPlanejador(
   linhas: LinhaEfetivo[],
   esperado: LinhaEfetivo[],
 ): Promise<Resultado> {
-  const v = validarEfetivo(linhas);
-  if (!v.ok) return v;
   const e = validarEfetivoEsperado(esperado);
   if (!e.ok) return e;
+  const v = validarEfetivo(linhas, e.dados);
+  if (!v.ok) return v;
   const t = await turnoAbertoParaCorrecao(c, turnoId);
   if (!t.ok) return t;
   const { error } = await c.rpc("substituir_efetivo", {
@@ -208,5 +210,24 @@ export async function salvarHorarioPlanejador(c: SupabaseClient, turnoId: string
     return erroGravacao(error);
   }
   if (!data || data.length === 0) return falha("Turno não encontrado");
+  return ok(undefined);
+}
+
+/** Intervalo de refeição deste turno (null = sem intervalo). Não muda a obra nem outros turnos. */
+export async function salvarIntervaloTurno(c: SupabaseClient, turnoId: string, j: Janela | null): Promise<Resultado> {
+  const { data: t, error: et } = await c.from("turnos").select("periodo, status").eq("id", turnoId).maybeSingle();
+  if (et && et.code !== "22P02") {
+    console.error("salvarIntervaloTurno:", et.message);
+    return falha(ERRO_GENERICO);
+  }
+  if (!t) return falha("Turno não encontrado");
+  if ((t as { status: StatusTurno }).status === "fechado") return falha(ERRO_FECHADO);
+  const v = validarIntervalo(j, (t as { periodo: Periodo }).periodo);
+  if (!v.ok) return v;
+  const { error } = await c
+    .from("turnos")
+    .update({ intervalo_inicio: v.dados?.inicio ?? null, intervalo_fim: v.dados?.fim ?? null })
+    .eq("id", turnoId);
+  if (error) return erroGravacao(error);
   return ok(undefined);
 }

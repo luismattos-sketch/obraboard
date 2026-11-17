@@ -1,4 +1,5 @@
-import { hhTurno, statusAtividade } from "./calculos";
+import { statusAtividade } from "./calculos";
+import { calcularHH, intervaloDoTurno, janelaDoTurno, type HHEquipe, type Ocorrencia, type Recebido } from "./efetivoHH";
 import { compararTurnos } from "./regras";
 import type { Causa, Periodo, StatusAtividade, StatusTurno } from "./tipos";
 
@@ -16,6 +17,9 @@ export type EntradaQuadro = {
     hora_fim_prevista: string | null;
     hora_inicio_real: string | null;
     hora_fim_real: string | null;
+    /** Ausentes na foto do check-in antiga (= sem intervalo). */
+    intervalo_inicio?: string | null;
+    intervalo_fim?: string | null;
   };
   responsaveis: ResponsavelRef[];
   atividades: {
@@ -31,6 +35,8 @@ export type EntradaQuadro = {
     responsavel_id: string | null;
   }[];
   efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[];
+  /** Ausente na foto do check-in antiga (= nenhuma). */
+  ocorrencias?: Ocorrencia[];
 };
 export type Visao = "checkin" | "checkout";
 export type ResumoEquipe = {
@@ -40,7 +46,12 @@ export type ResumoEquipe = {
   extras: number;
   base: "programadas" | "todas";
   pessoas: number;
+  /** HH total da equipe (produtivo + parado), 1 casa. */
   hh: number | null;
+  hhParado: number | null;
+  /** Pessoas emprestadas por outras equipes (não entram em `pessoas`). */
+  recebidos: Recebido[];
+  avisos: string[];
 };
 export type FaixaQuadro = {
   /** null = "Sem responsável". */
@@ -56,15 +67,22 @@ export function resumoEquipe(
   faixa: Pick<FaixaQuadro, "atividades" | "efetivo">,
   turno: EntradaQuadro["turno"],
   temProgramadaNoTurno: boolean,
+  /** HH já calculado com as ocorrências do turno; ausente = só o efetivo da faixa. */
+  hhEquipe?: HHEquipe,
 ): ResumoEquipe {
   const base = temProgramadaNoTurno ? "programadas" : "todas";
   const contadas = temProgramadaNoTurno ? faixa.atividades.filter((a) => a.programada) : faixa.atividades;
   const concluidas = contadas.filter((a) => statusAtividade(a.qtd_planejada, a.qtd_realizada) === "concluida").length;
-  const hh = hhTurno(
-    faixa.efetivo,
-    { inicio: turno.hora_inicio_prevista, fim: turno.hora_fim_prevista },
-    { inicio: turno.hora_inicio_real, fim: turno.hora_fim_real },
-  );
+  const h =
+    hhEquipe ??
+    calcularHH({
+      efetivo: faixa.efetivo.map((x) => ({ ...x, responsavel_id: null })),
+      ocorrencias: [],
+      janela: janelaDoTurno(turno),
+      intervalo: intervaloDoTurno(turno),
+    }).equipes[0];
+  const umaCasa = (n: number | null | undefined) => (n === null || n === undefined ? null : Math.round(n * 10) / 10);
+  const total = h && h.hhProdutivo !== null && h.hhParado !== null ? h.hhProdutivo + h.hhParado : null;
   return {
     concluidas,
     total: contadas.length,
@@ -72,16 +90,26 @@ export function resumoEquipe(
     extras: temProgramadaNoTurno ? faixa.atividades.length - contadas.length : 0,
     base,
     pessoas: faixa.efetivo.reduce((s, e) => s + e.quantidade, 0),
-    hh: hh === null ? null : Math.round(hh * 10) / 10,
+    hh: total === null || (total === 0 && !h?.recebidos.length && faixa.efetivo.length === 0) ? null : umaCasa(total),
+    hhParado: total === null ? null : umaCasa(h?.hhParado),
+    recebidos: h?.recebidos ?? [],
+    avisos: h?.avisos ?? [],
   };
 }
 
 export function montarQuadro(e: EntradaQuadro): ModeloQuadro {
   const temProgramada = e.atividades.some((a) => a.programada);
   const porId = new Map(e.responsaveis.map((r) => [r.id, r]));
+  const hh = calcularHH({
+    efetivo: e.efetivo,
+    ocorrencias: e.ocorrencias ?? [],
+    janela: janelaDoTurno(e.turno),
+    intervalo: intervaloDoTurno(e.turno),
+  });
   const chaves = new Set<string | null>([
     ...e.atividades.map((a) => a.responsavel_id),
     ...e.efetivo.map((x) => x.responsavel_id),
+    ...hh.equipes.filter((x) => x.recebidos.length > 0).map((x) => x.responsavel_id),
   ]);
   const nomeados = [...chaves]
     .filter((k): k is string => k !== null)
@@ -98,7 +126,8 @@ export function montarQuadro(e: EntradaQuadro): ModeloQuadro {
     const efetivo = e.efetivo
       .filter((x) => x.responsavel_id === id)
       .map(({ funcao, quantidade }) => ({ funcao, quantidade }));
-    return { responsavel, atividades, efetivo, resumo: resumoEquipe({ atividades, efetivo }, e.turno, temProgramada) };
+    const hhEquipe = hh.equipes.find((x) => x.responsavel_id === id);
+    return { responsavel, atividades, efetivo, resumo: resumoEquipe({ atividades, efetivo }, e.turno, temProgramada, hhEquipe) };
   });
   return { entrada: e, faixas };
 }

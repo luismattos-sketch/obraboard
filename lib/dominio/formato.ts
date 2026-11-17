@@ -16,6 +16,8 @@ export const TOM_STATUS_TURNO: Record<StatusTurno, Tom> = {
 };
 
 export const numeroBR = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+/** HH com 1 casa: "52,0". */
+export const hhBR = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /** "07:00:00" -> "07:00" */
 export const horaCurta = (h: string | null) => (h ? h.slice(0, 5) : "");

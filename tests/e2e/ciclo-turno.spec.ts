@@ -123,7 +123,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.goto(turnoUrl);
     const resumo = page.locator("section[aria-labelledby='titulo-resumo']");
     await expect(resumo.getByText("50%")).toBeVisible();
-    await expect(resumo.getByText("Homens-hora").locator("xpath=following-sibling::p[1]")).toHaveText("36");
+    await expect(resumo.getByText("Homens-hora").locator("xpath=following-sibling::p[1]")).toHaveText("32"); // 4 × (9 h − 1 h de almoço)
 
     // Fechar
     await page.getByRole("button", { name: "Fechar turno" }).click();

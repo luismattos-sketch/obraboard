@@ -1,4 +1,4 @@
-import { hhTurno } from "./calculos";
+import { calcularHH, intervaloDoTurno, janelaDoTurno, type Ocorrencia } from "./efetivoHH";
 import { formatarData } from "./formato";
 import { compararTurnos } from "./regras";
 import type { Causa, Periodo, StatusTurno, Tom } from "./tipos";
@@ -54,7 +54,11 @@ export type TurnoDaSemana = {
   hora_fim_prevista: string | null;
   hora_inicio_real: string | null;
   hora_fim_real: string | null;
-  efetivo: EquipePrevista[];
+  efetivo: (EquipePrevista & { responsavel_id?: string | null })[];
+  /** Ausentes em fotos antigas da semana (= sem intervalo, sem ocorrências). */
+  intervalo_inicio?: string | null;
+  intervalo_fim?: string | null;
+  ocorrencias?: Ocorrencia[];
   extras: { id: string; descricao: string; unidade: string | null; qtd_planejada: number; qtd_realizada: number | null }[];
 };
 
@@ -273,15 +277,24 @@ export function efetivoPrevistoReal(d: DadosSemana): BlocoPrevistoReal[] {
       diferenca: t ? f.real - f.previsto : null,
     }));
     const totalPrevisto = funcoes.reduce((s, f) => s + f.previsto, 0);
-    const janelaPrevista = { inicio: t?.hora_inicio_prevista ?? null, fim: t?.hora_fim_prevista ?? null };
-    const janelaReal = { inicio: t?.hora_inicio_real ?? null, fim: t?.hora_fim_real ?? null };
+    const janela = t ? janelaDoTurno(t) : null;
+    const intervalo = t ? intervaloDoTurno(t) : null;
     return {
       data,
       periodo,
       semTurno: !t,
       funcoes,
-      hhPrevisto: t ? hhTurno([{ quantidade: totalPrevisto }], janelaPrevista, janelaReal) : null,
-      hhReal: t ? hhTurno(t.efetivo, janelaPrevista, janelaReal) : null,
+      hhPrevisto: t
+        ? calcularHH({ efetivo: [{ funcao: "previsto", quantidade: totalPrevisto, responsavel_id: null }], ocorrencias: [], janela, intervalo }).hh
+        : null,
+      hhReal: t
+        ? calcularHH({
+            efetivo: t.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id ?? null })),
+            ocorrencias: t.ocorrencias ?? [],
+            janela,
+            intervalo,
+          }).hh
+        : null,
     };
   });
 }

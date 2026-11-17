@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emissaoDaVersao, FormatoRdoDesconhecido, lerFoto, linhasEmissao, type VersaoRdo } from "@/lib/rdo/versao";
 import { dataHoraCurta } from "@/lib/rdo/formatar";
+import { resumirTurno } from "@/lib/dominio/resumo";
 
 const foto = {
   obra: { id: "o", empresa_id: "e", nome: "Edifício Aurora", cliente: "Ágil", endereco: null },
@@ -33,6 +34,31 @@ describe("lerFoto", () => {
     expect(t.efetivo).toEqual([{ id: "e1", turno_id: "t", funcao: "Pedreiro", quantidade: 3 }]);
     expect(t.clima).toEqual([{ turno_id: "t", periodo: "manha", condicao: "bom", impediu: false }]);
     expect(t.fechado_em).toBe("2026-11-09T21:40:00+00:00");
+  });
+  it("foto v1 antiga sem ocorrencias mantém HH antigo (sem intervalo)", () => {
+    const t = lerFoto(versao());
+    expect(t.ocorrencias).toEqual([]);
+    expect(t.responsaveis).toEqual([]);
+    expect(t.intervalo_inicio).toBeNull();
+    expect(t.intervalo_fim).toBeNull();
+    expect(resumirTurno(t).hh).toBeCloseTo(3 * (8 + 50 / 60));
+  });
+  it("foto nova traz intervalo, ocorrências e responsáveis", () => {
+    const nova = {
+      ...foto,
+      turno: { ...foto.turno, intervalo_inicio: "12:00:00", intervalo_fim: "13:00:00" },
+      efetivo: [{ id: "e1", funcao: "Pedreiro", quantidade: 3, responsavel_id: "r1" }],
+      responsaveis: [{ id: "r1", nome: "Rita" }, { id: "r2", nome: "Ana" }],
+      ocorrencias: [{
+        id: "x", responsavel_id: "r1", funcao: "Pedreiro", tipo: "emprestimo", quantidade: 1, hora_inicio: "13:00:00",
+        hora_fim: null, destino_responsavel_id: "r2", emprestimo_id: null, causa: null, created_at: "2026-11-09T15:00:00Z",
+      }],
+    };
+    const t = lerFoto(versao({ dados: nova }));
+    expect(t.intervalo_inicio).toBe("12:00:00");
+    expect(t.ocorrencias).toHaveLength(1);
+    expect(t.responsaveis).toHaveLength(2);
+    expect(resumirTurno(t).hh).toBeCloseTo(3 * (8 + 50 / 60 - 1));
   });
   it("recusa formato desconhecido", () => {
     expect(() => lerFoto(versao({ formato: 2 }))).toThrow(FormatoRdoDesconhecido);

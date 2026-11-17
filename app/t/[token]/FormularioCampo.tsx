@@ -8,7 +8,18 @@ import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import type { StatusTurno } from "@/lib/dominio/tipos";
-import { enviarTurno, limparClima, salvarClima, salvarEfetivo, salvarExecucao, salvarHorarioReal } from "./acoes";
+import { useRouter } from "next/navigation";
+import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
+import {
+  criarOcorrencia,
+  enviarTurno,
+  limparClima,
+  removerOcorrencia,
+  salvarClima,
+  salvarEfetivo,
+  salvarExecucao,
+  salvarHorarioReal,
+} from "./acoes";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
 import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
@@ -24,6 +35,11 @@ export type DadosTurnoCampo = {
   hora_fim_real: string | null;
   atividades: Atividade[];
   efetivo: Pick<Efetivo, "funcao" | "quantidade" | "responsavel_id">[];
+  /** Efetivo de todas as equipes e todas as ocorrências do turno (conta de HH; a tela mostra só a equipe). */
+  efetivoTodo: Pick<Efetivo, "funcao" | "quantidade" | "responsavel_id">[];
+  ocorrencias: Ocorrencia[];
+  janela: Janela | null;
+  intervalo: Janela | null;
   clima: Clima[];
 };
 
@@ -49,6 +65,7 @@ export function FormularioCampo({
   const [status, setStatus] = useState<StatusTurno>(turno.status);
   const { ocupado: salvando, falhas, tentarTodos, registrar } = useRastreioSalvamento();
   useAtualizarAoVoltar(salvando);
+  const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
 
@@ -79,6 +96,11 @@ export function FormularioCampo({
         somenteLeitura={somenteLeitura}
         salvar={(d) => salvarHorarioReal(token, d)}
       />
+      {turno.intervalo && (
+        <p className="-mt-6 text-sm text-texto-suave">
+          Intervalo: {turno.intervalo.inicio.slice(0, 5)}–{turno.intervalo.fim.slice(0, 5)} (descontado do HH)
+        </p>
+      )}
       <BlocoAtividades
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
@@ -96,6 +118,15 @@ export function FormularioCampo({
         adicionarEquipe={false}
         equipesIniciais={responsavelId !== null ? [responsavelId] : [...new Set(turno.atividades.map((a) => a.responsavel_id))]}
         salvar={(id, l, esperado) => salvarEfetivo(token, l, esperado, id)}
+        movimentacoes={{
+          ocorrencias: turno.ocorrencias,
+          efetivoTodo: turno.efetivoTodo,
+          janela: turno.janela,
+          intervalo: turno.intervalo,
+          criar: (id, d) => criarOcorrencia(token, d, id),
+          remover: (id) => removerOcorrencia(token, id, responsavelId),
+          atualizar: () => router.refresh(),
+        }}
       />
       <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
         limpar={(p) => limparClima(token, p)}

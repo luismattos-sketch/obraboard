@@ -58,7 +58,7 @@ async function resolverTurno(token: string): Promise<{ id: string; status: Statu
 }
 
 /** Turno do token aberto para lançamentos (em_campo ou enviado). */
-async function turnoAberto(token: string): Promise<Resultado<{ id: string; status: StatusTurno }>> {
+export async function turnoAberto(token: string): Promise<Resultado<{ id: string; status: StatusTurno }>> {
   const t = await resolverTurno(token);
   if (!t) return falha(ERRO_LINK);
   if (t.status !== "em_campo" && t.status !== "enviado") return falha(ERRO_FECHADO);
@@ -164,10 +164,10 @@ export async function salvarEfetivo(
   esperado: LinhaEfetivo[],
   responsavelId: string | null = null,
 ): Promise<Resultado> {
-  const v = validarEfetivo(linhas);
-  if (!v.ok) return v;
   const e = validarEfetivoEsperado(esperado);
   if (!e.ok) return e;
+  const v = validarEfetivo(linhas, e.dados);
+  if (!v.ok) return v;
 
   const t = await turnoAberto(token);
   if (!t.ok) return t;
