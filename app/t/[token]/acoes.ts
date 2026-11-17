@@ -9,6 +9,7 @@ import {
   salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
 import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
+import { enviarFotoParadaCampo } from "@/lib/db/fotosParada";
 import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -70,4 +71,8 @@ export async function marcarTerminou(token: string, responsavelId: string, hora:
 
 export async function desfazerTerminou(token: string, responsavelId: string) {
   return desfazerTerminouCampo(token, responsavelId);
+}
+
+export async function enviarFotoParada(token: string, ocorrenciaId: string, responsavelId: string | null, form: FormData) {
+  return enviarFotoParadaCampo(token, ocorrenciaId, responsavelId, form);
 }

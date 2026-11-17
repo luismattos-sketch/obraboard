@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/execucao";
 import type { Janela } from "@/lib/dominio/efetivoHH";
 import { criarOcorrenciaPlanejador, encerrarParadaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
+import { enviarFotoParadaPlanejador } from "@/lib/db/fotosParada";
 import type { Resultado } from "@/lib/db/resultado";
 import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -64,4 +65,8 @@ export async function corrigirIntervalo(turnoId: string, j: Janela | null) {
 
 export async function encerrarParadaAcao(turnoId: string, id: string, horaFim: string) {
   return comRevalidacao(turnoId, (c) => encerrarParadaPlanejador(c, turnoId, id, horaFim));
+}
+
+export async function enviarFotoParadaAcao(turnoId: string, ocorrenciaId: string, form: FormData) {
+  return comRevalidacao(turnoId, (c) => enviarFotoParadaPlanejador(c, turnoId, ocorrenciaId, form));
 }

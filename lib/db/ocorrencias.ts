@@ -4,6 +4,7 @@ import { chaveFuncao } from "@/lib/dominio/calculos";
 import { fimPadraoParada, horaCurta, janelaDoTurno, type Ocorrencia } from "@/lib/dominio/efetivoHH";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { turnoAberto } from "./campo";
+import { removerFoto } from "./fotosParada";
 import { turnoAbertoParaCorrecao } from "./execucao";
 import {
   ERRO_FECHADO_CAMPO,
@@ -130,6 +131,17 @@ async function gravar(
   return traduzir(error, erroFechado);
 }
 
+/** Fotos que somem com a remoção: a da própria ocorrência e as das penduradas nela (empréstimo). */
+async function fotosDaRemocao(c: SupabaseClient, turnoId: string, id: string): Promise<string[]> {
+  const { data } = await c
+    .from("efetivo_ocorrencias")
+    .select("foto_path")
+    .eq("turno_id", turnoId)
+    .or(`id.eq.${id},emprestimo_id.eq.${id}`)
+    .not("foto_path", "is", null);
+  return ((data ?? []) as { foto_path: string }[]).map((x) => x.foto_path);
+}
+
 export async function criarOcorrenciaCampo(token: string, d: DadosOcorrencia, responsavelId: string | null): Promise<Resultado> {
   const t = await turnoAberto(token);
   if (!t.ok) return t;
@@ -140,10 +152,13 @@ export async function criarOcorrenciaCampo(token: string, d: DadosOcorrencia, re
 export async function removerOcorrenciaCampo(token: string, id: string, responsavelId: string | null): Promise<Resultado> {
   const t = await turnoAberto(token);
   if (!t.ok) return t;
-  let q = criarClienteAdmin().from("efetivo_ocorrencias").delete().eq("id", id).eq("turno_id", t.dados.id);
+  const c = criarClienteAdmin();
+  const fotos = await fotosDaRemocao(c, t.dados.id, id);
+  let q = c.from("efetivo_ocorrencias").delete().eq("id", id).eq("turno_id", t.dados.id);
   if (responsavelId !== null) q = q.eq("responsavel_id", responsavelId);
-  const { error } = await q;
+  const { data, error } = await q.select("id");
   if (error && error.code !== "22P02") return traduzir(error, ERRO_FECHADO_CAMPO);
+  if (data && data.length > 0) await Promise.all(fotos.map(removerFoto));
   return ok(undefined);
 }
 
@@ -161,8 +176,10 @@ export async function criarOcorrenciaPlanejador(
 export async function removerOcorrenciaPlanejador(c: SupabaseClient, turnoId: string, id: string): Promise<Resultado> {
   const t = await turnoAbertoParaCorrecao(c, turnoId);
   if (!t.ok) return t;
-  const { error } = await c.from("efetivo_ocorrencias").delete().eq("id", id).eq("turno_id", turnoId);
+  const fotos = await fotosDaRemocao(c, turnoId, id);
+  const { data, error } = await c.from("efetivo_ocorrencias").delete().eq("id", id).eq("turno_id", turnoId).select("id");
   if (error && error.code !== "22P02") return traduzir(error, ERRO_FECHADO_PLANEJADOR);
+  if (data && data.length > 0) await Promise.all(fotos.map(removerFoto));
   return ok(undefined);
 }
 
