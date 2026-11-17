@@ -40,7 +40,7 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
   for (const nome of ["Ana", "João"]) {
     await page.getByRole("button", { name: "+ Novo responsável" }).click();
     await page.getByLabel("Nome", { exact: true }).fill(nome);
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page.getByText(nome, { exact: true })).toBeVisible();
   }
 
