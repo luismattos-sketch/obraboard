@@ -5,6 +5,7 @@ import type { Resultado } from "@/lib/db/resultado";
 import { tuplaEfetivo } from "@/lib/dominio/assinatura";
 import { notaDigitadoEfetivo } from "@/lib/dominio/conflito";
 import { canonizarFuncao, normalizarFuncao } from "@/lib/dominio/programacao";
+import { ERRO_FUNCAO_PARADO, pareceParado } from "@/lib/db/validacao";
 import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
 import { ContextoSincronia, Sincronizar } from "./Sincronizar";
@@ -48,8 +49,11 @@ function Efetivo({ inicial, opcoes, somenteLeitura, salvar, equipe }: Props) {
     }),
   );
 
+  // "Mecânico parado" não é função: vai em "Parados" (linhas antigas já gravadas continuam).
+  const recusada = (l: Linha) => l.outra && pareceParado(l.funcao) && !inicial.some((i) => i.funcao.trim() === l.funcao.trim());
   // Só vão para o servidor linhas completas e válidas (a linha em digitação fica local).
   const validas = linhas
+    .filter((l) => !recusada(l))
     .map((l) => ({ funcao: canonizarFuncao(l.funcao, opcoes), quantidade: Number(l.quantidade) }))
     .filter((l) => l.funcao && Number.isInteger(l.quantidade) && l.quantidade > 0);
   // Em série: o próximo salvamento só lê `esperado` depois que o anterior gravou (senão, um
@@ -129,6 +133,7 @@ function Efetivo({ inicial, opcoes, somenteLeitura, salvar, equipe }: Props) {
                 }}
               />
             )}
+            {recusada(l) && <p className="text-sm text-perigo">{ERRO_FUNCAO_PARADO}</p>}
           </div>
           <input
             aria-label="Quantidade"

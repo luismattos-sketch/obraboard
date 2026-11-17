@@ -8,8 +8,9 @@ import {
   salvarExecucaoPlanejador,
   salvarHorarioPlanejador,
 } from "@/lib/db/execucao";
+import { criarOcorrenciaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
 import type { Resultado } from "@/lib/db/resultado";
-import type { DadosClima, DadosExecucao, DadosHorario, LinhaEfetivo } from "@/lib/db/validacao";
+import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { PeriodoClima } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -45,4 +46,12 @@ export async function limparClimaPlanejador(turnoId: string, periodo: PeriodoCli
 
 export async function corrigirHorario(turnoId: string, dados: DadosHorario) {
   return comRevalidacao(turnoId, (c) => salvarHorarioPlanejador(c, turnoId, dados));
+}
+
+export async function criarOcorrenciaAcao(turnoId: string, responsavelId: string | null, d: DadosOcorrencia) {
+  return comRevalidacao(turnoId, (c) => criarOcorrenciaPlanejador(c, turnoId, responsavelId, d));
+}
+
+export async function removerOcorrenciaAcao(turnoId: string, id: string) {
+  return comRevalidacao(turnoId, (c) => removerOcorrenciaPlanejador(c, turnoId, id));
 }

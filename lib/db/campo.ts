@@ -164,10 +164,10 @@ export async function salvarEfetivo(
   esperado: LinhaEfetivo[],
   responsavelId: string | null = null,
 ): Promise<Resultado> {
-  const v = validarEfetivo(linhas);
-  if (!v.ok) return v;
   const e = validarEfetivoEsperado(esperado);
   if (!e.ok) return e;
+  const v = validarEfetivo(linhas, e.dados);
+  if (!v.ok) return v;
 
   const t = await turnoAberto(token);
   if (!t.ok) return t;

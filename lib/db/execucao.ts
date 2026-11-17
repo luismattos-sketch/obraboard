@@ -141,10 +141,10 @@ export async function salvarEfetivoPlanejador(
   linhas: LinhaEfetivo[],
   esperado: LinhaEfetivo[],
 ): Promise<Resultado> {
-  const v = validarEfetivo(linhas);
-  if (!v.ok) return v;
   const e = validarEfetivoEsperado(esperado);
   if (!e.ok) return e;
+  const v = validarEfetivo(linhas, e.dados);
+  if (!v.ok) return v;
   const t = await turnoAbertoParaCorrecao(c, turnoId);
   if (!t.ok) return t;
   const { error } = await c.rpc("substituir_efetivo", {

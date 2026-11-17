@@ -90,12 +90,19 @@ export function camposExecucao(concluida: boolean, dados: DadosExecucao) {
   };
 }
 
-export function validarEfetivo(linhas: LinhaEfetivo[]): Resultado<LinhaEfetivo[]> {
+/** Função digitada que descreve gente parada/ociosa (deve ir para "Parados", não virar função). */
+export const pareceParado = (funcao: string) => /(^|[^\p{L}])(parad[oa]s?|ocios[oa]s?)($|[^\p{L}])/iu.test(funcao);
+export const ERRO_FUNCAO_PARADO = "Para gente parada use o botão Parados.";
+
+/** `esperado`: o efetivo já gravado; linhas antigas com "parado" continuam aceitas. */
+export function validarEfetivo(linhas: LinhaEfetivo[], esperado: LinhaEfetivo[] = []): Resultado<LinhaEfetivo[]> {
   if (!Array.isArray(linhas) || linhas.length > 50) return falha("Efetivo inválido");
+  const antigas = new Set(esperado.map((l) => l.funcao.trim()));
   const limpas: LinhaEfetivo[] = [];
   for (const l of linhas) {
     const funcao = typeof l?.funcao === "string" ? l.funcao.trim() : "";
     if (!funcao || funcao.length > 60) return falha("Informe a função (até 60 caracteres)");
+    if (pareceParado(funcao) && !antigas.has(funcao)) return falha(ERRO_FUNCAO_PARADO);
     if (!Number.isInteger(l.quantidade) || l.quantidade < 1 || l.quantidade > 999) {
       return falha("Quantidade deve ser um número inteiro entre 1 e 999");
     }

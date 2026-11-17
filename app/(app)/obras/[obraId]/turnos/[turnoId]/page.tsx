@@ -15,6 +15,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { AcoesTurno } from "./AcoesTurno";
 import { BlocoRdo } from "./BlocoRdo";
 import { DadosTurno } from "./DadosTurno";
+import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
 import { EfetivoTurno } from "./EfetivoTurno";
 import { HistoricoTurno } from "./HistoricoTurno";
 import { EdicaoExecucao } from "./EdicaoExecucao";
@@ -118,6 +119,9 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 opcoesFuncao={opcoesFuncao}
                 obraId={obraId}
                 responsaveis={responsaveis}
+                ocorrencias={turno.ocorrencias}
+                janela={janelaDoTurno(turno)}
+                intervalo={intervaloDoTurno(turno)}
               />
             </>
           )}

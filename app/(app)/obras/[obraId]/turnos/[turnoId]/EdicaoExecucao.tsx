@@ -14,7 +14,16 @@ import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import { AcoesTurno } from "./AcoesTurno";
-import { corrigirClima, corrigirEfetivo, corrigirExecucao, corrigirHorario, limparClimaPlanejador } from "./acoesExecucao";
+import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
+import {
+  corrigirClima,
+  corrigirEfetivo,
+  corrigirExecucao,
+  corrigirHorario,
+  criarOcorrenciaAcao,
+  limparClimaPlanejador,
+  removerOcorrenciaAcao,
+} from "./acoesExecucao";
 
 type Props = {
   turnoId: string;
@@ -26,10 +35,26 @@ type Props = {
   opcoesFuncao: string[];
   obraId: string;
   responsaveis: ResponsavelRef[];
+  ocorrencias: Ocorrencia[];
+  janela: Janela | null;
+  intervalo: Janela | null;
 };
 
 /** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
-export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, atividades, efetivo, clima, opcoesFuncao, obraId, responsaveis }: Props) {
+export function EdicaoExecucao({
+  turnoId,
+  hora_inicio_real,
+  hora_fim_real,
+  atividades,
+  efetivo,
+  clima,
+  opcoesFuncao,
+  obraId,
+  responsaveis,
+  ocorrencias,
+  janela,
+  intervalo,
+}: Props) {
   const agrupar = atividades.some((a) => a.responsavel_id !== null);
   const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
   const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
@@ -66,6 +91,13 @@ export function EdicaoExecucao({ turnoId, hora_inicio_real, hora_fim_real, ativi
           opcoesFuncao={opcoesFuncao}
           equipesIniciais={[...new Set(atividades.map((a) => a.responsavel_id))]}
           salvar={(id, l, esperado) => corrigirEfetivo(turnoId, id, l, esperado)}
+          movimentacoes={{
+            ocorrencias,
+            janela,
+            intervalo,
+            criar: (id, d) => criarOcorrenciaAcao(turnoId, id, d),
+            remover: (id) => removerOcorrenciaAcao(turnoId, id),
+          }}
         />
         <BlocoClima
           inicial={clima}
