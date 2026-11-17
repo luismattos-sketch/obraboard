@@ -24,6 +24,33 @@ const html = (status: EntradaQuadro["turno"]["status"], visao: "checkin" | "chec
     <Quadro modelo={montarQuadro(base(status))} visao={visao} publico={publico} editarHref={publico ? null : "/obras/o/turnos/t"} />,
   );
 
+describe("Quadro: empréstimo e parados", () => {
+  const entrada = (): EntradaQuadro => ({
+    ...base("em_campo"),
+    turno: { ...base("em_campo").turno, hora_fim_prevista: "17:00", intervalo_inicio: "12:00", intervalo_fim: "13:00" },
+    responsaveis: [{ id: "m", nome: "Marcos", ativo: true }, { id: "a", nome: "Ana", ativo: true }],
+    efetivo: [{ funcao: "Montador", quantidade: 6, responsavel_id: "m" }],
+    ocorrencias: [
+      { id: "o1", responsavel_id: "m", funcao: "Montador", tipo: "emprestimo", quantidade: 2, hora_inicio: "13:00", hora_fim: null,
+        destino_responsavel_id: "a", emprestimo_id: null, causa: null, created_at: "1" },
+      { id: "o2", responsavel_id: "m", funcao: "Montador", tipo: "parado", quantidade: 2, hora_inicio: "08:00", hora_fim: "10:00",
+        destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "2" },
+    ],
+  });
+  it("check-out mostra HH parado e o recebido na equipe destino", () => {
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkout" publico />);
+    expect(h).toContain("6 pessoas · 46,0 HH · 4,0 HH parados");
+    expect(h).toContain("+2 Montador (de Marcos, 13:00–17:00)");
+  });
+  it("check-in também mostra o recebido", () => {
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkin" publico />);
+    expect(h).toContain("+2 Montador (de Marcos, 13:00–17:00)");
+  });
+  it("sem parados não mostra HH parados", () => {
+    expect(html("em_campo", "checkout")).not.toContain("HH parados");
+  });
+});
+
 describe("Quadro", () => {
   it("check-in: selo, faixas, extra e 'Sem responsável' por último", () => {
     const h = html("planejado", "checkin");

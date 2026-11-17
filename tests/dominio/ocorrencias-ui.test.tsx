@@ -84,7 +84,7 @@ describe("OcorrenciasEfetivo", () => {
         })}
       />,
     );
-    expect(html).toContain("+2 Montador (da Rita, 13:00–17:00)");
+    expect(html).toContain("+2 Montador (de Rita, 13:00–17:00)");
     expect(html).toContain("+ Saída antes");
     expect(html).toContain("+ Parados");
     expect(html).not.toContain("Emprestar");
