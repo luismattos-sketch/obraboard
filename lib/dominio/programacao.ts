@@ -1,7 +1,7 @@
 import { calcularHH, intervaloDoTurno, janelaDoTurno, type Ocorrencia } from "./efetivoHH";
 import { formatarData } from "./formato";
 import { compararTurnos } from "./regras";
-import type { Causa, Periodo, StatusTurno, Tom } from "./tipos";
+import type { Causa, Periodo, StatusTurno, TipoAtividade, Tom } from "./tipos";
 
 export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type StatusSemana = "rascunho" | "programada" | "encerrada";
@@ -43,6 +43,8 @@ export type ExecucaoLigada = {
   qtd_planejada: number;
   qtd_realizada: number | null;
   causa: Causa | null;
+  /** Ausente em fotos antigas da semana. */
+  tipo?: TipoAtividade | null;
 };
 
 export type TurnoDaSemana = {
