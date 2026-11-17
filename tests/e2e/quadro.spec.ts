@@ -98,7 +98,7 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
     const card = campo.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);
     await card.getByRole("button", { name: /Marcar como concluída/ }).click();
     await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
-    await expect(campo.getByText("Terminou? Avise o planejador.")).toBeVisible();
+    await expect(campo.getByRole("button", { name: "✓ Terminei minha parte" })).toBeVisible();
 
     // ?r= adulterado volta para a escolha
     await campo.goto(`${urlCampo}?r=00000000-0000-0000-0000-000000000000`);

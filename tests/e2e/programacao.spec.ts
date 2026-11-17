@@ -111,7 +111,7 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
   await expect(page.getByText("Encerrada", { exact: true })).toBeVisible();
   await expect(page.getByText("PPC da semana", { exact: true })).toBeVisible();
   await expect(page.getByText("0% — 0 de 1")).toBeVisible();
-  await expect(page.getByText("Causa: Material")).toBeVisible();
+  await expect(page.getByText("Causa: Falta material")).toBeVisible();
 
   // Análise usa o PPC da programação
   await page.request.get(`${obraUrl}/analise`);
