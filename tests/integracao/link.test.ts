@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { criarObra } from "@/lib/db/obras";
 import { adicionarAtividade } from "@/lib/db/atividades";
-import { aplicarAcao, criarTurno, gerarNovoLink, obterTurnoCompleto } from "@/lib/db/turnos";
+import { aplicarAcao, criarTurno, gerarNovoLink, linkCampo, obterTurnoCompleto } from "@/lib/db/turnos";
 import { hashToken } from "@/lib/dominio/token";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
@@ -26,6 +26,7 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
 
   it("liberar, gerar novo link, enviar, fechar, reabrir", { timeout: 90_000 }, async () => {
     const t = await novoTurno("2026-11-10");
+    expect(await linkCampo(u.cliente, t.id)).toEqual({ existe: false, token: null });
     expect(await gerarNovoLink(u.cliente, t.id)).toEqual({
       ok: false,
       erro: "Só é possível gerar link para turno em campo ou enviado.",
@@ -43,6 +44,7 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
     expect(r.dados.token).toHaveLength(43);
     const t1 = await obterTurnoCompleto(u.cliente, t.id);
     expect(t1?.token_hash).toBe(hashToken(r.dados.token!));
+    expect(await linkCampo(u.cliente, t.id)).toEqual({ existe: true, token: r.dados.token });
 
     // liberar de novo não é permitido
     expect((await aplicarAcao(u.cliente, t.id, "liberar")).ok).toBe(false);
@@ -52,6 +54,7 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
     const t2 = await obterTurnoCompleto(u.cliente, t.id);
     expect(t2?.token_hash).toBe(hashToken(n.dados.token));
     expect(t2?.token_hash).not.toBe(t1?.token_hash);
+    expect(await linkCampo(u.cliente, t.id)).toEqual({ existe: true, token: n.dados.token });
 
     // enviar sem causa informada falha (atividade não concluída)
     expect((await aplicarAcao(u.cliente, t.id, "enviar")).ok).toBe(false);
@@ -61,7 +64,8 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
     expect(e).toEqual({ ok: true, dados: { status: "enviado" } });
     const t3 = await obterTurnoCompleto(u.cliente, t.id);
     expect(t3?.enviado_em).not.toBeNull();
-    expect((await gerarNovoLink(u.cliente, t.id)).ok).toBe(true);
+    const n2 = await gerarNovoLink(u.cliente, t.id);
+    if (!n2.ok) throw new Error(n2.erro);
 
     const f = await aplicarAcao(u.cliente, t.id, "fechar");
     expect(f).toEqual({ ok: true, dados: { status: "fechado" } });
@@ -75,6 +79,19 @@ describe.skipIf(!ligado)("liberar turno e link", () => {
     const t5 = await obterTurnoCompleto(u.cliente, t.id);
     expect(t5?.fechado_em).toBeNull();
     expect(t5?.token_hash).toBe(hashAntes);
+    expect(await linkCampo(u.cliente, t.id)).toEqual({ existe: true, token: n2.dados.token });
+
+    // Outra empresa não lê o link.
+    const outro = await criarUsuarioTeste();
+    try {
+      expect(await linkCampo(outro.cliente, t.id)).toEqual({ existe: false, token: null });
+    } finally {
+      await removerUsuarioTeste(outro.userId);
+    }
+
+    // Link criado antes da atualização: só o hash.
+    await u.cliente.from("turnos").update({ token_campo: null }).eq("id", t.id);
+    expect(await linkCampo(u.cliente, t.id)).toEqual({ existe: true, token: null });
   });
 
   it("turno inexistente", { timeout: 60_000 }, async () => {

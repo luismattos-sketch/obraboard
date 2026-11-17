@@ -4,14 +4,15 @@ import { useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
-import { urlQuadro } from "@/lib/dominio/link";
+import { linkExibido, TEXTO_LINK_ANTIGO, urlQuadro } from "@/lib/dominio/link";
 import { gerarLinkQuadroAcao } from "./acoesQuadro";
 
-export const CONFIRMAR_NOVO_LINK = "O link atual vai parar de funcionar";
+export const CONFIRMAR_NOVO_LINK = "O link que está na TV e com o gestor vai parar de funcionar";
 
-/** "Link do quadro (TV / gestor)": o código só aparece logo após gerar (o banco guarda só o hash). */
-export function LinkQuadro({ obraId, existe }: { obraId: string; existe: boolean }) {
-  const [codigo, setCodigo] = useState<string | null>(null);
+/** "Link do quadro (TV / gestor)": mostra o código guardado (ou o recém-gerado); links antigos só têm o hash. */
+export function LinkQuadro({ obraId, existe, codigoAtual }: { obraId: string; existe: boolean; codigoAtual: string | null }) {
+  const [gerado, setCodigo] = useState<string | null>(null);
+  const codigo = linkExibido(gerado, codigoAtual);
   const [erro, setErro] = useState<string | null>(null);
   const [copia, setCopia] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -55,10 +56,9 @@ export function LinkQuadro({ obraId, existe }: { obraId: string; existe: boolean
             <a href={url} target="_blank" rel="noopener" className={classesBotao("primario")}>Abrir</a>
           </div>
           {copia && <p role="status" className="text-sm text-texto-suave">{copia}</p>}
-          <p className="text-sm text-texto-suave">Guarde este link: ele não será exibido de novo.</p>
         </>
       ) : (
-        temLink && <p className="text-texto-suave">Link já gerado. Perdeu o link? Gere um novo (o anterior deixa de funcionar).</p>
+        temLink && <p className="text-texto-suave">{TEXTO_LINK_ANTIGO}</p>
       )}
       <Botao type="button" variante={temLink ? "secundario" : "primario"} carregando={gerando} onClick={() => void gerar()}>
         {temLink ? "Gerar novo link" : "Gerar link"}

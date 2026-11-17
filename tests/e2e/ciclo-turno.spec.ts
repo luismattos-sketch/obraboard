@@ -12,7 +12,9 @@ test.afterAll(async () => {
 
 test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e baixar o RDO", async ({ page, browser }) => {
   usuario = await prepararUsuario();
-  page.on("dialog", (d) => d.accept());
+  // Confirmações aceitas por padrão; o teste do novo link troca para "cancelar" em um ponto.
+  let aceitarDialogo = true;
+  page.on("dialog", (d) => void (aceitarDialogo ? d.accept() : d.dismiss()));
 
   // Login
   await page.goto("/login");
@@ -67,8 +69,28 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   await page.getByRole("button", { name: "Liberar para campo" }).click();
   await expect(page.getByRole("button", { name: "Copiar link" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Enviar pelo WhatsApp" })).toBeVisible();
-  const urlCampo = (await page.locator("p.break-all").textContent())?.trim();
+  let urlCampo = (await page.locator("p.break-all").textContent())?.trim();
   expect(urlCampo).toMatch(/\/t\/.+/);
+
+  // O link continua à vista depois de recarregar
+  await page.reload();
+  await expect(page.locator("p.break-all")).toHaveText(urlCampo!);
+
+  // Gerar novo link pede confirmação: cancelar não troca nada; confirmar troca e derruba o antigo
+  aceitarDialogo = false;
+  await page.getByRole("button", { name: "Gerar novo link" }).click();
+  await page.waitForTimeout(1_000);
+  await expect(page.locator("p.break-all")).toHaveText(urlCampo!);
+  aceitarDialogo = true;
+  await page.getByRole("button", { name: "Gerar novo link" }).click();
+  await expect(page.locator("p.break-all")).not.toHaveText(urlCampo!, { timeout: 15_000 });
+  const urlAntiga = urlCampo!;
+  urlCampo = (await page.locator("p.break-all").textContent())?.trim();
+  expect(urlCampo).toMatch(/\/t\/.+/);
+  const velho = await browser.newPage();
+  await velho.goto(urlAntiga);
+  await expect(velho.getByText("Link inválido ou substituído")).toBeVisible();
+  await velho.close();
 
   // Encarregado: contexto móvel, sem login
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });

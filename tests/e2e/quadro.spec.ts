@@ -112,6 +112,8 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
   await page.getByRole("button", { name: "Gerar link" }).click();
   const urlQuadro = (await page.locator("p.break-all").textContent())!.trim();
   expect(urlQuadro).toMatch(/\/q\/.+/);
+  await page.reload();
+  await expect(page.locator("p.break-all")).toHaveText(urlQuadro);
   const tv = await browser.newContext();
   try {
     const p = await tv.newPage();
