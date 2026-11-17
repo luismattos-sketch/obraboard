@@ -69,7 +69,7 @@ describe("Quadro", () => {
     expect(h).toContain("0 de 2 programadas · 0%");
     expect(h).toContain("+1 extra");
     expect(h).toContain("80 / 120 m");
-    expect(h).toContain("Material");
+    expect(h).toContain("Falta material");
     expect(h).toContain("26,4 HH");
   });
 

@@ -233,7 +233,7 @@ describe("descreverOcorrencia", () => {
   it("parados", () => {
     expect(
       descreverOcorrencia(oc({ tipo: "parado", quantidade: 2, hora_inicio: "08:00", hora_fim: "10:00", causa: "material" }), nome),
-    ).toBe("2 parados 08:00–10:00 · Material");
+    ).toBe("2 parados 08:00–10:00 · Falta material");
   });
   it("horário do banco com segundos sai sem segundos", () => {
     expect(descreverOcorrencia(oc({ tipo: "saida", quantidade: 1, hora_inicio: "12:00:00" }), nome)).toBe("1 saiu às 12:00");

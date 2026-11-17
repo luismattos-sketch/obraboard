@@ -141,7 +141,7 @@ describe("analisarObra", () => {
       SEMANAS,
     );
     expect(r.causas.map(({ causa, rotulo, quantidade, fracao }) => ({ causa, rotulo, quantidade, fracao }))).toEqual([
-      { causa: "material", rotulo: "Material", quantidade: 2, fracao: 2 / 3 },
+      { causa: "material", rotulo: "Falta material", quantidade: 2, fracao: 2 / 3 },
       { causa: "clima", rotulo: "Clima", quantidade: 1, fracao: 1 / 3 },
     ]);
     expect(r.causas[0].atividades).toEqual([

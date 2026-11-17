@@ -17,7 +17,7 @@ describe("textoConflitoExecucao", () => {
   });
   it("causa diferente", () => {
     expect(textoConflitoExecucao(v(5, "material"), v(5, "clima"), "un")).toBe(
-      `${P} Agora a causa é Material, você tinha escolhido Clima.`,
+      `${P} Agora a causa é Falta material, você tinha escolhido Clima.`,
     );
   });
   it("observação diferente", () => {
@@ -25,7 +25,7 @@ describe("textoConflitoExecucao", () => {
   });
   it("várias diferenças na ordem quantidade, causa, observação", () => {
     expect(textoConflitoExecucao(v(46, "material", "a"), v(47, "clima", "b"), "m")).toBe(
-      `${P} Agora está 46 m, você tinha digitado 47. Agora a causa é Material, você tinha escolhido Clima. A observação também foi alterada.`,
+      `${P} Agora está 46 m, você tinha digitado 47. Agora a causa é Falta material, você tinha escolhido Clima. A observação também foi alterada.`,
     );
   });
   it("causa removida no banco", () => {

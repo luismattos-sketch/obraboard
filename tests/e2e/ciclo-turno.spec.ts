@@ -113,7 +113,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await expect(cards.nth(0).getByRole("button", { name: /Marcar como concluída/ })).toHaveCount(0);
     await expect(cards.nth(0).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
     await cards.nth(1).getByLabel(/Executado/).fill("8");
-    await cards.nth(1).getByLabel("Causa do não cumprimento").selectOption({ label: "Material" });
+    await cards.nth(1).getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
     await expect(cards.nth(1).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
 
     // Aba velha (aberta antes dos lançamentos) não sobrescreve: avisa e oferece o valor atual
@@ -170,9 +170,9 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await expect(indicadores.getByText("50%").first()).toBeVisible();
     await expect(indicadores.getByText("1 de 2 atividades")).toBeVisible();
     const causas = page.locator("section[aria-labelledby='titulo-causas']");
-    await expect(causas.getByText("Material")).toBeVisible();
+    await expect(causas.getByText("Falta material")).toBeVisible();
     await expect(causas.getByText("1 (100%)")).toBeVisible();
-    await causas.getByText("Material").click();
+    await causas.getByText("Falta material").click();
     await expect(causas.getByText(/Alvenaria/)).toBeVisible();
 
     // Campo após o fechamento

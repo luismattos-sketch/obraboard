@@ -52,13 +52,13 @@ describe("RDO: efetivo e HH", () => {
     expect(t).toContain("HH parado");
     expect(t).toMatch(/HH parado\s+4/);
     expect(t).toMatch(/Efetivo total\s+11/);
-    expect(t).toContain("Material 4");
+    expect(t).toContain("Falta material 4");
   });
 
   it("seção de efetivo lista as ocorrências com equipe", () => {
     const t = texto(EfetivoEClima({ turno: comParado, resumo: resumirTurno(comParado) }));
     expect(t).toContain("Rita: 2 Montador de andaime emprestados → Ana a partir de 13:00");
-    expect(t).toContain("Rita · Montador de andaime: 2 parados 08:00–10:00 · Material");
+    expect(t).toContain("Rita · Montador de andaime: 2 parados 08:00–10:00 · Falta material");
   });
 
   it("ocorrência incoerente aparece como aviso no RDO", () => {
