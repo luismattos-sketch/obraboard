@@ -273,6 +273,7 @@ export async function aplicarAcao(
   if (acao === "liberar") {
     token = gerarToken();
     mudancas.token_hash = hashToken(token);
+    mudancas.token_campo = token;
   }
   if (acao === "enviar") mudancas.enviado_em = new Date().toISOString();
   if (acao === "fechar") mudancas.fechado_em = new Date().toISOString();
@@ -310,7 +311,7 @@ export async function gerarNovoLink(c: SupabaseClient, turnoId: string): Promise
   const token = gerarToken();
   const { data, error } = await c
     .from("turnos")
-    .update({ token_hash: hashToken(token) })
+    .update({ token_hash: hashToken(token), token_campo: token })
     .eq("id", turnoId)
     .eq("status", status)
     .select("id");
@@ -320,4 +321,16 @@ export async function gerarNovoLink(c: SupabaseClient, turnoId: string): Promise
   }
   if (!data || data.length === 0) return falha(MSG_CONCORRENCIA);
   return ok({ token });
+}
+
+/** Link de campo atual para o planejador (RLS de membro). token nulo com existe = link criado antes de guardarmos o token. */
+export async function linkCampo(c: SupabaseClient, turnoId: string): Promise<{ existe: boolean; token: string | null }> {
+  const { data, error } = await c.from("turnos").select("token_hash, token_campo").eq("id", turnoId).maybeSingle();
+  if (error) {
+    if (error.code === UUID_INVALIDO) return { existe: false, token: null };
+    console.error("linkCampo:", error.message);
+    throw new Error(`linkCampo: ${error.message}`);
+  }
+  const d = data as { token_hash: string | null; token_campo: string | null } | null;
+  return { existe: !!d?.token_hash, token: d?.token_hash ? (d.token_campo ?? null) : null };
 }

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade, definirResponsavel } from "@/lib/db/atividades";
 import { criarObra } from "@/lib/db/obras";
-import { entradaDoTurno, fotoCheckin, gerarLinkQuadro, obraPorCodigo, temLinkQuadro, turnosDaObra } from "@/lib/db/quadro";
+import { entradaDoTurno, fotoCheckin, gerarLinkQuadro, linkQuadro, obraPorCodigo, turnosDaObra } from "@/lib/db/quadro";
 import { criarResponsavel } from "@/lib/db/responsaveis";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
@@ -45,14 +45,15 @@ describe.skipIf(!ligado)("quadro (leitura e link)", () => {
 
   it("link do quadro: gerar, resolver e trocar", { timeout: 60_000 }, async () => {
     const obra = exigir(await criarObra(u.cliente, { nome: "Obra Quadro Link" }));
-    expect(await temLinkQuadro(u.cliente, obra.id)).toBe(false);
+    expect(await linkQuadro(u.cliente, obra.id)).toEqual({ existe: false, codigo: null });
     const { codigo } = exigir(await gerarLinkQuadro(u.cliente, obra.id));
-    expect(await temLinkQuadro(u.cliente, obra.id)).toBe(true);
+    expect(await linkQuadro(u.cliente, obra.id)).toEqual({ existe: true, codigo });
     expect(await obraPorCodigo(codigo)).toEqual({ id: obra.id });
 
     const { codigo: novo } = exigir(await gerarLinkQuadro(u.cliente, obra.id));
     expect(await obraPorCodigo(codigo)).toBeNull();
     expect(await obraPorCodigo(novo)).toEqual({ id: obra.id });
+    expect(await linkQuadro(u.cliente, obra.id)).toEqual({ existe: true, codigo: novo });
     expect(await obraPorCodigo("curto")).toBeNull();
   });
 });

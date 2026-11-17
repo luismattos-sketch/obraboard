@@ -118,10 +118,10 @@ export async function fotoCheckin(c: SupabaseClient, turnoId: string): Promise<F
   return { emitido_em: d.emitido_em, dados };
 }
 
-/** Gera (ou troca) o código do link do quadro; o código só existe aqui, o banco guarda o hash. */
+/** Gera (ou troca) o código do link do quadro; a busca pública usa o hash, o código fica para o planejador rever. */
 export async function gerarLinkQuadro(c: SupabaseClient, obraId: string): Promise<Resultado<{ codigo: string }>> {
   const codigo = gerarToken();
-  const { data, error } = await c.from("obras").update({ quadro_token_hash: hashToken(codigo) }).eq("id", obraId).select("id");
+  const { data, error } = await c.from("obras").update({ quadro_token_hash: hashToken(codigo), quadro_token: codigo }).eq("id", obraId).select("id");
   if (error && error.code !== UUID_INVALIDO) {
     console.error("gerarLinkQuadro:", error.message);
     return falha("Não foi possível gerar o link do quadro.");
@@ -130,14 +130,16 @@ export async function gerarLinkQuadro(c: SupabaseClient, obraId: string): Promis
   return ok({ codigo });
 }
 
-export async function temLinkQuadro(c: SupabaseClient, obraId: string): Promise<boolean> {
-  const { data, error } = await c.from("obras").select("quadro_token_hash").eq("id", obraId).maybeSingle();
+/** Link do quadro atual para o planejador (RLS de membro). codigo nulo com existe = link criado antes de guardarmos o código. */
+export async function linkQuadro(c: SupabaseClient, obraId: string): Promise<{ existe: boolean; codigo: string | null }> {
+  const { data, error } = await c.from("obras").select("quadro_token_hash, quadro_token").eq("id", obraId).maybeSingle();
   if (error) {
-    if (error.code === UUID_INVALIDO) return false;
-    console.error("temLinkQuadro:", error.message);
-    throw new Error(`temLinkQuadro: ${error.message}`);
+    if (error.code === UUID_INVALIDO) return { existe: false, codigo: null };
+    console.error("linkQuadro:", error.message);
+    throw new Error(`linkQuadro: ${error.message}`);
   }
-  return !!(data as { quadro_token_hash: string | null } | null)?.quadro_token_hash;
+  const d = data as { quadro_token_hash: string | null; quadro_token: string | null } | null;
+  return { existe: !!d?.quadro_token_hash, codigo: d?.quadro_token_hash ? (d.quadro_token ?? null) : null };
 }
 
 export async function obraPorCodigo(codigo: string): Promise<{ id: string } | null> {
