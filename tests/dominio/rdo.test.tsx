@@ -28,6 +28,7 @@ function turno(n: number, status: TurnoCompleto["status"] = "em_campo"): TurnoCo
     atividades,
     efetivo: [{ id: "e1", turno_id: "t", funcao: "Pedreiro", quantidade: 4 }, { id: "e2", turno_id: "t", funcao: "Servente", quantidade: 2 }],
     clima: [{ turno_id: "t", periodo: "manha", condicao: "bom", impediu: false }, { turno_id: "t", periodo: "tarde", condicao: "chuva_forte", impediu: true }],
+    ocorrencias: [], responsaveis: [],
   } as unknown as TurnoCompleto;
 }
 

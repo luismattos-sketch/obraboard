@@ -8,7 +8,7 @@ const turno = {
   hora_inicio_prevista: null, hora_fim_prevista: null, hora_inicio_real: null, hora_fim_real: null,
   status: "enviado", token_hash: null, enviado_em: null, fechado_em: null,
   obra: { id: "o", empresa_id: "e", nome: "Obra", cliente: null, endereco: null, created_at: "" },
-  atividades: [], efetivo: [], clima: [],
+  atividades: [], efetivo: [], clima: [], ocorrencias: [], responsaveis: [],
 } as unknown as TurnoCompleto;
 
 describe("respostaPdf", () => {

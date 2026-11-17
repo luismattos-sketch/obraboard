@@ -2,6 +2,7 @@ import { Text, View } from "@react-pdf/renderer";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
+import { linhaOcorrencia, nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 import type { ResumoTurno } from "@/lib/dominio/resumo";
 import { CAUSAS, CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
@@ -87,6 +88,17 @@ export function ResumoBloco({ resumo, turno }: { resumo: ResumoTurno; turno: Tur
           <Text style={s.metricaValor}>{resumo.efetivoTotal}</Text>
           <Text style={s.suave}>pessoas</Text>
         </View>
+        {resumo.hhParado !== null && resumo.hhParado > 0 && (
+          <View style={s.metrica}>
+            <Text style={s.rotulo}>HH parado</Text>
+            <Text style={s.metricaValor}>{numeroBR(resumo.hhParado)}</Text>
+            <Text style={s.suave}>
+              {(Object.entries(resumo.hhParadoPorCausa) as [keyof typeof CAUSAS, number][])
+                .map(([c, h]) => `${CAUSAS[c]} ${numeroBR(h)}`)
+                .join(" · ")}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -121,6 +133,14 @@ export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo:
       {turno.efetivo.length === 0 && <Text style={s.suave}>Nenhum efetivo informado.</Text>}
       {somarEfetivoPorFuncao(turno.efetivo).map((e) => <Par key={e.funcao} a={e.funcao} b={String(e.quantidade)} />)}
       <Par a="Total" b={String(resumo.efetivoTotal)} forte />
+      {turno.ocorrencias.length > 0 && (
+        <View style={s.item}>
+          <Text style={s.negrito}>Movimentações do efetivo</Text>
+          {turno.ocorrencias.map((o) => (
+            <Text key={o.id} style={s.suave}>•  {linhaOcorrencia(o, nomeDaEquipe(turno.responsaveis))}</Text>
+          ))}
+        </View>
+      )}
 
       <Text style={s.secao}>Clima</Text>
       {PERIODOS_CLIMA.map((p) => {

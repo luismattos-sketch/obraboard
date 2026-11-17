@@ -289,3 +289,14 @@ export function descreverOcorrencia(o: Ocorrencia, nome: (id: string | null) => 
   const causa = o.causa ? ` · ${CAUSAS[o.causa]}` : "";
   return `${q} ${q === 1 ? "parado" : "parados"} ${ini}–${horaCurta(o.hora_fim ?? "")}${causa}`;
 }
+
+/** Nome da equipe para textos (RDO, quadro): null = "Sem responsável". */
+export function nomeDaEquipe(responsaveis: { id: string; nome: string }[]): (id: string | null) => string {
+  return (id) => (id === null ? "Sem responsável" : (responsaveis.find((r) => r.id === id)?.nome ?? "Responsável removido"));
+}
+
+/** Linha completa (com equipe e função) para relatórios: "Rita: 2 Montador emprestados → Ana a partir de 13:00". */
+export function linhaOcorrencia(o: Ocorrencia, nome: (id: string | null) => string): string {
+  const d = descreverOcorrencia(o, nome);
+  return o.tipo === "emprestimo" ? `${nome(o.responsavel_id)}: ${d}` : `${nome(o.responsavel_id)} · ${o.funcao}: ${d}`;
+}
