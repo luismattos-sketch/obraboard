@@ -78,7 +78,7 @@ describe("resumoEquipe", () => {
       atividades: [at("j", 2, 1), at("j", 2, null), at("j", 1, 1, { programada: false })],
       efetivo: [{ funcao: "Mecânico", quantidade: 2, responsavel_id: "j" }, { funcao: "Soldador", quantidade: 1, responsavel_id: "j" }],
     }));
-    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [], terminouEm: null });
+    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, adiantadas: 0, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [], terminouEm: null });
   });
 
   it("empréstimo: horas vão para a equipe destino, pessoas ficam na origem", () => {
@@ -250,5 +250,21 @@ describe("quadro: duração com relógio adiantado", () => {
       ],
     });
     expect(montarQuadro(e, "01:00").paradas[0].duracaoMin).toBe(120);
+  });
+});
+
+describe("resumoEquipe com marca de tipo", () => {
+  const sit = (xs: At[]) => xs.map((x) => ({ ...x, situacao: "nao_iniciada" as const }));
+  it("marca: atividade avulsa sem tipo conta no dia", () => {
+    const r = resumoEquipe(
+      { atividades: sit([at("j", 10, 10, { tipo: null }), at("j", 5, null, { programada: false, tipo: null }), at("j", 12, 12, { programada: false, tipo: "extra" }), at("j", 40, null, { tipo: "adiantada" })]), efetivo: [] },
+      TURNO,
+      true,
+    );
+    expect(r).toMatchObject({ total: 2, concluidas: 1, extras: 1, adiantadas: 1, base: "todas" });
+  });
+  it("quadro sem tipo usa regra antiga", () => {
+    const r = resumoEquipe({ atividades: sit([at("j", 10, 10), at("j", 5, null, { programada: false })]), efetivo: [] }, TURNO, true);
+    expect(r).toMatchObject({ total: 1, concluidas: 1, extras: 1, adiantadas: 0, base: "programadas" });
   });
 });

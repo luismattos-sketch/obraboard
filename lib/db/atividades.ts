@@ -291,7 +291,7 @@ export async function trazerPendentes(
   const novas = (ant ?? [])
     .map(normalizarAtividade)
     // Atividades da programação semanal não são copiadas: o saldo da meta já as leva aos próximos turnos.
-    .filter((a) => a.programacao_atividade_id === null)
+    .filter((a) => a.programacao_atividade_id === null && a.tipo === null)
     .filter((a) => statusAtividade(a.qtd_planejada, a.qtd_realizada) !== "concluida" && !jaTrazidas.has(a.id))
     .map((a) => ({
       turno_id: turnoId,

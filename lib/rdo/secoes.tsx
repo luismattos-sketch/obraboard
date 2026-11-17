@@ -3,10 +3,10 @@ import type { TurnoCompleto } from "@/lib/db/turnos";
 import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { linhaOcorrencia, nomeDaEquipe } from "@/lib/dominio/efetivoHH";
-import type { ResumoTurno } from "@/lib/dominio/resumo";
+import { textoForaDoDia, type ResumoTurno } from "@/lib/dominio/resumo";
 import { CAUSAS, CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
-import { qtdRealizada } from "./formatar";
+import { descricaoComTipo, qtdRealizada } from "./formatar";
 
 const faixa = (a: string | null, b: string | null) => (a && b ? `${horaCurta(a)} às ${horaCurta(b)}` : "—");
 
@@ -53,7 +53,7 @@ export function Atividades({ resumo }: { resumo: ResumoTurno }) {
       {resumo.atividades.length === 0 && <Text style={[s.celula, s.suave]}>Nenhuma atividade planejada.</Text>}
       {resumo.atividades.map((a, i) => (
         <View key={a.id} style={[s.linha, i % 2 ? s.linhaZebra : {}]} wrap={false}>
-          <Text style={[s.celula, { width: COL.desc }]}>{a.descricao}</Text>
+          <Text style={[s.celula, { width: COL.desc }]}>{descricaoComTipo(a)}</Text>
           <Text style={[s.celula, { width: COL.local }]}>{a.local || "—"}</Text>
           <Text style={[s.celula, s.direita, { width: COL.plan }]}>{numeroBR(a.qtd_planejada)} {a.unidade}</Text>
           <Text style={[s.celula, s.direita, { width: COL.real }]}>{qtdRealizada(a.qtd_realizada, a.unidade)}</Text>
@@ -68,7 +68,6 @@ export function Atividades({ resumo }: { resumo: ResumoTurno }) {
 }
 
 export function ResumoBloco({ resumo, turno }: { resumo: ResumoTurno; turno: TurnoCompleto }) {
-  const concluidas = resumo.atividades.filter((a) => a.status === "concluida").length;
   return (
     <View wrap={false}>
       <Text style={s.secao}>Resumo</Text>
@@ -76,7 +75,7 @@ export function ResumoBloco({ resumo, turno }: { resumo: ResumoTurno; turno: Tur
         <View style={s.metrica}>
           <Text style={s.rotulo}>Cumprimento</Text>
           <Text style={s.metricaValor}>{formatarPercentual(resumo.cumprimento)}</Text>
-          <Text style={s.suave}>{concluidas} de {resumo.atividades.length} atividades concluídas</Text>
+          <Text style={s.suave}>{[`${resumo.concluidas} de ${resumo.total} atividades concluídas`, textoForaDoDia(resumo)].filter(Boolean).join(" · ")}</Text>
         </View>
         <View style={s.metrica}>
           <Text style={s.rotulo}>Homens-hora (HH)</Text>

@@ -3,7 +3,7 @@ import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { formatarPercentual, horaCurta, numeroBR } from "@/lib/dominio/formato";
-import { resumirTurno } from "@/lib/dominio/resumo";
+import { resumirTurno, textoForaDoDia } from "@/lib/dominio/resumo";
 import { CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE, type StatusAtividade, type Tom } from "@/lib/dominio/tipos";
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
@@ -20,7 +20,6 @@ function Metrica({ rotulo, valor, detalhe }: { rotulo: string; valor: string; de
 
 export function Resumo({ turno }: { turno: TurnoCompleto }) {
   const r = resumirTurno(turno);
-  const concluidas = r.atividades.filter((a) => a.status === "concluida").length;
   const real = turno.hora_inicio_real && turno.hora_fim_real;
 
   return (
@@ -31,7 +30,7 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
         <Metrica
           rotulo="Cumprimento"
           valor={formatarPercentual(r.cumprimento)}
-          detalhe={`${concluidas} de ${r.atividades.length} atividades concluídas`}
+          detalhe={[`${r.concluidas} de ${r.total} atividades concluídas`, textoForaDoDia(r)].filter(Boolean).join(" · ")}
         />
         <Metrica
           rotulo="Homens-hora"

@@ -3,7 +3,7 @@ import type { TurnoAnalise } from "@/lib/dominio/analise";
 import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/eventos";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
-import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
 import { lerOcorrencias, lerTerminados, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
@@ -43,7 +43,7 @@ export type TurnoCompleto = Turno & {
   responsaveis: { id: string; nome: string }[];
 };
 export type TurnoComAtividades = Turno & {
-  atividades: Pick<Atividade, "qtd_planejada" | "qtd_realizada">[];
+  atividades: Pick<Atividade, "qtd_planejada" | "qtd_realizada" | "tipo">[];
 };
 
 export const COLUNAS_TURNO =
@@ -67,7 +67,7 @@ export async function listarTurnosComAtividades(
 ): Promise<TurnoComAtividades[]> {
   const { data, error } = await c
     .from("turnos")
-    .select(`${COLUNAS_TURNO}, atividades(qtd_planejada, qtd_realizada)`)
+    .select(`${COLUNAS_TURNO}, atividades(qtd_planejada, qtd_realizada, tipo)`)
     .eq("obra_id", obraId);
   if (error) {
     console.error("listarTurnosComAtividades:", error.message);
@@ -79,6 +79,7 @@ export async function listarTurnosComAtividades(
       atividades: (t.atividades ?? []).map((a) => ({
         qtd_planejada: Number(a.qtd_planejada),
         qtd_realizada: a.qtd_realizada === null || a.qtd_realizada === undefined ? null : Number(a.qtd_realizada),
+        tipo: (a.tipo as TipoAtividade | null) ?? null,
       })),
     }),
   );
@@ -93,7 +94,7 @@ export async function listarTurnosFechadosParaAnalise(
 ): Promise<TurnoAnalise[]> {
   const { data, error } = await c
     .from("turnos")
-    .select("id, data, periodo, status, atividades(descricao, qtd_planejada, qtd_realizada, causa, observacao, ordem)")
+    .select("id, data, periodo, status, atividades(descricao, qtd_planejada, qtd_realizada, causa, observacao, ordem, tipo)")
     .eq("obra_id", obraId)
     .eq("status", "fechado")
     .gte("data", desde);
@@ -107,7 +108,9 @@ export async function listarTurnosFechadosParaAnalise(
     data: t.data,
     periodo: t.periodo,
     status: t.status,
+    // Extra e adiantada não entram no PPC do turno (nem nas causas).
     atividades: [...(t.atividades ?? [])]
+      .filter((a) => !a.tipo)
       .sort((x, y) => Number(x.ordem) - Number(y.ordem))
       .map((a) => ({
         descricao: a.descricao as string,

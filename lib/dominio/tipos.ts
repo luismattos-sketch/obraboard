@@ -83,6 +83,7 @@ export const FUNCOES_SUGERIDAS = [
 
 /** Atividade fora do dia: 'extra' (fora da programação) ou 'adiantada' (de dia futuro da semana). */
 export type TipoAtividade = "extra" | "adiantada";
+export const ROTULO_TIPO: Record<TipoAtividade, string> = { extra: "Extra", adiantada: "Adiantada" };
 
 export type AtividadeExec = {
   id: string;

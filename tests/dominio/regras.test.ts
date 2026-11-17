@@ -114,3 +114,9 @@ describe("compararTurnos", () => {
     ).toEqual(["2026-11-07noturno", "2026-11-08diurno", "2026-11-08noturno"]);
   });
 });
+
+describe("errosDeCausa fora do dia", () => {
+  it("adiantada sem causa não bloqueia", () => {
+    expect(errosDeCausa([a({ qtd_realizada: null, causa: null, tipo: "adiantada" })])).toEqual({});
+  });
+});
