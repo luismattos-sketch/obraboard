@@ -8,7 +8,7 @@ import {
   salvarExecucao as dbSalvarExecucao,
   salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
-import { criarOcorrenciaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
+import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { CondicaoClima, DadosExecucao, PeriodoClima } from "@/lib/dominio/tipos";
@@ -57,4 +57,8 @@ export async function criarOcorrencia(token: string, d: DadosOcorrencia, respons
 
 export async function removerOcorrencia(token: string, id: string, responsavelId: string | null) {
   return removerOcorrenciaCampo(token, id, responsavelId);
+}
+
+export async function encerrarParada(token: string, id: string, horaFim: string, responsavelId: string | null) {
+  return encerrarParadaCampo(token, id, horaFim, responsavelId);
 }

@@ -7,10 +7,14 @@ import { salvarEfetivo } from "@/lib/db/campo";
 import {
   criarOcorrenciaCampo,
   criarOcorrenciaPlanejador,
+  encerrarAbertasDoTurno,
+  encerrarParadaCampo,
+  encerrarParadaPlanejador,
   removerOcorrenciaCampo,
   removerOcorrenciaPlanejador,
 } from "@/lib/db/ocorrencias";
 import type { DadosOcorrencia } from "@/lib/db/validacao";
+import { ERRO_OCORRENCIA_INVALIDA, ERRO_RESPONSAVEL_INVALIDO } from "@/lib/db/mensagens";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("ocorrências do efetivo", () => {
@@ -130,5 +134,80 @@ describe.skipIf(!ligado)("ocorrências do efetivo", () => {
     expect(t?.intervalo_inicio).toBe("12:00:00");
     expect((await removerOcorrenciaPlanejador(u.cliente, c.turnoId, d.id)).ok).toBe(true);
     expect((await obterTurnoCompleto(u.cliente, c.turnoId))?.ocorrencias).toEqual([]);
+  });
+  const aviso = (extra: Partial<DadosOcorrencia> = {}): DadosOcorrencia => parado({
+    hora_inicio: "10:40", hora_fim: null, quantidade: 2, causa: "atividade_predecessora", observacao: "rolamento 6312", ...extra,
+  });
+  const lerParada = async (turnoId: string, id: string) =>
+    (await obterTurnoCompleto(u.cliente, turnoId))?.ocorrencias.find((o) => o.id === id);
+
+  it("parada aberta pelo campo com observação e equipe aguardada", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const d = aviso({ aguardando_responsavel_id: c.ana });
+    expect(await criarOcorrenciaCampo(c.token, d, c.rita)).toEqual({ ok: true, dados: undefined });
+    expect(await criarOcorrenciaCampo(c.token, d, c.rita)).toEqual({ ok: true, dados: undefined });
+    expect(await lerParada(c.turnoId, d.id)).toMatchObject({ hora_fim: null, observacao: "rolamento 6312", aguardando_responsavel_id: c.ana });
+  });
+
+  it("equipe aguardada de outra obra é recusada", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const outra = await cenario();
+    const r = await criarOcorrenciaCampo(c.token, aviso({ aguardando_responsavel_id: outra.ana }), c.rita);
+    expect(r).toMatchObject({ ok: false, erro: ERRO_RESPONSAVEL_INVALIDO });
+  });
+
+  it("encerrar: grava, repetição é sucesso, outro horário é recusado", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const d = aviso();
+    await criarOcorrenciaCampo(c.token, d, c.rita);
+    expect(await encerrarParadaCampo(c.token, d.id, "13:15", c.rita)).toEqual({ ok: true, dados: undefined });
+    expect((await lerParada(c.turnoId, d.id))?.hora_fim).toBe("13:15:00");
+    expect((await encerrarParadaCampo(c.token, d.id, "13:15", c.rita)).ok).toBe(true);
+    expect(await encerrarParadaCampo(c.token, d.id, "14:00", c.rita)).toMatchObject({ ok: false, erro: "Esta parada já foi encerrada às 13:15" });
+  });
+
+  it("encerrar antes do início é recusado", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const d = aviso();
+    await criarOcorrenciaCampo(c.token, d, c.rita);
+    expect(await encerrarParadaCampo(c.token, d.id, "09:00", c.rita)).toMatchObject({ ok: false, erro: "O fim deve ser depois do início" });
+  });
+
+  it("outra equipe não encerra a parada", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const d = aviso();
+    await criarOcorrenciaCampo(c.token, d, c.rita);
+    expect(await encerrarParadaCampo(c.token, d.id, "13:15", c.ana)).toMatchObject({ ok: false, erro: ERRO_OCORRENCIA_INVALIDA });
+    expect((await lerParada(c.turnoId, d.id))?.hora_fim).toBeNull();
+  });
+
+  it("parada depois do fim previsto (sem fim real) é aceita", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const d = aviso({ hora_inicio: "17:30" });
+    expect((await criarOcorrenciaCampo(c.token, d, c.rita)).ok).toBe(true);
+    expect((await encerrarParadaCampo(c.token, d.id, "18:00", c.rita)).ok).toBe(true);
+  });
+
+  it("planejador encerra; fechamento encerra as abertas no fim do turno", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const a = aviso();
+    const b = aviso({ hora_inicio: "11:00" });
+    const z = aviso({ hora_inicio: "17:30" });
+    await criarOcorrenciaCampo(c.token, a, c.rita);
+    await criarOcorrenciaCampo(c.token, b, c.rita);
+    await criarOcorrenciaCampo(c.token, z, c.rita);
+    expect((await encerrarParadaPlanejador(u.cliente, c.turnoId, a.id, "12:00")).ok).toBe(true);
+    expect((await encerrarAbertasDoTurno(u.cliente, c.turnoId, { [b.id]: "16:00" })).ok).toBe(true);
+    expect((await lerParada(c.turnoId, a.id))?.hora_fim).toBe("12:00:00");
+    expect((await lerParada(c.turnoId, b.id))?.hora_fim).toBe("16:00:00");
+    expect((await lerParada(c.turnoId, z.id))?.hora_fim).toBe("17:30:00");
+  });
+
+  it("fechamento sem horário escolhido usa o fim do turno", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const a = aviso();
+    await criarOcorrenciaCampo(c.token, a, c.rita);
+    expect((await encerrarAbertasDoTurno(u.cliente, c.turnoId, {})).ok).toBe(true);
+    expect((await lerParada(c.turnoId, a.id))?.hora_fim).toBe("17:00:00");
   });
 });

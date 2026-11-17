@@ -12,7 +12,7 @@ const base: DadosOcorrencia = {
 describe("validarOcorrencia", () => {
   it("parado válido passa e apara a função", () => {
     const r = validarOcorrencia({ ...base, funcao: "  Montador " }, DIA);
-    expect(r).toEqual({ ok: true, dados: { ...base, funcao: "Montador" } });
+    expect(r).toEqual({ ok: true, dados: { ...base, funcao: "Montador", observacao: null, aguardando_responsavel_id: null } });
   });
   it("hora inválida", () => {
     expect(validarOcorrencia({ ...base, hora_inicio: "25:00" }, DIA).ok).toBe(false);
@@ -80,5 +80,36 @@ describe("validarIntervalo", () => {
   });
   it("hora inválida", () => {
     expect(validarIntervalo({ inicio: "12:00", fim: "99:00" }, "diurno").ok).toBe(false);
+  });
+});
+
+describe("validarOcorrencia — parada (aviso)", () => {
+  const P = { ...base, hora_inicio: "10:40", hora_fim: null };
+  it("parada sem fim (aberta) passa", () => {
+    expect(validarOcorrencia(P, DIA)).toMatchObject({ ok: true, dados: { hora_fim: null } });
+  });
+  it("observação aparada; vazia vira null", () => {
+    expect(validarOcorrencia({ ...P, observacao: "  peça  " }, DIA)).toMatchObject({ ok: true, dados: { observacao: "peça" } });
+    expect(validarOcorrencia({ ...P, observacao: "   " }, DIA)).toMatchObject({ ok: true, dados: { observacao: null } });
+  });
+  it("observação acima de 500", () => {
+    expect(validarOcorrencia({ ...P, observacao: "x".repeat(501) }, DIA)).toMatchObject({ ok: false, erro: "Observação: máximo de 500 caracteres" });
+  });
+  it("observação fora de parada", () => {
+    expect(validarOcorrencia({ ...P, tipo: "saida", causa: null, observacao: "x" }, DIA)).toMatchObject({ ok: false, erro: "Registro inválido" });
+  });
+  it("equipe aguardada só com Aguardando outra equipe", () => {
+    expect(validarOcorrencia({ ...P, aguardando_responsavel_id: DEST }, DIA)).toMatchObject({ ok: false, erro: "Registro inválido" });
+    expect(validarOcorrencia({ ...P, causa: "atividade_predecessora", aguardando_responsavel_id: DEST }, DIA)).toMatchObject({
+      ok: true, dados: { aguardando_responsavel_id: DEST },
+    });
+  });
+  it("depois do fim previsto: recusado sem a opção, aceito com aceitaAposFim", () => {
+    expect(validarOcorrencia({ ...P, hora_inicio: "17:30" }, DIA)).toMatchObject({ ok: false, erro: "Horário fora do turno (07:00–17:00)" });
+    expect(validarOcorrencia({ ...P, hora_inicio: "17:30" }, DIA, { aceitaAposFim: true }).ok).toBe(true);
+    expect(validarOcorrencia({ ...P, hora_inicio: "16:00", hora_fim: "18:10" }, DIA, { aceitaAposFim: true }).ok).toBe(true);
+  });
+  it("antes do início continua recusado com aceitaAposFim", () => {
+    expect(validarOcorrencia({ ...P, hora_inicio: "06:00" }, DIA, { aceitaAposFim: true })).toMatchObject({ ok: false });
   });
 });

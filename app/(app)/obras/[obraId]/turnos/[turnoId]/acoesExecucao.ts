@@ -10,7 +10,7 @@ import {
   salvarIntervaloTurno,
 } from "@/lib/db/execucao";
 import type { Janela } from "@/lib/dominio/efetivoHH";
-import { criarOcorrenciaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
+import { criarOcorrenciaPlanejador, encerrarParadaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
 import type { Resultado } from "@/lib/db/resultado";
 import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -60,4 +60,8 @@ export async function removerOcorrenciaAcao(turnoId: string, id: string) {
 
 export async function corrigirIntervalo(turnoId: string, j: Janela | null) {
   return comRevalidacao(turnoId, (c) => salvarIntervaloTurno(c, turnoId, j));
+}
+
+export async function encerrarParadaAcao(turnoId: string, id: string, horaFim: string) {
+  return comRevalidacao(turnoId, (c) => encerrarParadaPlanejador(c, turnoId, id, horaFim));
 }
