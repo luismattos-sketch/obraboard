@@ -7,7 +7,7 @@ import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { listarResponsaveis } from "@/lib/db/responsaveis";
 import { fotoCheckin } from "@/lib/db/quadro";
 import { classesBotao } from "@/components/ui/Botao";
-import { obterTurnoCompleto } from "@/lib/db/turnos";
+import { linkCampo, obterTurnoCompleto } from "@/lib/db/turnos";
 import { formatarData, horaCurta, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
 import { FUNCOES_SUGERIDAS, ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -26,10 +26,11 @@ import { Resumo } from "./Resumo";
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
   const supabase = await criarClienteServidor();
-  const [turno, versoes, eventos] = await Promise.all([
+  const [turno, versoes, eventos, link] = await Promise.all([
     obterTurnoCompleto(supabase, turnoId),
     versoesDoTurno(supabase, turnoId),
     listarEventos(supabase, turnoId).catch(() => null),
+    linkCampo(supabase, turnoId).catch(() => ({ existe: false, token: null })),
   ]);
   if (!turno || turno.obra_id !== obraId) notFound();
   const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
@@ -64,6 +65,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
         data={turno.data}
         periodo={ROTULO_PERIODO[turno.periodo].toLowerCase()}
         status={turno.status}
+        tokenAtual={link.token}
+        linkAntigo={link.existe && link.token === null}
       />
 
       {turno.status === "planejado" ? (

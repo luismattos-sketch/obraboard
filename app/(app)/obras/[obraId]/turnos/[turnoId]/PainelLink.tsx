@@ -5,7 +5,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { formatarData } from "@/lib/dominio/formato";
-import { urlCampo } from "@/lib/dominio/link";
+import { TEXTO_LINK_ANTIGO, urlCampo } from "@/lib/dominio/link";
 import { gerarNovoLinkAcao, liberarTurnoAcao, type EstadoLink } from "./acoes";
 
 type Props = {
@@ -14,18 +14,25 @@ type Props = {
   data: string;
   periodo: string;
   status: "planejado" | "em_campo" | "enviado" | "fechado";
+  /** Token guardado no banco (null = sem link ou link antigo, só com hash). */
+  tokenAtual: string | null;
+  /** Há link ativo, mas criado antes de guardarmos o token: não dá para exibir. */
+  linkAntigo: boolean;
 };
+
+export const CONFIRMAR_NOVO_LINK_CAMPO = "O link já enviado para as equipes vai parar de funcionar";
 
 /**
  * Fica sempre na mesma posição da página para manter o estado (e o token em claro)
  * quando o turno passa de planejado para em campo após a revalidação.
  */
-export function PainelLink({ turnoId, obraNome, data, periodo, status }: Props) {
+export function PainelLink({ turnoId, obraNome, data, periodo, status, tokenAtual, linkAntigo }: Props) {
   const [estado, action, pendente] = useActionState<EstadoLink, FormData>(gerarNovoLinkAcao, null);
   const [estadoLiberar, liberar, liberando] = useActionState<EstadoLink, FormData>(liberarTurnoAcao, null);
   const [copia, setCopia] = useState<string | null>(null);
   // Último token válido, guardado à parte do último erro: uma falha ao gerar novo link não esconde o link ainda válido.
-  const [token, setToken] = useState<string | undefined>(undefined);
+  const [gerado, setToken] = useState<string | undefined>(undefined);
+  const token = gerado ?? tokenAtual ?? undefined;
   const [vistoGerar, setVistoGerar] = useState<EstadoLink>(null);
   const [vistoLiberar, setVistoLiberar] = useState<EstadoLink>(null);
   if (estado !== vistoGerar) {
@@ -89,12 +96,17 @@ export function PainelLink({ turnoId, obraNome, data, periodo, status }: Props) 
             </a>
           </div>
           {copia && <p role="status" className="text-sm text-texto-suave">{copia}</p>}
-          <p className="text-sm text-texto-suave">Guarde este link: ele não será exibido de novo.</p>
         </>
       ) : (
-        <p className="text-texto-suave">Link enviado. Perdeu o link? Gere um novo (o anterior deixa de funcionar).</p>
+        linkAntigo && <p className="text-texto-suave">{TEXTO_LINK_ANTIGO}</p>
       )}
-      <form action={action}>
+      <form
+        action={action}
+        onSubmit={(e) => {
+          // Em campo/enviado sempre há um link ativo (gerado ao liberar).
+          if (!window.confirm(`${CONFIRMAR_NOVO_LINK_CAMPO}. Continuar?`)) e.preventDefault();
+        }}
+      >
         <input type="hidden" name="turno_id" value={turnoId} />
         <Botao type="submit" variante="secundario" carregando={pendente}>
           Gerar novo link

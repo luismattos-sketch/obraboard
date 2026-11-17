@@ -5,7 +5,7 @@ import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterIntervalosObra, obterObra } from "@/lib/db/obras";
 import { listarResponsaveis } from "@/lib/db/responsaveis";
-import { temLinkQuadro } from "@/lib/db/quadro";
+import { linkQuadro } from "@/lib/db/quadro";
 import { listarTurnosComAtividades } from "@/lib/db/turnos";
 import { percentualCumprimento } from "@/lib/dominio/calculos";
 import { formatarData, ROTULO_PERIODO, TOM_STATUS_TURNO } from "@/lib/dominio/formato";
@@ -20,10 +20,10 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
   const supabase = await criarClienteServidor();
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
-  const [turnos, responsaveis, linkQuadro, intervalos] = await Promise.all([
+  const [turnos, responsaveis, quadro, intervalos] = await Promise.all([
     listarTurnosComAtividades(supabase, obraId),
     listarResponsaveis(supabase, obraId),
-    temLinkQuadro(supabase, obraId),
+    linkQuadro(supabase, obraId),
     obterIntervalosObra(supabase, obraId),
   ]);
 
@@ -75,7 +75,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
       )}
 
       <Responsaveis obraId={obra.id} responsaveis={responsaveis} />
-      <LinkQuadro obraId={obra.id} existe={linkQuadro} />
+      <LinkQuadro obraId={obra.id} existe={quadro.existe} codigoAtual={quadro.codigo} />
       {intervalos && <IntervaloObra obraId={obra.id} intervalos={intervalos} />}
     </div>
   );
