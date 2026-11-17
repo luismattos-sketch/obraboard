@@ -10,8 +10,10 @@ import {
   salvarIntervaloTurno,
 } from "@/lib/db/execucao";
 import type { Janela } from "@/lib/dominio/efetivoHH";
-import { criarOcorrenciaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
-import type { Resultado } from "@/lib/db/resultado";
+import { criarOcorrenciaPlanejador, encerrarParadaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
+import { enviarFotoParadaPlanejador } from "@/lib/db/fotosParada";
+import { falha, ok, type Resultado } from "@/lib/db/resultado";
+import { lerOcorrencias, lerTerminados, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { PeriodoClima } from "@/lib/dominio/tipos";
@@ -60,4 +62,23 @@ export async function removerOcorrenciaAcao(turnoId: string, id: string) {
 
 export async function corrigirIntervalo(turnoId: string, j: Janela | null) {
   return comRevalidacao(turnoId, (c) => salvarIntervaloTurno(c, turnoId, j));
+}
+
+export async function encerrarParadaAcao(turnoId: string, id: string, horaFim: string) {
+  return comRevalidacao(turnoId, (c) => encerrarParadaPlanejador(c, turnoId, id, horaFim));
+}
+
+export async function enviarFotoParadaAcao(turnoId: string, ocorrenciaId: string, form: FormData) {
+  return comRevalidacao(turnoId, (c) => enviarFotoParadaPlanejador(c, turnoId, ocorrenciaId, form));
+}
+
+/** Faixa do turno: só paradas abertas e "terminei" (consultado a cada 30 s, sem recarregar a página). */
+export async function paradasDoTurnoAcao(turnoId: string): Promise<Resultado<{ abertas: Ocorrencia[]; terminados: Terminado[] }>> {
+  const c = await criarClienteServidor();
+  const [a, t] = await Promise.all([
+    c.from("efetivo_ocorrencias").select("*").eq("turno_id", turnoId).eq("tipo", "parado").is("hora_fim", null),
+    c.from("turno_equipes_terminadas").select("responsavel_id, terminou_em").eq("turno_id", turnoId),
+  ]);
+  if (a.error || t.error) return falha("Não foi possível atualizar.");
+  return ok({ abertas: lerOcorrencias(a.data), terminados: lerTerminados(t.data) });
 }

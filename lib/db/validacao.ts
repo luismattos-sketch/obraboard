@@ -92,7 +92,7 @@ export function camposExecucao(concluida: boolean, dados: DadosExecucao) {
 
 /** Função digitada que descreve gente parada/ociosa (deve ir para "Parados", não virar função). */
 export const pareceParado = (funcao: string) => /(^|[^\p{L}])(parad[oa]s?|ocios[oa]s?)($|[^\p{L}])/iu.test(funcao);
-export const ERRO_FUNCAO_PARADO = "Para gente parada use o botão Parados.";
+export const ERRO_FUNCAO_PARADO = "Para gente parada use o botão ⚠ Parada.";
 
 /** `esperado`: o efetivo já gravado; linhas antigas com "parado" continuam aceitas. */
 export function validarEfetivo(linhas: LinhaEfetivo[], esperado: LinhaEfetivo[] = []): Resultado<LinhaEfetivo[]> {
@@ -142,14 +142,53 @@ export function validarHorario(dados: DadosHorario): Resultado {
   return ok(undefined);
 }
 
-export type DadosOcorrencia = Omit<Ocorrencia, "created_at" | "responsavel_id">;
+export type DadosOcorrencia = Omit<Ocorrencia, "created_at" | "responsavel_id" | "foto_path" | "avisado_em">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ehUuid = (x: unknown): x is string => typeof x === "string" && UUID.test(x);
 const TIPOS_OCORRENCIA: readonly TipoOcorrencia[] = ["emprestimo", "saida", "parado"];
+export const OBSERVACAO_PARADA_MAX = 500;
 
-/** Ocorrência do efetivo (empréstimo, saída antes, parados). `janela` = horário do turno, quando conhecido. */
-export function validarOcorrencia(d: DadosOcorrencia, janela: Janela | null): Resultado<DadosOcorrencia> {
+/** Posição de um horário em relação à janela: dentro, depois do fim ou antes do início (mesmo critério do HH). */
+export function posicaoNaJanela(h: string, janela: Janela): "dentro" | "depois" | "antes" | null {
+  const j0 = minutos(janela.inicio);
+  const dur = horasEntre(janela.inicio, janela.fim);
+  const m = minutos(h);
+  if (j0 === null || dur === null || m === null) return null;
+  const D = dur * 60;
+  const r = (m - j0 + 1440) % 1440;
+  if (r <= D) return "dentro";
+  return r < D + (1440 - D) / 2 ? "depois" : "antes";
+}
+
+/** Fim de parada/empréstimo: depois do início, dentro da janela (ou depois do fim, com `aceitaAposFim`). */
+export function validarFim(inicio: string, fim: string, janela: Janela | null, aceitaAposFim = false): Resultado<string> {
+  if (!horaValida(fim)) return falha("Informe o horário");
+  if (janela) {
+    const j0 = minutos(janela.inicio);
+    const pf = posicaoNaJanela(fim, janela);
+    if (j0 !== null && pf !== null) {
+      if (pf === "antes" || (pf === "depois" && !aceitaAposFim)) return falha(foraDoTurno(janela));
+      const rel = (h: string) => (minutos(h)! - j0 + 1440) % 1440;
+      if (rel(fim) <= rel(inicio)) return falha("O fim deve ser depois do início");
+      return ok(fim);
+    }
+  }
+  if (minutos(fim) === minutos(inicio)) return falha("O fim deve ser depois do início");
+  return ok(fim);
+}
+
+const foraDoTurno = (j: Janela) => `Horário fora do turno (${j.inicio.slice(0, 5)}–${j.fim.slice(0, 5)})`;
+
+/**
+ * Ocorrência do efetivo (empréstimo, saída antes, parados). `janela` = horário do turno, quando conhecido.
+ * `aceitaAposFim`: enquanto o fim real não foi preenchido, horários depois do fim previsto valem (equipe que esticou).
+ */
+export function validarOcorrencia(
+  d: DadosOcorrencia,
+  janela: Janela | null,
+  opcoes: { aceitaAposFim?: boolean } = {},
+): Resultado<DadosOcorrencia> {
   if (!d || !ehUuid(d.id) || !TIPOS_OCORRENCIA.includes(d.tipo)) return falha("Registro inválido");
   const funcao = typeof d.funcao === "string" ? d.funcao.trim() : "";
   if (!funcao || funcao.length > 80) return falha("Informe a função");
@@ -162,6 +201,11 @@ export function validarOcorrencia(d: DadosOcorrencia, janela: Janela | null): Re
   const emprestimoId = d.emprestimo_id ?? null;
   if (emprestimoId !== null && (!ehUuid(emprestimoId) || d.tipo === "emprestimo")) return falha("Registro inválido");
 
+  const obsBruta = typeof d.observacao === "string" ? d.observacao.trim() : null;
+  const observacao = obsBruta ? obsBruta : null;
+  const aguardando = d.aguardando_responsavel_id ?? null;
+  if (d.tipo !== "parado" && (observacao !== null || aguardando !== null)) return falha("Registro inválido");
+
   let destino: string | null = null;
   let causa: Causa | null = null;
   if (d.tipo === "emprestimo") {
@@ -170,31 +214,26 @@ export function validarOcorrencia(d: DadosOcorrencia, janela: Janela | null): Re
   } else if (d.tipo === "saida") {
     if (fim !== null) return falha("Registro inválido");
   } else {
-    if (fim === null) return falha("Informe até que horas ficaram parados");
     if (!causaValida(d.causa)) return falha("Informe a causa");
     causa = d.causa as Causa;
+    if (observacao !== null && observacao.length > OBSERVACAO_PARADA_MAX) {
+      return falha(`Observação: máximo de ${OBSERVACAO_PARADA_MAX} caracteres`);
+    }
+    if (aguardando !== null && (!ehUuid(aguardando) || causa !== "atividade_predecessora")) return falha("Registro inválido");
   }
 
-  const ini = minutos(d.hora_inicio)!;
   if (janela) {
-    const j0 = minutos(janela.inicio);
-    const dur = horasEntre(janela.inicio, janela.fim);
-    if (j0 !== null && dur !== null) {
-      const rel = (h: string) => (minutos(h)! - j0 + 1440) % 1440;
-      const foraDoTurno = `Horário fora do turno (${janela.inicio.slice(0, 5)}–${janela.fim.slice(0, 5)})`;
-      if (rel(d.hora_inicio) > dur * 60) return falha(foraDoTurno);
-      if (fim !== null) {
-        if (rel(fim) > dur * 60) return falha(foraDoTurno);
-        if (rel(fim) <= rel(d.hora_inicio)) return falha("O fim deve ser depois do início");
-      }
-    }
-  } else if (fim !== null && minutos(fim) === ini) {
-    return falha("O fim deve ser depois do início");
+    const pi = posicaoNaJanela(d.hora_inicio, janela);
+    if (pi === "antes" || (pi === "depois" && !opcoes.aceitaAposFim)) return falha(foraDoTurno(janela));
+  }
+  if (fim !== null) {
+    const f = validarFim(d.hora_inicio, fim, janela, opcoes.aceitaAposFim);
+    if (!f.ok) return f;
   }
 
   return ok({
     id: d.id, tipo: d.tipo, funcao, quantidade: d.quantidade, hora_inicio: d.hora_inicio, hora_fim: fim,
-    destino_responsavel_id: destino, emprestimo_id: emprestimoId, causa,
+    destino_responsavel_id: destino, emprestimo_id: emprestimoId, causa, observacao, aguardando_responsavel_id: aguardando,
   });
 }
 

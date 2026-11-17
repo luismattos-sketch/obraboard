@@ -7,6 +7,7 @@ import { EscolhaResponsavel } from "./EscolhaResponsavel";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
+import { urlsFotos } from "@/lib/db/fotosParada";
 
 // Página de token: nunca cacheada, nunca indexada, sem vazar o link por Referer.
 export const dynamic = "force-dynamic";
@@ -36,7 +37,11 @@ export default async function PaginaCampo({
     );
   }
 
-  const [opcoesFuncao, responsaveis] = await Promise.all([opcoesFuncaoCampo(turno), responsaveisDoTurno(turno)]);
+  const [opcoesFuncao, responsaveis, fotos] = await Promise.all([
+    opcoesFuncaoCampo(turno),
+    responsaveisDoTurno(turno),
+    urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? "")),
+  ]);
   const escolha = resolverEscolhaCampo(r, responsaveis.map((x) => x.id));
   const atual = escolha.modo === "responsavel" ? responsaveis.find((x) => x.id === escolha.id) ?? null : null;
   const daEquipe = <T extends { responsavel_id: string | null }>(xs: T[]) =>
@@ -71,6 +76,12 @@ export default async function PaginaCampo({
             responsavelId={atual?.id ?? null}
             turno={{
               status: turno.status,
+              data: turno.data,
+              periodo: turno.periodo,
+              obraNome: turno.obra.nome,
+              whatsapp: turno.obra.whatsapp_planejador ?? null,
+              terminados: turno.terminados ?? [],
+              fotos,
               hora_inicio_real: turno.hora_inicio_real,
               hora_fim_real: turno.hora_fim_real,
               atividades: daEquipe(turno.atividades),

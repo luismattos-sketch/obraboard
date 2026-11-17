@@ -32,6 +32,10 @@ type Props = {
     efetivoTodo?: LinhaComEquipe[];
     janela: Janela | null;
     intervalo: Janela | null;
+    /** Estado das ocorrências criado pelo pai (compartilhado com o painel de paradas). */
+    estado?: ReturnType<typeof useOcorrencias>;
+    /** "HH:MM" para a conta ao vivo das paradas abertas. */
+    agora?: string;
   };
 };
 
@@ -54,13 +58,15 @@ export function EfetivoPorEquipe({
 }: Props) {
   const [extras, setExtras] = useState<string[]>([]);
   const [escolhendo, setEscolhendo] = useState(false);
-  const mov = useOcorrencias(movimentacoes?.ocorrencias ?? [], movimentacoes ?? SEM_ACOES);
+  const interno = useOcorrencias(movimentacoes?.ocorrencias ?? [], movimentacoes ?? SEM_ACOES);
+  const mov = movimentacoes?.estado ?? interno;
   const hh = movimentacoes
     ? calcularHH({
         efetivo: movimentacoes.efetivoTodo ?? efetivo,
         ocorrencias: mov.lista,
         janela: movimentacoes.janela,
         intervalo: movimentacoes.intervalo,
+        agora: movimentacoes.agora,
       })
     : null;
   // Com movimentações, as funções da equipe vêm do servidor: atualiza depois de gravar o efetivo.
@@ -91,7 +97,7 @@ export function EfetivoPorEquipe({
         nome={nome}
         resumo={hh?.equipes.find((e) => e.responsavel_id === id) ?? null}
         somenteLeitura={somenteLeitura}
-        criar={(d) => mov.criar(id, d)}
+        criar={(d, foto) => mov.criar(id, d, foto ?? null)}
         remover={mov.remover}
       />
     );

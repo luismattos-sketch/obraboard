@@ -69,7 +69,7 @@ describe("Quadro", () => {
     expect(h).toContain("0 de 2 programadas · 0%");
     expect(h).toContain("+1 extra");
     expect(h).toContain("80 / 120 m");
-    expect(h).toContain("Material");
+    expect(h).toContain("Falta material");
     expect(h).toContain("26,4 HH");
   });
 
@@ -79,5 +79,26 @@ describe("Quadro", () => {
 
   it("turno fechado", () => {
     expect(html("fechado", "checkout")).toContain("Turno fechado");
+  });
+});
+
+describe("Quadro: paradas abertas e terminou", () => {
+  const e = (): EntradaQuadro => ({
+    ...base("em_campo"),
+    ocorrencias: [
+      { id: "p1", responsavel_id: "m", funcao: "Eletricista", tipo: "parado", quantidade: 2, hora_inicio: "10:40", hora_fim: null,
+        destino_responsavel_id: null, emprestimo_id: null, causa: "atividade_predecessora", aguardando_responsavel_id: "m", created_at: "1" },
+    ],
+    terminados: [{ responsavel_id: "m", terminou_em: "15:20:00" }],
+  });
+  it("faixa vermelha com duração e equipe aguardada", () => {
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e(), "13:15")} visao="checkout" publico />);
+    expect(h).toContain('role="alert"');
+    expect(h).toContain("2 Eletricista parados desde 10:40 · Aguardando outra equipe (Marcos)");
+    expect(h).toContain("(2h35)");
+    expect(h).toContain("✓ terminou 15:20");
+  });
+  it("sem paradas: sem alerta", () => {
+    expect(html("em_campo", "checkout")).not.toContain('role="alert"');
   });
 });

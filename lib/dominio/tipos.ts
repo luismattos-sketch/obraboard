@@ -15,15 +15,29 @@ export type Causa =
   | "outro";
 
 export const CAUSAS: Record<Causa, string> = {
-  material: "Material",
-  mao_de_obra: "Mão de obra",
-  equipamento: "Equipamento",
-  projeto_informacao: "Projeto/Informação",
+  material: "Falta material",
+  mao_de_obra: "Falta de gente",
+  equipamento: "Equipamento (falta ou quebra)",
+  projeto_informacao: "Falta projeto / informação",
   clima: "Clima",
-  atividade_predecessora: "Atividade predecessora",
-  liberacao_area: "Liberação de área/Interferência",
+  atividade_predecessora: "Aguardando outra equipe",
+  liberacao_area: "Área não liberada / interferência",
   seguranca: "Segurança",
   outro: "Outro",
+};
+
+export type GrupoCausa = "externa" | "interna";
+/** Externa = fora do controle da equipe (etiqueta no aviso; base para quadro e Análise). */
+export const GRUPO_CAUSA: Record<Causa, GrupoCausa | null> = {
+  material: "externa",
+  mao_de_obra: "interna",
+  equipamento: "interna",
+  projeto_informacao: "externa",
+  clima: "externa",
+  atividade_predecessora: "externa",
+  liberacao_area: "externa",
+  seguranca: "externa",
+  outro: null,
 };
 
 export type PeriodoClima = "manha" | "tarde" | "noite";

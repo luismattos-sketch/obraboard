@@ -85,7 +85,7 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
     await salvo("titulo-horario");
     const card = campo.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);
     await card.getByLabel(/Executado/).fill("3");
-    await card.getByLabel("Causa do não cumprimento").selectOption({ label: "Material" });
+    await card.getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
     await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
     await campo.getByRole("button", { name: "+ Adicionar função" }).click();
     // Menu traz a função programada para o turno
@@ -111,7 +111,7 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
   await expect(page.getByText("Encerrada", { exact: true })).toBeVisible();
   await expect(page.getByText("PPC da semana", { exact: true })).toBeVisible();
   await expect(page.getByText("0% — 0 de 1")).toBeVisible();
-  await expect(page.getByText("Causa: Material")).toBeVisible();
+  await expect(page.getByText("Causa: Falta material")).toBeVisible();
 
   // Análise usa o PPC da programação
   await page.request.get(`${obraUrl}/analise`);

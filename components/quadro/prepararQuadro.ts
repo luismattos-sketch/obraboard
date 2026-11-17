@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { entradaDoTurno, fotoCheckin, turnosDaObra } from "@/lib/db/quadro";
-import { hojeSaoPaulo } from "@/lib/dominio/entrada";
+import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
+import { agoraDoTurno } from "@/lib/dominio/efetivoHH";
 import { escolherTurno, montarQuadro, visaoValida, vizinhos } from "@/lib/dominio/quadro";
 import { ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { PropsQuadro } from "./Quadro";
@@ -34,7 +35,7 @@ export async function prepararQuadro(
   let aviso: string | null = escolha.foraDeHoje
     ? `Sem turno hoje — mostrando ${ddmm(turno.data)} ${ROTULO_PERIODO[turno.periodo].toLowerCase()}`
     : null;
-  let modelo = montarQuadro(entrada);
+  let modelo = montarQuadro(entrada, agoraDoTurno(entrada.turno, hojeSaoPaulo(), horaAgoraSaoPaulo()));
   if (visao === "checkin" && turno.status !== "planejado") {
     const foto = await fotoCheckin(c, turno.id);
     if (foto) modelo = montarQuadro({ ...foto.dados, turno: { ...foto.dados.turno, status: entrada.turno.status } });

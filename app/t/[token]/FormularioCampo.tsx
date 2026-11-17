@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
-import type { StatusTurno } from "@/lib/dominio/tipos";
+import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
+import { agoraDoTurno, paradasAbertas, type Terminado } from "@/lib/dominio/efetivoHH";
+import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
+import { linkWhatsapp, mensagemTerminou } from "@/lib/dominio/whatsapp";
+import { PainelParadas } from "@/components/execucao/PainelParadas";
+import { BotaoTerminei } from "@/components/execucao/BotaoTerminei";
+import { useOcorrencias } from "@/components/execucao/useOcorrencias";
 import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
 import {
   criarOcorrencia,
+  desfazerTerminou,
+  encerrarParada,
+  enviarFotoParada,
   enviarTurno,
+  marcarTerminou,
   limparClima,
   removerOcorrencia,
   salvarClima,
@@ -31,6 +41,14 @@ import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 
 export type DadosTurnoCampo = {
   status: StatusTurno;
+  data: string;
+  periodo: Periodo;
+  obraNome: string;
+  /** WhatsApp do planejador (null = escolher o contato). */
+  whatsapp: string | null;
+  terminados: Terminado[];
+  /** Caminho da foto da parada → URL assinada. */
+  fotos: Record<string, string>;
   hora_inicio_real: string | null;
   hora_fim_real: string | null;
   atividades: Atividade[];
@@ -68,6 +86,72 @@ export function FormularioCampo({
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+  const mov = useOcorrencias(
+    turno.ocorrencias,
+    {
+      criar: (id, d) => criarOcorrencia(token, d, id),
+      remover: (id) => removerOcorrencia(token, id, responsavelId),
+      encerrar: (id, hora) => encerrarParada(token, id, hora, responsavelId),
+      enviarFoto: (id, form) => enviarFotoParada(token, id, responsavelId, form),
+      atualizar: () => router.refresh(),
+    },
+    registrar,
+  );
+  // Conta ao vivo das paradas abertas: atualiza a cada minuto (só no navegador).
+  const [agora, setAgora] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const tic = () => setAgora(agoraDoTurno({ data: turno.data, periodo: turno.periodo, status }, hojeSaoPaulo(), horaAgoraSaoPaulo()));
+    tic();
+    const t = setInterval(tic, 60_000);
+    return () => clearInterval(t);
+  }, [turno.data, turno.periodo, status]);
+  const [terminouEm, setTerminouEm] = useState<string | null>(
+    turno.terminados.find((x) => x.responsavel_id === responsavelId)?.terminou_em ?? null,
+  );
+  const [salvandoTerminei, setSalvandoTerminei] = useState(false);
+  const [erroTerminei, setErroTerminei] = useState<string | null>(null);
+  const abertas = paradasAbertas(mov.lista);
+  const minhasAbertas = abertas.filter((o) => o.responsavel_id === responsavelId);
+  const nomeEquipe = (id: string | null) =>
+    id === null ? "Sem responsável" : (responsaveis.find((x) => x.id === id)?.nome ?? "Responsável removido");
+  const contexto = { obra: turno.obraNome, data: turno.data, periodo: turno.periodo, whatsapp: turno.whatsapp };
+
+  async function terminei(hora: string, encerrarAbertas: boolean) {
+    if (responsavelId === null) return;
+    setErroTerminei(null);
+    setTerminouEm(hora);
+    setSalvandoTerminei(true);
+    if (encerrarAbertas) for (const o of minhasAbertas) void mov.encerrar(o.id, hora);
+    try {
+      const res = await marcarTerminou(token, responsavelId, hora);
+      if (!res.ok) {
+        setTerminouEm(null);
+        setErroTerminei(res.erro);
+      }
+    } catch {
+      setTerminouEm(null);
+      setErroTerminei("Sem conexão — tente de novo.");
+    } finally {
+      setSalvandoTerminei(false);
+    }
+  }
+
+  async function desfazer() {
+    if (responsavelId === null) return;
+    const antes = terminouEm;
+    setErroTerminei(null);
+    setTerminouEm(null);
+    try {
+      const res = await desfazerTerminou(token, responsavelId);
+      if (!res.ok) {
+        setTerminouEm(antes);
+        setErroTerminei(res.erro);
+      }
+    } catch {
+      setTerminouEm(antes);
+      setErroTerminei("Sem conexão — tente de novo.");
+    }
+  }
 
   const erros = errosDeCausa(atividades);
   const pendentes = atividades.filter((a) => erros[a.id]);
@@ -101,6 +185,22 @@ export function FormularioCampo({
           Intervalo: {turno.intervalo.inicio.slice(0, 5)}–{turno.intervalo.fim.slice(0, 5)} (descontado do HH)
         </p>
       )}
+      <PainelParadas
+        responsavelId={responsavelId}
+        ocorrencias={mov.lista}
+        nome={nomeEquipe}
+        fotos={turno.fotos}
+        estadoFoto={mov.estadoFoto}
+        contexto={contexto}
+        funcoes={[...new Set(turno.efetivo.map((e) => e.funcao))]}
+        destinos={responsaveis}
+        somenteLeitura={somenteLeitura || responsavelId === null}
+        criar={(d, foto) => void mov.criar(responsavelId, d, foto)}
+        encerrar={(id, hora) => void mov.encerrar(id, hora)}
+        tentarFoto={mov.tentarFoto}
+        anexarFoto={(id, f) => void mov.anexarFoto(id, f)}
+      />
+      {mov.erro && <Aviso tom="alerta">{mov.erro}</Aviso>}
       <BlocoAtividades
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
@@ -126,6 +226,8 @@ export function FormularioCampo({
           criar: (id, d) => criarOcorrencia(token, d, id),
           remover: (id) => removerOcorrencia(token, id, responsavelId),
           atualizar: () => router.refresh(),
+          estado: mov,
+          agora,
         }}
       />
       <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
@@ -133,8 +235,16 @@ export function FormularioCampo({
       />
 
       {!somenteLeitura && responsavelId !== null && (
-        <section className="pb-8">
-          <Aviso tom="info">Terminou? Avise o planejador.</Aviso>
+        <section className="flex flex-col gap-2 pb-8">
+          <BotaoTerminei
+            terminouEm={terminouEm}
+            abertasDaEquipe={minhasAbertas.length}
+            marcar={(h, enc) => void terminei(h, enc)}
+            desfazer={() => void desfazer()}
+            salvando={salvandoTerminei}
+            linkWhats={(hora) => linkWhatsapp(turno.whatsapp, mensagemTerminou({ ...contexto, equipe: nomeEquipe(responsavelId), hora }))}
+          />
+          {erroTerminei && <Aviso tom="perigo">{erroTerminei}</Aviso>}
         </section>
       )}
       {!somenteLeitura && responsavelId === null && (
@@ -149,6 +259,7 @@ export function FormularioCampo({
               </ul>
             </Aviso>
           )}
+          {abertas.length > 0 && <Aviso tom="alerta">Há parada sem fim; o planejador vai encerrar.</Aviso>}
           {erroEnvio && <Aviso tom="perigo">{erroEnvio}</Aviso>}
           {status === "enviado" && (
             <Aviso tom="sucesso">Turno enviado ✓ — você ainda pode corrigir até o planejador fechar</Aviso>

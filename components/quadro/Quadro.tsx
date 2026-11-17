@@ -27,6 +27,7 @@ const COR_BARRA: Record<StatusAtividade, string> = {
 const diaDaSemana = (iso: string) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-BR", { weekday: "short", timeZone: "UTC" }).replace(".", "");
 const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const duracao = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`);
 const hh = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function textoResumo(r: ResumoEquipe): string {
@@ -90,6 +91,7 @@ function Faixa({
               {r.hhParado ? ` · ${hh(r.hhParado)} HH parados` : ""}
             </p>
             <Recebidos r={r} nome={nomeDe} />
+            {r.terminouEm && <p className="text-sm font-semibold text-sucesso xl:text-base">{`✓ terminou ${r.terminouEm}`}</p>}
             <p className="text-sm font-semibold text-texto xl:text-base">
               {textoResumo(r)}
               {r.extras > 0 && <span className="ml-1 text-destaque">{`+${r.extras} extra`}</span>}
@@ -191,6 +193,16 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
       )}
 
       {aviso && <p className="rounded-cartao bg-alerta-clara px-3 py-2 text-sm text-alerta-escura">{aviso}</p>}
+
+      {modelo.paradas.length > 0 && (
+        <section role="alert" aria-label="Paradas em aberto" className="flex flex-col gap-1 rounded-cartao bg-perigo px-4 py-3 text-white">
+          {modelo.paradas.map((p, i) => (
+            <p key={i} className="text-lg font-bold xl:text-2xl">
+              {`⚠ ${p.equipe} · ${p.texto}${p.duracaoMin !== null ? ` (${duracao(p.duracaoMin)})` : ""}`}
+            </p>
+          ))}
+        </section>
+      )}
 
       {faixas.length === 0 ? (
         <p className="rounded-cartao bg-superficie p-4 text-texto-suave">Nenhuma atividade neste turno.</p>

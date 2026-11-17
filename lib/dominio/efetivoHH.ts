@@ -1,5 +1,5 @@
 import { chaveFuncao, horasEntre, minutos } from "./calculos";
-import { CAUSAS, type Causa } from "./tipos";
+import { CAUSAS, type Causa, type Periodo, type StatusTurno } from "./tipos";
 
 /**
  * Regra única de contagem do efetivo e do HH do turno (resumo, quadro, semana e RDO).
@@ -19,6 +19,11 @@ export type Ocorrencia = {
   destino_responsavel_id: string | null;
   emprestimo_id: string | null;
   causa: Causa | null;
+  /** Parada: observação, equipe aguardada (causa "Aguardando outra equipe"), foto e hora do aviso (ausentes = null). */
+  observacao?: string | null;
+  aguardando_responsavel_id?: string | null;
+  foto_path?: string | null;
+  avisado_em?: string | null;
   created_at: string;
 };
 export type Janela = { inicio: string; fim: string };
@@ -28,6 +33,8 @@ export type EntradaHH = {
   /** Já escolhida: real se completa, senão prevista. */
   janela: Janela | null;
   intervalo: Janela | null;
+  /** "HH:MM": parada aberta conta até agora (telas ao vivo). Ausente = até o fim do turno (RDO, fechamento). */
+  agora?: string;
 };
 export type Recebido = { emprestimo_id: string; de: string | null; funcao: string; quantidade: number; inicio: string; fim: string };
 export type HHEquipe = {
@@ -83,6 +90,10 @@ export function lerOcorrencias(x: unknown): Ocorrencia[] {
       destino_responsavel_id: (r.destino_responsavel_id as string | null) ?? null,
       emprestimo_id: (r.emprestimo_id as string | null) ?? null,
       causa: (r.causa as Causa | null) ?? null,
+      observacao: (r.observacao as string | null) ?? null,
+      aguardando_responsavel_id: (r.aguardando_responsavel_id as string | null) ?? null,
+      foto_path: (r.foto_path as string | null) ?? null,
+      avisado_em: (r.avisado_em as string | null) ?? null,
       created_at: String(r.created_at ?? ""),
     }))
     .sort((a, b) => (a.created_at === b.created_at ? a.id.localeCompare(b.id) : a.created_at.localeCompare(b.created_at)));
@@ -115,6 +126,9 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
     if (r <= D) return r;
     return r > D + (1440 - D) / 2 ? 0 : D;
   };
+
+  // Parada sem fim (aberta): até agora, se informado; senão até o fim do turno.
+  const fimParado = (o: Ocorrencia): number => (o.hora_fim ? (rel(o.hora_fim) ?? 0) : e.agora ? (rel(e.agora) ?? D) : D);
 
   const almoco = new Uint8Array(D);
   if (temJanela && e.intervalo) {
@@ -180,7 +194,7 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
     if (o.tipo === "emprestimo") elegiveis = doEmprestimo ? [] : grupo.filter((p) => !p.emprestimo && !p.saiu);
     else if (o.tipo === "saida") elegiveis = grupo.filter((p) => !p.saiu && (doEmprestimo || naOrigem(p, h1, h1 + 1)));
     else {
-      const h2 = rel(o.hora_fim) ?? h1;
+      const h2 = fimParado(o);
       const livres = doEmprestimo ? grupo : grupo.filter((p) => naOrigem(p, h1, h2));
       elegiveis = [...livres.filter((p) => !p.saiu), ...livres.filter((p) => p.saiu)];
     }
@@ -227,7 +241,7 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
         for (let m = h1; m < D; m++) p.dono[m] = NENHUM;
       }
     } else {
-      const h2 = rel(o.hora_fim) ?? h1;
+      const h2 = fimParado(o);
       const causa = o.causa ? CAUSAS_LISTA.indexOf(o.causa) : CAUSAS_LISTA.indexOf("outro");
       for (const p of escolhidas) {
         for (let m = h1; m < h2; m++) if (p.dono[m] === onde && p.parado[m] === NENHUM) p.parado[m] = causa;
@@ -298,8 +312,10 @@ export function descreverOcorrencia(o: Ocorrencia, nome: (id: string | null) => 
     return `${q} ${o.funcao} ${q === 1 ? "emprestado" : "emprestados"} → ${nome(o.destino_responsavel_id)} ${quando}`;
   }
   if (o.tipo === "saida") return `${q} ${q === 1 ? "saiu" : "saíram"} às ${ini}`;
-  const causa = o.causa ? ` · ${CAUSAS[o.causa]}` : "";
-  return `${q} ${q === 1 ? "parado" : "parados"} ${ini}–${horaCurta(o.hora_fim ?? "")}${causa}`;
+  const aguardando = o.aguardando_responsavel_id ? ` (${nome(o.aguardando_responsavel_id)})` : "";
+  const causa = o.causa ? ` · ${CAUSAS[o.causa]}${aguardando}` : "";
+  const quando = o.hora_fim ? `${ini}–${horaCurta(o.hora_fim)}` : `desde ${ini}`;
+  return `${q} ${q === 1 ? "parado" : "parados"} ${quando}${causa}`;
 }
 
 /** Nome da equipe para textos (RDO, quadro): null = "Sem responsável". */
@@ -310,5 +326,53 @@ export function nomeDaEquipe(responsaveis: { id: string; nome: string }[]): (id:
 /** Linha completa (com equipe e função) para relatórios: "Rita: 2 Montador emprestados → Ana a partir de 13:00". */
 export function linhaOcorrencia(o: Ocorrencia, nome: (id: string | null) => string): string {
   const d = descreverOcorrencia(o, nome);
-  return o.tipo === "emprestimo" ? `${nome(o.responsavel_id)}: ${d}` : `${nome(o.responsavel_id)} · ${o.funcao}: ${d}`;
+  const obs = o.observacao ? ` — ${o.observacao}` : "";
+  return o.tipo === "emprestimo" ? `${nome(o.responsavel_id)}: ${d}` : `${nome(o.responsavel_id)} · ${o.funcao}: ${d}${obs}`;
+}
+
+/** Paradas ainda sem fim, na ordem de registro. */
+export function paradasAbertas(ocorrencias: Ocorrencia[]): Ocorrencia[] {
+  return lerOrdenadas(ocorrencias).filter((o) => o.tipo === "parado" && !o.hora_fim);
+}
+
+const lerOrdenadas = (xs: Ocorrencia[]) =>
+  [...xs].sort((a, b) => (a.created_at === b.created_at ? a.id.localeCompare(b.id) : a.created_at.localeCompare(b.created_at)));
+
+/**
+ * "Agora" para a conta ao vivo de um turno: só no turno aberto de hoje (ou no noturno de ontem, de madrugada).
+ * Turno esquecido aberto de outro dia conta as paradas abertas até o fim dele.
+ */
+export function agoraDoTurno(
+  turno: { data: string; periodo: Periodo; status: StatusTurno },
+  hoje: string,
+  hora: string,
+): string | undefined {
+  if (turno.status === "fechado") return undefined;
+  if (turno.data === hoje) return hora;
+  const ontem = new Date(`${hoje}T12:00:00Z`);
+  ontem.setUTCDate(ontem.getUTCDate() - 1);
+  if (turno.periodo === "noturno" && turno.data === ontem.toISOString().slice(0, 10) && hora < "12:00") return hora;
+  return undefined;
+}
+
+/** Fim sugerido ao fechar o turno com a parada aberta: fim do turno; se começou depois dele (ou sem horário), o início. */
+export function fimPadraoParada(o: Ocorrencia, janela: Janela | null): string {
+  const ini = horaCurta(o.hora_inicio);
+  if (!janela) return ini;
+  const j0 = minutos(janela.inicio);
+  const m = minutos(ini);
+  const dur = horasEntre(janela.inicio, janela.fim);
+  if (j0 === null || m === null || dur === null) return ini;
+  const pos = (m - j0 + 1440) % 1440;
+  return pos > dur * 60 ? ini : horaCurta(janela.fim);
+}
+
+export type Terminado = { responsavel_id: string; terminou_em: string };
+
+/** Terminados vindos do banco ou de uma foto (JSON): ausente = nenhum; ordem por horário. */
+export function lerTerminados(x: unknown): Terminado[] {
+  if (!Array.isArray(x)) return [];
+  return x
+    .map((r: Record<string, unknown>) => ({ responsavel_id: String(r.responsavel_id), terminou_em: String(r.terminou_em ?? "") }))
+    .sort((a, b) => a.terminou_em.localeCompare(b.terminou_em) || a.responsavel_id.localeCompare(b.responsavel_id));
 }

@@ -4,7 +4,7 @@ import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
-import { lerOcorrencias, type Ocorrencia } from "@/lib/dominio/efetivoHH";
+import { lerOcorrencias, lerTerminados, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
 import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
@@ -37,6 +37,8 @@ export type TurnoCompleto = Turno & {
   efetivo: Efetivo[];
   clima: Clima[];
   ocorrencias: Ocorrencia[];
+  /** Equipes que tocaram "Terminei minha parte" (ausente nas fotos antigas = nenhuma). */
+  terminados?: Terminado[];
   /** Nomes dos responsáveis da obra (para descrever empréstimos). */
   responsaveis: { id: string; nome: string }[];
 };
@@ -121,7 +123,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at), atividades(*), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -131,9 +133,10 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     throw new Error(`obterTurnoCompleto: ${error.message}`);
   }
   if (!data) return null;
-  const { efetivo_ocorrencias, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis"> & {
+  const { efetivo_ocorrencias, turno_equipes_terminadas, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis" | "terminados"> & {
     atividades: Record<string, unknown>[] | null;
     efetivo_ocorrencias: unknown;
+    turno_equipes_terminadas: Terminado[] | null;
   };
   const atividades = (t.atividades ?? []).map(normalizarAtividade).sort((a, b) => a.ordem - b.ordem);
   const { data: resp, error: er } = await c.from("responsaveis").select("id, nome").eq("obra_id", t.obra_id);
@@ -147,6 +150,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     efetivo: t.efetivo ?? [],
     clima: t.clima ?? [],
     ocorrencias: lerOcorrencias(efetivo_ocorrencias),
+    terminados: lerTerminados(turno_equipes_terminadas),
     responsaveis: (resp ?? []) as { id: string; nome: string }[],
   };
 }
@@ -334,3 +338,4 @@ export async function linkCampo(c: SupabaseClient, turnoId: string): Promise<{ e
   const d = data as { token_hash: string | null; token_campo: string | null } | null;
   return { existe: !!d?.token_hash, token: d?.token_hash ? (d.token_campo ?? null) : null };
 }
+

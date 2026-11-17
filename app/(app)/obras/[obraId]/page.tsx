@@ -14,6 +14,7 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { LinkQuadro } from "./LinkQuadro";
 import { Responsaveis } from "./Responsaveis";
 import { IntervaloObra } from "./IntervaloObra";
+import { WhatsappObra } from "./WhatsappObra";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
@@ -77,6 +78,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
       <Responsaveis obraId={obra.id} responsaveis={responsaveis} />
       <LinkQuadro obraId={obra.id} existe={quadro.existe} codigoAtual={quadro.codigo} />
       {intervalos && <IntervaloObra obraId={obra.id} intervalos={intervalos} />}
+      <WhatsappObra obraId={obra.id} inicial={obra.whatsapp_planejador ?? null} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { lerOcorrencias } from "@/lib/dominio/efetivoHH";
+import { lerOcorrencias, lerTerminados } from "@/lib/dominio/efetivoHH";
 import type { EntradaQuadro, ResponsavelRef, TurnoRef } from "@/lib/dominio/quadro";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { Causa, Periodo, StatusTurno } from "@/lib/dominio/tipos";
@@ -22,7 +22,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
   const { data, error } = await c
     .from("turnos")
     .select(
-      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*)",
+      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)",
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -37,6 +37,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     atividades: Record<string, unknown>[] | null;
     efetivo: Record<string, unknown>[] | null;
     efetivo_ocorrencias: unknown;
+    turno_equipes_terminadas: unknown;
   };
 
   const atividades: EntradaQuadro["atividades"] = (t.atividades ?? []).map((a) => ({
@@ -57,7 +58,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
 
   const ocorrencias = lerOcorrencias(t.efetivo_ocorrencias);
   const ids = [
-    ...new Set([...atividades, ...efetivo].map((x) => x.responsavel_id).concat(ocorrencias.map((o) => o.destino_responsavel_id))),
+    ...new Set([...atividades, ...efetivo].map((x) => x.responsavel_id).concat(ocorrencias.flatMap((o) => [o.destino_responsavel_id, o.aguardando_responsavel_id ?? null]))),
   ].filter((x): x is string => x !== null);
   let responsaveis: ResponsavelRef[] = [];
   if (ids.length > 0) {
@@ -87,6 +88,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     atividades,
     efetivo,
     ocorrencias,
+    terminados: lerTerminados(t.turno_equipes_terminadas),
   };
 }
 
@@ -114,6 +116,7 @@ export async function fotoCheckin(c: SupabaseClient, turnoId: string): Promise<F
     ...d.dados,
     atividades: d.dados.atividades.map((a) => ({ ...a, qtd_planejada: Number(a.qtd_planejada), qtd_realizada: numOuNull(a.qtd_realizada) })),
     ocorrencias: lerOcorrencias(d.dados.ocorrencias),
+    terminados: lerTerminados(d.dados.terminados),
   };
   return { emitido_em: d.emitido_em, dados };
 }

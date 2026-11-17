@@ -78,7 +78,7 @@ describe("resumoEquipe", () => {
       atividades: [at("j", 2, 1), at("j", 2, null), at("j", 1, 1, { programada: false })],
       efetivo: [{ funcao: "Mecânico", quantidade: 2, responsavel_id: "j" }, { funcao: "Soldador", quantidade: 1, responsavel_id: "j" }],
     }));
-    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [] });
+    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [], terminouEm: null });
   });
 
   it("empréstimo: horas vão para a equipe destino, pessoas ficam na origem", () => {
@@ -197,5 +197,58 @@ describe("ordenarPorResponsavel", () => {
       { id: "4", ordem: 3, responsavel_id: "j" },
     ];
     expect(ordenarPorResponsavel(lista, resps).map((x) => x.id)).toEqual(["3", "2", "4", "1"]);
+  });
+});
+
+describe("quadro: paradas abertas e equipes que terminaram", () => {
+  const comParada = (): EntradaQuadro =>
+    entrada({
+      turno: { ...TURNO, hora_fim_prevista: "17:00", intervalo_inicio: "12:00", intervalo_fim: "13:00" },
+      atividades: [at("j", 1, 0)],
+      efetivo: [{ funcao: "Mecânico", quantidade: 3, responsavel_id: "j" }],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "j", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "10:40", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "1" },
+      ],
+      terminados: [{ responsavel_id: "j", terminou_em: "15:20:00" }],
+    });
+  it("com agora: duração e HH parado até agora", () => {
+    const m = montarQuadro(comParada(), "13:15");
+    expect(m.paradas).toEqual([{ equipe: "João", texto: "2 Mecânico parados desde 10:40 · Falta material", desde: "10:40", duracaoMin: 155 }]);
+    expect(m.faixas.find((f) => f.responsavel?.id === "j")!.resumo.hhParado).toBeCloseTo(3.2);
+  });
+  it("sem agora: sem duração (conta até o fim do turno)", () => {
+    expect(montarQuadro(comParada()).paradas[0].duracaoMin).toBeNull();
+  });
+  it("equipe que terminou", () => {
+    expect(montarQuadro(comParada()).faixas.find((f) => f.responsavel?.id === "j")!.resumo.terminouEm).toBe("15:20");
+  });
+  it("sem paradas abertas: lista vazia", () => {
+    expect(montarQuadro(entrada({})).paradas).toEqual([]);
+  });
+});
+
+describe("quadro: duração com relógio adiantado", () => {
+  it("início um pouco no futuro: duração 0, não quase 24 h", () => {
+    const e = entrada({
+      atividades: [at("j", 1, 0)],
+      efetivo: [{ funcao: "Mecânico", quantidade: 3, responsavel_id: "j" }],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "j", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "13:17", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "1" },
+      ],
+    });
+    expect(montarQuadro(e, "13:15").paradas[0].duracaoMin).toBe(0);
+  });
+  it("noturno atravessando a meia-noite", () => {
+    const e = entrada({
+      turno: { ...TURNO, periodo: "noturno", hora_inicio_prevista: "19:00", hora_fim_prevista: "05:00" },
+      efetivo: [{ funcao: "Mecânico", quantidade: 3, responsavel_id: "j" }],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "j", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "23:00", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "1" },
+      ],
+    });
+    expect(montarQuadro(e, "01:00").paradas[0].duracaoMin).toBe(120);
   });
 });

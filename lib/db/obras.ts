@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { falha, ok, type Resultado } from "./resultado";
 import type { Janela } from "@/lib/dominio/efetivoHH";
+import { normalizarWhatsapp } from "@/lib/dominio/whatsapp";
 import { errosDeTamanho, falhaCampos, LIMITES, validarIntervalo } from "./validacao";
 
 /** Limites de nome/cliente/endereço da obra, por campo. */
@@ -19,9 +20,11 @@ export type Obra = {
   cliente: string | null;
   endereco: string | null;
   created_at: string;
+  /** WhatsApp do planejador (dígitos com DDI); ausente nas fotos do RDO. */
+  whatsapp_planejador?: string | null;
 };
 
-const COLUNAS = "id, empresa_id, nome, cliente, endereco, created_at";
+const COLUNAS = "id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador";
 
 export async function listarObras(cliente: SupabaseClient): Promise<Obra[]> {
   const { data, error } = await cliente.from("obras").select(COLUNAS).order("nome");
@@ -122,6 +125,19 @@ export async function editarIntervalosObra(c: SupabaseClient, obraId: string, d:
     .select("id");
   if (error && error.code !== "22P02") {
     console.error("editarIntervalosObra:", error.message);
+    return falha("Não foi possível salvar. Tente novamente.");
+  }
+  if (!data || data.length === 0) return falha("Obra não encontrada");
+  return ok(undefined);
+}
+
+/** Número que recebe os avisos de parada pelo WhatsApp ("" = sem número). */
+export async function editarWhatsappObra(c: SupabaseClient, obraId: string, entrada: string): Promise<Resultado> {
+  const n = normalizarWhatsapp(entrada);
+  if (!n.ok) return n;
+  const { data, error } = await c.from("obras").update({ whatsapp_planejador: n.dados }).eq("id", obraId).select("id");
+  if (error && error.code !== "22P02") {
+    console.error("editarWhatsappObra:", error.message);
     return falha("Não foi possível salvar. Tente novamente.");
   }
   if (!data || data.length === 0) return falha("Obra não encontrada");

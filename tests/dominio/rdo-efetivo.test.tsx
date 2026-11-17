@@ -1,6 +1,6 @@
 import { isValidElement, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { EfetivoEClima, ResumoBloco } from "@/lib/rdo/secoes";
+import { EfetivoEClima, FotosParadas, ResumoBloco } from "@/lib/rdo/secoes";
 import { resumirTurno } from "@/lib/dominio/resumo";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import type { Ocorrencia } from "@/lib/dominio/efetivoHH";
@@ -52,13 +52,13 @@ describe("RDO: efetivo e HH", () => {
     expect(t).toContain("HH parado");
     expect(t).toMatch(/HH parado\s+4/);
     expect(t).toMatch(/Efetivo total\s+11/);
-    expect(t).toContain("Material 4");
+    expect(t).toContain("Falta material 4");
   });
 
   it("seção de efetivo lista as ocorrências com equipe", () => {
     const t = texto(EfetivoEClima({ turno: comParado, resumo: resumirTurno(comParado) }));
     expect(t).toContain("Rita: 2 Montador de andaime emprestados → Ana a partir de 13:00");
-    expect(t).toContain("Rita · Montador de andaime: 2 parados 08:00–10:00 · Material");
+    expect(t).toContain("Rita · Montador de andaime: 2 parados 08:00–10:00 · Falta material");
   });
 
   it("ocorrência incoerente aparece como aviso no RDO", () => {
@@ -70,5 +70,30 @@ describe("RDO: efetivo e HH", () => {
     const t0 = turno([]);
     expect(texto(ResumoBloco({ resumo: resumirTurno(t0), turno: t0 }))).not.toContain("HH parado");
     expect(texto(EfetivoEClima({ turno: t0, resumo: resumirTurno(t0) }))).not.toContain("Movimentações");
+  });
+});
+
+describe("RDO: aviso de parada", () => {
+  const p = oc({
+    id: "p1", responsavel_id: "rita", funcao: "Montador de andaime", tipo: "parado", quantidade: 2, hora_inicio: "10:40:00",
+    hora_fim: "13:15:00", destino_responsavel_id: null, causa: "atividade_predecessora", aguardando_responsavel_id: "ana",
+    observacao: "rolamento 6312", foto_path: "e/o/t/p1.jpg", created_at: "2",
+  });
+  const t = { ...turno([p]), terminados: [{ responsavel_id: "ana", terminou_em: "15:20:00" }, { responsavel_id: "rita", terminou_em: "16:05:00" }] };
+
+  it("parada com equipe aguardada e observação; lote marca a foto no app", () => {
+    const x = texto(EfetivoEClima({ turno: t, resumo: resumirTurno(t) }));
+    expect(x).toContain("Rita · Montador de andaime: 2 parados 10:40–13:15 · Aguardando outra equipe (Ana) — rolamento 6312 (foto no app)");
+  });
+  it("com fotos carregadas: sem a marca", () => {
+    const x = texto(EfetivoEClima({ turno: t, resumo: resumirTurno(t), comFotos: true }));
+    expect(x).not.toContain("(foto no app)");
+  });
+  it("equipes que terminaram", () => {
+    expect(texto(EfetivoEClima({ turno: t, resumo: resumirTurno(t) }))).toContain("Equipes que terminaram: Ana 15:20 · Rita 16:05");
+  });
+  it("seção de fotos leva a legenda; sem foto carregada, nada", () => {
+    expect(texto(FotosParadas({ turno: t, fotos: { "e/o/t/p1.jpg": new Uint8Array([1, 2]) } }))).toContain("Fotos das paradas");
+    expect(FotosParadas({ turno: t, fotos: {} })).toBeNull();
   });
 });

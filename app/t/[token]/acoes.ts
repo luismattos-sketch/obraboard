@@ -8,7 +8,9 @@ import {
   salvarExecucao as dbSalvarExecucao,
   salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
-import { criarOcorrenciaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
+import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
+import { enviarFotoParadaCampo } from "@/lib/db/fotosParada";
+import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { CondicaoClima, DadosExecucao, PeriodoClima } from "@/lib/dominio/tipos";
@@ -57,4 +59,20 @@ export async function criarOcorrencia(token: string, d: DadosOcorrencia, respons
 
 export async function removerOcorrencia(token: string, id: string, responsavelId: string | null) {
   return removerOcorrenciaCampo(token, id, responsavelId);
+}
+
+export async function encerrarParada(token: string, id: string, horaFim: string, responsavelId: string | null) {
+  return encerrarParadaCampo(token, id, horaFim, responsavelId);
+}
+
+export async function marcarTerminou(token: string, responsavelId: string, hora: string) {
+  return marcarTerminouCampo(token, responsavelId, hora);
+}
+
+export async function desfazerTerminou(token: string, responsavelId: string) {
+  return desfazerTerminouCampo(token, responsavelId);
+}
+
+export async function enviarFotoParada(token: string, ocorrenciaId: string, responsavelId: string | null, form: FormData) {
+  return enviarFotoParadaCampo(token, ocorrenciaId, responsavelId, form);
 }
