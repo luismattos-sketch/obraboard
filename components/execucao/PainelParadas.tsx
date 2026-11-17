@@ -27,6 +27,8 @@ export type PropsPainelParadas = {
   funcoes: string[];
   destinos: ResponsavelRef[];
   somenteLeitura?: boolean;
+  /** Turno do planejador: todas as equipes, com "Voltamos a trabalhar" e WhatsApp (avisar é pelo efetivo de cada equipe). */
+  planejador?: boolean;
   /** Planejador: pode avisar por qualquer equipe (escolhe a equipe antes). */
   criar: (d: DadosOcorrencia, foto: File | null) => void;
   encerrar: (id: string, hora: string) => void;
@@ -116,7 +118,7 @@ export function PainelParadas(p: PropsPainelParadas) {
               </label>
             )}
             {!confirmada && <p className="text-sm text-texto-suave">Registrando…</p>}
-            {confirmada && !p.somenteLeitura && daEquipe(o) && p.responsavelId !== null && (
+            {confirmada && !p.somenteLeitura && daEquipe(o) && (p.responsavelId !== null || p.planejador) && (
               encerrando?.id === o.id ? (
                 <div className="flex flex-wrap items-end gap-2">
                   <label className="flex flex-col text-sm text-texto-suave">

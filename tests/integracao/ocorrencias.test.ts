@@ -15,7 +15,9 @@ import {
 } from "@/lib/db/ocorrencias";
 import type { DadosOcorrencia } from "@/lib/db/validacao";
 import { ERRO_OCORRENCIA_INVALIDA, ERRO_RESPONSAVEL_INVALIDO } from "@/lib/db/mensagens";
-import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
+import { salvarExecucaoPlanejador } from "@/lib/db/execucao";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("ocorrências do efetivo", () => {
   let u: UsuarioTeste;
@@ -209,5 +211,17 @@ describe.skipIf(!ligado)("ocorrências do efetivo", () => {
     await criarOcorrenciaCampo(c.token, a, c.rita);
     expect((await encerrarAbertasDoTurno(u.cliente, c.turnoId, {})).ok).toBe(true);
     expect((await lerParada(c.turnoId, a.id))?.hora_fim).toBe("17:00:00");
+  });
+  it("fechar depois de encerrar as abertas: a versão oficial traz a parada encerrada", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const a = aviso();
+    await criarOcorrenciaCampo(c.token, a, c.rita);
+    const t = await obterTurnoCompleto(u.cliente, c.turnoId);
+    const e = await salvarExecucaoPlanejador(u.cliente, c.turnoId, t!.atividades[0].id, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO);
+    if (!e.ok) throw new Error(e.erro);
+    expect((await encerrarAbertasDoTurno(u.cliente, c.turnoId, { [a.id]: "16:00" })).ok).toBe(true);
+    expect((await aplicarAcao(u.cliente, c.turnoId, "fechar")).ok).toBe(true);
+    const { data } = await criarClienteAdmin().from("rdo_versoes").select("dados").eq("turno_id", c.turnoId);
+    expect(data![0].dados.ocorrencias[0]).toMatchObject({ id: a.id, hora_fim: "16:00:00", observacao: "rolamento 6312" });
   });
 });

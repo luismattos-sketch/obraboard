@@ -15,6 +15,13 @@ import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import { AcoesTurno } from "./AcoesTurno";
+import { PainelParadas } from "@/components/execucao/PainelParadas";
+import { useOcorrencias } from "@/components/execucao/useOcorrencias";
+import { agoraDoTurno, paradasAbertas } from "@/lib/dominio/efetivoHH";
+import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
+import type { Periodo } from "@/lib/dominio/tipos";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
 import {
   corrigirClima,
@@ -23,6 +30,8 @@ import {
   corrigirHorario,
   corrigirIntervalo,
   criarOcorrenciaAcao,
+  encerrarParadaAcao,
+  enviarFotoParadaAcao,
   limparClimaPlanejador,
   removerOcorrenciaAcao,
 } from "./acoesExecucao";
@@ -40,6 +49,10 @@ type Props = {
   ocorrencias: Ocorrencia[];
   janela: Janela | null;
   intervalo: Janela | null;
+  /** Para a mensagem do WhatsApp e o "agora" das paradas abertas. */
+  contexto: { obra: string; data: string; periodo: Periodo; whatsapp: string | null };
+  /** Caminho da foto da parada → URL assinada. */
+  fotos: Record<string, string>;
 };
 
 /** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
@@ -56,6 +69,8 @@ export function EdicaoExecucao({
   ocorrencias,
   janela,
   intervalo,
+  contexto,
+  fotos,
 }: Props) {
   const agrupar = atividades.some((a) => a.responsavel_id !== null);
   const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
@@ -65,6 +80,27 @@ export function EdicaoExecucao({
   const { lista, mudar } = useExecucaoLocal(atividades);
   const erros = errosDeCausa(lista);
   const pendentes = lista.filter((a) => erros[a.id]);
+  const router = useRouter();
+  const mov = useOcorrencias(
+    ocorrencias,
+    {
+      criar: (id, d) => criarOcorrenciaAcao(turnoId, id, d),
+      remover: (id) => removerOcorrenciaAcao(turnoId, id),
+      encerrar: (id, hora) => encerrarParadaAcao(turnoId, id, hora),
+      enviarFoto: (id, form) => enviarFotoParadaAcao(turnoId, id, form),
+      atualizar: () => router.refresh(),
+    },
+    registrar,
+  );
+  const [agora, setAgora] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const tic = () => setAgora(agoraDoTurno({ data: contexto.data, periodo: contexto.periodo, status: "em_campo" }, hojeSaoPaulo(), horaAgoraSaoPaulo()));
+    tic();
+    const t = setInterval(tic, 60_000);
+    return () => clearInterval(t);
+  }, [contexto.data, contexto.periodo]);
+  const nomeEquipe = (id: string | null) =>
+    id === null ? "Sem responsável" : (responsaveis.find((x) => x.id === id)?.nome ?? "Responsável removido");
 
   return (
     <ProvedorSalvamento registrar={registrar}>
@@ -85,6 +121,22 @@ export function EdicaoExecucao({
           inicial={intervalo}
           salvar={(j) => corrigirIntervalo(turnoId, j)}
         />
+        <PainelParadas
+          responsavelId={null}
+          planejador
+          ocorrencias={mov.lista}
+          nome={nomeEquipe}
+          fotos={fotos}
+          estadoFoto={mov.estadoFoto}
+          contexto={contexto}
+          funcoes={[]}
+          destinos={responsaveis}
+          criar={() => {}}
+          encerrar={(id, hora) => void mov.encerrar(id, hora)}
+          tentarFoto={mov.tentarFoto}
+          anexarFoto={(id, f) => void mov.anexarFoto(id, f)}
+        />
+        {mov.erro && <Aviso tom="alerta">{mov.erro}</Aviso>}
         <BlocoAtividades
           atividades={ordenadas}
           grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
@@ -105,6 +157,8 @@ export function EdicaoExecucao({
             intervalo,
             criar: (id, d) => criarOcorrenciaAcao(turnoId, id, d),
             remover: (id) => removerOcorrenciaAcao(turnoId, id),
+            estado: mov,
+            agora,
           }}
         />
         <BlocoClima
@@ -122,7 +176,7 @@ export function EdicaoExecucao({
             </ul>
           </Aviso>
         )}
-        <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} />
+        <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} abertas={paradasAbertas(mov.lista)} janela={janela} nome={nomeEquipe} />
       </section>
     </ProvedorSalvamento>
   );

@@ -22,6 +22,9 @@ import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
 import { PainelLink } from "./PainelLink";
 import { Resumo } from "./Resumo";
+import { FaixaParadas } from "./FaixaParadas";
+import { urlsFotos } from "@/lib/db/fotosParada";
+import { paradasAbertas } from "@/lib/dominio/efetivoHH";
 
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
@@ -40,6 +43,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const temFoto = turno.status !== "planejado" && (await fotoCheckin(supabase, turno.id).catch(() => null)) !== null;
   const efetivo = turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id }));
   const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
+  const fotos = await urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,6 +61,15 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
         <p className="text-sm text-texto-suave">
           Previsto: {horaCurta(turno.hora_inicio_prevista)} às {horaCurta(turno.hora_fim_prevista)}
         </p>
+      )}
+
+      {turno.status !== "planejado" && turno.status !== "fechado" && (
+        <FaixaParadas
+          turnoId={turno.id}
+          abertas={paradasAbertas(turno.ocorrencias)}
+          terminados={turno.terminados ?? []}
+          responsaveis={responsaveis}
+        />
       )}
 
       <PainelLink
@@ -125,6 +138,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 ocorrencias={turno.ocorrencias}
                 janela={janelaDoTurno(turno)}
                 intervalo={intervaloDoTurno(turno)}
+                contexto={{ obra: turno.obra.nome, data: turno.data, periodo: turno.periodo, whatsapp: turno.obra.whatsapp_planejador ?? null }}
+                fotos={fotos}
               />
             </>
           )}
