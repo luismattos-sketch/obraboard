@@ -19,6 +19,11 @@ export type Ocorrencia = {
   destino_responsavel_id: string | null;
   emprestimo_id: string | null;
   causa: Causa | null;
+  /** Parada: observação, equipe aguardada (causa "Aguardando outra equipe"), foto e hora do aviso (ausentes = null). */
+  observacao?: string | null;
+  aguardando_responsavel_id?: string | null;
+  foto_path?: string | null;
+  avisado_em?: string | null;
   created_at: string;
 };
 export type Janela = { inicio: string; fim: string };
@@ -83,6 +88,10 @@ export function lerOcorrencias(x: unknown): Ocorrencia[] {
       destino_responsavel_id: (r.destino_responsavel_id as string | null) ?? null,
       emprestimo_id: (r.emprestimo_id as string | null) ?? null,
       causa: (r.causa as Causa | null) ?? null,
+      observacao: (r.observacao as string | null) ?? null,
+      aguardando_responsavel_id: (r.aguardando_responsavel_id as string | null) ?? null,
+      foto_path: (r.foto_path as string | null) ?? null,
+      avisado_em: (r.avisado_em as string | null) ?? null,
       created_at: String(r.created_at ?? ""),
     }))
     .sort((a, b) => (a.created_at === b.created_at ? a.id.localeCompare(b.id) : a.created_at.localeCompare(b.created_at)));
