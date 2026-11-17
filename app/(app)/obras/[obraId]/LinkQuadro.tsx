@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
-import { TEXTO_LINK_ANTIGO, urlQuadro } from "@/lib/dominio/link";
+import { linkExibido, TEXTO_LINK_ANTIGO, urlQuadro } from "@/lib/dominio/link";
 import { gerarLinkQuadroAcao } from "./acoesQuadro";
 
 export const CONFIRMAR_NOVO_LINK = "O link que está na TV e com o gestor vai parar de funcionar";
@@ -12,7 +12,7 @@ export const CONFIRMAR_NOVO_LINK = "O link que está na TV e com o gestor vai pa
 /** "Link do quadro (TV / gestor)": mostra o código guardado (ou o recém-gerado); links antigos só têm o hash. */
 export function LinkQuadro({ obraId, existe, codigoAtual }: { obraId: string; existe: boolean; codigoAtual: string | null }) {
   const [gerado, setCodigo] = useState<string | null>(null);
-  const codigo = gerado ?? codigoAtual;
+  const codigo = linkExibido(gerado, codigoAtual);
   const [erro, setErro] = useState<string | null>(null);
   const [copia, setCopia] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);

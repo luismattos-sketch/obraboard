@@ -5,7 +5,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { formatarData } from "@/lib/dominio/formato";
-import { TEXTO_LINK_ANTIGO, urlCampo } from "@/lib/dominio/link";
+import { linkExibido, TEXTO_LINK_ANTIGO, urlCampo } from "@/lib/dominio/link";
 import { gerarNovoLinkAcao, liberarTurnoAcao, type EstadoLink } from "./acoes";
 
 type Props = {
@@ -32,7 +32,7 @@ export function PainelLink({ turnoId, obraNome, data, periodo, status, tokenAtua
   const [copia, setCopia] = useState<string | null>(null);
   // Último token válido, guardado à parte do último erro: uma falha ao gerar novo link não esconde o link ainda válido.
   const [gerado, setToken] = useState<string | undefined>(undefined);
-  const token = gerado ?? tokenAtual ?? undefined;
+  const token = linkExibido(gerado, tokenAtual);
   const [vistoGerar, setVistoGerar] = useState<EstadoLink>(null);
   const [vistoLiberar, setVistoLiberar] = useState<EstadoLink>(null);
   if (estado !== vistoGerar) {
