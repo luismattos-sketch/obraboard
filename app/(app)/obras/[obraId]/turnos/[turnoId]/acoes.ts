@@ -1,7 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { encerrarAbertasDoTurno } from "@/lib/db/ocorrencias";
+import { fecharTurnoComParadas } from "@/lib/db/ocorrencias";
 import { revalidatePath } from "next/cache";
 import {
   adicionarAtividade,
@@ -152,24 +152,16 @@ export async function gerarNovoLinkAcao(_: EstadoLink, form: FormData): Promise<
   return ok({ token: r.dados.token });
 }
 
-async function mudarStatus(form: FormData, acao: "fechar"): Promise<EstadoFechamento> {
-  const turnoId = texto(form, "turno_id");
-  const c = await criarClienteServidor();
-  const r = await aplicarAcao(c, turnoId, acao);
-  if (!r.ok) return falha(r.erro);
-  await atualizarTurno(c, turnoId);
-  return ok(undefined);
-}
-
 /** Antes de fechar: grava o fim de cada parada aberta (campos fim_<id>; sem campo = fim do turno). */
 export async function fecharTurnoAcao(_: EstadoFechamento, form: FormData): Promise<EstadoFechamento> {
   const turnoId = texto(form, "turno_id");
   const fins: Record<string, string> = {};
   for (const [k, v] of form.entries()) if (k.startsWith("fim_") && typeof v === "string" && v) fins[k.slice(4)] = v;
   const c = await criarClienteServidor();
-  const e = await encerrarAbertasDoTurno(c, turnoId, fins);
-  if (!e.ok) return falha(e.erro);
-  return mudarStatus(form, "fechar");
+  const r = await fecharTurnoComParadas(c, turnoId, fins);
+  if (!r.ok) return falha(r.erro);
+  await atualizarTurno(c, turnoId);
+  return ok(undefined);
 }
 
 export async function reabrirTurnoAcao(_: EstadoFechamento, form: FormData): Promise<EstadoFechamento> {

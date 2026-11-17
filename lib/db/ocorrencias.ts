@@ -6,6 +6,8 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { turnoAberto } from "./campo";
 import { removerFoto } from "./fotosParada";
 import { turnoAbertoParaCorrecao } from "./execucao";
+import { aplicarAcao, obterTurnoCompleto } from "./turnos";
+import { transicaoTurno } from "@/lib/dominio/regras";
 import {
   ERRO_FECHADO_CAMPO,
   ERRO_FECHADO_PLANEJADOR,
@@ -254,19 +256,36 @@ export async function encerrarAbertasDoTurno(c: SupabaseClient, turnoId: string,
     .is("hora_fim", null);
   if (error) return traduzir(error, ERRO_FECHADO_PLANEJADOR);
   const janela = janelaDoTurno(t);
-  for (const o of (abertas ?? []) as Ocorrencia[]) {
+  const lista = (abertas ?? []) as Ocorrencia[];
+  // Valida todos os horários escolhidos antes de gravar qualquer um (nada fica pela metade).
+  for (const o of lista) {
     const escolhido = fins[o.id];
-    if (escolhido) {
-      const r = await encerrar(c, turnoId, o.id, escolhido, undefined, ERRO_FECHADO_PLANEJADOR);
-      if (!r.ok) return falha(`${o.funcao} (desde ${horaCurta(o.hora_inicio)}): ${r.erro}`);
-      continue;
-    }
+    if (!escolhido) continue;
+    const f = validarFim(horaCurta(o.hora_inicio), escolhido, janela, !t.hora_fim_real);
+    if (!f.ok) return falha(`${o.funcao} (desde ${horaCurta(o.hora_inicio)}): ${f.erro}`);
+  }
+  for (const o of lista) {
     const { error: eu } = await c
       .from("efetivo_ocorrencias")
-      .update({ hora_fim: fimPadraoParada(o, janela) })
+      .update({ hora_fim: fins[o.id] || fimPadraoParada(o, janela) })
       .eq("id", o.id)
       .is("hora_fim", null);
     if (eu) return traduzir(eu, ERRO_FECHADO_PLANEJADOR);
   }
   return ok(undefined);
+}
+
+/**
+ * Fechar o turno com paradas abertas: primeiro confere se o fechamento será aceito (causas, horário),
+ * só então encerra as paradas e fecha — um fechamento recusado não mexe nas paradas do campo.
+ */
+export async function fecharTurnoComParadas(c: SupabaseClient, turnoId: string, fins: Record<string, string>): Promise<Resultado> {
+  const turno = await obterTurnoCompleto(c, turnoId);
+  if (!turno) return falha("Turno não encontrado");
+  const t = transicaoTurno(turno.status, "fechar", { atividades: turno.atividades, horario: turno });
+  if (!t.ok) return falha(t.erro);
+  const e = await encerrarAbertasDoTurno(c, turnoId, fins);
+  if (!e.ok) return e;
+  const f = await aplicarAcao(c, turnoId, "fechar");
+  return f.ok ? ok(undefined) : f;
 }

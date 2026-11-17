@@ -20,3 +20,8 @@ export function validarFoto(f: { type: string; size: number } | null): Resultado
   if (f.size > FOTO_MAX_BYTES) return falha("Foto muito grande");
   return ok(undefined);
 }
+
+/** Começo de todo JPEG (FF D8 FF): o tipo declarado pelo navegador não basta. */
+export function ehJpeg(bytes: Uint8Array): boolean {
+  return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+}

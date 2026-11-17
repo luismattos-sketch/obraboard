@@ -227,3 +227,28 @@ describe("quadro: paradas abertas e equipes que terminaram", () => {
     expect(montarQuadro(entrada({})).paradas).toEqual([]);
   });
 });
+
+describe("quadro: duração com relógio adiantado", () => {
+  it("início um pouco no futuro: duração 0, não quase 24 h", () => {
+    const e = entrada({
+      atividades: [at("j", 1, 0)],
+      efetivo: [{ funcao: "Mecânico", quantidade: 3, responsavel_id: "j" }],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "j", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "13:17", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "1" },
+      ],
+    });
+    expect(montarQuadro(e, "13:15").paradas[0].duracaoMin).toBe(0);
+  });
+  it("noturno atravessando a meia-noite", () => {
+    const e = entrada({
+      turno: { ...TURNO, periodo: "noturno", hora_inicio_prevista: "19:00", hora_fim_prevista: "05:00" },
+      efetivo: [{ funcao: "Mecânico", quantidade: 3, responsavel_id: "j" }],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "j", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "23:00", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "1" },
+      ],
+    });
+    expect(montarQuadro(e, "01:00").paradas[0].duracaoMin).toBe(120);
+  });
+});

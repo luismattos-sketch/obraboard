@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { validarFoto } from "@/lib/dominio/foto";
+import { ehJpeg, validarFoto } from "@/lib/dominio/foto";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { turnoAberto } from "./campo";
 import { turnoAbertoParaCorrecao } from "./execucao";
@@ -23,6 +23,8 @@ async function enviar(c: SupabaseClient, alvo: Alvo, form: FormData): Promise<Re
   const arquivo = foto instanceof File ? foto : null;
   const v = validarFoto(arquivo);
   if (!v.ok) return v;
+  const bytes = new Uint8Array(await arquivo!.arrayBuffer());
+  if (!ehJpeg(bytes)) return falha("Envie uma foto");
 
   const { data: o, error: eo } = await c
     .from("efetivo_ocorrencias")
@@ -40,7 +42,7 @@ async function enviar(c: SupabaseClient, alvo: Alvo, form: FormData): Promise<Re
   const caminho = `${turno.obra.empresa_id}/${turno.obra_id}/${alvo.turnoId}/${alvo.ocorrenciaId}.jpg`;
 
   const admin = criarClienteAdmin();
-  const up = await admin.storage.from(BUCKET).upload(caminho, arquivo!, { contentType: "image/jpeg", upsert: true });
+  const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: "image/jpeg", upsert: true });
   if (up.error) {
     console.error("enviarFoto (upload):", up.error.message);
     return falha(ERRO_GENERICO);

@@ -107,4 +107,9 @@ describe.skipIf(!ligado)("foto da parada", () => {
     expect((await enviarFotoParadaPlanejador(u.cliente, c.turnoId, c.paradaId, form(JPEG))).ok).toBe(false);
     expect(await objetos(c.turnoId)).toEqual([]);
   });
+  it("arquivo que não é JPEG de verdade é recusado", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    expect(await enviarFotoParadaCampo(c.token, c.paradaId, c.joao, form(new Uint8Array([60, 104, 116, 109, 108])))).toEqual({ ok: false, erro: "Envie uma foto" });
+    expect(await objetos(c.turnoId)).toEqual([]);
+  });
 });

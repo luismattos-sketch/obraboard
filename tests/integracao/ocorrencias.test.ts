@@ -8,6 +8,7 @@ import {
   criarOcorrenciaCampo,
   criarOcorrenciaPlanejador,
   encerrarAbertasDoTurno,
+  fecharTurnoComParadas,
   encerrarParadaCampo,
   encerrarParadaPlanejador,
   removerOcorrenciaCampo,
@@ -224,4 +225,23 @@ describe.skipIf(!ligado)("ocorrências do efetivo", () => {
     const { data } = await criarClienteAdmin().from("rdo_versoes").select("dados").eq("turno_id", c.turnoId);
     expect(data![0].dados.ocorrencias[0]).toMatchObject({ id: a.id, hora_fim: "16:00:00", observacao: "rolamento 6312" });
   });
+  it("fechamento recusado (causa pendente) não encerra as paradas abertas", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const a = aviso();
+    await criarOcorrenciaCampo(c.token, a, c.rita);
+    const r = await fecharTurnoComParadas(u.cliente, c.turnoId, { [a.id]: "16:00" });
+    expect(r.ok).toBe(false);
+    expect((await lerParada(c.turnoId, a.id))?.hora_fim).toBeNull();
+  });
+
+  it("fim inválido numa parada não encerra nenhuma", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const a = aviso();
+    const b = aviso({ hora_inicio: "11:00" });
+    await criarOcorrenciaCampo(c.token, a, c.rita);
+    await criarOcorrenciaCampo(c.token, b, c.rita);
+    expect((await encerrarAbertasDoTurno(u.cliente, c.turnoId, { [a.id]: "16:00", [b.id]: "09:00" })).ok).toBe(false);
+    expect((await lerParada(c.turnoId, a.id))?.hora_fim).toBeNull();
+  });
+
 });

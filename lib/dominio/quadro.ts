@@ -160,7 +160,7 @@ export function montarQuadro(e: EntradaQuadro, agora?: string): ModeloQuadro {
       equipe: nome(o.responsavel_id),
       texto: `${o.quantidade} ${o.funcao} ${descreverOcorrencia(o, nome).replace(/^\d+ /, "")}`,
       desde: horaCurta(o.hora_inicio),
-      duracaoMin: ag !== null && ini !== null ? (ag - ini + 1440) % 1440 : null,
+      duracaoMin: ag !== null && ini !== null ? duracaoAte(ini, ag) : null,
     };
   });
   return { entrada: e, faixas, paradas };
@@ -230,4 +230,10 @@ export function ordenarPorResponsavel<T extends { ordem: number; responsavel_id:
     }
     return x.ordem - y.ordem;
   });
+}
+
+/** Minutos de `ini` até `ag` (atravessa a meia-noite); início "no futuro" (relógio adiantado) = 0. */
+function duracaoAte(ini: number, ag: number): number {
+  const d = (ag - ini + 1440) % 1440;
+  return d > 720 ? 0 : d;
 }

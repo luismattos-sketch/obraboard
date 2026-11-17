@@ -22,7 +22,15 @@ export async function renderizarRdo(turno: TurnoCompleto, emissao: Emissao, foto
 export async function respostaPdf(turno: TurnoCompleto, emissao: Emissao, nomeArquivo: string): Promise<Response> {
   // Download individual leva as fotos das paradas (o lote não: limite de resposta do Vercel).
   const fotos = await bytesFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
-  const pdf = await renderizarRdo(turno, emissao, fotos);
+  let pdf: Buffer;
+  try {
+    pdf = await renderizarRdo(turno, emissao, fotos);
+  } catch (e) {
+    // Uma foto que não renderiza não pode impedir o RDO: sai sem as fotos.
+    if (Object.keys(fotos).length === 0) throw e;
+    console.error("respostaPdf (fotos):", e instanceof Error ? e.message : e);
+    pdf = await renderizarRdo(turno, emissao);
+  }
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
