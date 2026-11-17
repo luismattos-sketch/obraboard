@@ -8,7 +8,7 @@ import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
 import { sanitizarProfundo } from "./texto";
 import { linhasEmissao, type Emissao } from "./versao";
-import { Atividades, EfetivoEClima, Identificacao, Restricoes, ResumoBloco } from "./secoes";
+import { Atividades, EfetivoEClima, FotosParadas, Identificacao, Restricoes, ResumoBloco } from "./secoes";
 
 // Sem hifenização: as regras padrão do react-pdf são do inglês e quebram palavras em português.
 Font.registerHyphenationCallback((palavra) => [palavra]);
@@ -30,7 +30,8 @@ export function marcaDagua(emissao: Emissao): string | null {
   return emissao.tipo === "rascunho" ? "RASCUNHO" : null;
 }
 
-export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; emissao: Emissao }) {
+/** `fotos` (caminho → bytes): fotos das paradas no fim do PDF; ausente = lote, sem imagens. */
+export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; emissao: Emissao; fotos?: Record<string, Uint8Array> }) {
   // Todo texto vindo do usuário passa pelo filtro WinAnsi (Helvetica não tem emoji etc.).
   const turno = sanitizarProfundo(props.turno);
   const resumo = sanitizarProfundo(props.resumo);
@@ -56,7 +57,8 @@ export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno;
         <Atividades resumo={resumo} />
         <ResumoBloco resumo={resumo} turno={turno} />
         <Restricoes resumo={resumo} />
-        <EfetivoEClima turno={turno} resumo={resumo} />
+        <EfetivoEClima turno={turno} resumo={resumo} comFotos={props.fotos !== undefined} />
+        {props.fotos && <FotosParadas turno={turno} fotos={props.fotos} />}
 
         <View style={s.rodape} fixed>
           <Text>{`${rodape} · Status: ${ROTULO_STATUS_TURNO[turno.status]}`}</Text>

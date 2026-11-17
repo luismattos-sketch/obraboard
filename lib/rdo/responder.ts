@@ -1,6 +1,7 @@
 import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { bytesFotos } from "@/lib/db/fotosParada";
 import { obterVersao, versoesDoTurno } from "@/lib/db/rdo-versoes";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { resumirTurno } from "@/lib/dominio/resumo";
@@ -11,15 +12,17 @@ import { emissaoDaVersao, lerFoto, type Emissao } from "./versao";
 export const ERRO_GERAR_RDO = "Não foi possível gerar o RDO";
 
 /** O PDF de um RDO. Download individual e lote passam por aqui (saem idênticos). */
-export async function renderizarRdo(turno: TurnoCompleto, emissao: Emissao): Promise<Buffer> {
+export async function renderizarRdo(turno: TurnoCompleto, emissao: Emissao, fotos?: Record<string, Uint8Array>): Promise<Buffer> {
   return renderToBuffer(
-    createElement(DocumentoRdo, { turno, resumo: resumirTurno(turno), emissao }) as ReactElement<DocumentProps>,
+    createElement(DocumentoRdo, { turno, resumo: resumirTurno(turno), emissao, fotos }) as ReactElement<DocumentProps>,
   );
 }
 
 /** PDF do RDO como anexo para download. */
 export async function respostaPdf(turno: TurnoCompleto, emissao: Emissao, nomeArquivo: string): Promise<Response> {
-  const pdf = await renderizarRdo(turno, emissao);
+  // Download individual leva as fotos das paradas (o lote não: limite de resposta do Vercel).
+  const fotos = await bytesFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
+  const pdf = await renderizarRdo(turno, emissao, fotos);
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",

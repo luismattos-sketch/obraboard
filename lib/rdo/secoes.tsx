@@ -1,4 +1,4 @@
-import { Text, View } from "@react-pdf/renderer";
+import { Image, Text, View } from "@react-pdf/renderer";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
@@ -126,7 +126,13 @@ const Par = ({ a, b, forte }: { a: string; b: string; forte?: boolean }) => (
   </View>
 );
 
-export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo: ResumoTurno }) {
+/**
+ * `comFotos`: o PDF traz as fotos das paradas no fim (download individual). Sem elas (lote), a parada com foto
+ * ganha "(foto no app)".
+ */
+export function EfetivoEClima({ turno, resumo, comFotos = false }: { turno: TurnoCompleto; resumo: ResumoTurno; comFotos?: boolean }) {
+  const nome = nomeDaEquipe(turno.responsaveis);
+  const terminados = turno.terminados ?? [];
   return (
     <View wrap={false}>
       <Text style={s.secao}>Efetivo</Text>
@@ -137,7 +143,7 @@ export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo:
         <View style={s.item}>
           <Text style={s.negrito}>Movimentações do efetivo</Text>
           {turno.ocorrencias.map((o) => (
-            <Text key={o.id} style={s.suave}>•  {linhaOcorrencia(o, nomeDaEquipe(turno.responsaveis))}</Text>
+            <Text key={o.id} style={s.suave}>•  {`${linhaOcorrencia(o, nome)}${o.foto_path && !comFotos ? " (foto no app)" : ""}`}</Text>
           ))}
           {resumo.avisosEfetivo.map((a) => (
             <Text key={a} style={s.suave}>Atenção: {a} (contado só o que a linha tem).</Text>
@@ -145,11 +151,36 @@ export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo:
         </View>
       )}
 
+      {terminados.length > 0 && (
+        <Text style={s.suave}>
+          {`Equipes que terminaram: ${terminados.map((t) => `${nome(t.responsavel_id)} ${horaCurta(t.terminou_em)}`).join(" · ")}`}
+        </Text>
+      )}
+
       <Text style={s.secao}>Clima</Text>
       {PERIODOS_CLIMA.map((p) => {
         const c = turno.clima.find((x) => x.periodo === p.id);
         return <Par key={p.id} a={p.rotulo} b={c ? `${CONDICOES[c.condicao]}${c.impediu ? " · impediu o trabalho" : ""}` : "—"} />;
       })}
+    </View>
+  );
+}
+
+/** Fotos das paradas (só no download individual; o lote não carrega imagens). */
+export function FotosParadas({ turno, fotos }: { turno: TurnoCompleto; fotos: Record<string, Uint8Array> }) {
+  const com = turno.ocorrencias.filter((o) => o.foto_path && fotos[o.foto_path]);
+  if (com.length === 0) return null;
+  const nome = nomeDaEquipe(turno.responsaveis);
+  return (
+    <View>
+      <Text style={s.secao}>Fotos das paradas</Text>
+      {com.map((o) => (
+        <View key={o.id} style={s.item} wrap={false}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt */}
+          <Image src={{ data: Buffer.from(fotos[o.foto_path!]), format: "jpg" }} style={{ width: 300, objectFit: "contain" }} />
+          <Text style={s.suave}>{linhaOcorrencia(o, nome)}</Text>
+        </View>
+      ))}
     </View>
   );
 }
