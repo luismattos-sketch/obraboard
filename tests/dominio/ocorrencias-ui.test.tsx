@@ -86,7 +86,7 @@ describe("OcorrenciasEfetivo", () => {
     );
     expect(html).toContain("+2 Montador (de Rita, 13:00–17:00)");
     expect(html).toContain("+ Saída antes");
-    expect(html).toContain("+ Parados");
+    expect(html).toContain("⚠ Parada");
     expect(html).not.toContain("Emprestar");
   });
   it("mostra aviso de incoerência", () => {
@@ -123,7 +123,7 @@ describe("Outra função recusa parado", () => {
   });
   it("validarEfetivo recusa linha nova com 'parado'", () => {
     expect(validarEfetivo([{ funcao: "Mecânico parado", quantidade: 2 }], [])).toMatchObject({
-      ok: false, erro: "Para gente parada use o botão Parados.",
+      ok: false, erro: "Para gente parada use o botão ⚠ Parada.",
     });
   });
   it("validarEfetivo aceita linha antiga 'parado' presente em esperado", () => {

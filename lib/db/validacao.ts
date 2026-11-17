@@ -92,7 +92,7 @@ export function camposExecucao(concluida: boolean, dados: DadosExecucao) {
 
 /** Função digitada que descreve gente parada/ociosa (deve ir para "Parados", não virar função). */
 export const pareceParado = (funcao: string) => /(^|[^\p{L}])(parad[oa]s?|ocios[oa]s?)($|[^\p{L}])/iu.test(funcao);
-export const ERRO_FUNCAO_PARADO = "Para gente parada use o botão Parados.";
+export const ERRO_FUNCAO_PARADO = "Para gente parada use o botão ⚠ Parada.";
 
 /** `esperado`: o efetivo já gravado; linhas antigas com "parado" continuam aceitas. */
 export function validarEfetivo(linhas: LinhaEfetivo[], esperado: LinhaEfetivo[] = []): Resultado<LinhaEfetivo[]> {

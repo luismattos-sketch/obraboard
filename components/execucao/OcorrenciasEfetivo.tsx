@@ -7,6 +7,7 @@ import { descreverOcorrencia, type HHEquipe, type Ocorrencia, type TipoOcorrenci
 import { hhBR } from "@/lib/dominio/formato";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { CAUSAS, type Causa } from "@/lib/dominio/tipos";
+import { FormParada, montarParada } from "./FormParada";
 
 /** Ocorrência ainda não confirmada pelo servidor (aparece como "salvando…"). */
 export type OcorrenciaNaTela = Ocorrencia & { pendente?: boolean };
@@ -50,6 +51,7 @@ const campo =
 const botao =
   "min-h-12 rounded-botao border border-operacional bg-superficie px-3 font-semibold text-primaria hover:bg-primaria-clara";
 const TITULO: Record<TipoOcorrencia, string> = { emprestimo: "Emprestar", saida: "Saída antes", parado: "Parados" };
+const BOTAO: Record<TipoOcorrencia, string> = { emprestimo: "+ Emprestar", saida: "+ Saída antes", parado: "⚠ Parada" };
 
 export function FormOcorrencia({
   tipo,
@@ -162,7 +164,7 @@ export function OcorrenciasEfetivo({
   nome: (id: string | null) => string;
   resumo: HHEquipe | null;
   somenteLeitura?: boolean;
-  criar: (d: DadosOcorrencia) => Promise<unknown> | void;
+  criar: (d: DadosOcorrencia, foto?: File | null) => Promise<unknown> | void;
   remover: (id: string) => Promise<unknown> | void;
 }) {
   const [aberto, setAberto] = useState<Aberto>(null);
@@ -191,7 +193,7 @@ export function OcorrenciasEfetivo({
       <div className="flex flex-wrap gap-2">
         {tipos.map((t) => (
           <button key={t} type="button" className={`${botao} text-sm`} onClick={() => abrir(t, emprestimoId, fs)}>
-            + {TITULO[t]}
+            {BOTAO[t]}
           </button>
         ))}
       </div>
@@ -214,7 +216,23 @@ export function OcorrenciasEfetivo({
           {botoes(["saida", "parado"], r.emprestimo_id, [r.funcao])}
         </div>
       ))}
-      {aberto && (
+      {aberto && aberto.tipo === "parado" && (
+        <FormParada
+          responsavelId={responsavelId}
+          funcoes={aberto.funcoes}
+          destinos={destinos}
+          emprestimoId={aberto.emprestimoId}
+          cancelar={() => setAberto(null)}
+          enviar={(f, foto) => {
+            const d = montarParada(f, crypto.randomUUID());
+            if (typeof d === "string") return setErro(d);
+            setErro(null);
+            setAberto(null);
+            void criar(d, foto);
+          }}
+        />
+      )}
+      {aberto && aberto.tipo !== "parado" && (
         <FormOcorrencia
           tipo={aberto.tipo}
           responsavelId={responsavelId}
