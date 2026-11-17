@@ -1,5 +1,17 @@
-import { statusAtividade } from "./calculos";
-import { calcularHH, intervaloDoTurno, janelaDoTurno, type HHEquipe, type Ocorrencia, type Recebido } from "./efetivoHH";
+import { minutos, statusAtividade } from "./calculos";
+import {
+  calcularHH,
+  descreverOcorrencia,
+  horaCurta,
+  intervaloDoTurno,
+  janelaDoTurno,
+  nomeDaEquipe,
+  paradasAbertas,
+  type HHEquipe,
+  type Ocorrencia,
+  type Recebido,
+  type Terminado,
+} from "./efetivoHH";
 import { compararTurnos } from "./regras";
 import type { Causa, Periodo, StatusAtividade, StatusTurno } from "./tipos";
 
@@ -37,6 +49,8 @@ export type EntradaQuadro = {
   efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[];
   /** Ausente na foto do check-in antiga (= nenhuma). */
   ocorrencias?: Ocorrencia[];
+  /** Equipes que tocaram "Terminei minha parte" (ausente = nenhuma). */
+  terminados?: Terminado[];
 };
 export type Visao = "checkin" | "checkout";
 export type ResumoEquipe = {
@@ -52,6 +66,8 @@ export type ResumoEquipe = {
   /** Pessoas emprestadas por outras equipes (não entram em `pessoas`). */
   recebidos: Recebido[];
   avisos: string[];
+  /** "HH:MM" em que a equipe avisou que terminou. */
+  terminouEm: string | null;
 };
 export type FaixaQuadro = {
   /** null = "Sem responsável". */
@@ -60,7 +76,9 @@ export type FaixaQuadro = {
   efetivo: { funcao: string; quantidade: number }[];
   resumo: ResumoEquipe;
 };
-export type ModeloQuadro = { entrada: EntradaQuadro; faixas: FaixaQuadro[] };
+/** Parada em aberto (faixa vermelha do topo). `duracaoMin` só quando há "agora". */
+export type ParadaQuadro = { equipe: string; texto: string; desde: string; duracaoMin: number | null };
+export type ModeloQuadro = { entrada: EntradaQuadro; faixas: FaixaQuadro[]; paradas: ParadaQuadro[] };
 export type TurnoRef = { id: string; data: string; periodo: Periodo; status: StatusTurno };
 
 export function resumoEquipe(
@@ -94,10 +112,12 @@ export function resumoEquipe(
     hhParado: total === null ? null : umaCasa(h?.hhParado),
     recebidos: h?.recebidos ?? [],
     avisos: h?.avisos ?? [],
+    terminouEm: null,
   };
 }
 
-export function montarQuadro(e: EntradaQuadro): ModeloQuadro {
+/** `agora` ("HH:MM"): paradas abertas contam até agora (quadro ao vivo). Ausente = até o fim do turno. */
+export function montarQuadro(e: EntradaQuadro, agora?: string): ModeloQuadro {
   const temProgramada = e.atividades.some((a) => a.programada);
   const porId = new Map(e.responsaveis.map((r) => [r.id, r]));
   const hh = calcularHH({
@@ -105,6 +125,7 @@ export function montarQuadro(e: EntradaQuadro): ModeloQuadro {
     ocorrencias: e.ocorrencias ?? [],
     janela: janelaDoTurno(e.turno),
     intervalo: intervaloDoTurno(e.turno),
+    agora,
   });
   const chaves = new Set<string | null>([
     ...e.atividades.map((a) => a.responsavel_id),
@@ -127,9 +148,22 @@ export function montarQuadro(e: EntradaQuadro): ModeloQuadro {
       .filter((x) => x.responsavel_id === id)
       .map(({ funcao, quantidade }) => ({ funcao, quantidade }));
     const hhEquipe = hh.equipes.find((x) => x.responsavel_id === id);
-    return { responsavel, atividades, efetivo, resumo: resumoEquipe({ atividades, efetivo }, e.turno, temProgramada, hhEquipe) };
+    const resumo = resumoEquipe({ atividades, efetivo }, e.turno, temProgramada, hhEquipe);
+    const t = (e.terminados ?? []).find((x) => x.responsavel_id === id);
+    return { responsavel, atividades, efetivo, resumo: { ...resumo, terminouEm: t ? horaCurta(t.terminou_em) : null } };
   });
-  return { entrada: e, faixas };
+  const nome = nomeDaEquipe(e.responsaveis);
+  const ag = agora ? minutos(agora) : null;
+  const paradas = paradasAbertas(e.ocorrencias ?? []).map((o) => {
+    const ini = minutos(horaCurta(o.hora_inicio));
+    return {
+      equipe: nome(o.responsavel_id),
+      texto: `${o.quantidade} ${o.funcao} ${descreverOcorrencia(o, nome).replace(/^\d+ /, "")}`,
+      desde: horaCurta(o.hora_inicio),
+      duracaoMin: ag !== null && ini !== null ? (ag - ini + 1440) % 1440 : null,
+    };
+  });
+  return { entrada: e, faixas, paradas };
 }
 
 const DIA_FECHADO = (t: TurnoRef) => t.status === "fechado";
