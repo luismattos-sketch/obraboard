@@ -174,7 +174,7 @@ export function OcorrenciasEfetivo({
   const Item = ({ o }: { o: OcorrenciaNaTela }) => (
     <li className="flex items-center gap-2 text-sm text-texto">
       <span className="min-w-0 flex-1">↳ {descreverOcorrencia(o, nome)}{o.pendente && <span className="text-texto-suave"> · salvando…</span>}</span>
-      {!somenteLeitura && o.responsavel_id === responsavelId && (
+      {!somenteLeitura && !o.pendente && o.responsavel_id === responsavelId && (
         <button type="button" aria-label="Remover registro" className="min-h-10 min-w-10 rounded-botao border border-borda text-perigo" onClick={() => remover(o.id)}>
           ✕
         </button>

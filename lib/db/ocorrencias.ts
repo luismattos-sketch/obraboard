@@ -67,6 +67,14 @@ async function gravar(
   if (!v.ok) return v;
   const d = v.dados;
 
+  // Reenvio de algo que já foi gravado (envio anterior sem resposta): sucesso, mesmo que a linha
+  // de efetivo ou o horário do turno tenham mudado depois. A função gravada é a canônica da linha.
+  const { data: jaGravada } = await c.from("efetivo_ocorrencias").select("*").eq("id", d.id).maybeSingle();
+  if (jaGravada) {
+    const igual = mesmaOcorrencia({ ...d, funcao: jaGravada.funcao as string, turno_id: turnoId, responsavel_id: responsavelId }, jaGravada);
+    return igual ? ok(undefined) : falha(ERRO_ID_REUSADO);
+  }
+
   let funcao: string;
   if (d.emprestimo_id === null) {
     const q = c.from("efetivo").select("funcao").eq("turno_id", turnoId);

@@ -61,6 +61,11 @@ describe("RDO: efetivo e HH", () => {
     expect(t).toContain("Rita · Montador de andaime: 2 parados 08:00–10:00 · Material");
   });
 
+  it("ocorrência incoerente aparece como aviso no RDO", () => {
+    const t = turno([oc({ id: "o1", quantidade: 9 })]);
+    expect(texto(EfetivoEClima({ turno: t, resumo: resumirTurno(t) }))).toContain("Montador de andaime: 9 emprestados, mas a linha tem 6");
+  });
+
   it("sem ocorrências não mostra HH parado nem a lista", () => {
     const t0 = turno([]);
     expect(texto(ResumoBloco({ resumo: resumirTurno(t0), turno: t0 }))).not.toContain("HH parado");

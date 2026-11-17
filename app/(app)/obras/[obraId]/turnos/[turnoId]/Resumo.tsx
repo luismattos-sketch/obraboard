@@ -1,3 +1,4 @@
+import { Aviso } from "@/components/ui/Aviso";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import type { TurnoCompleto } from "@/lib/db/turnos";
@@ -35,10 +36,18 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
         <Metrica
           rotulo="Homens-hora"
           valor={r.hh === null ? "—" : numeroBR(r.hh)}
-          detalhe={real ? `Horário real ${horaCurta(turno.hora_inicio_real)} às ${horaCurta(turno.hora_fim_real)}` : "Horário previsto"}
+          detalhe={[
+            real ? `Horário real ${horaCurta(turno.hora_inicio_real)} às ${horaCurta(turno.hora_fim_real)}` : "Horário previsto",
+            r.hhParado ? `${numeroBR(r.hhParado)} HH parados` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         />
         <Metrica rotulo="Efetivo total" valor={String(r.efetivoTotal)} detalhe="pessoas" />
       </div>
+      {r.avisosEfetivo.map((a) => (
+        <Aviso key={a} tom="alerta">{`Efetivo: ${a}. Confira as movimentações.`}</Aviso>
+      ))}
 
       <Cartao className="min-w-0">
         <h3 className="mb-2 font-semibold text-texto">Planejado × realizado</h3>

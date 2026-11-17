@@ -65,6 +65,15 @@ describe.skipIf(!ligado)("ocorrências do efetivo", () => {
     expect(t?.ocorrencias[0]).toMatchObject({ funcao: "Montador de andaime", responsavel_id: c.rita, destino_responsavel_id: c.ana });
   });
 
+  it("reenvio de registro já gravado é sucesso mesmo se a linha mudou depois", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    const d = parado();
+    expect((await criarOcorrenciaCampo(c.token, d, c.rita)).ok).toBe(true);
+    const e = await salvarEfetivo(c.token, [{ funcao: "Montador", quantidade: 6 }], [{ funcao: "Montador de andaime", quantidade: 6 }], c.rita);
+    expect(e.ok).toBe(true);
+    expect(await criarOcorrenciaCampo(c.token, d, c.rita)).toEqual({ ok: true, dados: undefined });
+  });
+
   it("mesmo id com dados diferentes é recusado", { timeout: 60_000 }, async () => {
     const c = await cenario();
     const d = emprestimo(c.ana);

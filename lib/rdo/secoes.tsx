@@ -139,6 +139,9 @@ export function EfetivoEClima({ turno, resumo }: { turno: TurnoCompleto; resumo:
           {turno.ocorrencias.map((o) => (
             <Text key={o.id} style={s.suave}>•  {linhaOcorrencia(o, nomeDaEquipe(turno.responsaveis))}</Text>
           ))}
+          {resumo.avisosEfetivo.map((a) => (
+            <Text key={a} style={s.suave}>Atenção: {a} (contado só o que a linha tem).</Text>
+          ))}
         </View>
       )}
 

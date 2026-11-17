@@ -136,6 +136,43 @@ describe("calcularHH", () => {
     expect(r.avisos).toHaveLength(1);
   });
 
+  it("saída na origem depois de voltar do empréstimo", () => {
+    const r = calcularHH(entrada({
+      efetivo: [{ ...rita6, quantidade: 1 }],
+      ocorrencias: [
+        oc({ tipo: "emprestimo", quantidade: 1, hora_inicio: "08:00", hora_fim: "10:00", destino_responsavel_id: ANA }),
+        oc({ tipo: "saida", quantidade: 1, hora_inicio: "15:00" }),
+      ],
+    }));
+    expect(equipe(r, RITA).hhProdutivo).toBe(5);
+    expect(equipe(r, ANA).hhProdutivo).toBe(2);
+    expect(r.avisos).toEqual([]);
+  });
+
+  it("parado registrado depois do empréstimo vale para quem está na origem", () => {
+    const r = calcularHH(entrada({
+      efetivo: [{ ...rita6, quantidade: 2 }],
+      ocorrencias: [
+        oc({ tipo: "emprestimo", quantidade: 2, hora_inicio: "13:00", destino_responsavel_id: ANA }),
+        oc({ tipo: "parado", quantidade: 2, hora_inicio: "08:00", hora_fim: "10:00", causa: "material" }),
+      ],
+    }));
+    expect(equipe(r, RITA).hhParado).toBe(4);
+    expect(r.avisos).toEqual([]);
+  });
+
+  it("parado seguido de empréstimo não leva HH parado para o destino", () => {
+    const r = calcularHH(entrada({
+      efetivo: [{ ...rita6, quantidade: 2 }],
+      ocorrencias: [
+        oc({ tipo: "parado", quantidade: 2, hora_inicio: "08:00", hora_fim: "10:00", causa: "material" }),
+        oc({ tipo: "emprestimo", quantidade: 2, hora_inicio: "09:00", destino_responsavel_id: ANA }),
+      ],
+    }));
+    expect(equipe(r, ANA).hhParado).toBe(0);
+    expect(equipe(r, RITA).hhParado).toBe(2);
+  });
+
   it("noturno atravessa meia-noite", () => {
     const r = calcularHH({
       efetivo: [{ funcao: "Soldador", quantidade: 4, responsavel_id: "a" }],

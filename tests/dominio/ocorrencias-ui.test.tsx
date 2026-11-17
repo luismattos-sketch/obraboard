@@ -95,6 +95,19 @@ describe("OcorrenciasEfetivo", () => {
     );
     expect(html).toContain("Montador: 2 emprestados, mas a linha tem 1");
   });
+  it("item ainda salvando não pode ser removido", () => {
+    const html = renderToStaticMarkup(
+      <OcorrenciasEfetivo
+        {...base}
+        ocorrencias={[{
+          id: "o1", responsavel_id: "rita", funcao: "Montador", tipo: "saida", quantidade: 1, hora_inicio: "15:00",
+          hora_fim: null, destino_responsavel_id: null, emprestimo_id: null, causa: null, created_at: "1", pendente: true,
+        }]}
+      />,
+    );
+    expect(html).toContain("salvando…");
+    expect(html).not.toContain("Remover registro");
+  });
   it("somente leitura: sem botões", () => {
     const html = renderToStaticMarkup(<OcorrenciasEfetivo {...base} somenteLeitura />);
     expect(html).not.toContain("+ Emprestar");

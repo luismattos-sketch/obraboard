@@ -168,11 +168,20 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
   for (const o of ordenadas) {
     const doEmprestimo = o.emprestimo_id !== null;
     const grupo = doEmprestimo ? (porEmprestimo.get(o.emprestimo_id!) ?? []) : (linhas.get(chave(o.responsavel_id, o.funcao)) ?? []);
+    const h1 = rel(o.hora_inicio) ?? 0;
+    const onde = indice(o.responsavel_id);
+    // Na origem é quem está nela naquele horário (quem voltou de um empréstimo conta de novo).
+    const naOrigem = (p: Pessoa, a: number, b: number) => {
+      if (a >= D) return true;
+      for (let m = a; m < Math.min(b, D); m++) if (p.dono[m] === onde) return true;
+      return false;
+    };
     let elegiveis: Pessoa[];
     if (o.tipo === "emprestimo") elegiveis = doEmprestimo ? [] : grupo.filter((p) => !p.emprestimo && !p.saiu);
-    else if (o.tipo === "saida") elegiveis = grupo.filter((p) => !p.saiu && (doEmprestimo || !p.emprestimo));
+    else if (o.tipo === "saida") elegiveis = grupo.filter((p) => !p.saiu && (doEmprestimo || naOrigem(p, h1, h1 + 1)));
     else {
-      const livres = doEmprestimo ? grupo : grupo.filter((p) => !p.emprestimo);
+      const h2 = rel(o.hora_fim) ?? h1;
+      const livres = doEmprestimo ? grupo : grupo.filter((p) => naOrigem(p, h1, h2));
       elegiveis = [...livres.filter((p) => !p.saiu), ...livres.filter((p) => p.saiu)];
     }
     const escolhidas = elegiveis.slice(0, o.quantidade);
@@ -188,13 +197,17 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
     }
     if (escolhidas.length === 0) continue;
 
-    const h1 = rel(o.hora_inicio) ?? 0;
     if (o.tipo === "emprestimo") {
       const destino = indice(o.destino_responsavel_id);
       const h2 = rel(o.hora_fim) ?? D;
       for (const p of escolhidas) {
         p.emprestimo = o.id;
-        for (let m = h1; m < h2; m++) if (p.dono[m] !== NENHUM) p.dono[m] = destino;
+        for (let m = h1; m < h2; m++) {
+          if (p.dono[m] === NENHUM) continue;
+          p.dono[m] = destino;
+          // Parado registrado pela origem não vale para as horas que passaram ao destino.
+          p.parado[m] = NENHUM;
+        }
       }
       porEmprestimo.set(o.id, escolhidas);
       recebidos.set(destino, [
@@ -215,7 +228,6 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
       }
     } else {
       const h2 = rel(o.hora_fim) ?? h1;
-      const onde = indice(o.responsavel_id);
       const causa = o.causa ? CAUSAS_LISTA.indexOf(o.causa) : CAUSAS_LISTA.indexOf("outro");
       for (const p of escolhidas) {
         for (let m = h1; m < h2; m++) if (p.dono[m] === onde && p.parado[m] === NENHUM) p.parado[m] = causa;

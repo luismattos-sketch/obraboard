@@ -101,6 +101,9 @@ describe.skipIf(!ligado)("efetivo e HH no banco", () => {
     const { error } = await emprestimo(c.turnoId, c.rita, c.ana);
     expect(error?.message).toBe("turno_fechado");
 
+    const upd = await u.cliente.from("turnos").update({ intervalo_inicio: "11:00", intervalo_fim: "11:30" }).eq("id", c.turnoId);
+    expect(upd.error?.message).toBe("turno_fechado");
+
     const { data } = await criarClienteAdmin().from("rdo_versoes").select("dados").eq("turno_id", c.turnoId);
     const dados = data![0].dados;
     expect(dados.turno.intervalo_inicio).toBe("12:00:00");
