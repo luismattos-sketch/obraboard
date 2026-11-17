@@ -5,6 +5,7 @@ import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
 import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
+import { EditarIntervalo } from "@/components/execucao/EditarIntervalo";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
 import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
@@ -20,6 +21,7 @@ import {
   corrigirEfetivo,
   corrigirExecucao,
   corrigirHorario,
+  corrigirIntervalo,
   criarOcorrenciaAcao,
   limparClimaPlanejador,
   removerOcorrenciaAcao,
@@ -76,6 +78,12 @@ export function EdicaoExecucao({
           inicio={horaCurta(hora_inicio_real)}
           fim={horaCurta(hora_fim_real)}
           salvar={(d) => corrigirHorario(turnoId, d)}
+        />
+        <EditarIntervalo
+          rotulo="Intervalo de refeição"
+          ajuda="Descontado do HH. Só deste turno; o padrão fica na página da obra. Vazio = sem intervalo."
+          inicial={intervalo}
+          salvar={(j) => corrigirIntervalo(turnoId, j)}
         />
         <BlocoAtividades
           atividades={ordenadas}

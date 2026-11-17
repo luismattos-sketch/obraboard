@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validarOcorrencia, type DadosOcorrencia } from "@/lib/db/validacao";
+import { validarIntervalo, validarOcorrencia, type DadosOcorrencia } from "@/lib/db/validacao";
 
 const ID = "6b1f6f0e-6a0a-4f43-9d8e-2b7a0f1d2c3e";
 const DEST = "0d1c2b3a-4f5e-4a6b-8c7d-9e0f1a2b3c4d";
@@ -60,5 +60,25 @@ describe("validarOcorrencia", () => {
   });
   it("id que não é uuid", () => {
     expect(validarOcorrencia({ ...base, id: "x" }, DIA).ok).toBe(false);
+  });
+});
+
+describe("validarIntervalo", () => {
+  it("vazio = sem intervalo", () => {
+    expect(validarIntervalo({ inicio: "", fim: "" }, "diurno")).toEqual({ ok: true, dados: null });
+  });
+  it("só um lado preenchido", () => {
+    expect(validarIntervalo({ inicio: "12:00", fim: "" }, "diurno")).toMatchObject({ ok: false, erro: "Informe início e fim do intervalo" });
+  });
+  it("diurno com fim antes do início é recusado", () => {
+    expect(validarIntervalo({ inicio: "13:00", fim: "12:00" }, "diurno")).toMatchObject({
+      ok: false, erro: "O fim do intervalo deve ser depois do início",
+    });
+  });
+  it("noturno pode atravessar a meia-noite", () => {
+    expect(validarIntervalo({ inicio: "23:30", fim: "00:30" }, "noturno")).toEqual({ ok: true, dados: { inicio: "23:30", fim: "00:30" } });
+  });
+  it("hora inválida", () => {
+    expect(validarIntervalo({ inicio: "12:00", fim: "99:00" }, "diurno").ok).toBe(false);
   });
 });

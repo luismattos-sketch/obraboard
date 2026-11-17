@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statusAtividade } from "@/lib/dominio/calculos";
-import type { PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { Janela } from "@/lib/dominio/efetivoHH";
+import type { Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import {
   ERRO_EFETIVO_CONFLITO,
@@ -17,6 +18,7 @@ import {
   validarEfetivoEsperado,
   validarExecucao,
   validarHorario,
+  validarIntervalo,
   validarPeriodoClima,
   type DadosClima,
   type DadosExecucao,
@@ -208,5 +210,24 @@ export async function salvarHorarioPlanejador(c: SupabaseClient, turnoId: string
     return erroGravacao(error);
   }
   if (!data || data.length === 0) return falha("Turno não encontrado");
+  return ok(undefined);
+}
+
+/** Intervalo de refeição deste turno (null = sem intervalo). Não muda a obra nem outros turnos. */
+export async function salvarIntervaloTurno(c: SupabaseClient, turnoId: string, j: Janela | null): Promise<Resultado> {
+  const { data: t, error: et } = await c.from("turnos").select("periodo, status").eq("id", turnoId).maybeSingle();
+  if (et && et.code !== "22P02") {
+    console.error("salvarIntervaloTurno:", et.message);
+    return falha(ERRO_GENERICO);
+  }
+  if (!t) return falha("Turno não encontrado");
+  if ((t as { status: StatusTurno }).status === "fechado") return falha(ERRO_FECHADO);
+  const v = validarIntervalo(j, (t as { periodo: Periodo }).periodo);
+  if (!v.ok) return v;
+  const { error } = await c
+    .from("turnos")
+    .update({ intervalo_inicio: v.dados?.inicio ?? null, intervalo_fim: v.dados?.fim ?? null })
+    .eq("id", turnoId);
+  if (error) return erroGravacao(error);
   return ok(undefined);
 }

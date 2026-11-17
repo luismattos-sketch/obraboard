@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { falha, ok, type Resultado } from "./resultado";
-import { errosDeTamanho, falhaCampos, LIMITES } from "./validacao";
+import type { Janela } from "@/lib/dominio/efetivoHH";
+import { errosDeTamanho, falhaCampos, LIMITES, validarIntervalo } from "./validacao";
 
 /** Limites de nome/cliente/endereço da obra, por campo. */
 export function errosObra(d: { nome?: string; cliente?: string; endereco?: string }): Record<string, string> {
@@ -77,4 +78,52 @@ export async function criarObra(
     return falha("Não foi possível criar a obra.");
   }
   return ok(data as Obra);
+}
+
+export type IntervalosObra = { diurno: Janela | null; noturno: Janela | null };
+
+const janelaDe = (i: unknown, f: unknown): Janela | null =>
+  typeof i === "string" && typeof f === "string" ? { inicio: i.slice(0, 5), fim: f.slice(0, 5) } : null;
+
+/** Intervalo padrão de refeição da obra (copiado para cada turno novo). */
+export async function obterIntervalosObra(c: SupabaseClient, obraId: string): Promise<IntervalosObra | null> {
+  const { data, error } = await c
+    .from("obras")
+    .select("intervalo_diurno_inicio, intervalo_diurno_fim, intervalo_noturno_inicio, intervalo_noturno_fim")
+    .eq("id", obraId)
+    .maybeSingle();
+  if (error) {
+    if (error.code === "22P02") return null;
+    console.error("obterIntervalosObra:", error.message);
+    throw new Error(`obterIntervalosObra: ${error.message}`);
+  }
+  if (!data) return null;
+  return {
+    diurno: janelaDe(data.intervalo_diurno_inicio, data.intervalo_diurno_fim),
+    noturno: janelaDe(data.intervalo_noturno_inicio, data.intervalo_noturno_fim),
+  };
+}
+
+/** Só vale para turnos criados depois (cada turno guarda o seu). */
+export async function editarIntervalosObra(c: SupabaseClient, obraId: string, d: IntervalosObra): Promise<Resultado> {
+  const diurno = validarIntervalo(d.diurno, "diurno");
+  if (!diurno.ok) return falha(`Diurno: ${diurno.erro}`);
+  const noturno = validarIntervalo(d.noturno, "noturno");
+  if (!noturno.ok) return falha(`Noturno: ${noturno.erro}`);
+  const { data, error } = await c
+    .from("obras")
+    .update({
+      intervalo_diurno_inicio: diurno.dados?.inicio ?? null,
+      intervalo_diurno_fim: diurno.dados?.fim ?? null,
+      intervalo_noturno_inicio: noturno.dados?.inicio ?? null,
+      intervalo_noturno_fim: noturno.dados?.fim ?? null,
+    })
+    .eq("id", obraId)
+    .select("id");
+  if (error && error.code !== "22P02") {
+    console.error("editarIntervalosObra:", error.message);
+    return falha("Não foi possível salvar. Tente novamente.");
+  }
+  if (!data || data.length === 0) return falha("Obra não encontrada");
+  return ok(undefined);
 }

@@ -96,6 +96,11 @@ export function FormularioCampo({
         somenteLeitura={somenteLeitura}
         salvar={(d) => salvarHorarioReal(token, d)}
       />
+      {turno.intervalo && (
+        <p className="-mt-6 text-sm text-texto-suave">
+          Intervalo: {turno.intervalo.inicio.slice(0, 5)}–{turno.intervalo.fim.slice(0, 5)} (descontado do HH)
+        </p>
+      )}
       <BlocoAtividades
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}

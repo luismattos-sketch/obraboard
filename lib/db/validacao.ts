@@ -8,7 +8,7 @@ import {
 } from "@/lib/dominio/tipos";
 import { horasEntre, minutos } from "@/lib/dominio/calculos";
 import type { Janela, Ocorrencia, TipoOcorrencia } from "@/lib/dominio/efetivoHH";
-import type { Causa } from "@/lib/dominio/tipos";
+import type { Causa, Periodo } from "@/lib/dominio/tipos";
 import { falha, ok, type Resultado } from "./resultado";
 
 /** Validação de entrada compartilhada (encarregado, planejador e cadastros). */
@@ -196,4 +196,17 @@ export function validarOcorrencia(d: DadosOcorrencia, janela: Janela | null): Re
     id: d.id, tipo: d.tipo, funcao, quantidade: d.quantidade, hora_inicio: d.hora_inicio, hora_fim: fim,
     destino_responsavel_id: destino, emprestimo_id: emprestimoId, causa,
   });
+}
+
+/** Intervalo de refeição digitado ("" nos dois = sem intervalo). Diurno não atravessa a meia-noite. */
+export function validarIntervalo(j: { inicio: string; fim: string } | null, periodo: Periodo): Resultado<Janela | null> {
+  const inicio = j?.inicio?.trim() ?? "";
+  const fim = j?.fim?.trim() ?? "";
+  if (!inicio && !fim) return ok(null);
+  if (!inicio || !fim) return falha("Informe início e fim do intervalo");
+  if (!horaValida(inicio) || !horaValida(fim)) return falha("Horário inválido");
+  const a = minutos(inicio)!;
+  const b = minutos(fim)!;
+  if (a === b || (periodo === "diurno" && b < a)) return falha("O fim do intervalo deve ser depois do início");
+  return ok({ inicio, fim });
 }

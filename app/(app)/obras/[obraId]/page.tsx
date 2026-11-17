@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { classesBotao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
-import { obterObra } from "@/lib/db/obras";
+import { obterIntervalosObra, obterObra } from "@/lib/db/obras";
 import { listarResponsaveis } from "@/lib/db/responsaveis";
 import { temLinkQuadro } from "@/lib/db/quadro";
 import { listarTurnosComAtividades } from "@/lib/db/turnos";
@@ -13,16 +13,18 @@ import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { LinkQuadro } from "./LinkQuadro";
 import { Responsaveis } from "./Responsaveis";
+import { IntervaloObra } from "./IntervaloObra";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
   const supabase = await criarClienteServidor();
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
-  const [turnos, responsaveis, linkQuadro] = await Promise.all([
+  const [turnos, responsaveis, linkQuadro, intervalos] = await Promise.all([
     listarTurnosComAtividades(supabase, obraId),
     listarResponsaveis(supabase, obraId),
     temLinkQuadro(supabase, obraId),
+    obterIntervalosObra(supabase, obraId),
   ]);
 
   return (
@@ -74,6 +76,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
 
       <Responsaveis obraId={obra.id} responsaveis={responsaveis} />
       <LinkQuadro obraId={obra.id} existe={linkQuadro} />
+      {intervalos && <IntervaloObra obraId={obra.id} intervalos={intervalos} />}
     </div>
   );
 }
