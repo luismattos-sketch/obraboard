@@ -366,3 +366,13 @@ export function fimPadraoParada(o: Ocorrencia, janela: Janela | null): string {
   const pos = (m - j0 + 1440) % 1440;
   return pos > dur * 60 ? ini : horaCurta(janela.fim);
 }
+
+export type Terminado = { responsavel_id: string; terminou_em: string };
+
+/** Terminados vindos do banco ou de uma foto (JSON): ausente = nenhum; ordem por horário. */
+export function lerTerminados(x: unknown): Terminado[] {
+  if (!Array.isArray(x)) return [];
+  return x
+    .map((r: Record<string, unknown>) => ({ responsavel_id: String(r.responsavel_id), terminou_em: String(r.terminou_em ?? "") }))
+    .sort((a, b) => a.terminou_em.localeCompare(b.terminou_em) || a.responsavel_id.localeCompare(b.responsavel_id));
+}

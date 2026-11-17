@@ -1,6 +1,6 @@
 "use server";
 
-import { editarIntervalosObra, obterIntervalosObra } from "@/lib/db/obras";
+import { editarIntervalosObra, editarWhatsappObra, obterIntervalosObra } from "@/lib/db/obras";
 import { falha, type Resultado } from "@/lib/db/resultado";
 import type { Janela } from "@/lib/dominio/efetivoHH";
 import type { Periodo } from "@/lib/dominio/tipos";
@@ -12,4 +12,9 @@ export async function salvarIntervaloObraAcao(obraId: string, periodo: Periodo, 
   const atual = await obterIntervalosObra(c, obraId);
   if (!atual) return falha("Obra não encontrada");
   return editarIntervalosObra(c, obraId, { ...atual, [periodo]: j });
+}
+
+/** WhatsApp do planejador que recebe os avisos de parada. */
+export async function salvarWhatsappObraAcao(obraId: string, numero: string): Promise<Resultado> {
+  return editarWhatsappObra(await criarClienteServidor(), obraId, numero);
 }
