@@ -144,6 +144,16 @@ describe("efetivoPrevistoReal", () => {
     expect(seg.hhReal).toBe(30);
   });
 
+  it("HH previsto e real descontam o intervalo do turno", () => {
+    const comAlmoco = dados({
+      atividades: [ativ({ id: "a1", dias: [0], equipe: [{ funcao: "Caldeireiro", quantidade: 2 }] })],
+      turnos: [turno({ intervalo_inicio: "12:00:00", intervalo_fim: "13:00:00", efetivo: [{ funcao: "Caldeireiro", quantidade: 3 }] })],
+    });
+    const seg = efetivoPrevistoReal(comAlmoco)[0];
+    expect(seg.hhPrevisto).toBe(18);
+    expect(seg.hhReal).toBe(27);
+  });
+
   it("dia marcado sem turno: real em branco, não zero", () => {
     const ter = efetivoPrevistoReal(d)[1];
     expect(ter.semTurno).toBe(true);

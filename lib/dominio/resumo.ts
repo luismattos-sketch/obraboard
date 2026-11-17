@@ -1,12 +1,19 @@
 import type { Atividade } from "@/lib/db/atividades";
 import type { TurnoCompleto } from "@/lib/db/turnos";
-import { hhTurno, percentualCumprimento, statusAtividade } from "./calculos";
+import { percentualCumprimento, statusAtividade } from "./calculos";
+import { calcularHH, intervaloDoTurno, janelaDoTurno, type HHEquipe } from "./efetivoHH";
 import { CAUSAS, type Causa, type StatusAtividade } from "./tipos";
 
 export type ResumoTurno = {
   cumprimento: number | null;
+  /** HH total (produtivo + parado). */
   hh: number | null;
+  hhParado: number | null;
+  hhParadoPorCausa: Partial<Record<Causa, number>>;
+  /** Pessoas contadas uma vez (na equipe de origem). */
   efetivoTotal: number;
+  hhEquipes: HHEquipe[];
+  avisosEfetivo: string[];
   atividades: (Atividade & { status: StatusAtividade })[];
   restricoesPorCausa: { causa: Causa; rotulo: string; atividades: string[] }[];
   climaImpediu: boolean;
@@ -25,14 +32,21 @@ export function resumirTurno(t: TurnoCompleto): ResumoTurno {
     .map(([causa, descricoes]) => ({ causa, rotulo: CAUSAS[causa], atividades: descricoes }))
     .sort((x, y) => y.atividades.length - x.atividades.length); // sort estável: empate mantém a ordem de aparição
 
+  const hh = calcularHH({
+    efetivo: t.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id ?? null })),
+    ocorrencias: t.ocorrencias ?? [],
+    janela: janelaDoTurno(t),
+    intervalo: intervaloDoTurno(t),
+  });
+
   return {
     cumprimento: percentualCumprimento(t.atividades),
-    hh: hhTurno(
-      t.efetivo,
-      { inicio: t.hora_inicio_prevista, fim: t.hora_fim_prevista },
-      { inicio: t.hora_inicio_real, fim: t.hora_fim_real },
-    ),
-    efetivoTotal: t.efetivo.reduce((s, e) => s + e.quantidade, 0),
+    hh: hh.hh,
+    hhParado: hh.hhParado,
+    hhParadoPorCausa: hh.hhParadoPorCausa,
+    efetivoTotal: hh.pessoas,
+    hhEquipes: hh.equipes,
+    avisosEfetivo: hh.avisos,
     atividades,
     restricoesPorCausa,
     climaImpediu: t.clima.some((c) => c.impediu),

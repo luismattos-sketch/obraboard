@@ -32,6 +32,27 @@ describe("resumirTurno", () => {
     expect(r.climaImpediu).toBe(true);
     expect(r.atividades.map((a) => a.status)).toEqual(["concluida", "parcial", "nao_iniciada", "nao_iniciada"]);
   });
+  it("efetivo com empréstimo e parado: conta cada pessoa uma vez e separa HH parado", () => {
+    const r = resumirTurno(turno({
+      intervalo_inicio: "12:00:00", intervalo_fim: "13:00:00",
+      efetivo: [
+        { id: "e1", turno_id: "t", funcao: "Montador", quantidade: 6, responsavel_id: "rita" },
+        { id: "e2", turno_id: "t", funcao: "Caldeireiro", quantidade: 5, responsavel_id: "ana" },
+      ],
+      ocorrencias: [
+        { id: "o1", responsavel_id: "rita", funcao: "Montador", tipo: "emprestimo", quantidade: 2, hora_inicio: "13:00:00", hora_fim: null,
+          destino_responsavel_id: "ana", emprestimo_id: null, causa: null, created_at: "1" },
+        { id: "o2", responsavel_id: "rita", funcao: "Montador", tipo: "parado", quantidade: 2, hora_inicio: "08:00:00", hora_fim: "10:00:00",
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "2" },
+      ],
+    }));
+    expect(r.efetivoTotal).toBe(11);
+    expect(r.hh).toBe(99);
+    expect(r.hhParado).toBe(4);
+    expect(r.hhParadoPorCausa).toEqual({ material: 4 });
+    expect(r.avisosEfetivo).toEqual([]);
+    expect(r.hhEquipes.find((e) => e.responsavel_id === "ana")?.hhProdutivo).toBe(53);
+  });
   it("turno vazio", () => {
     const r = resumirTurno(turno({ atividades: [], efetivo: [], clima: [] }));
     expect(r).toMatchObject({ cumprimento: null, hh: null, efetivoTotal: 0, restricoesPorCausa: [], climaImpediu: false });

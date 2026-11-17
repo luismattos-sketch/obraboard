@@ -78,7 +78,27 @@ describe("resumoEquipe", () => {
       atividades: [at("j", 2, 1), at("j", 2, null), at("j", 1, 1, { programada: false })],
       efetivo: [{ funcao: "Mecânico", quantidade: 2, responsavel_id: "j" }, { funcao: "Soldador", quantidade: 1, responsavel_id: "j" }],
     }));
-    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, base: "programadas", pessoas: 3, hh: 26.4 });
+    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [] });
+  });
+
+  it("empréstimo: horas vão para a equipe destino, pessoas ficam na origem", () => {
+    const m = montarQuadro(entrada({
+      turno: { ...TURNO, hora_fim_prevista: "17:00", intervalo_inicio: "12:00", intervalo_fim: "13:00" },
+      atividades: [at("j", 1, null)],
+      efetivo: [{ funcao: "Montador", quantidade: 6, responsavel_id: "j" }],
+      ocorrencias: [{ id: "o1", responsavel_id: "j", funcao: "Montador", tipo: "emprestimo", quantidade: 2, hora_inicio: "13:00",
+        hora_fim: null, destino_responsavel_id: "a", emprestimo_id: null, causa: null, created_at: "1" }],
+    }));
+    const ana = m.faixas.find((f) => f.responsavel?.id === "a")!;
+    expect(ana.resumo).toMatchObject({ pessoas: 0, hh: 8, hhParado: 0 });
+    expect(ana.resumo.recebidos).toHaveLength(1);
+    const joao = m.faixas.find((f) => f.responsavel?.id === "j")!;
+    expect(joao.resumo).toMatchObject({ pessoas: 6, hh: 46 });
+  });
+
+  it("foto antiga sem ocorrências nem intervalo", () => {
+    const m = montarQuadro(entrada({ atividades: [at("j", 1, null)], efetivo: [{ funcao: "Pedreiro", quantidade: 1, responsavel_id: "j" }] }));
+    expect(m.faixas[0].resumo).toMatchObject({ pessoas: 1, hh: 8.8, hhParado: 0, recebidos: [] });
   });
 
   it("turno sem nenhuma programada usa todas", () => {

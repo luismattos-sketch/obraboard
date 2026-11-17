@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { inicioDaSemana, type SemanaProgramadaAnalise } from "@/lib/dominio/analise";
+import { lerOcorrencias } from "@/lib/dominio/efetivoHH";
 import { validarMotivo } from "@/lib/dominio/eventos";
 import {
   dataDoDia,
@@ -128,7 +129,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
     c
       .from("turnos")
       .select(
-        "id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, efetivo(id, funcao, quantidade, created_at), atividades(id, descricao, unidade, qtd_planejada, qtd_realizada, causa, ordem, created_at, programacao_atividade_id)",
+        "id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), atividades(id, descricao, unidade, qtd_planejada, qtd_realizada, causa, ordem, created_at, programacao_atividade_id)",
       )
       .eq("obra_id", semana.obra_id)
       .gte("data", semana.inicio)
@@ -173,7 +174,14 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
       hora_fim_prevista: (t.hora_fim_prevista as string | null) ?? null,
       hora_inicio_real: (t.hora_inicio_real as string | null) ?? null,
       hora_fim_real: (t.hora_fim_real as string | null) ?? null,
-      efetivo: equipeDe(t.efetivo),
+      intervalo_inicio: (t.intervalo_inicio as string | null) ?? null,
+      intervalo_fim: (t.intervalo_fim as string | null) ?? null,
+      efetivo: [...((t.efetivo as Record<string, unknown>[] | null) ?? [])].sort(porCriacao).map((e) => ({
+        funcao: e.funcao as string,
+        quantidade: num(e.quantidade),
+        responsavel_id: (e.responsavel_id as string | null) ?? null,
+      })),
+      ocorrencias: lerOcorrencias(t.efetivo_ocorrencias),
       extras: ats
         .filter((a) => !a.programacao_atividade_id)
         .map((a) => ({
@@ -196,7 +204,8 @@ function dadosDaFoto(f: DadosSemana): DadosSemana {
     execucoes: f.execucoes.map((e) => ({ ...e, qtd_planejada: num(e.qtd_planejada), qtd_realizada: numOuNull(e.qtd_realizada) })),
     turnos: f.turnos.map((t) => ({
       ...t,
-      efetivo: t.efetivo.map((e) => ({ funcao: e.funcao, quantidade: num(e.quantidade) })),
+      efetivo: t.efetivo.map((e) => ({ funcao: e.funcao, quantidade: num(e.quantidade), responsavel_id: e.responsavel_id ?? null })),
+      ocorrencias: lerOcorrencias(t.ocorrencias),
       extras: t.extras.map((x) => ({ ...x, qtd_planejada: num(x.qtd_planejada), qtd_realizada: numOuNull(x.qtd_realizada) })),
     })),
   };
