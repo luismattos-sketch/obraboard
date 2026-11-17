@@ -1,5 +1,6 @@
 import { normalizarAtividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo, TurnoCompleto } from "@/lib/db/turnos";
+import { lerOcorrencias } from "@/lib/dominio/efetivoHH";
 import type { Periodo } from "@/lib/dominio/tipos";
 import { dataHoraBrasilia } from "./formatar";
 
@@ -30,12 +31,18 @@ type FotoV1 = {
     hora_inicio_prevista: string | null; hora_fim_prevista: string | null;
     hora_inicio_real: string | null; hora_fim_real: string | null;
     enviado_em: string | null; fechado_em: string | null;
+    /** Desde o item 4 do backlog; ausentes nas fotos antigas (= sem intervalo). */
+    intervalo_inicio?: string | null;
+    intervalo_fim?: string | null;
     /** Desde a H2; ausente nas fotos da H1. */
     motivo_reabertura?: string | null;
   };
   atividades: Record<string, unknown>[];
   efetivo: Omit<Efetivo, "turno_id">[];
   clima: Omit<Clima, "turno_id">[];
+  /** Desde o item 4 do backlog; ausentes nas fotos antigas. */
+  ocorrencias?: unknown;
+  responsaveis?: { id: string; nome: string }[];
 };
 
 /** Transforma a foto guardada nos dados que o PDF usa. Nunca adivinha formatos que não conhece. */
@@ -47,6 +54,8 @@ export function lerFoto(v: Pick<VersaoRdo, "formato" | "dados">): TurnoCompleto 
   void motivo_reabertura; // vai para a Emissao (emissaoDaVersao), não para os dados do PDF
   return {
     ...turno,
+    intervalo_inicio: turno.intervalo_inicio ?? null,
+    intervalo_fim: turno.intervalo_fim ?? null,
     status: "fechado",
     token_hash: null,
     obra: { ...f.obra, created_at: "" },
@@ -55,6 +64,8 @@ export function lerFoto(v: Pick<VersaoRdo, "formato" | "dados">): TurnoCompleto 
       .sort((a, b) => a.ordem - b.ordem),
     efetivo: (f.efetivo ?? []).map((e) => ({ ...e, turno_id: turnoId })),
     clima: (f.clima ?? []).map((c) => ({ ...c, turno_id: turnoId })),
+    ocorrencias: lerOcorrencias(f.ocorrencias),
+    responsaveis: f.responsaveis ?? [],
   };
 }
 

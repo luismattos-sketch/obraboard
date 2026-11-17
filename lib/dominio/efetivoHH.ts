@@ -68,6 +68,26 @@ export function intervaloDoTurno(t: { intervalo_inicio?: string | null; interval
 
 export const horaCurta = (h: string) => h.slice(0, 5);
 
+/** Ocorrências vindas do banco ou de uma foto (JSON): ausente = nenhuma; ordenadas por registro. */
+export function lerOcorrencias(x: unknown): Ocorrencia[] {
+  if (!Array.isArray(x)) return [];
+  return x
+    .map((r: Record<string, unknown>) => ({
+      id: String(r.id),
+      responsavel_id: (r.responsavel_id as string | null) ?? null,
+      funcao: String(r.funcao ?? ""),
+      tipo: r.tipo as TipoOcorrencia,
+      quantidade: Number(r.quantidade),
+      hora_inicio: String(r.hora_inicio ?? ""),
+      hora_fim: (r.hora_fim as string | null) ?? null,
+      destino_responsavel_id: (r.destino_responsavel_id as string | null) ?? null,
+      emprestimo_id: (r.emprestimo_id as string | null) ?? null,
+      causa: (r.causa as Causa | null) ?? null,
+      created_at: String(r.created_at ?? ""),
+    }))
+    .sort((a, b) => (a.created_at === b.created_at ? a.id.localeCompare(b.id) : a.created_at.localeCompare(b.created_at)));
+}
+
 type Pessoa = {
   /** Equipe (índice) dona de cada minuto do turno; -1 = não trabalhou. */
   dono: Int32Array;

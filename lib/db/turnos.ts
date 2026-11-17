@@ -4,6 +4,7 @@ import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import { lerOcorrencias, type Ocorrencia } from "@/lib/dominio/efetivoHH";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
 import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
@@ -24,16 +25,27 @@ export type Turno = {
   token_hash: string | null;
   enviado_em: string | null;
   fechado_em: string | null;
+  /** Intervalo de refeição gravado no turno (nulo = sem intervalo). */
+  intervalo_inicio: string | null;
+  intervalo_fim: string | null;
 };
 export type Efetivo = { id: string; turno_id: string; funcao: string; quantidade: number; responsavel_id: string | null };
 export type Clima = { turno_id: string; periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
-export type TurnoCompleto = Turno & { obra: Obra; atividades: Atividade[]; efetivo: Efetivo[]; clima: Clima[] };
+export type TurnoCompleto = Turno & {
+  obra: Obra;
+  atividades: Atividade[];
+  efetivo: Efetivo[];
+  clima: Clima[];
+  ocorrencias: Ocorrencia[];
+  /** Nomes dos responsáveis da obra (para descrever empréstimos). */
+  responsaveis: { id: string; nome: string }[];
+};
 export type TurnoComAtividades = Turno & {
   atividades: Pick<Atividade, "qtd_planejada" | "qtd_realizada">[];
 };
 
 export const COLUNAS_TURNO =
-  "id, obra_id, data, periodo, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, status, token_hash, enviado_em, fechado_em";
+  "id, obra_id, data, periodo, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, status, token_hash, enviado_em, fechado_em, intervalo_inicio, intervalo_fim";
 
 const UUID_INVALIDO = "22P02";
 
@@ -109,7 +121,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at), atividades(*), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at), atividades(*), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -119,9 +131,24 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     throw new Error(`obterTurnoCompleto: ${error.message}`);
   }
   if (!data) return null;
-  const t = data as unknown as Omit<TurnoCompleto, "atividades"> & { atividades: Record<string, unknown>[] | null };
+  const { efetivo_ocorrencias, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis"> & {
+    atividades: Record<string, unknown>[] | null;
+    efetivo_ocorrencias: unknown;
+  };
   const atividades = (t.atividades ?? []).map(normalizarAtividade).sort((a, b) => a.ordem - b.ordem);
-  return { ...t, atividades, efetivo: t.efetivo ?? [], clima: t.clima ?? [] };
+  const { data: resp, error: er } = await c.from("responsaveis").select("id, nome").eq("obra_id", t.obra_id);
+  if (er) {
+    console.error("obterTurnoCompleto (responsáveis):", er.message);
+    throw new Error(`obterTurnoCompleto: ${er.message}`);
+  }
+  return {
+    ...t,
+    atividades,
+    efetivo: t.efetivo ?? [],
+    clima: t.clima ?? [],
+    ocorrencias: lerOcorrencias(efetivo_ocorrencias),
+    responsaveis: (resp ?? []) as { id: string; nome: string }[],
+  };
 }
 
 export type DadosTurno = {

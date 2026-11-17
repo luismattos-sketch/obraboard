@@ -36,7 +36,7 @@ const ERRO_GENERICO = "Não foi possível salvar. Tente novamente.";
 const erroGravacao = (error: { code?: string; message?: string }) =>
   falha(erroBanco(error) === "turno_fechado" ? ERRO_FECHADO : ERRO_GENERICO);
 
-async function turnoAbertoParaCorrecao(c: SupabaseClient, turnoId: string): Promise<Resultado> {
+export async function turnoAbertoParaCorrecao(c: SupabaseClient, turnoId: string): Promise<Resultado> {
   const { data, error } = await c.from("turnos").select("status").eq("id", turnoId).maybeSingle();
   if (error && error.code !== "22P02") {
     console.error("turnoAbertoParaCorrecao:", error.message);
