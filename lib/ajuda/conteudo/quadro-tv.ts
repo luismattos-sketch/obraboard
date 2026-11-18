@@ -24,7 +24,7 @@ export const quadroTv: Capitulo = {
       titulo: "Check-in e check-out no quadro",
       texto: [
         "Antes de liberar o turno, o quadro mostra o check-in: o que cada equipe vai fazer, a quantidade planejada e o efetivo. Atividade fora da programação aparece com o selo \"EXTRA\".",
-        "Depois de liberar, mostra o check-out: realizado sobre planejado, barra de cor, a causa quando há, e por equipe \"x de y programadas\", pessoas e HH. Use \"Check-in | Check-out\" no cabeçalho para ver a outra visão.",
+        "Depois de liberar, mostra o check-out: realizado sobre planejado, barra de cor, a causa quando há, e por equipe \"x de y programadas\", pessoas e HH. Use os links \"Check-in\" e \"Check-out\", abaixo do cabeçalho, para trocar de visão.",
       ],
     },
     {

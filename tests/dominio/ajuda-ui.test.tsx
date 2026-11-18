@@ -24,8 +24,10 @@ describe("Fluxograma", () => {
       expect(html).toContain(`href="${cx.href}"`);
     }
   });
-  it("tem a sequência em texto para leitor de tela", () => {
-    expect(html).toMatch(/<ol class="sr-only"/);
+  it("as caixas são links acessíveis pelo teclado e pelo leitor de tela (sem lista escondida)", () => {
+    expect(html).not.toContain('tabindex="-1"');
+    expect(html).not.toContain("sr-only");
+    expect(html).not.toMatch(/<div aria-hidden="true"[^>]*>\s*<section/);
   });
 });
 

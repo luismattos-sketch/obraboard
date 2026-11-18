@@ -10,8 +10,8 @@ export const encerrarSemana: Capitulo = {
       id: "encerrar",
       titulo: "Encerre a semana",
       texto: [
-        "A partir do último dia com atividade programada, a semana mostra \"Encerrar semana\" (na lista, ela aparece como Aguardando encerramento). Abra a semana e clique no botão.",
-        "O app lista as atividades programadas que não foram cumpridas, cada uma com a causa sugerida pelo último turno. Confira ou troque a causa e clique em \"Encerrar semana\" para confirmar.",
+        "A partir do último dia com atividade programada, a tela da semana mostra o quadro \"Encerrar semana\". Depois do domingo, a lista de semanas marca a semana como Aguardando encerramento.",
+        "O quadro lista as atividades programadas que não foram cumpridas, cada uma com a causa sugerida pelo último turno. Confira ou troque a causa e clique em \"Encerrar semana\".",
         "Encerrada, a semana fica só para leitura e o PPC deixa de ser provisório. Se precisar corrigir, use \"Reabrir\" e informe o motivo.",
       ],
       captura: {

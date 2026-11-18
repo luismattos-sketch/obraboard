@@ -19,7 +19,7 @@ export const primeirosPassos: Capitulo = {
       id: "criar-obra",
       titulo: "Crie a obra",
       texto: [
-        "Na lista de obras, clique em \"Nova obra\". Preencha o \"Nome da obra\" e, se quiser, o cliente e o endereço.",
+        "Na primeira vez, clique em \"Nova obra\" na tela inicial. Depois, a opção \"Nova obra\" fica no seletor de obra do menu lateral. Preencha o \"Nome da obra\" e, se quiser, o cliente e o endereço.",
         "Clique em \"Criar obra\". A obra abre e passa a aparecer no menu lateral, com as etapas Programação, Turnos, RDOs e Análise (PPC).",
       ],
       captura: {

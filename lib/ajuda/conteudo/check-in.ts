@@ -30,8 +30,8 @@ export const checkIn: Capitulo = {
       id: "adicionar-atividade",
       titulo: "Adicione uma atividade",
       texto: [
-        "Para uma atividade que não está na programação, use \"Adicionar atividade\": \"Descrição\", \"Local (opcional)\", \"Unidade\", \"Quantidade\" planejada e o \"Responsável\".",
-        "Numa semana programada, atividade adicionada à mão aparece com o selo \"Extra\" e não entra no PPC.",
+        "Para uma atividade que não está na programação, use \"Adicionar atividade\": \"Descrição\", \"Local (opcional)\", \"Quantidade\" planejada e \"Unidade\". Depois, escolha o responsável no menu \"Responsável\" da atividade.",
+        "Numa semana programada, atividade adicionada à mão aparece com o selo \"Avulsa\" e não entra no PPC.",
       ],
     },
     {

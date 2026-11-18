@@ -23,7 +23,7 @@ export const duranteOTurno: Capitulo = {
       id: "paradas",
       titulo: "Veja as paradas avisadas",
       texto: [
-        "Quando o campo avisa uma parada, ela aparece no topo do turno em \"Paradas do turno\": quantas pessoas, desde que horas, a causa (por exemplo, aguardando outra equipe) e a foto, se houver.",
+        "Quando o campo avisa uma parada, ela aparece em destaque no topo da tela do turno (⚠): quem, quantas pessoas, desde que horas, a causa (por exemplo, aguardando outra equipe) e a foto, se houver.",
         "Quando o pessoal volta, o responsável marca \"Voltamos a trabalhar\". Você também pode marcar pelo turno. Parada sem fim no fechamento pede o horário em que terminou.",
         "Para registrar uma parada você mesmo, use \"⚠ Parada\" no efetivo da equipe. Ali também ficam \"+ Emprestar\" (pessoas que foram ajudar outra equipe) e \"+ Saída antes\".",
       ],

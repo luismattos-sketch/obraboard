@@ -23,7 +23,7 @@ export const campo: Capitulo = {
       id: "lancar",
       titulo: "Lance o que foi feito",
       texto: [
-        "Em cada atividade, digite em \"Executado\" quanto foi feito até agora. Terminou tudo? Toque em ✓ para marcar como concluída.",
+        "Em cada atividade, digite em \"Executado\" quanto foi feito até agora. Terminou tudo? Toque em \"✓ Concluída\".",
         "Não precisa de botão de salvar: espere aparecer \"Salvo ✓\".",
       ],
       captura: {
@@ -71,7 +71,7 @@ export const campo: Capitulo = {
       titulo: "Avise o planejador",
       texto: [
         "Terminou a sua parte? Toque em \"✓ Terminei minha parte\". O planejador vê no quadro, e você pode avisar também pelo WhatsApp.",
-        "Em \"Ver tudo\", quem fecha o turno inteiro pelo campo toca em \"Enviar turno\". Toda atividade que não chegou ao planejado precisa da \"Causa do não cumprimento\".",
+        "Em \"Ver tudo\", quem fecha o turno inteiro pelo campo toca em \"Enviar turno\". Toda atividade programada que não chegou ao planejado precisa da \"Causa do não cumprimento\"; serviço extra e atividade adiantada não pedem causa.",
       ],
       captura: {
         alt: "Botão Terminei minha parte no celular",
@@ -83,7 +83,7 @@ export const campo: Capitulo = {
       id: "sem-sinal",
       titulo: "Sem sinal",
       texto: [
-        "Se aparecer \"Não salvo — sem sinal. Tentando de novo…\", continue com a tela aberta. O app reenvia sozinho quando o sinal volta. Não feche nem atualize a tela enquanto houver lançamento não salvo.",
+        "Se aparecer \"Não salvo — sem sinal. Tentando de novo…\", continue com a tela aberta. O app reenvia sozinho quando o sinal volta. Não feche nem atualize a tela até o aviso sumir.",
       ],
     },
   ],

@@ -33,7 +33,7 @@ export function Fluxograma({ fases }: { fases: FaseFluxo[] }) {
         ))}
       </ul>
 
-      <div aria-hidden="true" className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         {fases.map((fase, i) => (
           <Fragment key={fase.titulo}>
             {i > 0 && <Seta para="baixo" />}
@@ -48,8 +48,8 @@ export function Fluxograma({ fases }: { fases: FaseFluxo[] }) {
                     {linha.map((cx, k) => (
                       <Fragment key={cx.rotulo}>
                         {k > 0 && <Seta para="lado" />}
-                        <Link href={cx.href} tabIndex={-1}
-                          className={`rounded-botao px-2.5 py-1.5 text-sm font-semibold leading-tight ${COR[cx.ator]}`}>
+                        <Link href={cx.href}
+                          className={`rounded-botao px-2.5 py-1.5 text-sm font-semibold leading-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-operacional ${COR[cx.ator]}`}>
                           {cx.rotulo}
                           {cx.detalhe && <small className="block text-xs font-normal opacity-85">{cx.detalhe}</small>}
                         </Link>
@@ -63,22 +63,6 @@ export function Fluxograma({ fases }: { fases: FaseFluxo[] }) {
           </Fragment>
         ))}
       </div>
-
-      <ol className="sr-only">
-        {fases.map((fase) => (
-          <li key={fase.titulo}>
-            {fase.titulo}:
-            <ol>
-              {fase.linhas.flat().map((cx) => (
-                <li key={cx.rotulo}>
-                  <Link href={cx.href}>{cx.rotulo}{cx.detalhe ? ` (${cx.detalhe})` : ""}</Link>
-                </li>
-              ))}
-            </ol>
-            {fase.nota}
-          </li>
-        ))}
-      </ol>
     </figure>
   );
 }
