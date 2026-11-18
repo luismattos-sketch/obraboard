@@ -9,7 +9,7 @@ export const checkIn: Capitulo = {
     { id: "novo-turno", titulo: "Abra o turno", texto: [] },
     { id: "trazer-programacao", titulo: "Traga as atividades da programação", texto: [] },
     { id: "adicionar-atividade", titulo: "Adicione uma atividade", texto: [] },
-    { id: "efetivo", titulo: "Confira o efetivo de cada equipe", texto: [] },
+    { id: "efetivo", titulo: "Faça o check-in: confira equipes e efetivo", texto: [] },
     { id: "liberar", titulo: "Libere o turno ao campo", texto: [] },
     { id: "enviar-link", titulo: "Envie o link aos responsáveis", texto: [] },
   ],
