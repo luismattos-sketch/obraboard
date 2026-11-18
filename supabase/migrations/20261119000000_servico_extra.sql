@@ -12,7 +12,7 @@ alter table public.atividades add constraint atividades_tipo_programacao check (
   (tipo is distinct from 'adiantada' or programacao_atividade_id is not null)
   and (tipo is distinct from 'extra' or programacao_atividade_id is null)
 );
-alter table public.atividades add constraint atividades_foto_so_extra check (foto_path is null or tipo = 'extra');
+alter table public.atividades add constraint atividades_foto_so_extra check (foto_path is null or tipo is not distinct from 'extra');
 
 -- 2. Extra: sem meta; o planejado acompanha o executado e nunca tem causa.
 create or replace function public.tg_atividade_extra()

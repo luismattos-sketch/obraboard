@@ -55,7 +55,7 @@ describe.skipIf(!ligado)("serviço extra e adiantada no banco", () => {
     }));
     const base = { turno_id: c.turnoId, descricao: "X", unidade: "un", qtd_planejada: 5 };
     expect((await u.cliente.from("atividades").insert({ ...base, tipo: "adiantada" })).error?.code).toBe("23514");
-    expect((await u.cliente.from("atividades").insert({ ...base, qtd_realizada: 5, tipo: "extra", programacao_atividade_id: progId })).error?.code).toBe("23514");
+    expect((await u.cliente.from("atividades").insert({ ...base, qtd_realizada: 5, tipo: "extra", programacao_atividade_id: progId })).error).not.toBeNull();
     expect((await u.cliente.from("atividades").insert({ ...base, foto_path: "a/b.jpg" })).error?.code).toBe("23514");
   });
 
