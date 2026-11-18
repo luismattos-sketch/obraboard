@@ -32,7 +32,7 @@ export const primeirosPassos: Capitulo = {
       id: "responsaveis",
       titulo: "Cadastre os responsáveis",
       texto: [
-        "Na página da obra, na seção \"Responsáveis\", clique em \"+ Novo responsável\". Informe o nome e, se quiser, o telefone, e clique em \"Salvar\".",
+        "Na página da obra, clique em \"Responsáveis\" para abrir a seção (o número entre parênteses é quantos estão ativos) e depois em \"+ Novo responsável\". Informe o nome e, se quiser, o telefone, e clique em \"Salvar\".",
         "Responsável é quem assume as atividades no campo e lança o que foi feito pelo link do turno. Cada atividade e cada equipe do efetivo fica com um responsável.",
       ],
       dica: "Também dá para cadastrar um responsável na hora, pelo menu \"Responsável\" de qualquer atividade (opção \"+ Novo responsável…\").",

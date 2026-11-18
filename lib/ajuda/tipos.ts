@@ -16,7 +16,7 @@ export type Ator = "planejador" | "campo" | "tv";
 
 /** Elemento que a captura destaca; o roteiro de capturas falha se ele sumir da tela. */
 export type Alvo = {
-  papel: "button" | "link" | "heading" | "textbox" | "combobox" | "checkbox";
+  papel: "button" | "link" | "heading" | "textbox" | "combobox" | "checkbox" | "region";
   nome: string;
 };
 

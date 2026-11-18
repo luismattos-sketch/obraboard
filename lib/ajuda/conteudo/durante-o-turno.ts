@@ -29,7 +29,7 @@ export const duranteOTurno: Capitulo = {
       ],
       captura: {
         alt: "Faixa de paradas do turno com a causa, as pessoas paradas e o horário",
-        alvo: { papel: "heading", nome: "Paradas do turno" },
+        alvo: { papel: "region", nome: "Paradas do turno" },
         dispositivo: "computador",
       },
     },
