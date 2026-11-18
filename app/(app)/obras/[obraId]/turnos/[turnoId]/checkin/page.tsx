@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Quadro } from "@/components/quadro/Quadro";
@@ -15,7 +16,10 @@ export default async function FotoCheckin({ params }: { params: Promise<{ obraId
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <Link href={`/obras/${obraId}/turnos/${turnoId}`} className="text-sm text-operacional underline">← Turno</Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link href={`/obras/${obraId}/turnos/${turnoId}`} className="text-sm text-operacional underline">← Turno</Link>
+        <BotaoAjuda tela="turno-planejado" />
+      </div>
       <p className="text-sm text-texto-suave">{`Check-in registrado em ${dataHoraCurta(new Date(foto.emitido_em))}`}</p>
       <Quadro modelo={montarQuadro(foto.dados)} visao="checkin" publico={false} editarHref={null} />
     </div>

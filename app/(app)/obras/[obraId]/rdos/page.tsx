@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BaixarLote } from "@/components/rdo/BaixarLote";
@@ -37,7 +38,10 @@ export default async function RdosObraPage({
         <Link href={`/obras/${obra.id}`} className="text-sm text-texto-suave hover:underline">
           ← {obra.nome}
         </Link>
-        <h1 className="text-titulo font-semibold text-primaria">RDOs</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-titulo font-semibold text-primaria">RDOs</h1>
+          <BotaoAjuda tela="rdos" />
+        </div>
       </div>
       {itens === null ? (
         <Aviso tom="perigo">Não foi possível carregar os RDOs. Tente novamente.</Aviso>

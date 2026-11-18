@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
+import { ComoUsarCampo } from "@/components/ajuda/ComoUsarCampo";
 import { Fluxograma } from "@/components/ajuda/Fluxograma";
+import { capituloPorSlug } from "@/lib/ajuda/capitulos";
 import { Novidades } from "@/components/ajuda/Novidades";
 import { PassoAjuda } from "@/components/ajuda/PassoAjuda";
 import { FLUXOGRAMA } from "@/lib/ajuda/fluxograma";
@@ -65,5 +69,25 @@ describe("Novidades", () => {
   });
   it("com até 3 novidades não mostra Ver todas", () => {
     expect(renderToStaticMarkup(<Novidades novidades={lista.slice(0, 3)} />)).not.toContain("Ver todas");
+  });
+});
+
+describe("BotaoAjuda", () => {
+  it("leva ao capítulo da tela com rótulo acessível", () => {
+    const html = renderToStaticMarkup(<BotaoAjuda tela="turno-em-campo" />);
+    expect(html).toContain('href="/ajuda/durante-o-turno"');
+    expect(html).toContain('aria-label="Ajuda sobre esta tela"');
+  });
+});
+
+describe("ComoUsarCampo", () => {
+  const html = renderToStaticMarkup(<ComoUsarCampo />);
+  it("é um painel recolhível 'Como usar' com todos os passos do campo", () => {
+    expect(html).toMatch(/<details[^>]*>\s*<summary[^>]*>[^<]*Como usar/);
+    for (const p of capituloPorSlug("campo")!.passos) expect(html).toContain(p.titulo);
+  });
+  it("não guarda nada no navegador", () => {
+    const fonte = readFileSync("components/ajuda/ComoUsarCampo.tsx", "utf8");
+    expect(fonte).not.toMatch(/localStorage|sessionStorage/);
   });
 });

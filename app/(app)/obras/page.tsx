@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { Cartao } from "@/components/ui/Cartao";
 import { classesBotao } from "@/components/ui/Botao";
@@ -10,7 +11,10 @@ export default async function ObrasPage() {
   if (obras.length === 0) {
     return (
       <Cartao className="mx-auto flex w-full max-w-lg flex-col items-start gap-3">
-        <h1 className="text-titulo font-semibold text-primaria">Cadastre sua primeira obra</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-titulo font-semibold text-primaria">Cadastre sua primeira obra</h1>
+          <BotaoAjuda tela="obras" />
+        </div>
         <p className="text-texto-suave">Crie a obra para começar a planejar as frentes de trabalho.</p>
         <Link href="/obras/nova" className={classesBotao()}>Nova obra</Link>
       </Cartao>
@@ -19,7 +23,10 @@ export default async function ObrasPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-titulo font-semibold text-primaria">Obras</h1>
+      <div className="flex items-start justify-between gap-2">
+        <h1 className="text-titulo font-semibold text-primaria">Obras</h1>
+        <BotaoAjuda tela="obras" />
+      </div>
       <ul className="grid gap-3 sm:grid-cols-2">
         {obras.map((o) => (
           <li key={o.id}>

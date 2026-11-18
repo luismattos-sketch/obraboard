@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { classesBotao } from "@/components/ui/Botao";
@@ -32,7 +33,10 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-titulo font-semibold text-primaria">{obra.nome}</h1>
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-titulo font-semibold text-primaria">{obra.nome}</h1>
+            <BotaoAjuda tela="obras" />
+          </div>
           {obra.cliente && <p className="text-sm text-texto-suave">{obra.cliente}</p>}
         </div>
         {/* Programação, RDOs e Análise ficam no menu lateral; aqui só a ação do dia a dia. */}

@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Cartao } from "@/components/ui/Cartao";
@@ -43,7 +44,10 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
         <Link href={`/obras/${obra.id}/programacao`} className="text-sm text-texto-suave hover:underline">
           ← Programação · {obra.nome}
         </Link>
-        <h1 className="text-titulo font-semibold text-primaria">{titulo}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-titulo font-semibold text-primaria">{titulo}</h1>
+          <BotaoAjuda tela={semana && ["encerrada", "aguardando_encerramento"].includes(statusExibido(semana.status, semana.inicio, hoje)) ? "encerrar-semana" : "programacao"} />
+        </div>
       </div>
       {semana && (
         <Selo tom={TOM_STATUS_SEMANA[statusExibido(semana.status, semana.inicio, hoje)]}>

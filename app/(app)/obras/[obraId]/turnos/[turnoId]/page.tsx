@@ -1,3 +1,5 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
+import { telaDoTurno } from "@/lib/ajuda/destino";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Selo } from "@/components/ui/Selo";
@@ -60,6 +62,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
         <Link href={`/obras/${obraId}/quadro?turno=${turno.id}`} className={`${classesBotao("secundario")} ml-auto min-h-10 px-3 text-sm`}>
           Ver quadro
         </Link>
+        <BotaoAjuda tela={telaDoTurno(turno.status)} />
       </div>
       {turno.hora_inicio_prevista && turno.hora_fim_prevista && (
         <p className="text-sm text-texto-suave">
