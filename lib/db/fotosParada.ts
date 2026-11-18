@@ -69,6 +69,65 @@ export async function enviarFotoParadaPlanejador(c: SupabaseClient, turnoId: str
   return enviar(c, { turnoId, ocorrenciaId, responsavelId: undefined }, form);
 }
 
+/**
+ * Foto do serviço extra, no mesmo bucket: <empresa>/<obra>/<turno>/extra-<atividade>.jpg.
+ * `responsavelId` definido (campo): só o extra que esse responsável lançou.
+ */
+async function enviarExtra(
+  c: SupabaseClient,
+  alvo: { turnoId: string; atividadeId: string; responsavelId: string | undefined },
+  form: FormData,
+): Promise<Resultado> {
+  const foto = form.get("foto");
+  const arquivo = foto instanceof File ? foto : null;
+  const v = validarFoto(arquivo);
+  if (!v.ok) return v;
+  const bytes = new Uint8Array(await arquivo!.arrayBuffer());
+  if (!ehJpeg(bytes)) return falha("Envie uma foto");
+
+  const { data: a, error: ea } = await c
+    .from("atividades")
+    .select("tipo, criada_por_id, turno:turnos(obra_id, obra:obras(empresa_id))")
+    .eq("id", alvo.atividadeId)
+    .eq("turno_id", alvo.turnoId)
+    .maybeSingle();
+  if (ea && ea.code !== "22P02") {
+    console.error("enviarFotoExtra:", ea.message);
+    return falha(ERRO_GENERICO);
+  }
+  if (!a || a.tipo !== "extra") return falha(ERRO_OCORRENCIA_INVALIDA);
+  if (alvo.responsavelId !== undefined && (a.criada_por_id ?? null) !== alvo.responsavelId) return falha(ERRO_OCORRENCIA_INVALIDA);
+  const turno = a.turno as unknown as { obra_id: string; obra: { empresa_id: string } };
+  const caminho = `${turno.obra.empresa_id}/${turno.obra_id}/${alvo.turnoId}/extra-${alvo.atividadeId}.jpg`;
+
+  const up = await criarClienteAdmin().storage.from(BUCKET).upload(caminho, bytes, { contentType: "image/jpeg", upsert: true });
+  if (up.error) {
+    console.error("enviarFotoExtra (upload):", up.error.message);
+    return falha(ERRO_GENERICO);
+  }
+  const { data, error } = await c.from("atividades").update({ foto_path: caminho }).eq("id", alvo.atividadeId).select("id");
+  if (error || !data || data.length === 0) {
+    await removerFoto(caminho);
+    const fechado = error && String(error.message).includes("turno_fechado");
+    if (error && !fechado) console.error("enviarFotoExtra (gravar):", error.message);
+    return falha(fechado ? "Turno fechado: a foto não foi salva." : ERRO_GENERICO);
+  }
+  return ok(undefined);
+}
+
+export async function enviarFotoExtraCampo(token: string, atividadeId: string, responsavelId: string, form: FormData): Promise<Resultado> {
+  if (typeof responsavelId !== "string" || !responsavelId) return falha(ERRO_OCORRENCIA_INVALIDA);
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  return enviarExtra(criarClienteAdmin(), { turnoId: t.dados.id, atividadeId, responsavelId }, form);
+}
+
+export async function enviarFotoExtraPlanejador(c: SupabaseClient, turnoId: string, atividadeId: string, form: FormData): Promise<Resultado> {
+  const t = await turnoAbertoParaCorrecao(c, turnoId);
+  if (!t.ok) return t;
+  return enviarExtra(c, { turnoId, atividadeId, responsavelId: undefined }, form);
+}
+
 /** Melhor esforço: só registra o erro. */
 export async function removerFoto(caminho: string): Promise<void> {
   const { error } = await criarClienteAdmin().storage.from(BUCKET).remove([caminho]);
