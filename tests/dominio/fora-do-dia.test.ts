@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { copiasParaAjustar, opcoesParaPuxar, validarExtra } from "@/lib/dominio/foraDoDia";
+import { autorDoLancamento, copiasParaAjustar, opcoesParaPuxar, podeRemoverPlanejador, seloDaAtividade, validarExtra } from "@/lib/dominio/foraDoDia";
 import type { AtividadeProgramada, DadosSemana, ExecucaoLigada, TurnoDaSemana } from "@/lib/dominio/programacao";
 
 // Semana seg 16/11; hoje = qua 18/11 (dia 2), diurno.
@@ -114,5 +114,26 @@ describe("validarExtra", () => {
     expect(validarExtra({ ...ok, unidade: "" }).ok).toBe(false);
     expect(validarExtra({ ...ok, id: "x" }).ok).toBe(false);
     expect(validarExtra({ ...ok, observacao: "a".repeat(501) }).ok).toBe(false);
+  });
+});
+
+describe("textos do planejador", () => {
+  const nome = (id: string | null) => ({ c: "Carlos Pereira" })[id ?? ""] ?? "Responsável removido";
+  it("autorDoLancamento", () => {
+    expect(autorDoLancamento({ criada_por_id: "c" }, nome, null)).toBe("lançado pelo campo — Carlos Pereira");
+    expect(autorDoLancamento({ criada_por_id: "c" }, nome, "c")).toBe("lançado por você");
+    expect(autorDoLancamento({ criada_por_id: null }, nome, null)).toBeNull();
+  });
+  it("seloDaAtividade", () => {
+    expect(seloDaAtividade({ tipo: "extra", programacao_atividade_id: null }, "programada")).toEqual({ texto: "Extra", tom: "alerta" });
+    expect(seloDaAtividade({ tipo: "adiantada", programacao_atividade_id: "p" }, "programada")).toEqual({ texto: "Adiantada", tom: "info" });
+    expect(seloDaAtividade({ tipo: null, programacao_atividade_id: "p" }, "programada")).toEqual({ texto: "Programada", tom: "info" });
+    expect(seloDaAtividade({ tipo: null, programacao_atividade_id: null }, "programada")).toEqual({ texto: "Avulsa", tom: "neutro" });
+    expect(seloDaAtividade({ tipo: null, programacao_atividade_id: null }, null)).toBeNull();
+  });
+  it("podeRemoverPlanejador", () => {
+    expect(podeRemoverPlanejador({ tipo: "extra", criada_por_id: null })).toBe(true);
+    expect(podeRemoverPlanejador({ tipo: null, criada_por_id: "c" })).toBe(true);
+    expect(podeRemoverPlanejador({ tipo: null, criada_por_id: null })).toBe(false);
   });
 });

@@ -23,6 +23,8 @@ import type { Periodo } from "@/lib/dominio/tipos";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
+import { ForaDoDia, TEXTO_SEM_ADIANTAR_PLANEJADOR } from "@/components/execucao/ForaDoDia";
+import { autorDoLancamento, podeRemoverPlanejador, SEM_OPCOES, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
 import {
   corrigirClima,
   corrigirEfetivo,
@@ -31,8 +33,12 @@ import {
   corrigirIntervalo,
   criarOcorrenciaAcao,
   encerrarParadaAcao,
+  enviarFotoExtraAcao,
   enviarFotoParadaAcao,
+  lancarExtraAcao,
   limparClimaPlanejador,
+  puxarDaSemanaAcao,
+  removerForaDoDiaAcao,
   removerOcorrenciaAcao,
 } from "./acoesExecucao";
 
@@ -53,6 +59,8 @@ type Props = {
   contexto: { obra: string; data: string; periodo: Periodo; whatsapp: string | null };
   /** Caminho da foto da parada → URL assinada. */
   fotos: Record<string, string>;
+  /** Adiantar / atrasada (todas as equipes). */
+  opcoesPuxar?: OpcoesPuxar;
 };
 
 /** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
@@ -71,6 +79,7 @@ export function EdicaoExecucao({
   intervalo,
   contexto,
   fotos,
+  opcoesPuxar = SEM_OPCOES,
 }: Props) {
   const agrupar = atividades.some((a) => a.responsavel_id !== null);
   const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
@@ -101,6 +110,18 @@ export function EdicaoExecucao({
   }, [contexto.data, contexto.periodo]);
   const nomeEquipe = (id: string | null) =>
     id === null ? "Sem responsável" : (responsaveis.find((x) => x.id === id)?.nome ?? "Responsável removido");
+  const [erroRemover, setErroRemover] = useState<string | null>(null);
+  async function removerLancamento(id: string) {
+    if (!window.confirm("Remover este lançamento?")) return;
+    setErroRemover(null);
+    try {
+      const r = await removerForaDoDiaAcao(turnoId, id);
+      if (!r.ok) setErroRemover(r.erro);
+      else router.refresh();
+    } catch {
+      setErroRemover("Sem conexão — tente de novo.");
+    }
+  }
 
   return (
     <ProvedorSalvamento registrar={registrar}>
@@ -143,6 +164,20 @@ export function EdicaoExecucao({
           salvar={(id, d, esperado) => corrigirExecucao(turnoId, id, d, esperado)}
           onMudar={mudar}
           erros={erros}
+          autorDe={(a) => autorDoLancamento(a, nomeEquipe, null)}
+          podeRemover={podeRemoverPlanejador}
+          remover={(a) => void removerLancamento(a.id)}
+        />
+        {erroRemover && <Aviso tom="perigo">{erroRemover}</Aviso>}
+        <ForaDoDia
+          adiantar={opcoesPuxar.adiantar}
+          atrasadas={opcoesPuxar.atrasadas}
+          responsaveis={responsaveis}
+          textoSemAdiantar={TEXTO_SEM_ADIANTAR_PLANEJADOR}
+          puxar={(id, modo) => puxarDaSemanaAcao(turnoId, id, modo)}
+          lancarExtra={(d) => lancarExtraAcao(turnoId, d)}
+          enviarFoto={(id, form) => enviarFotoExtraAcao(turnoId, id, form)}
+          aoConcluir={() => router.refresh()}
         />
         <EfetivoPorEquipe
           obraId={obraId}

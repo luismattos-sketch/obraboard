@@ -6,8 +6,9 @@ import {
   sugestaoDoDia,
   type DadosSemana,
   type DiaSemana,
+  type StatusSemana,
 } from "./programacao";
-import type { Periodo } from "./tipos";
+import { ROTULO_TIPO, type Periodo, type TipoAtividade, type Tom } from "./tipos";
 
 /**
  * Atividades fora do dia (spec 2026-11-17): adiantar atividade futura da semana, continuar atrasada,
@@ -120,3 +121,28 @@ export function validarExtra(d: unknown): Resultado<DadosExtra> {
   const resp = typeof x.responsavel_id === "string" && x.responsavel_id ? x.responsavel_id : null;
   return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp });
 }
+
+/** "lançado por você" (quem está no link) ou "lançado pelo campo — Nome"; null = criada pelo planejador. */
+export function autorDoLancamento(
+  a: { criada_por_id: string | null },
+  nome: (id: string | null) => string,
+  responsavelAtual: string | null,
+): string | null {
+  if (!a.criada_por_id) return null;
+  return a.criada_por_id === responsavelAtual ? "lançado por você" : `lançado pelo campo — ${nome(a.criada_por_id)}`;
+}
+
+/** Selo da atividade no planejamento do turno. Avulsa = incluída à mão numa semana programada (conta no dia). */
+export function seloDaAtividade(
+  a: { tipo: TipoAtividade | null; programacao_atividade_id: string | null },
+  semanaStatus: StatusSemana | null,
+): { texto: string; tom: Tom } | null {
+  if (a.tipo === "extra") return { texto: ROTULO_TIPO.extra, tom: "alerta" };
+  if (a.tipo === "adiantada") return { texto: ROTULO_TIPO.adiantada, tom: "info" };
+  if (a.programacao_atividade_id) return { texto: "Programada", tom: "info" };
+  return semanaStatus === "programada" || semanaStatus === "encerrada" ? { texto: "Avulsa", tom: "neutro" } : null;
+}
+
+/** O planejador remove pelo botão do cartão só o que foi lançado fora do planejamento. */
+export const podeRemoverPlanejador = (a: { tipo: TipoAtividade | null; criada_por_id: string | null }) =>
+  a.tipo !== null || a.criada_por_id !== null;
