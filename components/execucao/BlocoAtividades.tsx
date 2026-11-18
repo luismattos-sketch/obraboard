@@ -18,6 +18,7 @@ import { numeroBR } from "@/lib/dominio/formato";
 import {
   CAUSAS,
   ROTULO_STATUS_ATIVIDADE,
+  ROTULO_TIPO,
   type AtividadeExec,
   type Causa,
   type DadosExecucao,
@@ -111,8 +112,11 @@ function ItemExecucao({
 
   const qtd = texto.trim() === "" ? null : parseNumero(texto);
   const qtdInvalida = texto.trim() !== "" && qtd === null;
-  const status = statusAtividade(a.qtd_planejada, qtd);
-  const naoConcluida = status !== "concluida";
+  const extra = a.tipo === "extra";
+  // Extra não tem meta: o banco iguala o planejado ao que foi feito.
+  const plan = extra ? (qtd !== null && qtd > 0 ? qtd : a.qtd_planejada) : a.qtd_planejada;
+  const status = statusAtividade(plan, qtd);
+  const naoConcluida = !extra && status !== "concluida";
 
   const sincronia = useContext(ContextoSincronia);
   // O que o banco tem segundo esta tela; em série para um salvamento lento não gerar conflito falso.
@@ -127,7 +131,7 @@ function ItemExecucao({
       const dados: ValoresExecucao = {
         qtd_realizada: qtd,
         causa: naoConcluida && causa ? causa : null,
-        observacao: naoConcluida && obs.trim() ? obs : null,
+        observacao: obs.trim() ? obs : null,
       };
       digitado.current = dados;
       return fila(async () => {
@@ -135,7 +139,7 @@ function ItemExecucao({
           try {
             return await salvar(a.id, dados, base);
           } catch (e) {
-            const n = normalizarExecucao(a.qtd_planejada, dados);
+            const n = normalizarExecucao(plan, dados);
             semResposta.current = [...semResposta.current.filter((d) => !mesmaExecucao(d, n)), n].slice(-5);
             throw e;
           }
@@ -153,7 +157,7 @@ function ItemExecucao({
         return r;
       });
     },
-    tuplaExecucao(a.qtd_planejada, qtdInvalida ? texto : qtd, causa, obs),
+    tuplaExecucao(plan, qtdInvalida ? texto : qtd, causa, obs),
   );
   const verAtual = () => {
     if (digitado.current) sincronia?.recarregar(notaDigitadoExecucao(digitado.current));
@@ -173,19 +177,28 @@ function ItemExecucao({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium">{a.descricao}</p>
-          <p className="text-sm text-texto-suave">
-            {a.local ? `${a.local} · ` : ""}Previsto: {numeroBR(a.qtd_planejada)} {a.unidade}
-          </p>
+          {(a.local || !extra) && (
+            <p className="text-sm text-texto-suave">
+              {a.local ?? ""}
+              {a.local && !extra ? " · " : ""}
+              {extra ? "" : `Previsto: ${numeroBR(a.qtd_planejada)} ${a.unidade}`}
+            </p>
+          )}
         </div>
         {/* Cor só depois de o banco confirmar: antes disso, cinza. */}
-        <Selo tom={estado.estado === "ocioso" || estado.estado === "salvo" ? TOM[status] : "neutro"}>
-          {ROTULO_STATUS_ATIVIDADE[status]}
-        </Selo>
+        <div className="flex flex-col items-end gap-1">
+          {a.tipo && <Selo tom="info">{ROTULO_TIPO[a.tipo]}</Selo>}
+          {!extra && (
+            <Selo tom={estado.estado === "ocioso" || estado.estado === "salvo" ? TOM[status] : "neutro"}>
+              {ROTULO_STATUS_ATIVIDADE[status]}
+            </Selo>
+          )}
+        </div>
       </div>
 
       <div className="flex items-end gap-2">
         <div className="flex-1">
-          <label htmlFor={`qtd-${a.id}`} className="text-sm font-medium">Executado ({a.unidade})</label>
+          <label htmlFor={`qtd-${a.id}`} className="text-sm font-medium">{extra ? "Feito" : "Executado"} ({a.unidade})</label>
           <input
             id={`qtd-${a.id}`}
             className={campoBase}
@@ -197,7 +210,7 @@ function ItemExecucao({
             onChange={(e) => atualizar(e.target.value, causa, obs)}
           />
         </div>
-        {!somenteLeitura && naoConcluida && (
+        {!somenteLeitura && !extra && naoConcluida && (
           <button
             type="button"
             aria-label={`Marcar como concluída: ${a.descricao}`}
@@ -211,7 +224,6 @@ function ItemExecucao({
       {qtdInvalida && <p className="text-sm text-perigo">Digite um número válido</p>}
 
       {naoConcluida && (
-        <>
           <div>
             <label htmlFor={`causa-${a.id}`} className="text-sm font-medium">Causa do não cumprimento</label>
             <select
@@ -227,6 +239,7 @@ function ItemExecucao({
               ))}
             </select>
           </div>
+      )}
           <div>
             <label htmlFor={`obs-${a.id}`} className="text-sm font-medium">Observação</label>
             <textarea
@@ -239,9 +252,7 @@ function ItemExecucao({
               onChange={(e) => atualizar(texto, causa, e.target.value)}
             />
           </div>
-          {erro && <p className="text-sm text-perigo">{erro}</p>}
-        </>
-      )}
+      {naoConcluida && erro && <p className="text-sm text-perigo">{erro}</p>}
       {!somenteLeitura && <IndicadorSalvo {...estado} onVerAtual={verAtual} nota={sincronia?.nota} />}
     </div>
   );

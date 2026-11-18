@@ -57,10 +57,10 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     // repetição com esperado antigo de um valor já gravado: sucesso, não conflito
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: "material", observacao: "x" }, r1.dados)).toEqual({
       ok: true,
-      dados: { qtd_realizada: 10, causa: null, observacao: null },
+      dados: { qtd_realizada: 10, causa: null, observacao: "x" },
     });
     t = await obterTurnoCompleto(u.cliente, turnoId);
-    expect(t?.atividades[0]).toMatchObject({ qtd_realizada: 10, causa: null, observacao: null });
+    expect(t?.atividades[0]).toMatchObject({ qtd_realizada: 10, causa: null, observacao: "x" });
 
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: -1, causa: null, observacao: null }, VAZIO)).toMatchObject({ ok: false });
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: "zz" as never, observacao: null }, VAZIO)).toMatchObject({ ok: false });

@@ -72,11 +72,11 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect(Number(data!.qtd_realizada)).toBe(3);
     expect(data!.causa).toBe("material");
 
-    // concluída limpa causa e devolve o que gravou (próximo esperado)
+    // concluída limpa causa, guarda a observação e devolve o que gravou (próximo esperado)
     const c2 = await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 10, causa: "material", observacao: "x" }, g1);
-    expect(c2).toEqual({ ok: true, dados: { qtd_realizada: 10, causa: null, observacao: null } });
+    expect(c2).toEqual({ ok: true, dados: { qtd_realizada: 10, causa: null, observacao: "x" } });
     const { data: d2 } = await admin.from("atividades").select("causa, observacao").eq("id", A.ids[0]).single();
-    expect(d2).toEqual({ causa: null, observacao: null });
+    expect(d2).toEqual({ causa: null, observacao: "x" });
     if (!c2.ok) throw new Error();
     expect((await salvarExecucao(A.token, A.ids[0], { qtd_realizada: 10, causa: null, observacao: null }, c2.dados)).ok).toBe(true);
 
@@ -127,12 +127,12 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect(await salvarExecucao(T.token, T.ids[0], dados, VAZIO)).toEqual({ ok: true, dados: gravado });
     // a tela não recebeu a resposta e repete com o esperado antigo
     expect(await salvarExecucao(T.token, T.ids[0], dados, VAZIO)).toEqual({ ok: true, dados: gravado });
-    // concluída: o banco guarda causa/observação nulas; repetir com texto também bate
+    // concluída: o banco guarda causa nula e a observação; repetir também bate
     const fim = { qtd_realizada: 10, causa: "clima" as const, observacao: "x" };
     expect((await salvarExecucao(T.token, T.ids[0], fim, gravado as never)).ok).toBe(true);
     expect(await salvarExecucao(T.token, T.ids[0], fim, gravado as never)).toEqual({
       ok: true,
-      dados: { qtd_realizada: 10, causa: null, observacao: null },
+      dados: { qtd_realizada: 10, causa: null, observacao: "x" },
     });
   });
 

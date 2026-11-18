@@ -16,7 +16,7 @@ export function tuplaExecucao(
 ): [number | string | null, Causa | null, string | null] {
   const concluida = typeof qtd === "number" && statusAtividade(qtd_planejada, qtd) === "concluida";
   const obs = observacao?.trim() ? observacao.trim() : null;
-  return [qtd, concluida || !causa ? null : causa, concluida ? null : obs];
+  return [qtd, concluida || !causa ? null : causa, obs];
 }
 
 /** Efetivo, independente da ordem das linhas. */

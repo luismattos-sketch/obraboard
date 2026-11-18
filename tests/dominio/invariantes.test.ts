@@ -90,8 +90,8 @@ describe("validação do planejador", () => {
 
 describe("assinaturas (local x servidor)", () => {
   it("execução: o que a tela envia equivale ao que o banco guarda", () => {
-    // concluída: banco limpa causa/observação
-    expect(tuplaExecucao(10, 10, "material", "x")).toEqual(tuplaExecucao(10, 10, null, null));
+    // concluída: banco limpa a causa e guarda a observação
+    expect(tuplaExecucao(10, 10, "material", "x")).toEqual(tuplaExecucao(10, 10, null, "x"));
     // parcial: observação aparada
     expect(tuplaExecucao(10, 4, "clima", "  chuva ")).toEqual([4, "clima", "chuva"]);
     expect(tuplaExecucao(10, null, "", "  ")).toEqual([null, null, null]);
