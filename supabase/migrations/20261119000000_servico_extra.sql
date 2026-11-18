@@ -212,3 +212,31 @@ drop trigger atividades_programacao_compativel on public.atividades;
 create trigger atividades_programacao_compativel
   before insert or update of programacao_atividade_id, turno_id, tipo on public.atividades
   for each row execute function public.tg_atividades_programacao_compativel();
+
+-- 7. Atividade puxada da semana (adiantada ou atrasada): o planejador pode remover enquanto o turno nao fecha.
+alter table public.atividades add column puxada boolean not null default false;
+
+-- 8. Reabrir a semana e editar uma atividade com adiantada/atrasada puxada: aceita a adiantada em qualquer dia
+--    e a atrasada puxada depois de algum dia marcado; as demais continuam presas aos dias marcados.
+create or replace function public.tg_programacao_dias_com_execucao()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if exists (
+    select 1
+      from public.atividades a
+      join public.turnos t on t.id = a.turno_id
+      join public.semanas s on s.id = new.semana_id
+     where a.programacao_atividade_id = new.id
+       and not (t.periodo = new.periodo
+                and (a.tipo is not distinct from 'adiantada'
+                     or (t.data - s.inicio)::smallint = any (new.dias)
+                     or (a.puxada and (t.data - s.inicio)::smallint > any (new.dias))))
+  ) then
+    raise exception 'programacao_incompativel' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;

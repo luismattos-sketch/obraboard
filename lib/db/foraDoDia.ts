@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   copiasParaAjustar,
+  podeRemoverPlanejador,
   opcoesParaPuxar,
   SEM_OPCOES,
   validarExtra,
@@ -95,6 +96,7 @@ export async function puxarDaSemana(
     responsavel_id: a.responsavel_id,
     criada_por_id: criadaPorId,
     tipo: modo === "adiantar" ? "adiantada" : null,
+    puxada: true,
   });
   if (!error || error.code === UNICIDADE) return ok(undefined);
   return traduzir(error, erroFechado);
@@ -158,13 +160,13 @@ export async function removerForaDoDia(
 ): Promise<Resultado> {
   const { data: at, error: ea } = await c
     .from("atividades")
-    .select("id, tipo, criada_por_id, foto_path")
+    .select("id, tipo, criada_por_id, foto_path, puxada")
     .eq("id", atividadeId)
     .eq("turno_id", turnoId)
     .maybeSingle();
   if (ea && ea.code !== "22P02") return traduzir(ea, erroFechado);
   if (!at) return ok(undefined);
-  if (criadaPorId !== null ? at.criada_por_id !== criadaPorId : !at.tipo && !at.criada_por_id) return falha(ERRO_NAO_SUA);
+  if (criadaPorId !== null ? at.criada_por_id !== criadaPorId : !podeRemoverPlanejador(at)) return falha(ERRO_NAO_SUA);
   const { error } = await c.from("atividades").delete().eq("id", atividadeId).eq("turno_id", turnoId);
   if (error) return traduzir(error, erroFechado);
   if (at.foto_path) await removerFoto(at.foto_path as string);

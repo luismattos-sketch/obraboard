@@ -135,5 +135,6 @@ describe("textos do planejador", () => {
     expect(podeRemoverPlanejador({ tipo: "extra", criada_por_id: null })).toBe(true);
     expect(podeRemoverPlanejador({ tipo: null, criada_por_id: "c" })).toBe(true);
     expect(podeRemoverPlanejador({ tipo: null, criada_por_id: null })).toBe(false);
+    expect(podeRemoverPlanejador({ tipo: null, criada_por_id: null, puxada: true })).toBe(true);
   });
 });

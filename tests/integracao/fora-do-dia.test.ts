@@ -10,10 +10,10 @@ import {
   salvarExecucao,
 } from "@/lib/db/campo";
 import { enviarFotoExtraCampo } from "@/lib/db/fotosParada";
-import { lancarExtraPlanejador, opcoesPuxarPlanejador, puxarPlanejador } from "@/lib/db/foraDoDia";
+import { lancarExtraPlanejador, opcoesPuxarPlanejador, puxarPlanejador, removerForaDoDiaPlanejador } from "@/lib/db/foraDoDia";
 import { ERRO_EXTRA_SEM_QTD } from "@/lib/db/mensagens";
 import { criarObra } from "@/lib/db/obras";
-import { criarRascunho, programarSemana, salvarAtividadeProgramada } from "@/lib/db/programacao";
+import { criarRascunho, programarSemana, reabrirSemana, salvarAtividadeProgramada } from "@/lib/db/programacao";
 import { criarResponsavel } from "@/lib/db/responsaveis";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -59,7 +59,7 @@ describe.skipIf(!ligado)("fora do dia (extra, adiantar, atrasada)", () => {
     await u.cliente.from("atividades").update({ responsavel_id: rita }).eq("id", avulsa.id);
     const l = await aplicarAcao(u.cliente, qua.id, "liberar");
     if (!l.ok || !l.dados.token) throw new Error("liberar");
-    return { obraId: obra.id, rita, carlos, pintura, andaime, cabos, turnoId: qua.id, token: l.dados.token };
+    return { obraId: obra.id, semanaId: semana.id, rita, carlos, pintura, andaime, cabos, turnoId: qua.id, token: l.dados.token };
   }
   const atividadesDo = async (turnoId: string) =>
     ((await criarClienteAdmin().from("atividades").select("*").eq("turno_id", turnoId)).data ?? []) as Record<string, unknown>[];
@@ -161,5 +161,27 @@ describe.skipIf(!ligado)("fora do dia (extra, adiantar, atrasada)", () => {
     const at = (await atividadesDo(c.turnoId)).find((a) => a.id === d.id)!;
     expect(String(at.foto_path)).toMatch(new RegExp(`/${c.turnoId}/extra-${d.id}\\.jpg$`));
     expect((await enviarFotoExtraCampo(c.token, d.id, c.rita, form)).ok).toBe(false);
+  });
+
+  it("semana reaberta: editar a atividade adiantada ou atrasada salva", { timeout: 90_000 }, async () => {
+    const c = await cenario();
+    exigir(await puxarCampo(c.token, c.pintura, "adiantar", c.rita));
+    exigir(await puxarCampo(c.token, c.andaime, "atrasada", c.rita));
+    exigir(await reabrirSemana(u.cliente, c.semanaId, "ajustar metas"));
+    exigir(await salvarAtividadeProgramada(u.cliente, c.semanaId, {
+      descricao: "Pintura", unidade: "m²", meta: 100, dias: [3, 4], periodo: "diurno", equipe: [], responsavel_id: c.rita,
+    }, c.pintura));
+    exigir(await salvarAtividadeProgramada(u.cliente, c.semanaId, {
+      descricao: "Andaime", unidade: "m³", meta: 12, dias: [0, 1], periodo: "diurno", equipe: [], responsavel_id: c.rita,
+    }, c.andaime));
+  });
+
+  it("planejador remove a atrasada que puxou por engano", { timeout: 90_000 }, async () => {
+    const c = await cenario();
+    exigir(await puxarPlanejador(u.cliente, c.turnoId, c.andaime, "atrasada"));
+    const at = (await atividadesDo(c.turnoId)).find((a) => a.programacao_atividade_id === c.andaime)!;
+    expect(at.puxada).toBe(true);
+    exigir(await removerForaDoDiaPlanejador(u.cliente, c.turnoId, at.id as string));
+    expect((await atividadesDo(c.turnoId)).some((a) => a.id === at.id)).toBe(false);
   });
 });

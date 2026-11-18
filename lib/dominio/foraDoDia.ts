@@ -144,5 +144,5 @@ export function seloDaAtividade(
 }
 
 /** O planejador remove pelo botão do cartão só o que foi lançado fora do planejamento. */
-export const podeRemoverPlanejador = (a: { tipo: TipoAtividade | null; criada_por_id: string | null }) =>
-  a.tipo !== null || a.criada_por_id !== null;
+export const podeRemoverPlanejador = (a: { tipo: TipoAtividade | null; criada_por_id: string | null; puxada?: boolean }) =>
+  a.tipo !== null || a.criada_por_id !== null || a.puxada === true;

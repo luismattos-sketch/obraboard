@@ -127,7 +127,8 @@ function ItemExecucao({
   // Extra não tem meta: o banco iguala o planejado ao que foi feito.
   const plan = extra ? (qtd !== null && qtd > 0 ? qtd : a.qtd_planejada) : a.qtd_planejada;
   const status = statusAtividade(plan, qtd);
-  const naoConcluida = !extra && status !== "concluida";
+  // Extra e adiantada não pedem causa (não contam no dia).
+  const naoConcluida = !a.tipo && status !== "concluida";
 
   const sincronia = useContext(ContextoSincronia);
   // O que o banco tem segundo esta tela; em série para um salvamento lento não gerar conflito falso.

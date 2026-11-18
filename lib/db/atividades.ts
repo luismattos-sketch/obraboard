@@ -24,10 +24,12 @@ export type Atividade = AtividadeExec & {
   criada_por_id: string | null;
   /** Foto do serviço extra (bucket privado). */
   foto_path: string | null;
+  /** Trazida da semana por "Adiantar"/"Continuar atrasada": o planejador pode remover até fechar. */
+  puxada: boolean;
 };
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, tipo, criada_por_id, foto_path";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, tipo, criada_por_id, foto_path, puxada";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 const ERRO_QTD_MAX = "Quantidade deve ser no máximo 1.000.000.000";
@@ -69,6 +71,7 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     tipo: (r.tipo as TipoAtividade | null) ?? null,
     criada_por_id: (r.criada_por_id as string | null) ?? null,
     foto_path: (r.foto_path as string | null) ?? null,
+    puxada: r.puxada === true,
   };
 }
 
