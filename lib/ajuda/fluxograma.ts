@@ -32,7 +32,7 @@ export const FLUXOGRAMA: FaseFluxo[] = [
       [
         { rotulo: "Novo turno", detalhe: "traz as atividades do dia", ator: "planejador", href: "/ajuda/check-in#novo-turno" },
         { rotulo: "Check-in", detalhe: "quem faz o quê, efetivo", ator: "planejador", href: "/ajuda/check-in#efetivo" },
-        { rotulo: "Liberar ao campo", detalhe: "envia o link", ator: "planejador", href: "/ajuda/check-in#liberar" },
+        { rotulo: "Liberar para campo", detalhe: "envia o link", ator: "planejador", href: "/ajuda/check-in#liberar" },
         { rotulo: "TV: check-in", ator: "tv", href: "/ajuda/quadro-tv#visoes" },
       ],
       [

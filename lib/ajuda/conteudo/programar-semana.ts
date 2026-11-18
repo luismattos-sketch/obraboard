@@ -6,10 +6,67 @@ export const programarSemana: Capitulo = {
   resumo: "Monte a programação da semana com meta, dias, equipe prevista e responsável de cada atividade.",
   noIndice: false,
   passos: [
-    { id: "abrir-programacao", titulo: "Abra a programação da semana", texto: [] },
-    { id: "adicionar-atividade", titulo: "Adicione as atividades", texto: [] },
-    { id: "programar", titulo: "Programe a semana", texto: [] },
-    { id: "acompanhar", titulo: "Acompanhe a semana", texto: [] },
-    { id: "reabrir", titulo: "Reabra a programação", texto: [] },
+    {
+      id: "abrir-programacao",
+      titulo: "Abra a programação da semana",
+      texto: [
+        "No menu lateral, clique em \"Programação\". A lista mostra as semanas da obra, da mais recente para a mais antiga, com a situação de cada uma (Rascunho, Programada, Aguardando encerramento ou Encerrada) e o PPC.",
+        "Clique em \"Programar próxima semana\" para começar a semana que vem. Para outra semana, escolha uma data em \"Data da semana\" e clique em \"Abrir semana\": o app usa a segunda-feira daquela semana.",
+      ],
+      captura: {
+        alt: "Lista de semanas da programação com os botões para abrir uma semana",
+        alvo: { papel: "button", nome: "Abrir semana" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "adicionar-atividade",
+      titulo: "Adicione as atividades",
+      texto: [
+        "A semana começa como rascunho. Em \"Nova atividade\", preencha a \"Descrição\", o \"Local (opcional)\", a \"Unidade\" e a \"Meta da semana\" (quanto deve ficar pronto até domingo).",
+        "Marque os \"Dias\" em que a atividade vai ser feita e o \"Período\" (Diurno ou Noturno). O app divide a meta pelos dias e mostra a sugestão diária.",
+        "Em \"Equipe prevista\", informe as funções e quantas pessoas de cada (\"Adicionar função\" para mais linhas). Escolha o \"Responsável\" pela atividade e clique em \"Adicionar atividade\".",
+      ],
+      dica: "Atividade sem responsável não trava nada, mas o app avisa. Com responsável, cada um vê só a sua parte no link de campo.",
+      captura: {
+        alt: "Formulário de nova atividade da semana com meta, dias, período e equipe prevista",
+        alvo: { papel: "button", nome: "Adicionar atividade" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "programar",
+      titulo: "Programe a semana",
+      texto: [
+        "Confira a lista em \"Atividades da semana\" (\"Editar\" ou \"Apagar\" em cada uma) e clique em \"Programar semana\".",
+        "A partir daí a semana fica Programada: cada turno novo daquela semana já vem com as atividades do dia e a quantidade sugerida.",
+      ],
+      captura: {
+        alt: "Rascunho da semana com a lista de atividades e o botão Programar semana",
+        alvo: { papel: "button", nome: "Programar semana" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "acompanhar",
+      titulo: "Acompanhe a semana",
+      texto: [
+        "Com a semana programada, a mesma tela mostra o PPC da semana (provisório até encerrar) e, por atividade, a meta, o realizado, o saldo e a situação: Cumprida, Em andamento ou Sem execução.",
+        "Também aparecem as atividades \"Fora da programação (extra)\" lançadas nos turnos e o quadro \"Efetivo previsto × real\" por dia, período e função.",
+      ],
+      captura: {
+        alt: "Semana programada com PPC provisório, atividades e efetivo previsto × real",
+        alvo: { papel: "heading", nome: "Efetivo previsto × real" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "reabrir",
+      titulo: "Reabra a programação",
+      texto: [
+        "Precisa mudar algo numa semana já programada? Clique em \"Reabrir programação\", informe o motivo e confirme. Edite as atividades e clique em \"Programar semana\" de novo.",
+        "O que já foi lançado nos turnos continua ligado às atividades.",
+      ],
+    },
   ],
 };
