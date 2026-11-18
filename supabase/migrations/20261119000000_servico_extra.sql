@@ -214,7 +214,7 @@ create trigger atividades_programacao_compativel
   for each row execute function public.tg_atividades_programacao_compativel();
 
 -- 7. Atividade puxada da semana (adiantada ou atrasada): o planejador pode remover enquanto o turno nao fecha.
-alter table public.atividades add column puxada boolean not null default false;
+alter table public.atividades add column if not exists puxada boolean not null default false;
 
 -- 8. Reabrir a semana e editar uma atividade com adiantada/atrasada puxada: aceita a adiantada em qualquer dia
 --    e a atrasada puxada depois de algum dia marcado; as demais continuam presas aos dias marcados.
