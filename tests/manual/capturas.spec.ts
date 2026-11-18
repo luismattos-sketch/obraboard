@@ -1,7 +1,7 @@
 // Roteiro das capturas do manual: monta a obra de exemplo e fotografa cada passo de lib/ajuda/.
 // Rodar: SUPABASE_TEST=1 npm run manual:capturas   (um capítulo só: MANUAL_CAPITULO=check-in ...)
 import { devices, expect, test, type Browser, type Page } from "@playwright/test";
-import { programarSemana, salvarAtividadeProgramada, obterSemana } from "@/lib/db/programacao";
+import { salvarAtividadeProgramada, obterSemana } from "@/lib/db/programacao";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { diaDaSemana, type DiaSemana } from "@/lib/dominio/programacao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
