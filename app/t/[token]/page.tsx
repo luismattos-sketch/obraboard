@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
 import Link from "next/link";
-import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo, responsaveisDoTurno } from "@/lib/db/campo";
+import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo, opcoesPuxarCampo, responsaveisDoTurno } from "@/lib/db/campo";
 import { resolverEscolhaCampo } from "@/lib/dominio/quadro";
 import { EscolhaResponsavel } from "./EscolhaResponsavel";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
@@ -46,6 +46,8 @@ export default async function PaginaCampo({
   const atual = escolha.modo === "responsavel" ? responsaveis.find((x) => x.id === escolha.id) ?? null : null;
   const daEquipe = <T extends { responsavel_id: string | null }>(xs: T[]) =>
     atual ? xs.filter((x) => x.responsavel_id === atual.id) : xs;
+  const abertoCampo = turno.status === "em_campo" || turno.status === "enviado";
+  const opcoesPuxar = atual && abertoCampo ? await opcoesPuxarCampo(turno, atual.id) : undefined;
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6">
@@ -74,6 +76,7 @@ export default async function PaginaCampo({
             opcoesFuncao={opcoesFuncao}
             responsaveis={responsaveis}
             responsavelId={atual?.id ?? null}
+            opcoesPuxar={opcoesPuxar}
             turno={{
               status: turno.status,
               data: turno.data,

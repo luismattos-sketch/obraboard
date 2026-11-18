@@ -1,6 +1,6 @@
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { horaCurta, type Ocorrencia } from "./efetivoHH";
-import { ROTULO_PERIODO } from "./formato";
+import { numeroBR, ROTULO_PERIODO } from "./formato";
 import { CAUSAS, type Periodo } from "./tipos";
 
 /** Aviso ao planejador pelo WhatsApp: só um link wa.me com a mensagem pronta (o app do aparelho envia). */
@@ -44,4 +44,8 @@ export function mensagemRetomada(p: Contexto & { o: Ocorrencia }): string {
 
 export function mensagemTerminou(p: Contexto & { hora: string }): string {
   return `✓ ${p.equipe} terminou a parte da equipe às ${horaCurta(p.hora)} — ${onde(p)}`;
+}
+
+export function mensagemExtra(p: Contexto & { descricao: string; qtd: number; unidade: string }): string {
+  return `➕ Extra — ${onde(p)}\n${p.equipe}: ${p.descricao} — ${numeroBR(p.qtd)} ${p.unidade}`;
 }

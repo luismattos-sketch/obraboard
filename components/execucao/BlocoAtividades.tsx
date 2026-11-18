@@ -67,9 +67,14 @@ type Props = {
   erros?: Record<string, string>;
   /** Agrupa por responsável: subtítulo antes da 1ª atividade de cada grupo (na ordem recebida). */
   grupoDe?: (a: Atividade) => string | null;
+  /** Linha "lançado por você" / "lançado pelo campo — Nome" (null = nada). */
+  autorDe?: (a: Atividade) => string | null;
+  /** Botão "Remover" nas atividades que `podeRemover` aceitar. */
+  remover?: (a: Atividade) => void;
+  podeRemover?: (a: Atividade) => boolean;
 };
 
-export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, erros = {}, grupoDe }: Props) {
+export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, erros = {}, grupoDe, autorDe, remover, podeRemover }: Props) {
   return (
     <section aria-labelledby="titulo-atividades" className="flex flex-col gap-3">
       <h2 id="titulo-atividades" className="text-lg font-semibold text-primaria">Atividades</h2>
@@ -85,6 +90,8 @@ export function BlocoAtividades({ atividades, somenteLeitura, salvar, onMudar, e
             erro={erros[a.id]}
             salvar={salvar}
             onMudar={onMudar}
+            autor={autorDe?.(a) ?? null}
+            remover={!somenteLeitura && remover && podeRemover?.(a) ? () => remover(a) : undefined}
           />
         </Sincronizar>
         </Fragment>
@@ -99,12 +106,16 @@ function ItemExecucao({
   erro,
   salvar,
   onMudar,
+  autor,
+  remover,
 }: {
   atividade: Atividade;
   somenteLeitura?: boolean;
   erro?: string;
   salvar: Props["salvar"];
   onMudar?: MudarExecucao;
+  autor?: string | null;
+  remover?: () => void;
 }) {
   const [texto, setTexto] = useState(a.qtd_realizada === null ? "" : String(a.qtd_realizada).replace(".", ","));
   const [causa, setCausa] = useState<Causa | "">(a.causa ?? "");
@@ -177,6 +188,7 @@ function ItemExecucao({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium">{a.descricao}</p>
+          {autor && <p className="text-sm text-texto-suave">{autor}</p>}
           {(a.local || !extra) && (
             <p className="text-sm text-texto-suave">
               {a.local ?? ""}
@@ -254,6 +266,11 @@ function ItemExecucao({
           </div>
       {naoConcluida && erro && <p className="text-sm text-perigo">{erro}</p>}
       {!somenteLeitura && <IndicadorSalvo {...estado} onVerAtual={verAtual} nota={sincronia?.nota} />}
+      {remover && (
+        <button type="button" className="self-start text-sm text-texto-suave underline" onClick={remover}>
+          Remover
+        </button>
+      )}
     </div>
   );
 }

@@ -21,8 +21,12 @@ import {
   desfazerTerminou,
   encerrarParada,
   enviarFotoParada,
+  enviarFotoExtra,
   enviarTurno,
+  lancarExtra,
   marcarTerminou,
+  puxarDaSemana,
+  removerForaDoDia,
   limparClima,
   removerOcorrencia,
   salvarClima,
@@ -38,6 +42,9 @@ import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
 import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
+import { ForaDoDia } from "@/components/execucao/ForaDoDia";
+import { SEM_OPCOES, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
+import { mensagemExtra } from "@/lib/dominio/whatsapp";
 
 export type DadosTurnoCampo = {
   status: StatusTurno;
@@ -67,11 +74,14 @@ export function FormularioCampo({
   opcoesFuncao,
   responsaveis = [],
   responsavelId = null,
+  opcoesPuxar = SEM_OPCOES,
 }: {
   token: string;
   turno: DadosTurnoCampo;
   opcoesFuncao: string[];
   responsaveis?: ResponsavelRef[];
+  /** Adiantar / atrasada do responsável escolhido. */
+  opcoesPuxar?: OpcoesPuxar;
   /** Responsável escolhido no link (null = "Ver tudo"): sem botão Enviar. */
   responsavelId?: string | null;
 }) {
@@ -153,6 +163,19 @@ export function FormularioCampo({
     }
   }
 
+  const [erroRemover, setErroRemover] = useState<string | null>(null);
+  async function removerLancamento(id: string) {
+    if (responsavelId === null || !window.confirm("Remover este lançamento?")) return;
+    setErroRemover(null);
+    try {
+      const r = await removerForaDoDia(token, id, responsavelId);
+      if (!r.ok) setErroRemover(r.erro);
+      else router.refresh();
+    } catch {
+      setErroRemover("Sem conexão — tente de novo.");
+    }
+  }
+
   const erros = errosDeCausa(atividades);
   const pendentes = atividades.filter((a) => erros[a.id]);
 
@@ -208,7 +231,22 @@ export function FormularioCampo({
         salvar={(id, d, esperado) => salvarExecucao(token, id, d, esperado, responsavelId)}
         onMudar={mudar}
         erros={erros}
+        autorDe={(a) => (a.criada_por_id && a.criada_por_id === responsavelId ? "lançado por você" : a.criada_por_id ? `lançado pelo campo — ${nomeEquipe(a.criada_por_id)}` : null)}
+        podeRemover={(a) => responsavelId !== null && a.criada_por_id === responsavelId}
+        remover={(a) => void removerLancamento(a.id)}
       />
+      {erroRemover && <Aviso tom="perigo">{erroRemover}</Aviso>}
+      {!somenteLeitura && responsavelId !== null && (
+        <ForaDoDia
+          adiantar={opcoesPuxar.adiantar}
+          atrasadas={opcoesPuxar.atrasadas}
+          puxar={(id, modo) => puxarDaSemana(token, id, modo, responsavelId)}
+          lancarExtra={(d) => lancarExtra(token, d, responsavelId)}
+          enviarFoto={(id, form) => enviarFotoExtra(token, id, responsavelId, form)}
+          linkWhats={(d) => linkWhatsapp(turno.whatsapp, mensagemExtra({ ...contexto, equipe: nomeEquipe(responsavelId), descricao: d.descricao, qtd: d.qtd, unidade: d.unidade }))}
+          aoConcluir={() => router.refresh()}
+        />
+      )}
       <EfetivoPorEquipe
         obraId=""
         responsaveis={responsaveis}
