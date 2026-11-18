@@ -160,7 +160,7 @@ Veja as Dúvidas comuns." Nada guardado no navegador.
   `npm run test:e2e` (é lento e reescreve imagens); a regra do AGENTS.md manda rodá-lo em todo PR que muda tela.
 - **Datas variam entre rodadas** *(decisão do Claude)*: a obra de exemplo é criada na hora, então datas, semana e
   número do RDO mudam a cada execução e as imagens mudam junto. Aceito: não se força data no servidor. Para reduzir
-  ruído, o roteiro aceita rodar só um capítulo (`npm run manual:capturas -- --grep <capitulo>`), e o PR commita só
+  ruído, o roteiro aceita gravar só um capítulo (`MANUAL_CAPITULO=<capitulo> npm run manual:capturas`; os demais alvos continuam sendo validados), e o PR commita só
   as imagens dos capítulos afetados.
 
 ## Restrições

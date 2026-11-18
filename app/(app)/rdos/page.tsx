@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BaixarLote } from "@/components/rdo/BaixarLote";
 import { FiltrosRdo } from "@/components/rdo/FiltrosRdo";
 import { ListaRdos } from "@/components/rdo/ListaRdos";
@@ -33,7 +34,10 @@ export default async function RdosPage({
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <h1 className="text-titulo font-semibold text-primaria">RDOs</h1>
+      <div className="flex items-start justify-between gap-2">
+        <h1 className="text-titulo font-semibold text-primaria">RDOs</h1>
+        <BotaoAjuda tela="rdos" />
+      </div>
       {itens === null ? (
         <Aviso tom="perigo">Não foi possível carregar os RDOs. Tente novamente.</Aviso>
       ) : (

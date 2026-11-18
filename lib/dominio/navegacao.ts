@@ -45,3 +45,6 @@ export function etapaDoCaminho(caminho: string): Etapa | null {
 /** Ao trocar de obra no menu suspenso, continua na mesma etapa (ou na lista de turnos). */
 export const caminhoAoTrocarObra = (caminho: string, novaObraId: string) =>
   caminhoEtapa(novaObraId, etapaDoCaminho(caminho) ?? "turnos");
+
+/** Item "Ajuda" do menu ativo em /ajuda e nos capítulos (/ajuda/...). */
+export const naAjuda = (caminho: string) => caminho === "/ajuda" || caminho.startsWith("/ajuda/");

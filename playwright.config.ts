@@ -24,7 +24,17 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   // Um único projeto: o contexto móvel (Pixel 7) do encarregado é criado dentro do teste.
-  projects: [{ name: "Desktop Chrome", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "Desktop Chrome", testDir: "./tests/e2e", use: { ...devices["Desktop Chrome"] } },
+    // Roteiro das capturas do manual (npm run manual:capturas): fora do test:e2e, reescreve public/ajuda/.
+    {
+      name: "manual",
+      testDir: "./tests/manual",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 }, actionTimeout: 30_000,
+        locale: "pt-BR", timezoneId: "America/Sao_Paulo", trace: "off",
+        launchOptions: { args: ["--lang=pt-BR"] } },
+    },
+  ],
   webServer: {
     command: "npm run dev",
     url: "http://127.0.0.1:3000",

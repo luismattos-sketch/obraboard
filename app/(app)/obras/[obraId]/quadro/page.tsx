@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AtualizarPeriodicamente } from "@/components/quadro/AtualizarPeriodicamente";
@@ -22,7 +23,10 @@ export default async function QuadroPlanejador({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <Link href={`/obras/${obra.id}`} className="text-sm text-operacional underline">← {obra.nome}</Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link href={`/obras/${obra.id}`} className="text-sm text-operacional underline">← {obra.nome}</Link>
+        <BotaoAjuda tela="quadro" />
+      </div>
       {q ? (
         <>
           <Quadro {...q.props} publico={false} editarHref={`/obras/${obra.id}/turnos/${q.turnoId}`} />

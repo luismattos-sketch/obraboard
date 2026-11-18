@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
+import { ComoUsarCampo } from "@/components/ajuda/ComoUsarCampo";
 import Link from "next/link";
 import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo, opcoesPuxarCampo, responsaveisDoTurno } from "@/lib/db/campo";
 import { resolverEscolhaCampo } from "@/lib/dominio/quadro";
@@ -57,6 +58,7 @@ export default async function PaginaCampo({
           {formatarData(turno.data)} · {ROTULO_PERIODO[turno.periodo]}
         </p>
       </header>
+      <ComoUsarCampo />
       {turno.status === "fechado" && <Aviso tom="info">Turno fechado pelo planejador</Aviso>}
       {turno.status === "planejado" && <Aviso tom="alerta">{ERRO_FECHADO}</Aviso>}
       {escolha.modo === "escolher" ? (

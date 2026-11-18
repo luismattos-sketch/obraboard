@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Aviso } from "@/components/ui/Aviso";
@@ -57,7 +58,10 @@ export default async function AnalisePage({
           <Link href={`/obras/${obra.id}`} className="text-sm text-texto-suave hover:underline">
             ← {obra.nome}
           </Link>
-          <h1 className="text-titulo font-semibold text-primaria">Análise (PPC)</h1>
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-titulo font-semibold text-primaria">Análise (PPC)</h1>
+            <BotaoAjuda tela="analise" />
+          </div>
         </div>
         <nav aria-label="Período" className="flex overflow-hidden rounded-botao border border-borda bg-superficie text-sm">
           {OPCOES.map((o) => (
