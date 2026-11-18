@@ -25,6 +25,8 @@ import { Resumo } from "./Resumo";
 import { FaixaParadas } from "./FaixaParadas";
 import { urlsFotos } from "@/lib/db/fotosParada";
 import { paradasAbertas } from "@/lib/dominio/efetivoHH";
+import { opcoesPuxarPlanejador } from "@/lib/db/foraDoDia";
+import { SEM_OPCOES } from "@/lib/dominio/foraDoDia";
 
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
@@ -44,6 +46,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const efetivo = turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id }));
   const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
   const fotos = await urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
+  const opcoesPuxar =
+    turno.status === "em_campo" || turno.status === "enviado" ? await opcoesPuxarPlanejador(supabase, turno.id).catch(() => SEM_OPCOES) : SEM_OPCOES;
 
   return (
     <div className="flex flex-col gap-4">
@@ -140,6 +144,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 intervalo={intervaloDoTurno(turno)}
                 contexto={{ obra: turno.obra.nome, data: turno.data, periodo: turno.periodo, whatsapp: turno.obra.whatsapp_planejador ?? null }}
                 fotos={fotos}
+                opcoesPuxar={opcoesPuxar}
               />
             </>
           )}

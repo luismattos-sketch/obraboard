@@ -11,7 +11,9 @@ import {
 } from "@/lib/db/execucao";
 import type { Janela } from "@/lib/dominio/efetivoHH";
 import { criarOcorrenciaPlanejador, encerrarParadaPlanejador, removerOcorrenciaPlanejador } from "@/lib/db/ocorrencias";
-import { enviarFotoParadaPlanejador } from "@/lib/db/fotosParada";
+import { enviarFotoExtraPlanejador, enviarFotoParadaPlanejador } from "@/lib/db/fotosParada";
+import { lancarExtraPlanejador, puxarPlanejador, removerForaDoDiaPlanejador } from "@/lib/db/foraDoDia";
+import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { lerOcorrencias, lerTerminados, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
@@ -81,4 +83,20 @@ export async function paradasDoTurnoAcao(turnoId: string): Promise<Resultado<{ a
   ]);
   if (a.error || t.error) return falha("Não foi possível atualizar.");
   return ok({ abertas: lerOcorrencias(a.data), terminados: lerTerminados(t.data) });
+}
+
+export async function puxarDaSemanaAcao(turnoId: string, programacaoAtividadeId: string, modo: ModoPuxar) {
+  return comRevalidacao(turnoId, (c) => puxarPlanejador(c, turnoId, programacaoAtividadeId, modo));
+}
+
+export async function lancarExtraAcao(turnoId: string, dados: DadosExtra) {
+  return comRevalidacao(turnoId, (c) => lancarExtraPlanejador(c, turnoId, dados));
+}
+
+export async function removerForaDoDiaAcao(turnoId: string, atividadeId: string) {
+  return comRevalidacao(turnoId, (c) => removerForaDoDiaPlanejador(c, turnoId, atividadeId));
+}
+
+export async function enviarFotoExtraAcao(turnoId: string, atividadeId: string, form: FormData) {
+  return comRevalidacao(turnoId, (c) => enviarFotoExtraPlanejador(c, turnoId, atividadeId, form));
 }

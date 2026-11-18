@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { lerOcorrencias, lerTerminados } from "@/lib/dominio/efetivoHH";
 import type { EntradaQuadro, ResponsavelRef, TurnoRef } from "@/lib/dominio/quadro";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
-import type { Causa, Periodo, StatusTurno } from "@/lib/dominio/tipos";
+import type { Causa, Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { falha, ok, type Resultado } from "./resultado";
 
@@ -22,7 +22,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
   const { data, error } = await c
     .from("turnos")
     .select(
-      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)",
+      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id, tipo), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)",
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -51,6 +51,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     causa: (a.causa as Causa | null) ?? null,
     programada: a.programacao_atividade_id !== null && a.programacao_atividade_id !== undefined,
     responsavel_id: (a.responsavel_id as string | null) ?? null,
+    tipo: (a.tipo as TipoAtividade | null) ?? null,
   }));
   const efetivo: EntradaQuadro["efetivo"] = [...(t.efetivo ?? [])]
     .sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)) || String(x.id).localeCompare(String(y.id)))

@@ -80,13 +80,13 @@ export function validarExecucao(dados: DadosExecucao): Resultado {
   return ok(undefined);
 }
 
-/** Atividade concluída não guarda causa nem observação. */
+/** Atividade concluída não guarda causa (a observação fica). */
 export function camposExecucao(concluida: boolean, dados: DadosExecucao) {
   const observacao = dados.observacao?.trim() ? dados.observacao.trim() : null;
   return {
     qtd_realizada: dados.qtd_realizada,
     causa: concluida ? null : dados.causa,
-    observacao: concluida ? null : observacao,
+    observacao,
   };
 }
 

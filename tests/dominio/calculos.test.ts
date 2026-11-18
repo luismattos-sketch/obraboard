@@ -84,3 +84,20 @@ describe("saldoPendente", () => {
     expect(saldoPendente(10, null)).toBe(10);
   });
 });
+
+describe("cumprimento fora do dia", () => {
+  it("cumprimento ignora extra e adiantada", () => {
+    expect(
+      percentualCumprimento([
+        { qtd_planejada: 10, qtd_realizada: 10, tipo: null },
+        { qtd_planejada: 10, qtd_realizada: 4, tipo: null },
+        { qtd_planejada: 12, qtd_realizada: 12, tipo: "extra" },
+        { qtd_planejada: 3, qtd_realizada: 3, tipo: "extra" },
+        { qtd_planejada: 40, qtd_realizada: null, tipo: "adiantada" },
+      ]),
+    ).toBe(0.5);
+  });
+  it("só extras: sem cumprimento", () => {
+    expect(percentualCumprimento([{ qtd_planejada: 12, qtd_realizada: 12, tipo: "extra" }])).toBeNull();
+  });
+});

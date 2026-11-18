@@ -81,6 +81,10 @@ export const FUNCOES_SUGERIDAS = [
   "Operador",
 ];
 
+/** Atividade fora do dia: 'extra' (fora da programação) ou 'adiantada' (de dia futuro da semana). */
+export type TipoAtividade = "extra" | "adiantada";
+export const ROTULO_TIPO: Record<TipoAtividade, string> = { extra: "Extra", adiantada: "Adiantada" };
+
 export type AtividadeExec = {
   id: string;
   descricao: string;
@@ -88,6 +92,8 @@ export type AtividadeExec = {
   qtd_realizada: number | null;
   causa: Causa | null;
   observacao: string | null;
+  /** null/ausente = atividade normal do dia (conta no cumprimento e exige causa). */
+  tipo?: TipoAtividade | null;
 };
 
 /** Lançamento de execução de uma atividade (encarregado e planejador). */

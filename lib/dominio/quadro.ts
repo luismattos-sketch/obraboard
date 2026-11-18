@@ -13,7 +13,7 @@ import {
   type Terminado,
 } from "./efetivoHH";
 import { compararTurnos } from "./regras";
-import type { Causa, Periodo, StatusAtividade, StatusTurno } from "./tipos";
+import type { Causa, Periodo, StatusAtividade, StatusTurno, TipoAtividade } from "./tipos";
 
 /** Quadro de check-in/check-out: puro, a partir de um único formato de entrada (também a foto do check-in). */
 
@@ -45,6 +45,8 @@ export type EntradaQuadro = {
     causa: Causa | null;
     programada: boolean;
     responsavel_id: string | null;
+    /** Ausente em fotos antigas (= regra antiga: programadas contam, avulsas são extra). */
+    tipo?: TipoAtividade | null;
   }[];
   efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[];
   /** Ausente na foto do check-in antiga (= nenhuma). */
@@ -58,6 +60,7 @@ export type ResumoEquipe = {
   total: number;
   percentual: number | null;
   extras: number;
+  adiantadas: number;
   base: "programadas" | "todas";
   pessoas: number;
   /** HH total da equipe (produtivo + parado), 1 casa. */
@@ -88,8 +91,13 @@ export function resumoEquipe(
   /** HH já calculado com as ocorrências do turno; ausente = só o efetivo da faixa. */
   hhEquipe?: HHEquipe,
 ): ResumoEquipe {
-  const base = temProgramadaNoTurno ? "programadas" : "todas";
-  const contadas = temProgramadaNoTurno ? faixa.atividades.filter((a) => a.programada) : faixa.atividades;
+  const comMarca = faixa.atividades.some((a) => a.tipo !== undefined);
+  const contadas = comMarca
+    ? faixa.atividades.filter((a) => !a.tipo)
+    : temProgramadaNoTurno
+      ? faixa.atividades.filter((a) => a.programada)
+      : faixa.atividades;
+  const base = temProgramadaNoTurno && contadas.every((a) => a.programada) ? "programadas" : "todas";
   const concluidas = contadas.filter((a) => statusAtividade(a.qtd_planejada, a.qtd_realizada) === "concluida").length;
   const h =
     hhEquipe ??
@@ -105,7 +113,12 @@ export function resumoEquipe(
     concluidas,
     total: contadas.length,
     percentual: contadas.length === 0 ? null : concluidas / contadas.length,
-    extras: temProgramadaNoTurno ? faixa.atividades.length - contadas.length : 0,
+    extras: comMarca
+      ? faixa.atividades.filter((a) => a.tipo === "extra").length
+      : temProgramadaNoTurno
+        ? faixa.atividades.length - contadas.length
+        : 0,
+    adiantadas: faixa.atividades.filter((a) => a.tipo === "adiantada").length,
     base,
     pessoas: faixa.efetivo.reduce((s, e) => s + e.quantidade, 0),
     hh: total === null || (total === 0 && !h?.recebidos.length && faixa.efetivo.length === 0) ? null : umaCasa(total),

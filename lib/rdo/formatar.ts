@@ -1,4 +1,5 @@
 import { numeroBR } from "@/lib/dominio/formato";
+import { ROTULO_TIPO, type TipoAtividade } from "@/lib/dominio/tipos";
 
 const FUSO = "America/Sao_Paulo";
 
@@ -18,3 +19,7 @@ export function dataHoraCurta(d: Date): string {
 
 /** Quantidade realizada: nula (não apontada) aparece como "—", nunca "0". */
 export const qtdRealizada = (q: number | null, unidade: string) => (q === null ? "—" : `${numeroBR(q)} ${unidade}`);
+
+/** Descrição no RDO com a marca do tipo: "Extra · Troca de iluminação". */
+export const descricaoComTipo = (a: { descricao: string; tipo?: TipoAtividade | null }) =>
+  a.tipo ? `${ROTULO_TIPO[a.tipo]} · ${a.descricao}` : a.descricao;

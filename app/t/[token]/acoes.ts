@@ -2,6 +2,9 @@
 
 import {
   enviarTurnoCampo,
+  lancarExtraCampo,
+  puxarCampo,
+  removerForaDoDiaCampo,
   removerClima as dbRemoverClima,
   salvarClima as dbSalvarClima,
   salvarEfetivo as dbSalvarEfetivo,
@@ -9,7 +12,8 @@ import {
   salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
 import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
-import { enviarFotoParadaCampo } from "@/lib/db/fotosParada";
+import { enviarFotoExtraCampo, enviarFotoParadaCampo } from "@/lib/db/fotosParada";
+import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -75,4 +79,20 @@ export async function desfazerTerminou(token: string, responsavelId: string) {
 
 export async function enviarFotoParada(token: string, ocorrenciaId: string, responsavelId: string | null, form: FormData) {
   return enviarFotoParadaCampo(token, ocorrenciaId, responsavelId, form);
+}
+
+export async function puxarDaSemana(token: string, programacaoAtividadeId: string, modo: ModoPuxar, responsavelId: string) {
+  return puxarCampo(token, programacaoAtividadeId, modo, responsavelId);
+}
+
+export async function lancarExtra(token: string, dados: DadosExtra, responsavelId: string) {
+  return lancarExtraCampo(token, dados, responsavelId);
+}
+
+export async function removerForaDoDia(token: string, atividadeId: string, responsavelId: string) {
+  return removerForaDoDiaCampo(token, atividadeId, responsavelId);
+}
+
+export async function enviarFotoExtra(token: string, atividadeId: string, responsavelId: string, form: FormData) {
+  return enviarFotoExtraCampo(token, atividadeId, responsavelId, form);
 }

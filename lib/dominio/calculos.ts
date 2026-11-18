@@ -1,4 +1,7 @@
-import type { AtividadeExec, StatusAtividade } from "./tipos";
+import type { AtividadeExec, StatusAtividade, TipoAtividade } from "./tipos";
+
+/** Atividade normal do dia (extra e adiantada ficam fora do cumprimento e não exigem causa). */
+export const contaNoDia = (a: { tipo?: TipoAtividade | null }) => !a.tipo;
 
 export function statusAtividade(
   qtd_planejada: number,
@@ -8,10 +11,11 @@ export function statusAtividade(
   return qtd_realizada >= qtd_planejada ? "concluida" : "parcial";
 }
 
-/** Fração (0..1) de atividades concluídas; null sem atividades. */
+/** Fração (0..1) de atividades do dia concluídas (sem extra/adiantada); null sem atividades. */
 export function percentualCumprimento(
-  atividades: Pick<AtividadeExec, "qtd_planejada" | "qtd_realizada">[],
+  todas: Pick<AtividadeExec, "qtd_planejada" | "qtd_realizada" | "tipo">[],
 ): number | null {
+  const atividades = todas.filter(contaNoDia);
   if (atividades.length === 0) return null;
   const concluidas = atividades.filter(
     (a) => statusAtividade(a.qtd_planejada, a.qtd_realizada) === "concluida",

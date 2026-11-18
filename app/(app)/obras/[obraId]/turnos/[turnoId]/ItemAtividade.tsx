@@ -7,6 +7,7 @@ import type { Atividade } from "@/lib/db/atividades";
 import { Selo } from "@/components/ui/Selo";
 import { numeroBR } from "@/lib/dominio/formato";
 import type { StatusSemana } from "@/lib/dominio/programacao";
+import { seloDaAtividade } from "@/lib/dominio/foraDoDia";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
 import {
@@ -83,6 +84,7 @@ export function ItemAtividade({
   const [editando, setEditando] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [trocando, setTrocando] = useState(false);
+  const selo = seloDaAtividade(a, semanaStatus);
 
   async function trocarResponsavel(id: string | null) {
     setTrocando(true);
@@ -118,11 +120,7 @@ export function ItemAtividade({
       <div>
         <p className="flex flex-wrap items-center gap-2 font-medium text-texto">
           {a.descricao}
-          {a.programacao_atividade_id ? (
-            <Selo tom="info">Programada</Selo>
-          ) : (
-            (semanaStatus === "programada" || semanaStatus === "encerrada") && <Selo tom="alerta">Extra</Selo>
-          )}
+          {selo && <Selo tom={selo.tom}>{selo.texto}</Selo>}
         </p>
         <p className="text-sm text-texto-suave">
           {a.local ? `${a.local} · ` : ""}

@@ -5,7 +5,7 @@ import type { Causa } from "@/lib/dominio/tipos";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 
 const at = (id: string, p: number, r: number | null, causa: Causa | null = null, ordem = 0) =>
-  ({ id, turno_id: "t", ordem, descricao: `A${id}`, local: null, unidade: "m", qtd_planejada: p, qtd_realizada: r, causa, observacao: null, origem_id: null, programacao_atividade_id: null, responsavel_id: null, lancado_por_id: null });
+  ({ id, turno_id: "t", ordem, descricao: `A${id}`, local: null, unidade: "m", qtd_planejada: p, qtd_realizada: r, causa, observacao: null, origem_id: null, programacao_atividade_id: null, responsavel_id: null, lancado_por_id: null, tipo: null, criada_por_id: null, foto_path: null, puxada: false });
 
 function turno(over: Partial<TurnoCompleto> = {}): TurnoCompleto {
   return {
@@ -68,5 +68,17 @@ describe("formatação", () => {
     expect(formatarPercentual(0.25)).toBe("25%");
     expect(formatarPercentual(null)).toBe("—");
     expect(formatarData("2026-11-08")).toBe("08/11/2026");
+  });
+});
+
+describe("resumirTurno com extra e adiantada", () => {
+  it("conta extras e adiantadas", () => {
+    const r = resumirTurno(turno({
+      atividades: [at("1", 10, 10), at("2", 10, 4, "material"), { ...at("3", 12, 12), tipo: "extra" }, { ...at("4", 40, null), tipo: "adiantada" }],
+    }));
+    expect(r.cumprimento).toBe(0.5);
+    expect(r.extras).toBe(1);
+    expect(r.adiantadas).toBe(1);
+    expect(r.restricoesPorCausa.flatMap((x) => x.atividades)).toEqual(["A2"]);
   });
 });

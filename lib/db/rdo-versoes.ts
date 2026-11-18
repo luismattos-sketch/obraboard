@@ -1,13 +1,26 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { percentualCumprimento } from "@/lib/dominio/calculos";
 import { lerEmPaginas, type ItemVersao } from "@/lib/dominio/historico-rdo";
-import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
+import type { Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
 import type { VersaoRdo } from "@/lib/rdo/versao";
 
 const UUID_INVALIDO = "22P02";
 /** Linhas por pedido (o limite padrão da API do Supabase é 1000). */
 const PAGINA = 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type AtividadeDaFoto = { qtd_planejada: number | string; qtd_realizada: number | string | null; tipo?: TipoAtividade | null };
+
+/** % de cumprimento a partir das atividades da foto oficial (mesma regra do PDF: sem extra/adiantada). */
+export function percentualDaFoto(atividades: AtividadeDaFoto[] | null): number | null {
+  return percentualCumprimento(
+    (atividades ?? []).map((a) => ({
+      qtd_planejada: Number(a.qtd_planejada),
+      qtd_realizada: a.qtd_realizada === null ? null : Number(a.qtd_realizada),
+      tipo: a.tipo ?? null,
+    })),
+  );
+}
 
 type LinhaLista = {
   id: string;
@@ -19,7 +32,7 @@ type LinhaLista = {
   data: string;
   periodo: Periodo;
   obra_nome: string;
-  atividades: { qtd_planejada: number | string; qtd_realizada: number | string | null }[] | null;
+  atividades: AtividadeDaFoto[] | null;
   turno: { status: StatusTurno } | null;
 };
 
@@ -54,12 +67,7 @@ export async function listarVersoes(c: SupabaseClient, filtro: { obraId?: string
     data: l.data,
     periodo: l.periodo,
     turnoStatus: l.turno?.status ?? "fechado",
-    percentual: percentualCumprimento(
-      (l.atividades ?? []).map((a) => ({
-        qtd_planejada: Number(a.qtd_planejada),
-        qtd_realizada: a.qtd_realizada === null ? null : Number(a.qtd_realizada),
-      })),
-    ),
+    percentual: percentualDaFoto(l.atividades),
   }));
 }
 

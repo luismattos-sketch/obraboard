@@ -11,6 +11,7 @@ export { PREFIXO_CONFLITO as ERRO_EXECUCAO_CONFLITO } from "@/lib/dominio/confli
 export const ERRO_SO_PLANEJADO = "Só é possível alterar turnos planejados.";
 export const ERRO_RESPONSAVEL_DUPLICADO = "Já existe um responsável com esse nome nesta obra.";
 export const ERRO_RESPONSAVEL_INVALIDO = "Responsável inválido para esta obra.";
+export const ERRO_EXTRA_SEM_QTD = "Para tirar o extra, remova-o.";
 export const ERRO_OCORRENCIA_INVALIDA = "Este registro não vale para esta equipe. Recarregue a página.";
 
 /** Exceções de negócio levantadas pelos triggers/funções do banco (P0001 + mensagem fixa). */
@@ -27,7 +28,8 @@ export type ErroBanco =
   | "programacao_incompativel"
   | "transicao_invalida"
   | "responsavel_invalido"
-  | "ocorrencia_invalida";
+  | "ocorrencia_invalida"
+  | "extra_sem_quantidade";
 
 const CONHECIDOS: readonly ErroBanco[] = [
   "turno_fechado",
@@ -43,6 +45,7 @@ const CONHECIDOS: readonly ErroBanco[] = [
   "transicao_invalida",
   "responsavel_invalido",
   "ocorrencia_invalida",
+  "extra_sem_quantidade",
 ];
 
 export function erroBanco(error: { code?: string; message?: string } | null | undefined): ErroBanco | null {

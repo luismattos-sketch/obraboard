@@ -6,10 +6,12 @@ import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import {
   ERRO_EFETIVO_CONFLITO,
   ERRO_EXECUCAO_CONFLITO,
+  ERRO_EXTRA_SEM_QTD,
   ERRO_FECHADO_PLANEJADOR,
   ERRO_RESPONSAVEL_INVALIDO,
   erroBanco,
 } from "./mensagens";
+import { reajustarCopiasFuturas } from "./foraDoDia";
 import { falha, falhaConflito, ok, type Resultado } from "./resultado";
 import {
   camposExecucao,
@@ -102,7 +104,7 @@ export async function salvarExecucaoPlanejador(
 
   const { data: at, error: ea } = await c
     .from("atividades")
-    .select("id, qtd_planejada")
+    .select("id, qtd_planejada, tipo, programacao_atividade_id")
     .eq("id", atividadeId)
     .eq("turno_id", turnoId)
     .maybeSingle();
@@ -112,13 +114,14 @@ export async function salvarExecucaoPlanejador(
   }
   if (!at) return falha("Atividade não encontrada");
 
-  const concluida = statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
+  const concluida = at.tipo === "extra" || statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
   const campos = camposExecucao(concluida, dados);
   const { data, error } = await filtrarEsperado(
     c.from("atividades").update(campos).eq("id", atividadeId).eq("turno_id", turnoId),
     esperado,
   ).select("id");
   if (error) {
+    if (erroBanco(error) === "extra_sem_quantidade") return falha(ERRO_EXTRA_SEM_QTD);
     console.error("salvarExecucaoPlanejador:", error.message);
     return erroGravacao(error);
   }
@@ -131,6 +134,9 @@ export async function salvarExecucaoPlanejador(
       .maybeSingle();
     if (!atual) return falha("Atividade não encontrada");
     return conflitoOuJaGravado(lerValores(atual), campos);
+  }
+  if (at.tipo === "adiantada" && at.programacao_atividade_id) {
+    await reajustarCopiasFuturas(c, at.programacao_atividade_id as string, turnoId);
   }
   return ok(campos);
 }

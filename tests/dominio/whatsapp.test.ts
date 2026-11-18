@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Ocorrencia } from "@/lib/dominio/efetivoHH";
-import { linkWhatsapp, mensagemParada, mensagemRetomada, mensagemTerminou, normalizarWhatsapp } from "@/lib/dominio/whatsapp";
+import { linkWhatsapp, mensagemParada, mensagemRetomada, mensagemExtra, mensagemTerminou, normalizarWhatsapp } from "@/lib/dominio/whatsapp";
 
 const parada = (p: Partial<Ocorrencia> = {}): Ocorrencia => ({
   id: "p1", responsavel_id: "joao", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "10:40:00", hora_fim: null,
@@ -51,5 +51,14 @@ describe("mensagens", () => {
   });
   it("terminou", () => {
     expect(mensagemTerminou({ ...ctx, hora: "15:20" })).toBe("✓ João terminou a parte da equipe às 15:20 — Caldeira 3 · 16/11 Diurno");
+  });
+});
+
+describe("mensagemExtra", () => {
+  it("extra com quantidade", () => {
+    const ctx = { obra: "Caldeira 3", data: "2026-11-16", periodo: "diurno" as const, equipe: "Carlos" };
+    expect(mensagemExtra({ ...ctx, descricao: "Troca de iluminação", qtd: 12.5, unidade: "un" })).toBe(
+      "➕ Extra — Caldeira 3 · 16/11 Diurno\nCarlos: Troca de iluminação — 12,5 un",
+    );
   });
 });

@@ -21,7 +21,7 @@ import {
   type TurnoDaSemana,
   sugestaoDoDia,
 } from "@/lib/dominio/programacao";
-import { FUNCOES_SUGERIDAS, type Causa, type Periodo } from "@/lib/dominio/tipos";
+import { FUNCOES_SUGERIDAS, type Causa, type Periodo, type TipoAtividade } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
 import { erroBanco, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
@@ -129,7 +129,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
     c
       .from("turnos")
       .select(
-        "id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), atividades(id, descricao, unidade, qtd_planejada, qtd_realizada, causa, ordem, created_at, programacao_atividade_id)",
+        "id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), atividades(id, descricao, unidade, qtd_planejada, qtd_realizada, causa, ordem, created_at, programacao_atividade_id, tipo)",
       )
       .eq("obra_id", semana.obra_id)
       .gte("data", semana.inicio)
@@ -162,6 +162,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
           qtd_planejada: num(a.qtd_planejada),
           qtd_realizada: numOuNull(a.qtd_realizada),
           causa: (a.causa as Causa | null) ?? null,
+          tipo: (a.tipo as TipoAtividade | null) ?? null,
         });
       }
     }

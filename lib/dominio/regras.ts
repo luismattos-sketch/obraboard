@@ -5,7 +5,7 @@ import type { AtividadeExec, Periodo, StatusTurno } from "./tipos";
 export function errosDeCausa(atividades: AtividadeExec[]): Record<string, string> {
   const erros: Record<string, string> = {};
   for (const at of atividades) {
-    if (statusAtividade(at.qtd_planejada, at.qtd_realizada) === "concluida") continue;
+    if (at.tipo || statusAtividade(at.qtd_planejada, at.qtd_realizada) === "concluida") continue;
     if (!at.causa) {
       erros[at.id] = "Informe a causa para atividades não concluídas";
     } else if (at.causa === "outro" && !at.observacao?.trim()) {

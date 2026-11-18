@@ -6,14 +6,17 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import { conflitoOuJaGravado, filtrarEsperado, lerValores } from "./execucao";
+import { lancarExtra, opcoesDoTurno, puxarDaSemana, reajustarCopiasFuturas, removerForaDoDia } from "./foraDoDia";
+import { SEM_OPCOES, type ModoPuxar, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
 import {
   ERRO_EFETIVO_CONFLITO,
+  ERRO_EXTRA_SEM_QTD,
   ERRO_FECHADO_CAMPO,
   ERRO_RESPONSAVEL_INVALIDO,
   erroBanco,
 } from "./mensagens";
 import { falha, falhaConflito, ok, type Resultado } from "./resultado";
-import { opcoesFuncaoDoTurno } from "./programacao";
+import { opcoesFuncaoDoTurno, semanaDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
 import {
   camposExecucao,
@@ -76,12 +79,32 @@ export async function opcoesFuncaoCampo(turno: Pick<TurnoCompleto, "obra_id" | "
   return opcoesFuncaoDoTurno(criarClienteAdmin(), turno.obra_id, turno.data, turno.periodo);
 }
 
-/** Responsáveis com atividade ou efetivo no turno, em ordem alfabética (para "Quem é você?"). */
-export async function responsaveisDoTurno(turno: Pick<TurnoCompleto, "obra_id" | "atividades" | "efetivo">): Promise<ResponsavelRef[]> {
-  const ids = [...new Set([...turno.atividades.map((a) => a.responsavel_id), ...turno.efetivo.map((e) => e.responsavel_id)])]
+/**
+ * Responsáveis com atividade ou efetivo no turno, ou com atividade programada na semana do turno
+ * (mesmo período), em ordem alfabética (para "Quem é você?").
+ */
+export async function responsaveisDoTurno(
+  turno: Pick<TurnoCompleto, "obra_id" | "data" | "periodo" | "atividades" | "efetivo">,
+): Promise<ResponsavelRef[]> {
+  const admin = criarClienteAdmin();
+  const daSemana: (string | null)[] = [];
+  const semana = await semanaDoTurno(admin, turno.obra_id, turno.data);
+  if (semana && semana.status === "programada") {
+    const { data: pa, error: ep } = await admin
+      .from("programacao_atividades")
+      .select("responsavel_id")
+      .eq("semana_id", semana.id)
+      .eq("periodo", turno.periodo);
+    if (ep) {
+      console.error("responsaveisDoTurno (semana):", ep.message);
+      throw new Error("responsaveisDoTurno");
+    }
+    daSemana.push(...(pa ?? []).map((r) => (r.responsavel_id as string | null) ?? null));
+  }
+  const ids = [...new Set([...turno.atividades.map((a) => a.responsavel_id), ...turno.efetivo.map((e) => e.responsavel_id), ...daSemana])]
     .filter((x): x is string => x !== null);
   if (ids.length === 0) return [];
-  const { data, error } = await criarClienteAdmin()
+  const { data, error } = await admin
     .from("responsaveis")
     .select("id, nome, ativo")
     .eq("obra_id", turno.obra_id)
@@ -115,7 +138,7 @@ export async function salvarExecucao(
 
   const { data: at, error: ea } = await admin
     .from("atividades")
-    .select("id, qtd_planejada, responsavel_id")
+    .select("id, qtd_planejada, responsavel_id, tipo, programacao_atividade_id")
     .eq("id", atividadeId)
     .eq("turno_id", t.dados.id)
     .maybeSingle();
@@ -126,7 +149,8 @@ export async function salvarExecucao(
   if (!at) return falha(ERRO_ATIVIDADE);
   if (responsavelId !== null && at.responsavel_id !== responsavelId) return falha(ERRO_ATIVIDADE);
 
-  const concluida = statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
+  // Extra não tem meta: o banco iguala o planejado ao executado.
+  const concluida = at.tipo === "extra" || statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
   const campos = camposExecucao(concluida, dados);
   let gravar = admin
     .from("atividades")
@@ -138,6 +162,7 @@ export async function salvarExecucao(
   // Checagem otimista: aba/tela desatualizada não sobrescreve o que foi gravado em outro lugar.
   const { data, error } = await filtrarEsperado(gravar, esperado).select("id");
   if (error) {
+    if (erroBanco(error) === "extra_sem_quantidade") return falha(ERRO_EXTRA_SEM_QTD);
     console.error("salvarExecucao:", error.message);
     return erroGravacao(error);
   }
@@ -151,7 +176,44 @@ export async function salvarExecucao(
     if (!atual || (responsavelId !== null && atual.responsavel_id !== responsavelId)) return falha(ERRO_ATIVIDADE);
     return conflitoOuJaGravado(lerValores(atual), campos);
   }
+  if (at.tipo === "adiantada" && at.programacao_atividade_id) {
+    await reajustarCopiasFuturas(admin, at.programacao_atividade_id as string, t.dados.id);
+  }
   return ok(campos);
+}
+
+// ---- Fora do dia pelo link (adiantar, atrasada, extra): sempre com o responsável escolhido ----
+
+/** Opções de adiantar/atrasada do responsável no turno do token (já resolvido). */
+export async function opcoesPuxarCampo(
+  turno: Pick<TurnoCompleto, "id" | "obra_id" | "data" | "periodo">,
+  responsavelId: string,
+): Promise<OpcoesPuxar> {
+  if (!responsavelId) return SEM_OPCOES;
+  return opcoesDoTurno(criarClienteAdmin(), turno, responsavelId);
+}
+
+export async function puxarCampo(token: string, programacaoAtividadeId: string, modo: ModoPuxar, responsavelId: string): Promise<Resultado> {
+  if (typeof responsavelId !== "string" || !responsavelId) return falha(ERRO_RESPONSAVEL_INVALIDO);
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  return puxarDaSemana(criarClienteAdmin(), t.dados.id, programacaoAtividadeId, modo, responsavelId, responsavelId, ERRO_FECHADO);
+}
+
+/** O extra do campo é sempre da equipe de quem lançou. */
+export async function lancarExtraCampo(token: string, dados: unknown, responsavelId: string): Promise<Resultado<{ id: string }>> {
+  if (typeof responsavelId !== "string" || !responsavelId) return falha(ERRO_RESPONSAVEL_INVALIDO);
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  const entrada = { ...((dados ?? {}) as Record<string, unknown>), responsavel_id: responsavelId };
+  return lancarExtra(criarClienteAdmin(), t.dados.id, entrada, responsavelId, ERRO_FECHADO);
+}
+
+export async function removerForaDoDiaCampo(token: string, atividadeId: string, responsavelId: string): Promise<Resultado> {
+  if (typeof responsavelId !== "string" || !responsavelId) return falha(ERRO_RESPONSAVEL_INVALIDO);
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  return removerForaDoDia(criarClienteAdmin(), t.dados.id, atividadeId, responsavelId, ERRO_FECHADO);
 }
 
 /**

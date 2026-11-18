@@ -164,7 +164,8 @@ describe.skipIf(!ligado)("programação semanal no banco", () => {
     const { obraId, semanaId } = await novaSemana();
     const id = await novaAtividade(semanaId);
     const quarta = await novoTurno(obraId, "2026-11-11");
-    expect((await ligar(quarta, id)).error?.message).toBe("programacao_incompativel");
+    // Depois dos dias marcados vale como atividade atrasada (item 7); antes deles só como adiantada.
+    expect((await ligar(quarta, id)).error).toBeNull();
     const noturno = await novoTurno(obraId, "2026-11-09", "noturno");
     expect((await ligar(noturno, id)).error?.message).toBe("programacao_incompativel");
     const outraObra = exigir(await criarObra(u.cliente, { nome: "Outra" }));

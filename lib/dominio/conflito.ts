@@ -9,7 +9,7 @@ export type ValoresExecucao = { qtd_realizada: number | null; causa: Causa | nul
 export function normalizarExecucao(qtdPlanejada: number, d: ValoresExecucao): ValoresExecucao {
   const concluida = d.qtd_realizada !== null && statusAtividade(qtdPlanejada, d.qtd_realizada) === "concluida";
   const obs = d.observacao?.trim() ? d.observacao.trim() : null;
-  return { qtd_realizada: d.qtd_realizada, causa: concluida ? null : d.causa, observacao: concluida ? null : obs };
+  return { qtd_realizada: d.qtd_realizada, causa: concluida ? null : d.causa, observacao: obs };
 }
 
 export const mesmaExecucao = (a: ValoresExecucao, b: ValoresExecucao) =>

@@ -95,6 +95,7 @@ function Faixa({
             <p className="text-sm font-semibold text-texto xl:text-base">
               {textoResumo(r)}
               {r.extras > 0 && <span className="ml-1 text-destaque">{`+${r.extras} extra`}</span>}
+              {r.adiantadas > 0 && <span className="ml-1 text-destaque">{`+${r.adiantadas} adiantada`}</span>}
             </p>
           </>
         )}
