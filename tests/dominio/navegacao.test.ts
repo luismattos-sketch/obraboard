@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  caminhoAoTrocarObra, caminhoEtapa, COOKIE_MENU, ETAPAS, etapaDoCaminho, iniciais, menuRecolhido, obraIdDoCaminho,
+  caminhoAoTrocarObra, caminhoEtapa, COOKIE_MENU, ETAPAS, etapaDoCaminho, iniciais, menuRecolhido, naAjuda, obraIdDoCaminho,
 } from "@/lib/dominio/navegacao";
 
 describe("iniciais", () => {
@@ -70,5 +70,14 @@ describe("etapas da obra no menu", () => {
     expect(caminhoAoTrocarObra(`/obras/${id}/programacao/2026-11-09`, outra)).toBe(`/obras/${outra}/programacao`);
     expect(caminhoAoTrocarObra(`/obras/${id}/turnos/abc`, outra)).toBe(`/obras/${outra}`);
     expect(caminhoAoTrocarObra("/obras", outra)).toBe(`/obras/${outra}`);
+  });
+});
+
+describe("naAjuda", () => {
+  it("marca o item Ajuda em /ajuda e nos capítulos, e só neles", () => {
+    expect(naAjuda("/ajuda")).toBe(true);
+    expect(naAjuda("/ajuda/check-in")).toBe(true);
+    expect(naAjuda("/ajudante")).toBe(false);
+    expect(naAjuda("/obras")).toBe(false);
   });
 });
