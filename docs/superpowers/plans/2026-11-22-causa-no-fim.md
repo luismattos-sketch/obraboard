@@ -39,7 +39,7 @@
 **Interfaces:**
 - Produces: `camposAbertos(p: { naoConcluida: boolean; causa: string; obs: string; erro?: string; abriuCausa: boolean; abriuObs: boolean }): { causa: boolean; obs: boolean }` em `lib/dominio/cardCausa.ts`.
   Regra: `causa = naoConcluida && (abriuCausa || !!causa || !!erro)`; `obs = abriuObs || !!obs.trim() || (!!erro && causa === "outro")`.
-- Card: `erro` presente ⇒ campos abrem e a mensagem aparece em `text-alerta` (ver token existente; usar o mesmo tom do `Aviso tom="alerta"`). Sem `erro` ⇒ nada vermelho.
+- Card: `erro` presente ⇒ campos abrem e a mensagem aparece em `text-alerta-escura` (`text-alerta` puro não tem contraste sobre branco). Sem `erro` ⇒ nada vermelho.
 - Links (botões `type="button"`, sublinhados, `text-sm text-texto-suave`) só quando `!somenteLeitura` e o campo está fechado: `Não vai dar para concluir? Informar causa` (só se `naoConcluida`) e `+ Observação`. Clicar marca `abriuCausa`/`abriuObs` (estado local, fica aberto).
 - Somente leitura: mostra causa/observação só se tiverem valor.
 
