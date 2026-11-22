@@ -55,7 +55,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
    outro dia da semana. No planejador, o extra só entra como "atividade planejada" escondida em "Editar planejamento",
    sem responsável, executado ou marca de extra. Criar "+ Serviço extra (fora da programação)" nos dois lados.
    Em atividade concluída a Observação some — mantê-la. [Carlos, Rita, P2]
-8. **"Informe a causa" em vermelho cedo demais** — aparece às 7 h e com avanço parcial, antes de qualquer problema.
+8. ✅ **No ar desde 2026-11-22** (merge 36e777e) — **"Informe a causa" em vermelho cedo demais** — aparece às 7 h e com avanço parcial, antes de qualquer problema.
    Mostrar só no fim do dia/fechamento, em tom neutro, e enxugar o card. [P1, Ana, João, Carlos, Rita]
 9. **Efetivo pré-preenchido** — começa vazio e fica a ~1,5 tela do topo. Vir com a equipe prevista da programação,
    botões +/− para luva, mais acima na tela. A equipe prevista também deve aparecer no turno e no quadro. [Ana, P1]
