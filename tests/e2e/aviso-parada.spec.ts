@@ -98,6 +98,11 @@ test("João avisa parada pelo link → quadro e turno mostram → encerra → RD
 
   // Ana termina a parte dela.
   await cel.goto(`/t/${token}?r=${ana}`);
+  // Caldeiraria não concluída: o Terminei cobra a causa antes.
+  await cel.getByRole("button", { name: "✓ Terminei minha parte" }).click();
+  await expect(cel.getByText("Antes de terminar, informe a causa em:")).toBeVisible();
+  await cel.getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
+  await expect(cel.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
   await cel.getByRole("button", { name: "✓ Terminei minha parte" }).click();
   await expect(cel.getByText(/Você avisou que terminou às \d\d:\d\d/)).toBeVisible();
   await expect(cel.getByText("salvando…")).toHaveCount(0);

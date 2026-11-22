@@ -15,6 +15,8 @@ export function BotaoTerminei({
   desfazer,
   linkWhats,
   salvando,
+  bloqueado,
+  aoBloquear,
 }: {
   terminouEm: string | null;
   /** Paradas abertas da equipe: pergunta se encerra todas no mesmo horário. */
@@ -23,6 +25,9 @@ export function BotaoTerminei({
   desfazer: () => void;
   linkWhats: (hora: string) => string;
   salvando?: boolean;
+  /** Falta causa em atividade da equipe: o toque cobra (aoBloquear) em vez de marcar. */
+  bloqueado?: boolean;
+  aoBloquear?: () => void;
 }) {
   const [perguntando, setPerguntando] = useState<string | null>(null);
 
@@ -55,14 +60,19 @@ export function BotaoTerminei({
   return (
     <button
       type="button"
-      className={`${botao} w-full`}
+      className={`${botao} w-full disabled:opacity-70`}
+      disabled={salvando}
       onClick={() => {
+        if (bloqueado) {
+          aoBloquear?.();
+          return;
+        }
         const h = horaAgoraSaoPaulo();
         if (abertasDaEquipe > 0) setPerguntando(h);
         else marcar(h, false);
       }}
     >
-      ✓ Terminei minha parte
+      {salvando ? "Salvando…" : "✓ Terminei minha parte"}
     </button>
   );
 }

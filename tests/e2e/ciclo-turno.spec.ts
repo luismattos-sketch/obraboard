@@ -113,11 +113,13 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await expect(cards.nth(0).getByRole("button", { name: /Marcar como concluída/ })).toHaveCount(0);
     await expect(cards.nth(0).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
     await cards.nth(1).getByLabel(/Executado/).fill("8");
+    await cards.nth(1).getByRole("button", { name: "Não vai dar para concluir? Informar causa" }).click();
     await cards.nth(1).getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
     await expect(cards.nth(1).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
 
     // Aba velha (aberta antes dos lançamentos) não sobrescreve: avisa e oferece o valor atual
     const cards2 = campo2.locator("section[aria-labelledby='titulo-atividades'] > div");
+    await cards2.nth(1).getByRole("button", { name: "+ Observação" }).click();
     await cards2.nth(1).getByLabel("Observação").fill("aba velha");
     await expect(cards2.nth(1).getByText(/Mudou em outra tela/)).toBeVisible({ timeout: 15_000 });
     await expect(cards2.nth(1).getByText(/Agora está 8 m²/)).toBeVisible();

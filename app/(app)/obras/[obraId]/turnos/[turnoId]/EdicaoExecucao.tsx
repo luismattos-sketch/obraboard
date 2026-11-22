@@ -15,6 +15,7 @@ import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import { AcoesTurno } from "./AcoesTurno";
+import { CausasPendentes } from "@/components/execucao/CausasPendentes";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
 import { useOcorrencias } from "@/components/execucao/useOcorrencias";
 import { agoraDoTurno, paradasAbertas } from "@/lib/dominio/efetivoHH";
@@ -89,6 +90,8 @@ export function EdicaoExecucao({
   const { lista, mudar } = useExecucaoLocal(atividades);
   const erros = errosDeCausa(lista);
   const pendentes = lista.filter((a) => erros[a.id]);
+  // Cards só mostram o aviso de causa depois de tentar fechar.
+  const [cobrado, setCobrado] = useState(false);
   const router = useRouter();
   const mov = useOcorrencias(
     ocorrencias,
@@ -163,7 +166,7 @@ export function EdicaoExecucao({
           grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
           salvar={(id, d, esperado) => corrigirExecucao(turnoId, id, d, esperado)}
           onMudar={mudar}
-          erros={erros}
+          erros={cobrado ? erros : {}}
           autorDe={(a) => autorDoLancamento(a, nomeEquipe, null)}
           podeRemover={podeRemoverPlanejador}
           remover={(a) => void removerLancamento(a.id)}
@@ -201,17 +204,14 @@ export function EdicaoExecucao({
           salvar={(d) => corrigirClima(turnoId, d)}
           limpar={(p) => limparClimaPlanejador(turnoId, p)}
         />
-        {pendentes.length > 0 && (
-          <Aviso tom="alerta">
-            <p className="font-medium">Falta informar a causa em:</p>
-            <ul className="list-disc pl-5">
-              {pendentes.map((a) => (
-                <li key={a.id}>{a.descricao}</li>
-              ))}
-            </ul>
-          </Aviso>
-        )}
-        <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} abertas={paradasAbertas(mov.lista)} janela={janela} nome={nomeEquipe} />
+        <CausasPendentes titulo="Antes de fechar, informe a causa em:" pendentes={pendentes} aoIr={() => setCobrado(true)} />
+        <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} abertas={paradasAbertas(mov.lista)} janela={janela} nome={nomeEquipe}
+          aoBloquear={() => {
+            if (pendentes.length === 0) return false;
+            setCobrado(true);
+            return true;
+          }}
+        />
       </section>
     </ProvedorSalvamento>
   );

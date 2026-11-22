@@ -19,12 +19,12 @@ import {
   CAUSAS,
   ROTULO_STATUS_ATIVIDADE,
   ROTULO_TIPO,
-  type AtividadeExec,
   type Causa,
   type DadosExecucao,
   type StatusAtividade,
   type Tom,
 } from "@/lib/dominio/tipos";
+import { camposAbertos } from "@/lib/dominio/cardCausa";
 import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
 import { ContextoSincronia, Sincronizar } from "./Sincronizar";
@@ -44,7 +44,7 @@ export type MudarExecucao = (atividade: Atividade, local: Omit<Local, "base">) =
  * Estado das atividades para validar o envio (causas pendentes): o que o usuário editou por cima
  * dos dados do servidor. Quando o servidor muda (revalidação), vale o servidor.
  */
-export function useExecucaoLocal(atividades: Atividade[]): { lista: AtividadeExec[]; mudar: MudarExecucao } {
+export function useExecucaoLocal(atividades: Atividade[]): { lista: Atividade[]; mudar: MudarExecucao } {
   const [locais, setLocais] = useState<Record<string, Local>>({});
   const lista = atividades.map((a) => {
     const l = locais[a.id];
@@ -120,6 +120,8 @@ function ItemExecucao({
   const [texto, setTexto] = useState(a.qtd_realizada === null ? "" : String(a.qtd_realizada).replace(".", ","));
   const [causa, setCausa] = useState<Causa | "">(a.causa ?? "");
   const [obs, setObs] = useState(a.observacao ?? "");
+  const [abriuCausa, setAbriuCausa] = useState(false);
+  const [abriuObs, setAbriuObs] = useState(false);
 
   const qtd = texto.trim() === "" ? null : parseNumero(texto);
   const qtdInvalida = texto.trim() !== "" && qtd === null;
@@ -184,6 +186,8 @@ function ItemExecucao({
     onMudar?.(a, { qtd_realizada: q, causa: c || null, observacao: o || null });
   }
 
+  const aberto = camposAbertos({ naoConcluida, causa, obs, erro, abriuCausa, abriuObs });
+
   return (
     <div className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4">
       <div className="flex items-start justify-between gap-2">
@@ -236,36 +240,52 @@ function ItemExecucao({
       </div>
       {qtdInvalida && <p className="text-sm text-perigo">Digite um número válido</p>}
 
-      {naoConcluida && (
-          <div>
-            <label htmlFor={`causa-${a.id}`} className="text-sm font-medium">Causa do não cumprimento</label>
-            <select
-              id={`causa-${a.id}`}
-              className={campoBase}
-              value={causa}
-              disabled={somenteLeitura}
-              onChange={(e) => atualizar(texto, e.target.value as Causa | "", obs)}
-            >
-              <option value="">Selecione…</option>
-              {(Object.keys(CAUSAS) as Causa[]).map((k) => (
-                <option key={k} value={k}>{CAUSAS[k]}</option>
-              ))}
-            </select>
-          </div>
+      {aberto.causa && (
+        <div>
+          <label htmlFor={`causa-${a.id}`} className="text-sm font-medium">Causa do não cumprimento</label>
+          <select
+            id={`causa-${a.id}`}
+            className={campoBase}
+            value={causa}
+            disabled={somenteLeitura}
+            onChange={(e) => atualizar(texto, e.target.value as Causa | "", obs)}
+          >
+            <option value="">Selecione…</option>
+            {(Object.keys(CAUSAS) as Causa[]).map((k) => (
+              <option key={k} value={k}>{CAUSAS[k]}</option>
+            ))}
+          </select>
+        </div>
       )}
-          <div>
-            <label htmlFor={`obs-${a.id}`} className="text-sm font-medium">Observação</label>
-            <textarea
-              id={`obs-${a.id}`}
-              className={`${campoBase} py-2`}
-              rows={2}
-              maxLength={500}
-              value={obs}
-              disabled={somenteLeitura}
-              onChange={(e) => atualizar(texto, causa, e.target.value)}
-            />
-          </div>
-      {naoConcluida && erro && <p className="text-sm text-perigo">{erro}</p>}
+      {aberto.obs && (
+        <div>
+          <label htmlFor={`obs-${a.id}`} className="text-sm font-medium">Observação</label>
+          <textarea
+            id={`obs-${a.id}`}
+            className={`${campoBase} py-2`}
+            rows={2}
+            maxLength={500}
+            value={obs}
+            disabled={somenteLeitura}
+            onChange={(e) => atualizar(texto, causa, e.target.value)}
+          />
+        </div>
+      )}
+      {!somenteLeitura && (!aberto.causa && naoConcluida || !aberto.obs) && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {naoConcluida && !aberto.causa && (
+            <button type="button" className="min-h-11 text-left text-sm text-texto-suave underline" onClick={() => setAbriuCausa(true)}>
+              Não vai dar para concluir? Informar causa
+            </button>
+          )}
+          {!aberto.obs && (
+            <button type="button" className="min-h-11 text-left text-sm text-texto-suave underline" onClick={() => setAbriuObs(true)}>
+              + Observação
+            </button>
+          )}
+        </div>
+      )}
+      {naoConcluida && erro && <p className="text-sm font-medium text-alerta-escura">{erro}</p>}
       {!somenteLeitura && <IndicadorSalvo {...estado} onVerAtual={verAtual} nota={sincronia?.nota} />}
       {remover && (
         <button type="button" className="self-start text-sm text-texto-suave underline" onClick={remover}>

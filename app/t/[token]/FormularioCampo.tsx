@@ -13,6 +13,8 @@ import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import { linkWhatsapp, mensagemTerminou } from "@/lib/dominio/whatsapp";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
 import { BotaoTerminei } from "@/components/execucao/BotaoTerminei";
+import { CausasPendentes } from "@/components/execucao/CausasPendentes";
+import { ERRO_CAUSA_TERMINEI } from "@/lib/db/mensagens";
 import { useOcorrencias } from "@/components/execucao/useOcorrencias";
 import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
@@ -134,7 +136,12 @@ export function FormularioCampo({
     if (encerrarAbertas) for (const o of minhasAbertas) void mov.encerrar(o.id, hora);
     try {
       const res = await marcarTerminou(token, responsavelId, hora);
-      if (!res.ok) {
+      if (!res.ok && res.erro === ERRO_CAUSA_TERMINEI) {
+        // A tela achava que estava tudo certo (ex.: outro celular baixou a quantidade): relê e cobra.
+        setTerminouEm(null);
+        setCobrado(true);
+        router.refresh();
+      } else if (!res.ok) {
         setTerminouEm(null);
         setErroTerminei(res.erro);
       }
@@ -178,8 +185,14 @@ export function FormularioCampo({
 
   const erros = errosDeCausa(atividades);
   const pendentes = atividades.filter((a) => erros[a.id]);
+  // Causa só é cobrada ao tocar Terminei / Enviar: antes disso, nada de aviso nos cards.
+  const [cobrado, setCobrado] = useState(false);
 
   async function enviar() {
+    if (pendentes.length > 0) {
+      setCobrado(true);
+      return;
+    }
     setEnviando(true);
     setErroEnvio(null);
     try {
@@ -230,7 +243,7 @@ export function FormularioCampo({
         somenteLeitura={somenteLeitura}
         salvar={(id, d, esperado) => salvarExecucao(token, id, d, esperado, responsavelId)}
         onMudar={mudar}
-        erros={erros}
+        erros={cobrado ? erros : {}}
         autorDe={(a) => (a.criada_por_id && a.criada_por_id === responsavelId ? "lançado por você" : a.criada_por_id ? `lançado pelo campo — ${nomeEquipe(a.criada_por_id)}` : null)}
         podeRemover={(a) => responsavelId !== null && a.criada_por_id === responsavelId}
         remover={(a) => void removerLancamento(a.id)}
@@ -274,12 +287,15 @@ export function FormularioCampo({
 
       {!somenteLeitura && responsavelId !== null && (
         <section className="flex flex-col gap-2 pb-8">
+          {cobrado && <CausasPendentes titulo="Antes de terminar, informe a causa em:" pendentes={pendentes} />}
           <BotaoTerminei
             terminouEm={terminouEm}
             abertasDaEquipe={minhasAbertas.length}
             marcar={(h, enc) => void terminei(h, enc)}
             desfazer={() => void desfazer()}
-            salvando={salvandoTerminei}
+            salvando={salvandoTerminei || salvando}
+            bloqueado={pendentes.length > 0}
+            aoBloquear={() => setCobrado(true)}
             linkWhats={(hora) => linkWhatsapp(turno.whatsapp, mensagemTerminou({ ...contexto, equipe: nomeEquipe(responsavelId), hora }))}
           />
           {erroTerminei && <Aviso tom="perigo">{erroTerminei}</Aviso>}
@@ -287,22 +303,13 @@ export function FormularioCampo({
       )}
       {!somenteLeitura && responsavelId === null && (
         <section className="flex flex-col gap-3 pb-8">
-          {pendentes.length > 0 && (
-            <Aviso tom="alerta">
-              <p className="font-medium">Falta informar a causa em:</p>
-              <ul className="list-disc pl-5">
-                {pendentes.map((a) => (
-                  <li key={a.id}>{a.descricao}</li>
-                ))}
-              </ul>
-            </Aviso>
-          )}
+          {cobrado && <CausasPendentes titulo="Antes de enviar, informe a causa em:" pendentes={pendentes} />}
           {abertas.length > 0 && <Aviso tom="alerta">Há parada sem fim; o planejador vai encerrar.</Aviso>}
           {erroEnvio && <Aviso tom="perigo">{erroEnvio}</Aviso>}
           {status === "enviado" && (
             <Aviso tom="sucesso">Turno enviado ✓ — você ainda pode corrigir até o planejador fechar</Aviso>
           )}
-          <Botao type="button" onClick={enviar} disabled={pendentes.length > 0 || salvando} carregando={enviando}>
+          <Botao type="button" onClick={enviar} disabled={salvando} carregando={enviando}>
             {salvando ? "Salvando…" : status === "enviado" ? "Reenviar turno" : "Enviar turno"}
           </Botao>
         </section>
