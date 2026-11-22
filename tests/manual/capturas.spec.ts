@@ -193,6 +193,9 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   // ---------- Fechar o turno ----------
   await pl.goto(turnoUrl);
   await fotografar(pl, "fechar-turno", "check-out");
+  // Causa fica atrás do link no cartão: abrir todos antes de escolher.
+  const abrir = pl.getByRole("button", { name: "Não vai dar para concluir? Informar causa" });
+  while ((await abrir.count()) > 0) await abrir.first().click();
   const causas = pl.getByLabel("Causa do não cumprimento");
   await causas.first().selectOption({ label: "Falta material" });
   await fotografar(pl, "fechar-turno", "causas");

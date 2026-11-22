@@ -70,8 +70,8 @@ export const campo: Capitulo = {
       id: "avisar",
       titulo: "Avise o planejador",
       texto: [
-        "Terminou a sua parte? Toque em \"✓ Terminei minha parte\". O planejador vê no quadro, e você pode avisar também pelo WhatsApp.",
-        "Em \"Ver tudo\", quem fecha o turno inteiro pelo campo toca em \"Enviar turno\". Toda atividade programada que não chegou ao planejado precisa da \"Causa do não cumprimento\"; serviço extra e atividade adiantada não pedem causa.",
+        "Terminou a sua parte? Toque em \"✓ Terminei minha parte\". Se alguma atividade não chegou ao previsto, o app pede antes a \"Causa do não cumprimento\" (toque em \"ir\" para chegar ao campo). O planejador vê no quadro, e você pode avisar também pelo WhatsApp.",
+        "Em \"Ver tudo\", quem fecha o turno inteiro pelo campo toca em \"Enviar turno\". Toda atividade programada que não chegou ao planejado precisa da \"Causa do não cumprimento\"; o app lista o que falta ao tocar em \"Enviar turno\". Serviço extra e atividade adiantada não pedem causa.",
       ],
       captura: {
         alt: "Botão Terminei minha parte no celular",

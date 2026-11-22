@@ -98,7 +98,7 @@ describe("integridade do conteúdo", () => {
   it("novidades vêm da mais recente para a mais antiga", () => {
     const datas = NOVIDADES.map((n) => n.data);
     expect([...datas].sort().reverse()).toEqual(datas);
-    expect(NOVIDADES[0].href).toBe("/ajuda");
+    expect(NOVIDADES.some((n) => n.href === "/ajuda")).toBe(true);
   });
 
   it("nenhum texto usa 'encarregado'", () => {

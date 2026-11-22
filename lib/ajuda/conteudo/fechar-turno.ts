@@ -23,8 +23,8 @@ export const fecharTurno: Capitulo = {
       id: "causas",
       titulo: "Informe as causas",
       texto: [
-        "Toda atividade programada que não chegou à quantidade planejada precisa de uma \"Causa do não cumprimento\" (falta material, clima, aguardando outra equipe…). Com \"Outro\", escreva a observação.",
-        "Serviço extra e atividade adiantada não pedem causa. Se faltar alguma causa, o app lista as atividades em \"Falta informar a causa em:\".",
+        "Toda atividade programada que não chegou à quantidade planejada precisa de uma \"Causa do não cumprimento\" (falta material, clima, aguardando outra equipe…). Toque em \"Não vai dar para concluir? Informar causa\" no cartão da atividade para abrir o campo. Com \"Outro\", escreva a observação.",
+        "Serviço extra e atividade adiantada não pedem causa. Se faltar alguma causa, o app lista as atividades em \"Antes de fechar, informe a causa em:\"; toque em \"ir\" para chegar ao campo.",
       ],
       captura: {
         alt: "Atividade parcial com o campo Causa do não cumprimento",

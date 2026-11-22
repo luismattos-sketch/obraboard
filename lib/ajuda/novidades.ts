@@ -2,6 +2,11 @@
 import type { Novidade } from "./tipos";
 
 export const NOVIDADES: Novidade[] = [
+  {
+    data: "2026-11-22",
+    texto: "A causa só é pedida no fim: ao tocar \"Terminei minha parte\", enviar ou fechar o turno.",
+    href: "/ajuda/fechar-turno#causas",
+  },
   { data: "2026-11-18", texto: "Manual do usuário: esta Ajuda, com o passo a passo de cada tarefa.", href: "/ajuda" },
   {
     data: "2026-11-17",
