@@ -19,7 +19,16 @@ function irPara(id: string) {
 }
 
 /** Lista o que falta de causa na hora da cobrança (Terminei / Enviar / Fechar), com atalho até o campo. */
-export function CausasPendentes({ titulo, pendentes }: { titulo: string; pendentes: Pendente[] }) {
+export function CausasPendentes({
+  titulo,
+  pendentes,
+  aoIr,
+}: {
+  titulo: string;
+  pendentes: Pendente[];
+  /** Abre os campos de causa na tela (cobrança) antes de rolar até o card. */
+  aoIr?: () => void;
+}) {
   if (pendentes.length === 0) return null;
   return (
     <Aviso tom="alerta">
@@ -31,8 +40,12 @@ export function CausasPendentes({ titulo, pendentes }: { titulo: string; pendent
             <button
               type="button"
               aria-label={`Ir para a causa: ${a.descricao}`}
-              className="min-h-10 shrink-0 px-2 font-semibold underline"
-              onClick={() => irPara(a.id)}
+              className="min-h-11 shrink-0 px-3 font-semibold underline"
+              onClick={() => {
+                aoIr?.();
+                // Espera o card abrir o campo (próximo desenho) antes de rolar.
+                requestAnimationFrame(() => requestAnimationFrame(() => irPara(a.id)));
+              }}
             >
               ir
             </button>

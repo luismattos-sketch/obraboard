@@ -274,12 +274,12 @@ function ItemExecucao({
       {!somenteLeitura && (!aberto.causa && naoConcluida || !aberto.obs) && (
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {naoConcluida && !aberto.causa && (
-            <button type="button" className="min-h-8 text-left text-sm text-texto-suave underline" onClick={() => setAbriuCausa(true)}>
+            <button type="button" className="min-h-11 text-left text-sm text-texto-suave underline" onClick={() => setAbriuCausa(true)}>
               Não vai dar para concluir? Informar causa
             </button>
           )}
           {!aberto.obs && (
-            <button type="button" className="min-h-8 text-left text-sm text-texto-suave underline" onClick={() => setAbriuObs(true)}>
+            <button type="button" className="min-h-11 text-left text-sm text-texto-suave underline" onClick={() => setAbriuObs(true)}>
               + Observação
             </button>
           )}

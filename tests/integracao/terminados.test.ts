@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade } from "@/lib/db/atividades";
 import { ERRO_CAUSA_TERMINEI, ERRO_FECHADO_CAMPO } from "@/lib/db/mensagens";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import type { DadosExecucao } from "@/lib/dominio/tipos";
 import { criarObra, editarWhatsappObra } from "@/lib/db/obras";
 import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
 import { aplicarAcao, criarTurno, obterTurnoCompleto } from "@/lib/db/turnos";
@@ -37,7 +38,7 @@ describe.skipIf(!ligado)("terminei minha parte e whatsapp da obra", () => {
     return { obraId: o.dados.id, turnoId: t.dados.id, atividadeId: a.dados.id, daJoao: b.dados.id, token: l.dados.token, ana: r!.id as string };
   }
 
-  async function lancar(c: { turnoId: string }, id: string, d: Partial<typeof VAZIO> & { qtd_realizada: number | null }) {
+  async function lancar(c: { turnoId: string }, id: string, d: Partial<DadosExecucao> & { qtd_realizada: number | null }) {
     const e = await salvarExecucaoPlanejador(u.cliente, c.turnoId, id, { causa: null, observacao: null, ...d }, VAZIO);
     if (!e.ok) throw new Error(e.erro);
   }

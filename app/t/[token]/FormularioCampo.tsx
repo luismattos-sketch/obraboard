@@ -14,6 +14,7 @@ import { linkWhatsapp, mensagemTerminou } from "@/lib/dominio/whatsapp";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
 import { BotaoTerminei } from "@/components/execucao/BotaoTerminei";
 import { CausasPendentes } from "@/components/execucao/CausasPendentes";
+import { ERRO_CAUSA_TERMINEI } from "@/lib/db/mensagens";
 import { useOcorrencias } from "@/components/execucao/useOcorrencias";
 import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
@@ -135,7 +136,12 @@ export function FormularioCampo({
     if (encerrarAbertas) for (const o of minhasAbertas) void mov.encerrar(o.id, hora);
     try {
       const res = await marcarTerminou(token, responsavelId, hora);
-      if (!res.ok) {
+      if (!res.ok && res.erro === ERRO_CAUSA_TERMINEI) {
+        // A tela achava que estava tudo certo (ex.: outro celular baixou a quantidade): relê e cobra.
+        setTerminouEm(null);
+        setCobrado(true);
+        router.refresh();
+      } else if (!res.ok) {
         setTerminouEm(null);
         setErroTerminei(res.erro);
       }

@@ -204,7 +204,7 @@ export function EdicaoExecucao({
           salvar={(d) => corrigirClima(turnoId, d)}
           limpar={(p) => limparClimaPlanejador(turnoId, p)}
         />
-        <CausasPendentes titulo="Antes de fechar, informe a causa em:" pendentes={pendentes} />
+        <CausasPendentes titulo="Antes de fechar, informe a causa em:" pendentes={pendentes} aoIr={() => setCobrado(true)} />
         <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} abertas={paradasAbertas(mov.lista)} janela={janela} nome={nomeEquipe}
           aoBloquear={() => {
             if (pendentes.length === 0) return false;

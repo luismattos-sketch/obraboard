@@ -2,7 +2,8 @@ import { devices, expect, test } from "@playwright/test";
 import { adicionarAtividade } from "@/lib/db/atividades";
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
-import { criarUsuarioTeste, removerUsuarioTeste, type UsuarioTeste } from "../integracao/ajuda";
+import { salvarExecucao } from "@/lib/db/campo";
+import { criarUsuarioTeste, removerUsuarioTeste, VAZIO, type UsuarioTeste } from "../integracao/ajuda";
 
 test.skip(process.env.SUPABASE_TEST !== "1", "E2E usa o Supabase de desenvolvimento (SUPABASE_TEST=1)");
 
@@ -61,10 +62,14 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   await cel.getByRole("button", { name: "Ir para a causa: Montagem de tubulação" }).click();
   await expect(cel.getByLabel("Causa do não cumprimento")).toBeFocused();
 
-  // Planejador, ainda sem causa: Fechar turno cobra em vez de abrir a confirmação.
+  // Planejador, ainda sem causa: o "ir" da caixa abre o campo mesmo antes de tentar fechar.
   await pl.reload();
   await expect(pl.getByText("Antes de fechar, informe a causa em:")).toBeVisible();
   await expect(pl.getByLabel("Causa do não cumprimento")).toHaveCount(0);
+  await pl.getByRole("button", { name: "Ir para a causa: Montagem de tubulação" }).click();
+  await expect(pl.getByLabel("Causa do não cumprimento")).toBeFocused();
+  await pl.reload();
+  // Fechar turno cobra em vez de abrir a confirmação.
   await pl.getByRole("button", { name: "Fechar turno" }).click();
   await expect(pl.getByRole("button", { name: "Confirmar fechamento" })).toHaveCount(0);
   await expect(pl.getByLabel("Causa do não cumprimento")).toBeVisible();
@@ -77,4 +82,37 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   await expect(cel.getByText(/Você avisou que terminou às \d\d:\d\d/)).toBeVisible();
   await expect(cel.getByText("salvando…")).toHaveCount(0);
   await ctx.close();
+});
+
+test("servidor recusa o Terminei (outro celular baixou a quantidade): a tela cobra a causa", async ({ browser, request }) => {
+  test.setTimeout(300_000);
+  const v = await criarUsuarioTeste();
+  try {
+    const obra = exigir(await criarObra(v.cliente, { nome: "Obra Recusa E2E" }));
+    const { data: r } = await v.cliente.from("responsaveis").insert({ obra_id: obra.id, nome: "Rita" }).select("id").single();
+    const rita = r!.id as string;
+    const turno = exigir(await criarTurno(v.cliente, {
+      obra_id: obra.id, data: hojeSP(), periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "17:00",
+    }));
+    const a = exigir(await adicionarAtividade(v.cliente, turno.id, { descricao: "Pintura", unidade: "m²", qtd_planejada: 10 }));
+    await v.cliente.from("atividades").update({ responsavel_id: rita }).eq("id", a.id);
+    const { token } = exigir(await aplicarAcao(v.cliente, turno.id, "liberar")) as { token: string };
+    exigir(await salvarExecucao(token, a.id, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO, rita));
+    const url = `/t/${token}?r=${rita}`;
+    await request.get(url);
+    const ctx = await browser.newContext({ ...devices["Pixel 7"] });
+    const cel = await ctx.newPage();
+    await cel.goto(url);
+    await expect(cel.getByText("Concluída", { exact: true })).toBeVisible();
+    // Outro celular da equipe baixa para 6 sem causa.
+    exigir(await salvarExecucao(token, a.id, { qtd_realizada: 6, causa: null, observacao: null },
+      { qtd_realizada: 10, causa: null, observacao: null }, rita));
+    await cel.getByRole("button", { name: "✓ Terminei minha parte" }).click();
+    await expect(cel.getByText("Antes de terminar, informe a causa em:")).toBeVisible({ timeout: 20_000 });
+    await expect(cel.getByText("Pintura (6 de 10 m²)")).toBeVisible();
+    await expect(cel.getByLabel("Causa do não cumprimento")).toBeVisible();
+    await ctx.close();
+  } finally {
+    await removerUsuarioTeste(v.userId);
+  }
 });

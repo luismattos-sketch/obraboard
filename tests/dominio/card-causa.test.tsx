@@ -41,6 +41,10 @@ describe("card curto", () => {
     expect(html).not.toContain("Causa do não cumprimento");
     expect(html).not.toContain(">Observação<");
   });
+  it("links com área de toque para luva (44 px)", () => {
+    const html = renderToStaticMarkup(<BlocoAtividades atividades={[at()]} salvar={salvar} />);
+    expect(html.match(/<button[^>]*min-h-11[^>]*>(Não vai dar|\+ Observação)/g)?.length).toBe(2);
+  });
   it("cobrado: abre a causa com aviso em tom de alerta", () => {
     const html = renderToStaticMarkup(
       <BlocoAtividades atividades={[at()]} salvar={salvar} erros={{ a1: "Informe a causa para atividades não concluídas" }} />,
