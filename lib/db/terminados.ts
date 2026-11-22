@@ -1,7 +1,9 @@
 import "server-only";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { turnoAberto } from "./campo";
-import { ERRO_FECHADO_CAMPO, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
+import { errosDeCausa } from "@/lib/dominio/regras";
+import type { AtividadeExec } from "@/lib/dominio/tipos";
+import { ERRO_CAUSA_TERMINEI, ERRO_FECHADO_CAMPO, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { horaValida } from "./validacao";
 
@@ -22,7 +24,15 @@ export async function marcarTerminouCampo(token: string, responsavelId: string, 
   if (!horaValida(hora)) return falha("Informe o horário");
   const t = await turnoAberto(token);
   if (!t.ok) return t;
-  const { error } = await criarClienteAdmin()
+  const admin = criarClienteAdmin();
+  const { data: ats, error: ea } = await admin
+    .from("atividades")
+    .select("id, descricao, qtd_planejada, qtd_realizada, causa, observacao, tipo")
+    .eq("turno_id", t.dados.id)
+    .eq("responsavel_id", responsavelId);
+  if (ea) return traduzir(ea);
+  if (Object.keys(errosDeCausa((ats ?? []) as AtividadeExec[])).length > 0) return falha(ERRO_CAUSA_TERMINEI);
+  const { error } = await admin
     .from("turno_equipes_terminadas")
     .insert({ turno_id: t.dados.id, responsavel_id: responsavelId, terminou_em: hora });
   if (error && error.code !== "23505") return traduzir(error);
