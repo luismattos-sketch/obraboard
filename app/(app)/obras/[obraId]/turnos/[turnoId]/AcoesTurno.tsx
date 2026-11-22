@@ -18,6 +18,8 @@ type Props = {
   abertas?: Ocorrencia[];
   janela?: Janela | null;
   nome?: (id: string | null) => string;
+  /** Chamado ao tocar "Fechar turno": true = falta algo (ex.: causa), não abre a confirmação. */
+  aoBloquear?: () => boolean;
 };
 
 export function ParadasNoFechamento({
@@ -48,7 +50,7 @@ export function ParadasNoFechamento({
   );
 }
 
-export function AcoesTurno({ turnoId, fechado, salvando, abertas = [], janela = null, nome = () => "" }: Props) {
+export function AcoesTurno({ turnoId, fechado, salvando, abertas = [], janela = null, nome = () => "", aoBloquear }: Props) {
   const [confirmando, setConfirmando] = useState(false);
   const [pedindoMotivo, setPedindoMotivo] = useState(false);
   const [estadoFechar, fechar, fechando] = useActionState<EstadoFechamento, FormData>(fecharTurnoAcao, null);
@@ -66,7 +68,10 @@ export function AcoesTurno({ turnoId, fechado, salvando, abertas = [], janela = 
           )
         ) : (
           !confirmando && (
-            <Botao type="button" disabled={salvando} onClick={() => setConfirmando(true)}>
+            <Botao type="button" disabled={salvando} onClick={() => {
+              if (aoBloquear?.()) return;
+              setConfirmando(true);
+            }}>
               {salvando ? "Salvando…" : "Fechar turno"}
             </Botao>
           )

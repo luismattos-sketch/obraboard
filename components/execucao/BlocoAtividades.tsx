@@ -19,7 +19,6 @@ import {
   CAUSAS,
   ROTULO_STATUS_ATIVIDADE,
   ROTULO_TIPO,
-  type AtividadeExec,
   type Causa,
   type DadosExecucao,
   type StatusAtividade,
@@ -45,7 +44,7 @@ export type MudarExecucao = (atividade: Atividade, local: Omit<Local, "base">) =
  * Estado das atividades para validar o envio (causas pendentes): o que o usuário editou por cima
  * dos dados do servidor. Quando o servidor muda (revalidação), vale o servidor.
  */
-export function useExecucaoLocal(atividades: Atividade[]): { lista: AtividadeExec[]; mudar: MudarExecucao } {
+export function useExecucaoLocal(atividades: Atividade[]): { lista: Atividade[]; mudar: MudarExecucao } {
   const [locais, setLocais] = useState<Record<string, Local>>({});
   const lista = atividades.map((a) => {
     const l = locais[a.id];
