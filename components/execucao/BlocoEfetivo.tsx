@@ -16,6 +16,11 @@ type LinhaEfetivo = { funcao: string; quantidade: number };
 type Linha = { chave: number; funcao: string; quantidade: string; outra: boolean };
 const OUTRA = "__outra__";
 export const TEXTO_PREVISTO = "Previsto pela programação — confirme ou ajuste";
+/** Key do bloco: enquanto nada foi gravado, muda com o previsto (atividade nova remonta com a soma nova). */
+export function chaveBloco(inicial: LinhaEfetivo[], previsto: LinhaEfetivo[] | undefined): string {
+  return inicial.length > 0 ? "gravado" : `previsto:${JSON.stringify(previsto ?? [])}`;
+}
+
 /** −/+ da quantidade (mínimo 1). */
 export function passoQuantidade(q: string, delta: 1 | -1): string {
   const n = Number(q) || 0;

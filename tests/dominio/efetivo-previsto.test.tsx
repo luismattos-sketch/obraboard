@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("@/app/(app)/obras/[obraId]/acoesResponsaveis", () => ({ criarResponsavelAcao: vi.fn() }));
 
-import { BlocoEfetivo, passoQuantidade, TEXTO_PREVISTO } from "@/components/execucao/BlocoEfetivo";
+import { BlocoEfetivo, chaveBloco, passoQuantidade, TEXTO_PREVISTO } from "@/components/execucao/BlocoEfetivo";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
 
 const salvar = vi.fn(async () => ({ ok: true as const, dados: undefined }));
@@ -41,5 +41,9 @@ describe("efetivo previsto", () => {
     );
     expect(html).toContain("Ana");
     expect(html).toContain(TEXTO_PREVISTO);
+  });
+  it("chave do bloco muda com o previsto enquanto nada foi gravado", () => {
+    expect(chaveBloco([], previsto)).not.toBe(chaveBloco([], [...previsto, { funcao: "Ajudante", quantidade: 1 }]));
+    expect(chaveBloco([{ funcao: "Soldador", quantidade: 5 }], previsto)).toBe(chaveBloco([{ funcao: "Soldador", quantidade: 5 }], []));
   });
 });

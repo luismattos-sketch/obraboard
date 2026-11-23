@@ -6,7 +6,7 @@ import type { Resultado } from "@/lib/db/resultado";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { Aviso } from "@/components/ui/Aviso";
 import { calcularHH, type Janela, type Ocorrencia } from "@/lib/dominio/efetivoHH";
-import { BlocoEfetivo } from "./BlocoEfetivo";
+import { BlocoEfetivo, chaveBloco } from "./BlocoEfetivo";
 import { OcorrenciasEfetivo } from "./OcorrenciasEfetivo";
 import { useOcorrencias, type AcoesOcorrencias } from "./useOcorrencias";
 
@@ -114,6 +114,7 @@ export function EfetivoPorEquipe({
   if (nomeadas.length === 0 && (!adicionarEquipe || responsaveis.length === 0)) {
     const unico = (
       <BlocoEfetivo
+        key={chaveBloco(efetivo.filter((e) => e.responsavel_id === null), previsto?.get(null))}
         inicial={efetivo.filter((e) => e.responsavel_id === null)}
         previsto={previsto?.get(null)}
         opcoes={opcoesFuncao}
@@ -137,6 +138,7 @@ export function EfetivoPorEquipe({
       {equipes.map((id) => (
         <div key={id ?? "sem"} className="flex flex-col gap-2">
           <BlocoEfetivo
+            key={chaveBloco(efetivo.filter((e) => e.responsavel_id === id), previsto?.get(id))}
             equipe={nome(id)}
             inicial={efetivo.filter((e) => e.responsavel_id === id)}
             previsto={previsto?.get(id)}
