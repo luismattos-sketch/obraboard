@@ -1,6 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { adicionarAtividade } from "@/lib/db/atividades";
-import { ERRO_LIMITE_IA, ERRO_RELATO_TAMANHO } from "@/lib/db/mensagens";
+import { ERRO_LINK } from "@/lib/db/campo";
+import { ERRO_IA_INDISPONIVEL, ERRO_LIMITE_IA, ERRO_RELATO_TAMANHO, ERRO_RESPONSAVEL_INVALIDO } from "@/lib/db/mensagens";
+import { lancarRelatoCampo, organizarRelatoCampo } from "@/lib/db/relatoCampo";
 import { criarObra } from "@/lib/db/obras";
 import { gravarTentativa, LIMITE_TENTATIVAS, marcarLancado, relatoPendente, relatosDoTurno } from "@/lib/db/relatos";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
@@ -90,6 +92,53 @@ describe.skipIf(!ligado)("relatos do campo (texto do Conte como foi o dia)", () 
     expect(await relatosDoTurno(outro.cliente, c.turnoId)).toEqual([]);
     const { error } = await u.cliente.from("relatos_campo").insert({ turno_id: c.turnoId, responsavel_id: c.ana, texto: "x" });
     expect(error).not.toBeNull();
+  });
+
+  describe("ações do link (IA falsa)", () => {
+    beforeAll(() => vi.stubEnv("FRENTIA_IA_FALSA", "1"));
+    afterAll(() => vi.unstubAllEnvs());
+
+    it("organizar: grava o texto e devolve a prévia só com as atividades do responsável", { timeout: 60_000 }, async () => {
+      const c = await cenario();
+      const r = await organizarRelatoCampo(c.token, c.ana, "fizemos 30 m de tubulação, faltou andaime", null);
+      if (!r.ok) throw new Error(r.erro);
+      expect(r.dados.previa.itens.map((i) => [i.atividadeId, i.depois?.qtd_realizada])).toEqual([[c.tubo, 30]]);
+      expect(r.dados.previa.perguntas.map((q) => q.tipo)).toEqual(["causa"]);
+      expect(r.dados.previa.semCitar).toEqual([]);
+      expect((await relatoPendente(c.turnoId, c.ana))?.id).toBe(r.dados.relatoId);
+    });
+
+    it("atividade de outro responsável nunca entra", { timeout: 60_000 }, async () => {
+      const c = await cenario();
+      const r = await organizarRelatoCampo(c.token, c.ana, "fizemos 3 m de suporte", null);
+      if (!r.ok) throw new Error(r.erro);
+      expect(r.dados.previa.itens).toEqual([]);
+      expect(r.dados.previa.semNada).toBe(true);
+    });
+
+    it("responsável de outra obra é recusado", { timeout: 60_000 }, async () => {
+      const c = await cenario();
+      const d = await cenario();
+      expect(await organizarRelatoCampo(c.token, d.ana, "fizemos 30 m de tubulação", null)).toEqual({ ok: false, erro: ERRO_RESPONSAVEL_INVALIDO });
+    });
+
+    it("IA fora do ar: avisa e o texto continua guardado", { timeout: 60_000 }, async () => {
+      const c = await cenario();
+      expect(await organizarRelatoCampo(c.token, c.ana, "ERRO aqui", null)).toEqual({ ok: false, erro: ERRO_IA_INDISPONIVEL });
+      expect((await relatoPendente(c.turnoId, c.ana))?.texto).toBe("ERRO aqui");
+    });
+
+    it("token inválido", async () => {
+      expect(await organizarRelatoCampo("x".repeat(43), "00000000-0000-0000-0000-000000000000", "oi", null)).toEqual({ ok: false, erro: ERRO_LINK });
+    });
+
+    it("lançar marca o relato", { timeout: 60_000 }, async () => {
+      const c = await cenario();
+      const r = await organizarRelatoCampo(c.token, c.ana, "fizemos 30 m de tubulação", null);
+      if (!r.ok) throw new Error(r.erro);
+      expect((await lancarRelatoCampo(c.token, c.ana, r.dados.relatoId)).ok).toBe(true);
+      expect((await relatosDoTurno(u.cliente, c.turnoId))[0].lancado).toBe(true);
+    });
   });
 
   it("turno fechado recusa gravar", { timeout: 60_000 }, async () => {

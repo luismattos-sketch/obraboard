@@ -15,6 +15,7 @@ import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } fro
 import { enviarFotoExtraCampo, enviarFotoParadaCampo } from "@/lib/db/fotosParada";
 import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
+import { lancarRelatoCampo, organizarRelatoCampo } from "@/lib/db/relatoCampo";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { CondicaoClima, DadosExecucao, PeriodoClima } from "@/lib/dominio/tipos";
@@ -95,4 +96,13 @@ export async function removerForaDoDia(token: string, atividadeId: string, respo
 
 export async function enviarFotoExtra(token: string, atividadeId: string, responsavelId: string, form: FormData) {
   return enviarFotoExtraCampo(token, atividadeId, responsavelId, form);
+}
+
+/** "Conte como foi o dia": guarda o texto e devolve a prévia da IA (nada grava nas atividades). */
+export async function organizarRelato(token: string, responsavelId: string, texto: string, relatoId: string | null) {
+  return organizarRelatoCampo(token, responsavelId, texto, relatoId);
+}
+
+export async function lancarRelato(token: string, responsavelId: string, relatoId: string) {
+  return lancarRelatoCampo(token, responsavelId, relatoId);
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { ERRO_FECHADO_CAMPO, ERRO_LIMITE_IA, ERRO_RELATO_TAMANHO, erroBanco } from "./mensagens";
+import { ERRO_FECHADO_CAMPO, ERRO_LIMITE_IA, ERRO_RELATO_TAMANHO, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 
 /** Texto do "Conte como foi o dia", guardado antes de chamar a IA (spec 2026-11-22-ia-texto-livre). */
@@ -22,6 +22,7 @@ const ERRO_GENERICO = "Não foi possível guardar o texto. Tente novamente.";
 
 const erroGravacao = (error: { code?: string; message?: string }, onde: string) => {
   if (erroBanco(error) === "turno_fechado") return falha(ERRO_FECHADO_CAMPO);
+  if (erroBanco(error) === "responsavel_invalido") return falha(ERRO_RESPONSAVEL_INVALIDO);
   console.error(`${onde}:`, error.message);
   return falha(ERRO_GENERICO);
 };
