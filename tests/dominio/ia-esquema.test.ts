@@ -51,6 +51,7 @@ describe("montarPedido", () => {
       expect(p.system).toContain(rotulo);
     }
     expect(p.system).toContain("nunca invente números, atividades ou causas; o que não foi dito fica null");
+    expect(p.system).toContain("liste material e equipamento em causas_candidatas");
   });
 });
 

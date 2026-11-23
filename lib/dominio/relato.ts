@@ -56,10 +56,15 @@ const SINONIMOS: Record<string, string[]> = {
   m3: ["m3", "m³", "metro cubico", "metros cubicos"],
 };
 
-function unidadeBate(dita: string, unidade: string): boolean {
+function unidadeBate(dita: string, unidade: string, descricao: string): boolean {
   const d = simples(dita);
   const u = simples(unidade);
   if (d === u) return true;
+  // Contagem: "3 juntas" em "Solda de juntas" (un) — a unidade falada é a própria coisa da atividade.
+  if (SINONIMOS.un.includes(u)) {
+    const raiz = d.replace(/s$/, "");
+    if (raiz.length >= 3 && simples(descricao).split(/[^a-z0-9]+/).some((p) => p.replace(/s$/, "") === raiz)) return true;
+  }
   const grupo = Object.entries(SINONIMOS).find(([k, l]) => k === u || l.includes(u));
   return grupo ? grupo[1].includes(d) || grupo[0] === d : false;
 }
@@ -84,7 +89,7 @@ function avaliar(ia: ItemIA, a: AtividadeRelato, chave: string, resp: Respostas)
   if (a.tipo !== "extra" && statusAtividade(a.qtd_planejada, a.qtd_realizada) === "concluida") {
     return { tipo: "nada", linha: `${titulo} — já estava concluída` };
   }
-  if (ia.unidade_dita && !unidadeBate(ia.unidade_dita, a.unidade)) {
+  if (ia.unidade_dita && !unidadeBate(ia.unidade_dita, a.unidade, a.descricao)) {
     return { tipo: "falta", motivo: `${titulo}: unidade diferente (${ia.unidade_dita}, a atividade é em ${a.unidade}) — ${COMPLETE}` };
   }
   const perguntas: Pergunta[] = [];

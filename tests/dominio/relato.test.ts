@@ -115,6 +115,11 @@ describe("conferirRelato", () => {
     expect(p1.faltas).toEqual([]);
     const p2 = conferirRelato({ itens: [it_({ quantidade: 3, unidade_dita: "peças" })] }, [S]);
     expect(p2.faltas).toEqual([]);
+    // A unidade falada é a própria coisa da atividade ("3 juntas" em "Solda de juntas", em un).
+    const p3 = conferirRelato({ itens: [it_({ quantidade: 3, unidade_dita: "juntas" })] }, [{ ...S, descricao: "Solda de juntas" }]);
+    expect(p3.faltas).toEqual([]);
+    const p4 = conferirRelato({ itens: [it_({ quantidade: 3, unidade_dita: "junta" })] }, [{ ...S, descricao: "Solda de juntas" }]);
+    expect(p4.faltas).toEqual([]);
   });
 
   it("aceita decimal", () => {

@@ -121,6 +121,7 @@ const SYSTEM = [
   "- modo: \"total\" se o número é o total feito hoje; \"a_mais\" se é a mais do que já foi lançado (\"mais 10\", \"outros 10\"); \"incerto\" se não dá para saber e já havia algo lançado; null sem número.",
   "- concluida: true só se disse que terminou/concluiu/acabou a atividade.",
   "- causa: o motivo de não ter terminado, só se o relato disser e só se couber claramente em uma causa da lista; se couber em duas, use null e liste as duas em causas_candidatas; sem motivo dito, null e lista vazia.",
+  "  Se a coisa que faltou pode ser tanto material quanto equipamento (andaime, plataforma, guindaste, munck), use causa null e liste material e equipamento em causas_candidatas.",
   "- coisa_da_causa: a coisa que faltou ou atrapalhou, em poucas palavras (\"andaime\"), ou null.",
   "- trecho: cópia literal e curta do pedaço do relato que explica o motivo (para a observação), ou null.",
   "Atividades do tipo extra não têm meta.",
