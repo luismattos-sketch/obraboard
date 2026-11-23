@@ -150,6 +150,15 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(cel, "campo", "lancar");
   await cartao("Base do compressor").getByRole("button", { name: /Marcar como concluída/ }).click();
   await expect(cartao("Base do compressor").getByText("Salvo ✓")).toBeVisible({ timeout: 20_000 });
+  // Conte como foi o dia (IA falsa do playwright.config): prévia com perguntas; depois some com o relato de exemplo.
+  const contar = cel.locator("section[aria-labelledby='titulo-contar-dia']");
+  await contar.getByRole("textbox").fill("fizemos 20 m de tubulação, faltou andaime");
+  await contar.getByRole("button", { name: "Organizar" }).click();
+  await expect(contar.getByText("Andaime é…")).toBeVisible({ timeout: 20_000 });
+  await fotografar(cel, "campo", "contar-dia");
+  await contar.getByRole("button", { name: "Corrigir texto" }).click();
+  await contar.getByRole("textbox").fill("");
+  await criarClienteAdmin().from("relatos_campo").delete().eq("responsavel_id", ids["Ana Souza"]);
 
   await cel.goto(`/t/${token}?r=${ids["João Lima"]}`);
   await cartao("Pintura do guarda-corpo").getByLabel(/Total feito hoje/).fill("10");

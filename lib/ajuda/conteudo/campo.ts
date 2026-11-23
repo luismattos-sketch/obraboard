@@ -34,6 +34,21 @@ export const campo: Capitulo = {
       },
     },
     {
+      id: "contar-dia",
+      titulo: "Conte como foi o dia (IA)",
+      texto: [
+        "Prefere escrever do seu jeito? Em \"Conte como foi o dia\", escreva ou dite pelo microfone do teclado, por exemplo: \"fizemos 30 m de tubulação, faltou andaime\". Toque em \"Organizar\".",
+        "A IA mostra o que entendeu e, se faltar algo, faz até 2 perguntas com botões (\"Andaime é… Falta material ou Equipamento?\"). O que você não falou fica como está, e nada é inventado.",
+        "Nada é gravado até você tocar em \"Lançar\". Errou? Toque em \"Corrigir texto\". Sem sinal, o texto fica guardado: tente de novo ou lance nos cards.",
+      ],
+      dica: "O planejador vê o texto que você escreveu, junto do lançamento.",
+      captura: {
+        alt: "Caixa Conte como foi o dia com a prévia do que a IA entendeu e as perguntas com botões",
+        alvo: { papel: "heading", nome: "Conte como foi o dia" },
+        dispositivo: "celular",
+      },
+    },
+    {
       id: "efetivo",
       titulo: "Informe o efetivo",
       texto: [

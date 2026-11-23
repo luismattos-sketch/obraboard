@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-22",
+    texto: "Conte como foi o dia: no link de campo, escreva ou dite e a IA organiza o lançamento para você conferir antes de gravar.",
+    href: "/ajuda/campo#contar-dia",
+  },
+  {
+    data: "2026-11-22",
     texto: "Lançamento mais claro: \"Total feito hoje\", botão \"+ Somar\" e pergunta antes de trocar um parcial pela meta.",
     href: "/ajuda/campo#lancar",
   },
