@@ -72,3 +72,15 @@ describe("normalizarExecucao (formato gravado no banco)", () => {
     expect(normalizarExecucao(10, v(null, "clima", "x"))).toEqual(v(null, "clima", "x"));
   });
 });
+
+describe("conflito depois de um Somar", () => {
+  it("diz o que foi somado e como ficaria sobre o valor atual", () => {
+    expect(textoConflitoExecucao(v(50), v(70), "m", 30)).toBe(`${P} Agora está 50 m, você tinha somado +30 (ficaria 80).`);
+  });
+  it("valor atual em branco: ficaria só o somado", () => {
+    expect(textoConflitoExecucao(v(null), v(70), "m", 30)).toBe(`${P} Agora está em branco, você tinha somado +30 (ficaria 30).`);
+  });
+  it("nota depois de Ver valor atual", () => {
+    expect(notaDigitadoExecucao(v(70), 30)).toBe("Você tinha somado +30.");
+  });
+});

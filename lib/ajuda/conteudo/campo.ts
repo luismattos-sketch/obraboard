@@ -23,12 +23,13 @@ export const campo: Capitulo = {
       id: "lancar",
       titulo: "Lance o que foi feito",
       texto: [
-        "Em cada atividade, digite em \"Executado\" quanto foi feito até agora. Terminou tudo? Toque em \"✓ Concluída\".",
-        "Não precisa de botão de salvar: espere aparecer \"Salvo ✓\".",
+        "Em cada atividade, \"Total feito hoje\" é tudo o que a equipe fez no dia. Fez mais um trecho? Toque em \"+ Somar\" e digite só o que fez agora: o app mostra a conta (40 + 30 = 70) antes de somar.",
+        "Terminou tudo? Toque em \"✓ Concluída\". Se já houver um número, o app pergunta antes de trocar (\"Trocar 40 por 60?\").",
+        "Não precisa de botão de salvar: tudo salva sozinho. Espere aparecer \"Salvo ✓\".",
       ],
       captura: {
-        alt: "Atividade no celular com o campo Executado e o selo Salvo",
-        alvo: { papel: "textbox", nome: "Executado" },
+        alt: "Atividade no celular com o campo Total feito hoje e o selo Salvo",
+        alvo: { papel: "textbox", nome: "Total feito hoje" },
         dispositivo: "celular",
       },
     },

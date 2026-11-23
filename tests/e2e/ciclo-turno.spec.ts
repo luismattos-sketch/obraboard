@@ -112,7 +112,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await cards.nth(0).getByRole("button", { name: /Marcar como concluída/ }).click();
     await expect(cards.nth(0).getByRole("button", { name: /Marcar como concluída/ })).toHaveCount(0);
     await expect(cards.nth(0).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
-    await cards.nth(1).getByLabel(/Executado/).fill("8");
+    await cards.nth(1).getByLabel(/Total feito hoje/).fill("8");
     await cards.nth(1).getByRole("button", { name: "Não vai dar para concluir? Informar causa" }).click();
     await cards.nth(1).getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
     await expect(cards.nth(1).getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
@@ -124,10 +124,10 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await expect(cards2.nth(1).getByText(/Mudou em outra tela/)).toBeVisible({ timeout: 15_000 });
     await expect(cards2.nth(1).getByText(/Agora está 8 m²/)).toBeVisible();
     await cards2.nth(1).getByRole("button", { name: "Ver valor atual" }).click();
-    await expect(cards2.nth(1).getByLabel(/Executado/)).toHaveValue("8", { timeout: 15_000 });
+    await expect(cards2.nth(1).getByLabel(/Total feito hoje/)).toHaveValue("8", { timeout: 15_000 });
     await expect(cards2.nth(1).getByText(/Você tinha digitado/)).toBeVisible();
     await campo2.close();
-    await expect(cards.nth(1).getByLabel(/Executado/)).toHaveValue("8");
+    await expect(cards.nth(1).getByLabel(/Total feito hoje/)).toHaveValue("8");
 
     // Efetivo
     await campo.getByRole("button", { name: "+ Adicionar função" }).click();

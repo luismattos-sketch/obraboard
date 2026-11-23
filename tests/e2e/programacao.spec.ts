@@ -84,7 +84,7 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
     await campo.getByLabel("Fim").fill("17:00");
     await salvo("titulo-horario");
     const card = campo.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);
-    await card.getByLabel(/Executado/).fill("3");
+    await card.getByLabel(/Total feito hoje/).fill("3");
     await card.getByRole("button", { name: "Não vai dar para concluir? Informar causa" }).click();
     await card.getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
     await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });

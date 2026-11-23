@@ -8,10 +8,15 @@ type Props = EstadoSalvar & {
   nota?: string | null;
   /** Falha de rede: tentar já (sem esperar o próximo intervalo). */
   tentar?: () => void;
+  /** Texto curto quando não há nada acontecendo (ex.: "salva sozinho"). */
+  dica?: string;
 };
 
-export function IndicadorSalvo({ estado, mensagem, conflito, onVerAtual, nota, tentar }: Props) {
-  if (estado === "ocioso") return nota ? <p className="text-sm text-texto-suave">{nota}</p> : null;
+export function IndicadorSalvo({ estado, mensagem, conflito, onVerAtual, nota, tentar, dica }: Props) {
+  if (estado === "ocioso") {
+    if (nota) return <p className="text-sm text-texto-suave">{nota}</p>;
+    return dica ? <p className="text-sm text-texto-suave">{dica}</p> : null;
+  }
   if (estado === "salvando") return <p className="text-sm text-texto-suave" aria-live="polite">Salvando…</p>;
   if (estado === "salvo") return <p className="text-sm text-sucesso" aria-live="polite">Salvo ✓</p>;
   if (conflito && onVerAtual) {

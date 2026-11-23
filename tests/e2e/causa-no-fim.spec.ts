@@ -47,7 +47,7 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   const cel = await ctx.newPage();
   await cel.goto(urlAna);
   const card = cel.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);
-  await card.getByLabel(/Executado/).fill("3");
+  await card.getByLabel(/Total feito hoje/).fill("3");
   await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
 
   // Durante o dia: nada de aviso nem campo de causa.
