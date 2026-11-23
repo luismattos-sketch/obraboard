@@ -14,7 +14,7 @@ Legenda de origem: **P1/P2** planejador (manhã/tarde), **Ana**, **João**, **Ca
 3. Conta de API na Claude Console, chave na Vercel, limite de gasto (fora do código).
 4. ✅ **No ar desde 2026-11-22** — IA no campo: texto livre vira registro + IA pergunta o que falta (planilha 10.1 e 10.2). "Conte como foi o dia" no link de campo; tabela relatos_campo.
 5. ✅ **No ar desde 2026-11-23** (merge 303947f) — Planejador vê registros incompletos (10.4): bloco "O que falta" no turno + "Cobrar no WhatsApp".
-6. Lembrete no momento certo (10.3).
+6. ⏸ Lembrete no momento certo (10.3) — **adiado em 2026-11-23**; fica para o futuro (precisa de canal de envio: notificação no celular ou WhatsApp pago).
 
 Depois: demais itens do teste (9, 10, 12–20), cobrança e o resto do épico 10. A IA sai sem custo para o piloto,
 com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
