@@ -26,6 +26,8 @@ import { PainelLink } from "./PainelLink";
 import { Resumo } from "./Resumo";
 import { FaixaParadas } from "./FaixaParadas";
 import { RelatosCampo } from "./RelatosCampo";
+import { OQueFalta } from "./OQueFalta";
+import { faltasDoTurno, fimDoTurno } from "@/lib/dominio/faltas";
 import { relatosDoTurno } from "@/lib/db/relatos";
 import { urlsFotos } from "@/lib/db/fotosParada";
 import { paradasAbertas } from "@/lib/dominio/efetivoHH";
@@ -46,7 +48,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
   const semanaStatus = semana?.status ?? null;
   const opcoesFuncao = await opcoesFuncaoDoTurno(supabase, obraId, turno.data, turno.periodo).catch(() => [...FUNCOES_SUGERIDAS]);
-  const responsaveis = (await listarResponsaveis(supabase, obraId)).map(({ id, nome, ativo }) => ({ id, nome, ativo }));
+  const listaResponsaveis = await listarResponsaveis(supabase, obraId);
+  const responsaveis = listaResponsaveis.map(({ id, nome, ativo }) => ({ id, nome, ativo }));
   const temFoto = turno.status !== "planejado" && (await fotoCheckin(supabase, turno.id).catch(() => null)) !== null;
   const efetivo = turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id }));
   const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
@@ -115,6 +118,17 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
         </>
       ) : (
         <>
+          {turno.status !== "fechado" && (
+            <OQueFalta
+              grupos={faltasDoTurno({ turno, atividades: turno.atividades, relatos, terminados: turno.terminados ?? [], agora: new Date() })}
+              responsaveis={listaResponsaveis.map(({ id, nome, telefone }) => ({ id, nome, telefone }))}
+              contexto={{ obra: turno.obra.nome, data: turno.data, periodo: turno.periodo }}
+              token={link.token}
+              fim={fimDoTurno(turno)}
+              enviado={turno.status === "enviado"}
+              terminados={(turno.terminados ?? []).map((t) => t.responsavel_id)}
+            />
+          )}
           <Resumo turno={turno} />
           <BlocoRdo turnoId={turno.id} fechado={turno.status === "fechado"} versoes={versoes} />
           <RelatosCampo relatos={relatos} responsaveis={responsaveis} />
