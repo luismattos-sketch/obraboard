@@ -25,7 +25,7 @@ import {
   type Tom,
 } from "@/lib/dominio/tipos";
 import { camposAbertos } from "@/lib/dominio/cardCausa";
-import { perguntaConcluida, somarLancamento, textoSoma, textoTotal } from "@/lib/dominio/lancamento";
+import { acumularSomado, perguntaConcluida, somarLancamento, textoSoma, textoTotal } from "@/lib/dominio/lancamento";
 import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
 import { ContextoSincronia, Sincronizar } from "./Sincronizar";
@@ -143,6 +143,9 @@ function ItemExecucao({
   // O que o banco tem segundo esta tela; em série para um salvamento lento não gerar conflito falso.
   const esperado = useRef<ValoresExecucao>({ qtd_realizada: a.qtd_realizada, causa: a.causa, observacao: a.observacao });
   const digitado = useRef<ValoresExecucao | null>(null);
+  // Último valor veio de "+ Somar": quanto foi somado (o aviso de conflito fala do trecho, não do total).
+  const somadoAgora = useRef<number | undefined>(undefined);
+  const somadoNoEnvio = useRef<number | undefined>(undefined);
   // Envios que caíram sem resposta (podem ter sido gravados mesmo assim), no formato do banco.
   const semResposta = useRef<ValoresExecucao[]>([]);
   const [fila] = useState(criarFila);
@@ -155,6 +158,7 @@ function ItemExecucao({
         observacao: obs.trim() ? obs : null,
       };
       digitado.current = dados;
+      somadoNoEnvio.current = somadoAgora.current;
       return fila(async () => {
         const enviar = async (base: ValoresExecucao) => {
           try {
@@ -171,17 +175,19 @@ function ItemExecucao({
         const atual = !r.ok ? (r.conflito?.atual as ValoresExecucao | undefined) : undefined;
         if (atual && semResposta.current.some((d) => mesmaExecucao(d, atual))) r = await enviar(atual);
         if (r.ok) {
+          // Gravado: a próxima soma começa do zero (a menos que outra tenha vindo depois deste envio).
+          if (somadoAgora.current === somadoNoEnvio.current) somadoAgora.current = undefined;
           esperado.current = r.dados;
           semResposta.current = [];
         }
-        else if (r.conflito?.atual) return { ...r, erro: textoConflitoExecucao(r.conflito.atual as ValoresExecucao, dados, a.unidade) };
+        else if (r.conflito?.atual) return { ...r, erro: textoConflitoExecucao(r.conflito.atual as ValoresExecucao, dados, a.unidade, somadoNoEnvio.current) };
         return r;
       });
     },
     tuplaExecucao(plan, qtdInvalida ? texto : qtd, causa, obs),
   );
   const verAtual = () => {
-    if (digitado.current) sincronia?.recarregar(notaDigitadoExecucao(digitado.current));
+    if (digitado.current) sincronia?.recarregar(notaDigitadoExecucao(digitado.current, somadoNoEnvio.current));
   };
 
   function atualizar(t: string, c: Causa | "", o: string) {
@@ -200,8 +206,12 @@ function ItemExecucao({
   const previa = !qtdInvalida && maisNum !== null && maisNum > 0 ? textoSoma(qtd ?? 0, maisNum) : null;
 
   function concluir() {
+    fecharSoma();
     if (perguntaConcluida(qtd, a.qtd_planejada)) setPerguntando(true);
-    else atualizar(meta, causa, obs);
+    else {
+      somadoAgora.current = undefined;
+      atualizar(meta, causa, obs);
+    }
   }
   function fecharSoma() {
     setSomando(false);
@@ -214,6 +224,8 @@ function ItemExecucao({
       setErroSoma(r.erro);
       return;
     }
+    setPerguntando(false);
+    somadoAgora.current = acumularSomado(somadoAgora.current, parseNumero(mais) ?? 0);
     atualizar(textoTotal(r.total), causa, obs);
     fecharSoma();
   }
@@ -256,6 +268,7 @@ function ItemExecucao({
             aria-invalid={qtdInvalida || undefined}
             onChange={(e) => {
               setPerguntando(false);
+              somadoAgora.current = undefined;
               atualizar(e.target.value, causa, obs);
             }}
           />
@@ -268,6 +281,7 @@ function ItemExecucao({
               className={botaoSecundario}
               onClick={() => {
                 setPerguntando(false);
+                somadoAgora.current = undefined;
                 atualizar(meta, causa, obs);
               }}
             >

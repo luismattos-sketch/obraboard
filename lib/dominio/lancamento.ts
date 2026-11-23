@@ -28,3 +28,8 @@ export function perguntaConcluida(qtd: number | null, meta: number): string | nu
 export function textoTotal(n: number): string {
   return String(n).replace(".", ",");
 }
+
+/** Somas seguidas antes de gravar viram um envio só: o aviso de conflito fala do total somado. */
+export function acumularSomado(anterior: number | undefined, mais: number): number {
+  return Math.round(((anterior ?? 0) + mais) * 1000) / 1000;
+}

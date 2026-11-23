@@ -53,6 +53,12 @@ test("total feito hoje: somar um trecho e confirmar antes de trocar o parcial pe
   await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
 
   // Concluída com parcial pergunta; Não mantém.
+  // Abrir a pergunta fecha o painel de somar (nunca os dois juntos).
+  await card.getByRole("button", { name: "+ Somar" }).click();
+  await expect(card.getByLabel("Quanto a mais?")).toBeVisible();
+  await card.getByRole("button", { name: /Marcar como concluída/ }).click();
+  await expect(card.getByLabel("Quanto a mais?")).toHaveCount(0);
+  await card.getByRole("button", { name: "Não", exact: true }).click();
   await card.getByRole("button", { name: /Marcar como concluída/ }).click();
   await expect(card.getByText("Trocar 70 por 100?")).toBeVisible();
   await card.getByRole("button", { name: "Não", exact: true }).click();

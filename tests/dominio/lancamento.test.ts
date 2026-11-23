@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { perguntaConcluida, somarLancamento, textoSoma, textoTotal } from "@/lib/dominio/lancamento";
+import { acumularSomado, perguntaConcluida, somarLancamento, textoSoma, textoTotal } from "@/lib/dominio/lancamento";
 
 const ERRO_NUM = { ok: false, erro: "Digite um número válido" };
 
@@ -27,4 +27,10 @@ describe("textos", () => {
   });
   it("total para o campo", () => expect(textoTotal(2.5)).toBe("2,5"));
   it("total para o campo sem ponto de milhar (o campo leria 1.500 como 1,5)", () => expect(textoTotal(1500)).toBe("1500"));
+});
+
+describe("acumularSomado", () => {
+  it("primeira soma", () => expect(acumularSomado(undefined, 30)).toBe(30));
+  it("somas seguidas acumulam", () => expect(acumularSomado(30, 20)).toBe(50));
+  it("decimais", () => expect(acumularSomado(0.1, 0.2)).toBe(0.3));
 });

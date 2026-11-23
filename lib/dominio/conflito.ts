@@ -18,11 +18,18 @@ export const mesmaExecucao = (a: ValoresExecucao, b: ValoresExecucao) =>
 export const PREFIXO_CONFLITO = "Mudou em outra tela (pode ter sido você em outra aba).";
 
 /** Explica o que está gravado agora × o que esta tela tentou gravar. */
-export function textoConflitoExecucao(atual: ValoresExecucao, digitado: ValoresExecucao, unidade: string): string {
+/** `somado`: o valor veio de "+ Somar" (a pessoa digitou só o trecho; mostrar como ficaria sobre o atual). */
+export function textoConflitoExecucao(atual: ValoresExecucao, digitado: ValoresExecucao, unidade: string, somado?: number): string {
   const partes = [PREFIXO_CONFLITO];
   if (atual.qtd_realizada !== digitado.qtd_realizada) {
     const agora = atual.qtd_realizada === null ? "em branco" : `${numeroBR(atual.qtd_realizada)} ${unidade}`;
-    const antes = digitado.qtd_realizada === null ? "deixado em branco" : `digitado ${numeroBR(digitado.qtd_realizada)}`;
+    const ficaria = Math.round(((atual.qtd_realizada ?? 0) + (somado ?? 0)) * 1000) / 1000;
+    const antes =
+      somado !== undefined
+        ? `somado +${numeroBR(somado)} (ficaria ${numeroBR(ficaria)})`
+        : digitado.qtd_realizada === null
+          ? "deixado em branco"
+          : `digitado ${numeroBR(digitado.qtd_realizada)}`;
     partes.push(`Agora está ${agora}, você tinha ${antes}.`);
   }
   if (atual.causa !== digitado.causa) {
@@ -35,7 +42,8 @@ export function textoConflitoExecucao(atual: ValoresExecucao, digitado: ValoresE
 }
 
 /** Nota que fica no bloco depois de "Ver valor atual", para a pessoa redigitar se quiser. */
-export function notaDigitadoExecucao(d: ValoresExecucao): string {
+export function notaDigitadoExecucao(d: ValoresExecucao, somado?: number): string {
+  if (somado !== undefined && !d.causa && !d.observacao?.trim()) return `Você tinha somado +${numeroBR(somado)}.`;
   const extras = [
     d.causa ? `causa: ${CAUSAS[d.causa]}` : null,
     d.observacao?.trim() ? `observação "${d.observacao.trim()}"` : null,
