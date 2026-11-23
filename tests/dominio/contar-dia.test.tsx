@@ -47,6 +47,12 @@ describe("PreviaRelato", () => {
     expect(html).toMatch(/aria-pressed="true"[^>]*>Falta material<\/button>/);
   });
 
+  it("item que não vai ser lançado depois da resposta aparece com o motivo", () => {
+    const p = conferirRelato({ itens: [{ ...andaime, atividade: null, candidatas: ["A1", "A2"], causas_candidatas: [], trecho: null }] }, [T, S]);
+    const html = renderToStaticMarkup(<PreviaRelato previa={p} respostas={{ [p.perguntas[0].chave]: "s" }} resultados={{}} responder={() => {}} />);
+    expect(html).toContain("Não vai ser lançado: Suporte de tubo: unidade diferente (m, a atividade é em un) — complete no card");
+  });
+
   it("faltas, resultado do lançamento e nada para lançar", () => {
     const comFalta = conferirRelato({ itens: [{ ...andaime, atividade: "A9" }] }, [T]);
     expect(renderToStaticMarkup(<PreviaRelato previa={comFalta} respostas={{}} resultados={{}} responder={() => {}} />))

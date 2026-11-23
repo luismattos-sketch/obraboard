@@ -25,7 +25,7 @@ describe("conferirRelato", () => {
     const p = conferirRelato({ itens: [andaime] }, [T, S]);
     expect(p.itens).toHaveLength(1);
     expect(p.itens[0].depois?.qtd_realizada).toBe(30);
-    expect(p.itens[0].linha).toBe("Tubulação linha 3 — 0 → 30 m de 50 m (parcial)");
+    expect(p.itens[0].linha).toBe("Tubulação linha 3 — 0 → 30 m de 50 m (parcial) · Obs: \"faltou andaime\"");
     expect(p.perguntas).toHaveLength(1);
     const q = p.perguntas[0];
     expect(q.tipo).toBe("causa");
@@ -164,5 +164,48 @@ describe("conferirRelato", () => {
     const r = aplicarRespostas(p, {});
     expect(r.faltam).toEqual([p.perguntas[0].chave]);
     expect(r.gravar).toEqual([]);
+  });
+});
+
+describe("revisão final", () => {
+  it("atividade escolhida que precisa de outra pergunta: aviso visível e não grava", () => {
+    const p = conferirRelato({ itens: [it_({ atividade: null, candidatas: ["A1", "A2"], quantidade: 5, modo: "incerto" })] }, [T, { ...S, unidade: "m", qtd_realizada: 2 }]);
+    const r = aplicarRespostas(p, { [p.perguntas[0].chave]: "s" });
+    expect(r.gravar).toEqual([]);
+    expect(r.avisos).toEqual(["Suporte de tubo: diga o total feito hoje — complete no card"]);
+  });
+
+  it("atividade escolhida com unidade diferente: aviso visível e linha com o motivo", () => {
+    const p = conferirRelato({ itens: [it_({ atividade: null, candidatas: ["A1", "A2"], quantidade: 5, unidade_dita: "m" })] }, [T, S]);
+    const resp = { [p.perguntas[0].chave]: "s" };
+    expect(aplicarRespostas(p, resp).avisos).toEqual(["Suporte de tubo: unidade diferente (m, a atividade é em un) — complete no card"]);
+    expect(linhasComRespostas(p, resp)[p.itens[0].chave]).toBe("Suporte de tubo: unidade diferente (m, a atividade é em un) — complete no card");
+  });
+
+  it("mesma atividade citada duas vezes: a segunda vira falta", () => {
+    const p = conferirRelato({ itens: [it_({ quantidade: 10, modo: "total" }), it_({ quantidade: 15, modo: "a_mais" })] }, [T]);
+    expect(p.itens).toHaveLength(1);
+    expect(p.faltas).toEqual(["Tubulação linha 3: citada mais de uma vez — confira o total no card"]);
+  });
+
+  it("escolha que repete atividade já lançada no mesmo texto não grava duas vezes", () => {
+    const p = conferirRelato({ itens: [it_({ quantidade: 10, modo: "total" }), it_({ atividade: null, candidatas: ["A1", "A2"], quantidade: 3 })] }, [T, { ...S, unidade: "m" }]);
+    const r = aplicarRespostas(p, { [p.perguntas[0].chave]: "t" });
+    expect(r.gravar.map((g) => g.atividadeId)).toEqual(["t"]);
+    expect(r.avisos).toEqual(["Tubulação linha 3: citada mais de uma vez — confira o total no card"]);
+  });
+
+  it("trecho que não está no texto é descartado; o que está aparece na linha", () => {
+    const ia = it_({ quantidade: 3, modo: "total", causa: "material", trecho: "faltou andaime" });
+    const fora = conferirRelato({ itens: [ia] }, [T], "fizemos 3 m, sem andaime");
+    expect(aplicarRespostas(fora, {}).gravar[0].dados.observacao).toBeNull();
+    const dentro = conferirRelato({ itens: [ia] }, [T], "fizemos 3 m, Faltou andaime!");
+    expect(aplicarRespostas(dentro, {}).gravar[0].dados.observacao).toBe("faltou andaime");
+    expect(dentro.itens[0].linha).toContain(" · Obs: \"faltou andaime\"");
+  });
+
+  it("terminou com número dito: vale o número", () => {
+    const p = conferirRelato({ itens: [it_({ concluida: true, quantidade: 45, modo: "total" })] }, [T]);
+    expect(aplicarRespostas(p, {}).gravar[0].dados.qtd_realizada).toBe(45);
   });
 });

@@ -42,7 +42,7 @@ export async function organizarRelatoCampo(
   }));
   const r = await interpretarRelato(texto.trim(), paraIA);
   if (!r.ok) return falha(ERRO_IA_INDISPONIVEL);
-  return ok({ relatoId: relato.dados.id, previa: conferirRelato(r.resposta, atividades) });
+  return ok({ relatoId: relato.dados.id, previa: conferirRelato(r.resposta, atividades, texto.trim()) });
 }
 
 /** O responsável tocou "Lançar" (as atividades são gravadas uma a uma pelo salvarExecucao). */

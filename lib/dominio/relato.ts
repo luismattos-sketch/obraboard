@@ -97,9 +97,7 @@ function avaliar(ia: ItemIA, a: AtividadeRelato, chave: string, resp: Respostas)
   let qtd: number | null = a.qtd_realizada;
   const temMotivo = ia.causa !== null || ia.causas_candidatas.length > 0 || ia.trecho !== null;
 
-  if (ia.concluida && a.tipo !== "extra") {
-    qtd = a.qtd_planejada;
-  } else if (ia.quantidade !== null) {
+  if (ia.quantidade !== null) {
     if (!(ia.quantidade > 0) || ia.quantidade > QTD_MAX) return { tipo: "falta", motivo: `${titulo}: quantidade inválida — ${COMPLETE}` };
     const q = r3(ia.quantidade);
     if (feito <= 0 || ia.modo === "total") qtd = q;
@@ -111,6 +109,9 @@ function avaliar(ia: ItemIA, a: AtividadeRelato, chave: string, resp: Respostas)
       else if (v === "trocar") qtd = q;
       else perguntas.push({ tipo: "modo", chave: k, atividadeId: a.id, texto: `${numeroBR(q)} ${a.unidade} a mais ou no total?`, somar: r3(feito + q), trocar: q });
     }
+  } else if (ia.concluida && a.tipo !== "extra") {
+    // "Terminamos" sem número: vale a meta (com número dito, vale o número).
+    qtd = a.qtd_planejada;
   } else if (!temMotivo) {
     const k = `${chave}:quantidade`;
     const v = resp[k];
@@ -155,11 +156,14 @@ function avaliar(ia: ItemIA, a: AtividadeRelato, chave: string, resp: Respostas)
   const situacao = a.tipo === "extra" || qtdPendente ? "" : qtd !== null && concluida ? " (concluída)" : qtd !== null && qtd > 0 ? " (parcial)" : "";
   let linha = `${titulo} — ${numeroBR(feito)} → ${qtd === null || qtdPendente ? "?" : numeroBR(qtd)} ${un}${de}${situacao}`;
   if (causa && causa !== a.causa) linha += ` · ${CAUSAS[causa]}`;
+  if (observacao !== a.observacao && trecho) linha += ` · Obs: "${trecho}"`;
   const aviso = obsGrande ? `${titulo}: observação grande demais — ${COMPLETE}` : undefined;
   const igual = depois.qtd_realizada === a.qtd_realizada && depois.causa === a.causa && depois.observacao === a.observacao;
   if (igual && perguntas.length === 0) return aviso ? { tipo: "falta", motivo: aviso } : { tipo: "nada", linha: `${titulo} — sem mudança` };
   return { tipo: "ok", depois, perguntas, linha, aviso };
 }
+
+const citadaDuasVezes = (a: AtividadeRelato) => `${tituloDe(a)}: citada mais de uma vez — confira o total no card`;
 
 /** Motivo da falta de um item que precisaria de uma pergunta além do limite. */
 function motivoSemPergunta(q: Pergunta, titulo: string): string {
@@ -169,15 +173,21 @@ function motivoSemPergunta(q: Pergunta, titulo: string): string {
   return `Não deu para saber qual atividade — ${COMPLETE}`;
 }
 
-export function conferirRelato(resposta: RespostaIA, atividades: AtividadeRelato[]): Previa {
+/** `texto` = o relato: trecho que não está nele (paráfrase ou invenção da IA) é descartado. */
+export function conferirRelato(resposta: RespostaIA, atividades: AtividadeRelato[], texto?: string): Previa {
   const codigos = codigosParaIA(atividades);
+  const literal = texto === undefined ? null : simples(texto);
+  const itensIA = resposta.itens.map((ia) =>
+    ia.trecho && literal !== null && !literal.includes(simples(ia.trecho)) ? { ...ia, trecho: null } : ia,
+  );
+  const comItem = new Set<string>();
   const itens: ItemPrevia[] = [];
   const faltas: string[] = [];
   const citadas = new Set<string>();
   type Candidata = { item: number; q: Pergunta };
   const candidatas: Candidata[] = [];
 
-  resposta.itens.forEach((ia, i) => {
+  itensIA.forEach((ia, i) => {
     const chave = `i${i}`;
     const alvo = ia.atividade ? codigos.get(ia.atividade) : undefined;
     if (!alvo) {
@@ -202,6 +212,8 @@ export function conferirRelato(resposta: RespostaIA, atividades: AtividadeRelato
 
   function avaliarItem(ia: ItemIA, a: AtividadeRelato, chave: string) {
     citadas.add(a.id);
+    if (comItem.has(a.id)) return void faltas.push(citadaDuasVezes(a));
+    comItem.add(a.id);
     const r = avaliar(ia, a, chave, {});
     if (r.tipo === "falta") return void faltas.push(r.motivo);
     const base = { chave, atividadeId: a.id, titulo: tituloDe(a), antes: antesDe(a), ia };
@@ -235,11 +247,19 @@ export function conferirRelato(resposta: RespostaIA, atividades: AtividadeRelato
 export function aplicarRespostas(
   previa: Previa,
   respostas: Respostas,
-): { gravar: { atividadeId: string; dados: DadosExecucao; esperado: DadosExecucao }[]; faltam: string[] } {
+): {
+  gravar: { atividadeId: string; dados: DadosExecucao; esperado: DadosExecucao }[];
+  /** Perguntas da prévia ainda sem resposta (Lançar espera). */
+  faltam: string[];
+  /** Itens que não vão ser lançados, com o motivo (aparecem na prévia). */
+  avisos: string[];
+} {
   const porId = new Map(previa.atividades.map((a) => [a.id, a]));
   const perguntadas = new Set(previa.perguntas.map((q) => q.chave));
   const gravar: { atividadeId: string; dados: DadosExecucao; esperado: DadosExecucao }[] = [];
   const faltam: string[] = [];
+  const avisos: string[] = [];
+  const usadas = new Set(previa.itens.map((i) => i.atividadeId).filter((x): x is string => x !== null));
   for (const item of previa.itens) {
     let id = item.atividadeId;
     if (id === null) {
@@ -249,19 +269,31 @@ export function aplicarRespostas(
         continue;
       }
       id = v;
+      const escolhida = porId.get(id)!;
+      if (usadas.has(id)) {
+        avisos.push(citadaDuasVezes(escolhida));
+        continue;
+      }
+      usadas.add(id);
     }
     const a = porId.get(id);
     if (!a) continue;
     const r = avaliar(item.ia, a, item.chave, respostas);
+    if (r.tipo === "falta") {
+      avisos.push(r.motivo);
+      continue;
+    }
     if (r.tipo !== "ok") continue;
     if (r.perguntas.length > 0) {
-      // Pergunta que não estava na prévia (surgiu após escolher a atividade) não tem botão: fica para o card.
-      faltam.push(...r.perguntas.map((q) => q.chave).filter((k) => perguntadas.has(k) || item.atividadeId === null));
+      const novas = r.perguntas.filter((q) => !perguntadas.has(q.chave));
+      faltam.push(...r.perguntas.filter((q) => perguntadas.has(q.chave)).map((q) => q.chave));
+      // Pergunta que surgiu depois de escolher a atividade não tem botão: avisa e fica para o card.
+      if (novas.length > 0) avisos.push(motivoSemPergunta(novas[0], tituloDe(a)));
       continue;
     }
     gravar.push({ atividadeId: id, dados: r.depois, esperado: antesDe(a) });
   }
-  return { gravar, faltam };
+  return { gravar, faltam, avisos };
 }
 
 /** Linha de cada item já com as respostas dadas (a prévia se atualiza ao tocar os botões). */
@@ -272,7 +304,7 @@ export function linhasComRespostas(previa: Previa, respostas: Respostas): Record
     const escolhida = respostas[`${item.chave}:atividade`];
     const a = porId.get(item.atividadeId ?? (typeof escolhida === "string" ? escolhida : ""));
     const r = a ? avaliar(item.ia, a, item.chave, respostas) : null;
-    linhas[item.chave] = r && r.tipo !== "falta" ? r.linha : item.linha;
+    linhas[item.chave] = r === null ? item.linha : r.tipo === "falta" ? r.motivo : r.linha;
   }
   return linhas;
 }

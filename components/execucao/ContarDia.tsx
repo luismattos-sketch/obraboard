@@ -28,9 +28,10 @@ export function PreviaRelato({
   previa: Previa;
   respostas: Respostas;
   resultados: Record<string, ResultadoItem>;
-  responder: (chave: string, valor: string | number) => void;
+  responder: (chave: string, valor: string | number | undefined) => void;
 }) {
   const linhas = linhasComRespostas(previa, respostas);
+  const { avisos } = aplicarRespostas(previa, respostas);
   if (previa.semNada) return <Aviso tom="neutro">Não achei nada para lançar — escreva o que foi feito.</Aviso>;
   return (
     <div className="flex flex-col gap-3">
@@ -44,21 +45,24 @@ export function PreviaRelato({
             )}
           </li>
         ))}
-        {previa.semCitar.map((t) => (
-          <li key={`sc-${t}`} className="text-texto-suave">• {t} — você não falou nada (fica como está)</li>
+        {previa.semCitar.map((t, i) => (
+          <li key={`sc${i}`} className="text-texto-suave">• {t} — você não falou nada (fica como está)</li>
         ))}
       </ul>
       {previa.perguntas.map((q) => (
         <PerguntaRelato key={q.chave} q={q} valor={respostas[q.chave]} responder={responder} />
       ))}
-      {previa.faltas.map((f) => (
-        <p key={f} className="text-sm text-alerta-escura">Falta: {f}</p>
+      {previa.faltas.map((f, i) => (
+        <p key={`f${i}`} className="text-sm text-alerta-escura">Falta: {f}</p>
+      ))}
+      {avisos.map((a, i) => (
+        <p key={`a${i}`} className="text-sm text-alerta-escura">Não vai ser lançado: {a}</p>
       ))}
     </div>
   );
 }
 
-function PerguntaRelato({ q, valor, responder }: { q: Pergunta; valor: string | number | undefined; responder: (c: string, v: string | number) => void }) {
+function PerguntaRelato({ q, valor, responder }: { q: Pergunta; valor: string | number | undefined; responder: (c: string, v: string | number | undefined) => void }) {
   const [digitado, setDigitado] = useState("");
   const botoes: { valor: string | number; rotulo: string }[] =
     q.tipo === "atividade" ? q.opcoes.map((o) => ({ valor: o.id, rotulo: o.rotulo }))
@@ -84,7 +88,7 @@ function PerguntaRelato({ q, valor, responder }: { q: Pergunta; valor: string | 
             onChange={(e) => {
               setDigitado(e.target.value);
               const n = parseNumero(e.target.value);
-              if (n !== null && n > 0) responder(q.chave, n);
+              responder(q.chave, n !== null && n > 0 ? n : undefined);
             }}
           />
         )}
@@ -157,7 +161,7 @@ export function ContarDia({
     setResultados(r);
     void marcarLancado(relatoId).catch(() => {});
     aoLancar();
-    if (Object.values(r).every((x) => x === "ok")) {
+    if (aplicado.avisos.length === 0 && Object.values(r).every((x) => x === "ok")) {
       setTexto("");
       setRelatoId(null);
       setFase("lancado");
@@ -193,7 +197,12 @@ export function ContarDia({
       )}
       {(fase === "previa" || fase === "lancando") && previa && (
         <>
-          <PreviaRelato previa={previa} respostas={respostas} resultados={resultados} responder={(c, v) => setRespostas((m) => ({ ...m, [c]: v }))} />
+          <PreviaRelato previa={previa} respostas={respostas} resultados={resultados} responder={(c, v) => setRespostas((m) => {
+            const novo = { ...m };
+            if (v === undefined) delete novo[c];
+            else novo[c] = v;
+            return novo;
+          })} />
           <p className="text-xs text-texto-suave">Nada é gravado até você tocar em Lançar.</p>
           <div className="flex flex-wrap gap-2">
             {!previa.semNada && (
