@@ -25,12 +25,15 @@ import {
   type Tom,
 } from "@/lib/dominio/tipos";
 import { camposAbertos } from "@/lib/dominio/cardCausa";
+import { perguntaConcluida, somarLancamento, textoSoma, textoTotal } from "@/lib/dominio/lancamento";
 import { criarFila } from "./fila";
 import { IndicadorSalvo } from "./IndicadorSalvo";
 import { ContextoSincronia, Sincronizar } from "./Sincronizar";
 import { useAutoSalvar } from "./useAutoSalvar";
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
+const botaoSecundario =
+  "min-h-12 rounded-botao border border-operacional bg-superficie px-4 font-semibold text-primaria hover:bg-primaria-clara";
 const campoBase =
   "min-h-12 w-full rounded-botao border border-borda bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-operacional disabled:opacity-70";
 
@@ -122,6 +125,10 @@ function ItemExecucao({
   const [obs, setObs] = useState(a.observacao ?? "");
   const [abriuCausa, setAbriuCausa] = useState(false);
   const [abriuObs, setAbriuObs] = useState(false);
+  const [perguntando, setPerguntando] = useState(false);
+  const [somando, setSomando] = useState(false);
+  const [mais, setMais] = useState("");
+  const [erroSoma, setErroSoma] = useState<string | null>(null);
 
   const qtd = texto.trim() === "" ? null : parseNumero(texto);
   const qtdInvalida = texto.trim() !== "" && qtd === null;
@@ -187,6 +194,29 @@ function ItemExecucao({
   }
 
   const aberto = camposAbertos({ naoConcluida, causa, obs, erro, abriuCausa, abriuObs });
+  const meta = textoTotal(a.qtd_planejada);
+  const pergunta = perguntando ? perguntaConcluida(qtd, a.qtd_planejada) : null;
+  const maisNum = parseNumero(mais);
+  const previa = !qtdInvalida && maisNum !== null && maisNum > 0 ? textoSoma(qtd ?? 0, maisNum) : null;
+
+  function concluir() {
+    if (perguntaConcluida(qtd, a.qtd_planejada)) setPerguntando(true);
+    else atualizar(meta, causa, obs);
+  }
+  function fecharSoma() {
+    setSomando(false);
+    setMais("");
+    setErroSoma(null);
+  }
+  function somar() {
+    const r = somarLancamento(texto, mais);
+    if (!r.ok) {
+      setErroSoma(r.erro);
+      return;
+    }
+    atualizar(textoTotal(r.total), causa, obs);
+    fecharSoma();
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4">
@@ -213,9 +243,9 @@ function ItemExecucao({
         </div>
       </div>
 
-      <div className="flex items-end gap-2">
-        <div className="flex-1">
-          <label htmlFor={`qtd-${a.id}`} className="text-sm font-medium">{extra ? "Feito" : "Executado"} ({a.unidade})</label>
+      <div className="flex flex-col gap-2">
+        <div>
+          <label htmlFor={`qtd-${a.id}`} className="text-sm font-medium">Total feito hoje ({a.unidade})</label>
           <input
             id={`qtd-${a.id}`}
             className={campoBase}
@@ -224,18 +254,72 @@ function ItemExecucao({
             value={texto}
             disabled={somenteLeitura}
             aria-invalid={qtdInvalida || undefined}
-            onChange={(e) => atualizar(e.target.value, causa, obs)}
+            onChange={(e) => {
+              setPerguntando(false);
+              atualizar(e.target.value, causa, obs);
+            }}
           />
         </div>
-        {!somenteLeitura && !extra && naoConcluida && (
-          <button
-            type="button"
-            aria-label={`Marcar como concluída: ${a.descricao}`}
-            className="min-h-12 rounded-botao border border-operacional bg-superficie px-4 font-semibold text-primaria hover:bg-primaria-clara"
-            onClick={() => atualizar(String(a.qtd_planejada).replace(".", ","), causa, obs)}
-          >
-            ✓ Concluída
-          </button>
+        {pergunta ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-botao border border-alerta bg-alerta-clara p-3">
+            <p className="font-medium text-texto">{pergunta}</p>
+            <button
+              type="button"
+              className={botaoSecundario}
+              onClick={() => {
+                setPerguntando(false);
+                atualizar(meta, causa, obs);
+              }}
+            >
+              Sim
+            </button>
+            <button type="button" className={botaoSecundario} onClick={() => setPerguntando(false)}>
+              Não
+            </button>
+          </div>
+        ) : (
+          !somenteLeitura && (
+            <div className="flex flex-wrap gap-2">
+              {!somando && (
+                <button type="button" className={botaoSecundario} onClick={() => setSomando(true)}>
+                  + Somar
+                </button>
+              )}
+              {!extra && naoConcluida && (
+                <button
+                  type="button"
+                  aria-label={`Marcar como concluída: ${a.descricao}`}
+                  className={botaoSecundario}
+                  onClick={concluir}
+                >
+                  ✓ Concluída
+                </button>
+              )}
+            </div>
+          )
+        )}
+        {somando && (
+          <div className="flex flex-col gap-2 rounded-botao border border-borda p-3">
+            <label htmlFor={`mais-${a.id}`} className="text-sm font-medium">Quanto a mais?</label>
+            <input
+              id={`mais-${a.id}`}
+              className={campoBase}
+              inputMode="decimal"
+              autoComplete="off"
+              autoFocus
+              value={mais}
+              onChange={(e) => {
+                setMais(e.target.value);
+                setErroSoma(null);
+              }}
+            />
+            {previa && <p className="text-sm text-texto">{`${previa} ${a.unidade}`}</p>}
+            {erroSoma && <p className="text-sm text-perigo">{erroSoma}</p>}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={botaoSecundario} onClick={somar}>Somar</button>
+              <button type="button" className="min-h-12 px-2 text-texto-suave underline" onClick={fecharSoma}>Cancelar</button>
+            </div>
+          </div>
         )}
       </div>
       {qtdInvalida && <p className="text-sm text-perigo">Digite um número válido</p>}
@@ -286,7 +370,7 @@ function ItemExecucao({
         </div>
       )}
       {naoConcluida && erro && <p className="text-sm font-medium text-alerta-escura">{erro}</p>}
-      {!somenteLeitura && <IndicadorSalvo {...estado} onVerAtual={verAtual} nota={sincronia?.nota} />}
+      {!somenteLeitura && <IndicadorSalvo {...estado} onVerAtual={verAtual} nota={sincronia?.nota} dica="salva sozinho" />}
       {remover && (
         <button type="button" className="self-start text-sm text-texto-suave underline" onClick={remover}>
           Remover

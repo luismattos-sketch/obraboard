@@ -27,7 +27,7 @@ describe("observação em atividade concluída", () => {
 
   it("extra: sem botão Concluída, campo 'Feito' e selo Extra", () => {
     const html = renderToStaticMarkup(<BlocoAtividades atividades={[at({ tipo: "extra", qtd_planejada: 12, qtd_realizada: 12 })]} salvar={salvar} />);
-    expect(html).toContain("Feito (m³)");
+    expect(html).toContain("Total feito hoje (m³)");
     expect(html).not.toContain("✓ Concluída");
     expect(html).toContain(">Extra<");
     expect(html).not.toContain("Previsto:");
