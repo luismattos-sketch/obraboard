@@ -12,7 +12,11 @@ export const ERRO_SO_PLANEJADO = "Só é possível alterar turnos planejados.";
 export const ERRO_RESPONSAVEL_DUPLICADO = "Já existe um responsável com esse nome nesta obra.";
 export const ERRO_RESPONSAVEL_INVALIDO = "Responsável inválido para esta obra.";
 export const ERRO_EXTRA_SEM_QTD = "Para tirar o extra, remova-o.";
-export const ERRO_OCORRENCIA_INVALIDA = "Este registro não vale para esta equipe. Recarregue a página.";
+/** "Conte como foi o dia" (IA no campo). */
+export const ERRO_LIMITE_IA = "Limite de uso da IA neste turno — lance nos cards.";
+export const ERRO_RELATO_TAMANHO = "Escreva até 1.000 caracteres.";
+export const ERRO_IA_INDISPONIVEL = "Não deu para organizar agora — tente de novo ou lance nos cards.";
+export const ERRO_OCORRENCIA_INVALIDA ="Este registro não vale para esta equipe. Recarregue a página.";
 
 /** Exceções de negócio levantadas pelos triggers/funções do banco (P0001 + mensagem fixa). */
 export type ErroBanco =
