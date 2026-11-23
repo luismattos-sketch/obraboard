@@ -12,7 +12,7 @@ Legenda de origem: **P1/P2** planejador (manhã/tarde), **Ana**, **João**, **Ca
 1. Item 8 — "Informe a causa" cedo demais (mesmo card que a IA vai preencher).
 2. Item 11 — Clareza do lançamento (o que a IA preenche precisa ter significado claro).
 3. Conta de API na Claude Console, chave na Vercel, limite de gasto (fora do código).
-4. IA no campo: texto livre vira registro + IA pergunta o que falta (planilha 10.1 e 10.2).
+4. ✅ **No ar desde 2026-11-22** — IA no campo: texto livre vira registro + IA pergunta o que falta (planilha 10.1 e 10.2). "Conte como foi o dia" no link de campo; tabela relatos_campo.
 5. Planejador vê registros incompletos (10.4).
 6. Lembrete no momento certo (10.3).
 
