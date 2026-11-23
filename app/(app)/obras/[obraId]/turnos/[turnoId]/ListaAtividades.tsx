@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState } from "react";
+import { Fragment, useActionState, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
@@ -32,6 +32,8 @@ export function ListaAtividades({
   sugestoesFuncao?: string[];
 }) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(trazerPendentesAcao, null);
+  // Incluir várias atividades seguidas: o formulário novo já vem com o último responsável escolhido.
+  const [ultimoResponsavel, setUltimoResponsavel] = useState<string | null>(null);
   const [estadoProg, actionProg, pendenteProg] = useActionState<EstadoAcao, FormData>(trazerDaProgramacaoAcao, null);
   const agrupar = atividades.some((a) => a.responsavel_id !== null);
   const nomeDe = (id: string | null) =>
@@ -93,7 +95,7 @@ export function ListaAtividades({
 
       <Cartao>
         <h2 className="mb-3 text-lg font-semibold text-primaria">Adicionar atividade</h2>
-        <FormAtividade key={atividades.length} turnoId={turnoId} obraId={obraId} responsaveis={responsaveis} sugestoesFuncao={sugestoesFuncao} />
+        <FormAtividade key={atividades.length} turnoId={turnoId} obraId={obraId} responsaveis={responsaveis} sugestoesFuncao={sugestoesFuncao} responsavelInicial={ultimoResponsavel} aoEscolherResponsavel={setUltimoResponsavel} />
       </Cartao>
     </div>
   );

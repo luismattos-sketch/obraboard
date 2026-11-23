@@ -20,10 +20,17 @@ type Props = {
   obraId?: string;
   responsaveis?: ResponsavelRef[];
   sugestoesFuncao?: string[];
+  /** Responsável já escolhido (o último usado na inclusão anterior). */
+  responsavelInicial?: string | null;
+  aoEscolherResponsavel?: (id: string | null) => void;
 };
 
-export function FormAtividade({ turnoId, atividade, acao, aoCancelar, obraId, responsaveis, sugestoesFuncao = [] }: Props) {
-  const [responsavel, setResponsavel] = useState<string | null>(null);
+export function FormAtividade({ turnoId, atividade, acao, aoCancelar, obraId, responsaveis, sugestoesFuncao = [], responsavelInicial = null, aoEscolherResponsavel }: Props) {
+  const [responsavel, setResponsavelLocal] = useState<string | null>(responsavelInicial);
+  const setResponsavel = (id: string | null) => {
+    setResponsavelLocal(id);
+    aoEscolherResponsavel?.(id);
+  };
   const [equipe, setEquipe] = useState<LinhaEquipe[]>([LINHA_VAZIA]);
   const comEquipe = !atividade && obraId !== undefined && responsaveis !== undefined;
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(acao ?? adicionarAtividadeAcao, null);

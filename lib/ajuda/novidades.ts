@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-23",
+    texto: "O efetivo já vem com a equipe prevista: confirme ou ajuste com − e +.",
+    href: "/ajuda/campo#efetivo",
+  },
+  {
+    data: "2026-11-23",
     texto: "O que falta: no turno, veja por responsável o que ainda não foi registrado e cobre pelo WhatsApp com um toque.",
     href: "/ajuda/durante-o-turno#o-que-falta",
   },

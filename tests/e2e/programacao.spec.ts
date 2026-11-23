@@ -88,10 +88,10 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
     await card.getByRole("button", { name: "Não vai dar para concluir? Informar causa" }).click();
     await card.getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });
     await expect(card.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
-    await campo.getByRole("button", { name: "+ Adicionar função" }).click();
-    // Menu traz a função programada para o turno
-    await campo.getByLabel("Função").selectOption("Caldeireiro");
-    await campo.getByLabel("Quantidade").fill("2");
+    // Efetivo já vem com a equipe programada (2 Caldeireiro): confirmar grava.
+    await expect(campo.getByText("Previsto pela programação — confirme ou ajuste")).toBeVisible();
+    await expect(campo.getByLabel("Função")).toHaveValue("Caldeireiro");
+    await campo.getByRole("button", { name: "Confirmar equipe" }).click();
     await salvo("titulo-efetivo");
     await campo.getByRole("button", { name: "Enviar turno" }).click();
     await expect(campo.getByText("Turno enviado ✓")).toBeVisible({ timeout: 15_000 });

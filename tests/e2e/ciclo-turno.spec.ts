@@ -59,6 +59,16 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.getByLabel("Quantidade").fill(qtd);
     await page.getByLabel("Unidade").fill(unidade);
     await page.getByRole("button", { name: "Adicionar atividade" }).click();
+    if (descricao === "Concretagem laje") {
+      // Responsável é obrigatório: sem ele, o formulário avisa e não adiciona.
+      await expect(page.getByText("Escolha o responsável")).toBeVisible();
+      const menu = page.getByLabel("Responsável").last();
+      await menu.selectOption("__novo__");
+      await page.getByLabel("Nome do novo responsável").fill("Ana Souza");
+      await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+      await expect(menu.locator("option:checked")).toHaveText("Ana Souza");
+      await page.getByRole("button", { name: "Adicionar atividade" }).click();
+    }
     await expect(page.getByText(descricao).first()).toBeVisible();
     await expect(page.getByLabel("Descrição")).toHaveValue("");
   }
@@ -96,9 +106,9 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });
   try {
     const campo = await ctx.newPage();
-    await campo.goto(urlCampo!);
+    await campo.goto(`${urlCampo!}?r=todos`);
     const campo2 = await ctx.newPage();
-    await campo2.goto(urlCampo!);
+    await campo2.goto(`${urlCampo!}?r=todos`);
     const salvo = (secao: string) =>
       expect(campo.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
 

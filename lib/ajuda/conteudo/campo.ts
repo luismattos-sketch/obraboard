@@ -52,7 +52,8 @@ export const campo: Capitulo = {
       id: "efetivo",
       titulo: "Informe o efetivo",
       texto: [
-        "Em \"Efetivo\", confira as funções e quantas pessoas estão trabalhando. Use \"+ Adicionar função\" se faltar alguma.",
+        "O \"Efetivo\" fica logo abaixo do horário. Se o planejador previu a equipe, ela já aparece preenchida: confira e toque em \"Confirmar equipe\", ou ajuste a quantidade com os botões − e + (o ajuste já grava).",
+        "Enquanto você não confirma, a equipe prevista não conta no HH. Use \"+ Adicionar função\" se faltar alguma.",
         "Emprestou gente para outra equipe ou alguém saiu antes? Use \"+ Emprestar\" ou \"+ Saída antes\": assim o HH não conta em dobro.",
       ],
     },

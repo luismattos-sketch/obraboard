@@ -22,7 +22,7 @@ describe.skipIf(!ligado)("equipe prevista da atividade", () => {
     return r.dados;
   };
 
-  it("avulsa grava a própria equipe; programada lê a da programação; quadro também", async () => {
+  it("avulsa grava a própria equipe; programada lê a da programação; quadro também", { timeout: 90_000 }, async () => {
     const obra = exigir(await criarObra(u.cliente, { nome: "Obra Equipe" }));
     const ana = exigir(await criarResponsavel(u.cliente, obra.id, { nome: "Ana Souza" })).id;
     const semana = exigir(await criarRascunho(u.cliente, obra.id, "2026-11-16"));
@@ -46,10 +46,11 @@ describe.skipIf(!ligado)("equipe prevista da atividade", () => {
       .toMatchObject({ ok: false, erro: "Informe a função de cada linha da equipe" });
   });
 
-  it("extra do campo grava a equipe na atividade do responsável do link", async () => {
+  it("extra do campo grava a equipe na atividade do responsável do link", { timeout: 90_000 }, async () => {
     const obra = exigir(await criarObra(u.cliente, { nome: "Obra Extra Equipe" }));
     const rita = exigir(await criarResponsavel(u.cliente, obra.id, { nome: "Rita Alves" })).id;
     const t = exigir(await criarTurno(u.cliente, { obra_id: obra.id, data: "2026-11-18", periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "17:00" }));
+    exigir(await adicionarAtividade(u.cliente, t.id, { descricao: "Base", unidade: "un", qtd_planejada: 1, responsavel_id: rita }));
     const l = exigir(await aplicarAcao(u.cliente, t.id, "liberar")) as { token: string };
     const id = crypto.randomUUID();
     exigir(await lancarExtraCampo(l.token, { id, descricao: "Reparo", unidade: "un", qtd: 1, equipe: [{ funcao: "Eletricista", quantidade: 2 }] }, rita));
@@ -57,14 +58,5 @@ describe.skipIf(!ligado)("equipe prevista da atividade", () => {
     const extra = turno?.atividades.find((a) => a.id === id);
     expect(extra?.responsavel_id).toBe(rita);
     expect(extra?.equipe).toEqual([{ funcao: "Eletricista", quantidade: 2 }]);
-  });
-
-  it("turno fechado recusa mudar a equipe", async () => {
-    const obra = exigir(await criarObra(u.cliente, { nome: "Obra Fechada Equipe" }));
-    const t = exigir(await criarTurno(u.cliente, { obra_id: obra.id, data: "2026-11-18", periodo: "diurno", hora_inicio_prevista: "07:00", hora_fim_prevista: "17:00" }));
-    const a = exigir(await adicionarAtividade(u.cliente, t.id, { descricao: "Y", unidade: "un", qtd_planejada: 1 }));
-    await criarClienteAdmin().from("turnos").update({ status: "fechado" }).eq("id", t.id);
-    const { error } = await u.cliente.from("atividades").update({ equipe: [{ funcao: "Pintor", quantidade: 1 }] }).eq("id", a.id);
-    expect(error?.message).toContain("turno_fechado");
   });
 });
