@@ -1,5 +1,6 @@
 "use server";
 
+import { lerEquipeDoForm } from "@/lib/dominio/equipePrevista";
 import { revalidatePath } from "next/cache";
 import {
   encerrarSemana,
@@ -25,12 +26,7 @@ function atualizar() {
 }
 
 export async function salvarAtividadeProgramadaAcao(_: EstadoSemana, form: FormData): Promise<EstadoSemana> {
-  const funcoes = form.getAll("funcao").map((v) => String(v).trim());
-  const quantidades = form.getAll("quantidade").map((v) => String(v).trim());
-  const equipe = funcoes
-    .map((funcao, i) => ({ funcao, qtd: quantidades[i] ?? "" }))
-    .filter((l) => l.funcao || l.qtd)
-    .map((l) => ({ funcao: l.funcao, quantidade: /^\d+$/.test(l.qtd) ? Number(l.qtd) : NaN }));
+  const equipe = lerEquipeDoForm(form);
   const meta = parseNumero(texto(form, "meta"));
   const id = texto(form, "atividade_id") || undefined;
   const r = await salvarAtividadeProgramada(

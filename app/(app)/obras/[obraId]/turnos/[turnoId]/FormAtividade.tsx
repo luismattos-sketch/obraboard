@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { EditorEquipe, LINHA_VAZIA, type LinhaEquipe } from "@/components/execucao/EditorEquipe";
+import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Campo } from "@/components/ui/Campo";
 import type { Atividade } from "@/lib/db/atividades";
+import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { adicionarAtividadeAcao, type EstadoAcao } from "./acoes";
 
 type Props = {
@@ -13,9 +16,23 @@ type Props = {
   /** Action de edição; sem ela o formulário adiciona. */
   acao?: (prev: EstadoAcao, form: FormData) => Promise<EstadoAcao>;
   aoCancelar?: () => void;
+  /** Inclusão no turno: Responsável (obrigatório) e Equipe prevista. */
+  obraId?: string;
+  responsaveis?: ResponsavelRef[];
+  sugestoesFuncao?: string[];
+  /** Responsável já escolhido (o último usado na inclusão anterior). */
+  responsavelInicial?: string | null;
+  aoEscolherResponsavel?: (id: string | null) => void;
 };
 
-export function FormAtividade({ turnoId, atividade, acao, aoCancelar }: Props) {
+export function FormAtividade({ turnoId, atividade, acao, aoCancelar, obraId, responsaveis, sugestoesFuncao = [], responsavelInicial = null, aoEscolherResponsavel }: Props) {
+  const [responsavel, setResponsavelLocal] = useState<string | null>(responsavelInicial);
+  const setResponsavel = (id: string | null) => {
+    setResponsavelLocal(id);
+    aoEscolherResponsavel?.(id);
+  };
+  const [equipe, setEquipe] = useState<LinhaEquipe[]>([LINHA_VAZIA]);
+  const comEquipe = !atividade && obraId !== undefined && responsaveis !== undefined;
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(acao ?? adicionarAtividadeAcao, null);
   const falhou = estado && !estado.ok ? estado : null;
   const erro = falhou && !falhou.campos ? falhou.erro : null;
@@ -40,6 +57,14 @@ export function FormAtividade({ turnoId, atividade, acao, aoCancelar }: Props) {
           <Campo rotulo="Unidade" name="unidade" placeholder="m², m³, un" maxLength={20} defaultValue={inicial.unidade} erro={campos?.unidade} />
         </div>
       </div>
+      {comEquipe && (
+        <>
+          <input type="hidden" name="responsavel_id" value={responsavel ?? ""} />
+          <MenuResponsavel obraId={obraId} responsaveis={responsaveis} valor={responsavel} aoMudar={setResponsavel} />
+          {campos?.responsavel_id && <p className="-mt-2 text-sm text-perigo">{campos.responsavel_id}</p>}
+          <EditorEquipe linhas={equipe} aoMudar={setEquipe} sugestoes={sugestoesFuncao} erro={campos?.equipe} />
+        </>
+      )}
       {erro && <Aviso tom="perigo">{erro}</Aviso>}
       <div className="flex gap-2">
         <Botao type="submit" carregando={pendente}>{atividade ? "Salvar" : "Adicionar atividade"}</Botao>

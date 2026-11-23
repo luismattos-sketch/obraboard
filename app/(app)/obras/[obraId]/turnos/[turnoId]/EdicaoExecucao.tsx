@@ -1,5 +1,6 @@
 "use client";
 
+import { equipePrevista } from "@/lib/dominio/equipePrevista";
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
@@ -175,6 +176,7 @@ export function EdicaoExecucao({
         <ForaDoDia
           adiantar={opcoesPuxar.adiantar}
           atrasadas={opcoesPuxar.atrasadas}
+          funcoes={opcoesFuncao}
           responsaveis={responsaveis}
           textoSemAdiantar={TEXTO_SEM_ADIANTAR_PLANEJADOR}
           puxar={(id, modo) => puxarDaSemanaAcao(turnoId, id, modo)}
@@ -184,6 +186,7 @@ export function EdicaoExecucao({
         />
         <EfetivoPorEquipe
           obraId={obraId}
+          previsto={equipePrevista(atividades)}
           responsaveis={responsaveis}
           efetivo={efetivo}
           opcoesFuncao={opcoesFuncao}

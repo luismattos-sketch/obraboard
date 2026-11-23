@@ -102,3 +102,13 @@ describe("Quadro: paradas abertas e terminou", () => {
     expect(html("em_campo", "checkout")).not.toContain('role="alert"');
   });
 });
+
+describe("Quadro: equipe prevista", () => {
+  it("mostra a equipe prevista da atividade; sem equipe, nada", () => {
+    const e = base("em_campo");
+    e.atividades[0] = { ...e.atividades[0], equipe: [{ funcao: "Eletricista", quantidade: 2 }, { funcao: "Ajudante", quantidade: 1 }] };
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e)} visao="checkin" publico={false} editarHref={null} />);
+    expect(h).toContain("Equipe prevista: 2 Eletricista + 1 Ajudante");
+    expect(html("em_campo", "checkin")).not.toContain("Equipe prevista:");
+  });
+});

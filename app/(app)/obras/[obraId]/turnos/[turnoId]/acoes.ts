@@ -1,10 +1,12 @@
 "use server";
 
+import { lerEquipeDoForm } from "@/lib/dominio/equipePrevista";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fecharTurnoComParadas } from "@/lib/db/ocorrencias";
 import { revalidatePath } from "next/cache";
 import {
   adicionarAtividade,
+  ERRO_SEM_RESPONSAVEL,
   definirResponsavel,
   editarAtividade,
   moverAtividade,
@@ -69,7 +71,10 @@ function lerAtividade(form: FormData): Leitura {
 export async function adicionarAtividadeAcao(_: EstadoAcao, form: FormData): Promise<EstadoAcao> {
   const l = lerAtividade(form);
   if (l.erro !== undefined) return l.erro;
-  const r = await adicionarAtividade(await criarClienteServidor(), texto(form, "turno_id"), l.dados);
+  // Formulário do turno com Responsável: obrigatório (sem o campo = chamada antiga, segue sem).
+  const responsavel_id = form.has("responsavel_id") ? texto(form, "responsavel_id") : null;
+  if (responsavel_id === "") return falhaForm(form, ERRO_SEM_RESPONSAVEL, { responsavel_id: ERRO_SEM_RESPONSAVEL });
+  const r = await adicionarAtividade(await criarClienteServidor(), texto(form, "turno_id"), { ...l.dados, responsavel_id, equipe: lerEquipeDoForm(form) });
   if (!r.ok) return falhaForm(form, r.erro, r.campos);
   atualizar();
   return ok(undefined);

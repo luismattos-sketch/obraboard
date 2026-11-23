@@ -6,7 +6,7 @@ import type { Resultado } from "@/lib/db/resultado";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { Aviso } from "@/components/ui/Aviso";
 import { calcularHH, type Janela, type Ocorrencia } from "@/lib/dominio/efetivoHH";
-import { BlocoEfetivo } from "./BlocoEfetivo";
+import { BlocoEfetivo, chaveBloco } from "./BlocoEfetivo";
 import { OcorrenciasEfetivo } from "./OcorrenciasEfetivo";
 import { useOcorrencias, type AcoesOcorrencias } from "./useOcorrencias";
 
@@ -24,6 +24,8 @@ type Props = {
   adicionarEquipe?: boolean;
   /** Equipes que aparecem mesmo sem efetivo (ex.: responsáveis com atividade no turno). */
   equipesIniciais?: (string | null)[];
+  /** Equipe prevista por responsável (soma das atividades), mostrada enquanto a equipe não tem efetivo gravado. */
+  previsto?: Map<string | null, LinhaEfetivo[]>;
   salvar: (responsavelId: string | null, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) => Promise<Resultado<unknown>>;
   /** Empréstimo, saída antes e parados (turno em andamento). Ausente = só as linhas de efetivo. */
   movimentacoes?: AcoesOcorrencias & {
@@ -53,6 +55,7 @@ export function EfetivoPorEquipe({
   somenteLeitura,
   adicionarEquipe = true,
   equipesIniciais = [],
+  previsto,
   salvar: salvarLinhas,
   movimentacoes,
 }: Props) {
@@ -82,6 +85,8 @@ export function EfetivoPorEquipe({
   const chaves = new Set<string | null>([
     ...(adicionarEquipe ? [null] : []),
     ...equipesIniciais,
+    // Link de campo mostra só a própria equipe (equipesIniciais); o planejador vê todas as com previsto.
+    ...(adicionarEquipe && previsto ? [...previsto.keys()] : []),
     ...efetivo.map((e) => e.responsavel_id),
     ...extras,
     // Planejador: equipe que só recebeu empréstimo também aparece.
@@ -109,7 +114,9 @@ export function EfetivoPorEquipe({
   if (nomeadas.length === 0 && (!adicionarEquipe || responsaveis.length === 0)) {
     const unico = (
       <BlocoEfetivo
+        key={chaveBloco(efetivo.filter((e) => e.responsavel_id === null), previsto?.get(null))}
         inicial={efetivo.filter((e) => e.responsavel_id === null)}
+        previsto={previsto?.get(null)}
         opcoes={opcoesFuncao}
         somenteLeitura={somenteLeitura}
         salvar={(l, esperado) => salvar(null, l, esperado)}
@@ -131,8 +138,10 @@ export function EfetivoPorEquipe({
       {equipes.map((id) => (
         <div key={id ?? "sem"} className="flex flex-col gap-2">
           <BlocoEfetivo
+            key={chaveBloco(efetivo.filter((e) => e.responsavel_id === id), previsto?.get(id))}
             equipe={nome(id)}
             inicial={efetivo.filter((e) => e.responsavel_id === id)}
+            previsto={previsto?.get(id)}
             opcoes={opcoesFuncao}
             somenteLeitura={somenteLeitura}
             salvar={(l, esperado) => salvar(id, l, esperado)}

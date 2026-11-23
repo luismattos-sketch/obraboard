@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { inicioDaSemana, type SemanaProgramadaAnalise } from "@/lib/dominio/analise";
+import { validarEquipe } from "@/lib/dominio/equipePrevista";
 import { lerOcorrencias } from "@/lib/dominio/efetivoHH";
 import { validarMotivo } from "@/lib/dominio/eventos";
 import {
@@ -44,8 +45,6 @@ export const ERRO_DIAS_COM_EXECUCAO =
 const COLUNAS_SEMANA = "id, obra_id, inicio, status, programada_em, encerrada_em, motivo_reabertura";
 const UNICIDADE = "23505";
 const UUID_INVALIDO = "22P02";
-const QTD_PESSOAS_MAX = 10_000;
-const FUNCAO_MAX = 60;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 const num = (v: unknown) => Number(v);
@@ -265,12 +264,8 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
   if (dias.length === 0) erros.dias = "Marque ao menos um dia";
   else if (dias.some((x) => !Number.isInteger(x) || x < 0 || x > 6) || new Set(dias).size !== dias.length) erros.dias = "Dias inválidos";
   if (d.periodo !== "diurno" && d.periodo !== "noturno") erros.periodo = "Período inválido";
-  const equipe = (Array.isArray(d.equipe) ? d.equipe : []).map((e) => ({ funcao: String(e.funcao ?? "").trim(), quantidade: e.quantidade }));
-  if (equipe.some((e) => !e.funcao)) erros.equipe = "Informe a função de cada linha da equipe";
-  else if (equipe.some((e) => e.funcao.length > FUNCAO_MAX)) erros.equipe = `Função com no máximo ${FUNCAO_MAX} caracteres`;
-  else if (equipe.some((e) => !Number.isInteger(e.quantidade) || e.quantidade <= 0 || e.quantidade > QTD_PESSOAS_MAX)) {
-    erros.equipe = "Quantidade de pessoas inválida";
-  }
+  const { equipe, erro: erroEquipe } = validarEquipe(d.equipe);
+  if (erroEquipe) erros.equipe = erroEquipe;
   const primeira = Object.values(erros)[0];
   if (primeira) return falha(primeira, erros);
   return ok({

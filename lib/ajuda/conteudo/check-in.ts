@@ -30,7 +30,8 @@ export const checkIn: Capitulo = {
       id: "adicionar-atividade",
       titulo: "Adicione uma atividade",
       texto: [
-        "Para uma atividade que não está na programação, use \"Adicionar atividade\": \"Descrição\", \"Local (opcional)\", \"Quantidade\" planejada e \"Unidade\". Depois, escolha o responsável no menu \"Responsável\" da atividade.",
+        "Para uma atividade que não está na programação, use \"Adicionar atividade\": \"Descrição\", \"Local (opcional)\", \"Quantidade\" planejada e \"Unidade\". Escolha o \"Responsável\" (obrigatório) e, se quiser, a \"Equipe prevista\" (função e quantidade).",
+        "O efetivo de cada equipe já vem com a soma das equipes previstas das atividades dela. É só uma sugestão: confira e toque em \"Confirmar equipe\" ou ajuste com − e +. A mesma pessoa pode estar em duas atividades, por isso o número continua ajustável.",
         "Numa semana programada, atividade adicionada à mão aparece com o selo \"Avulsa\" e não entra no PPC.",
       ],
     },

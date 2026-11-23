@@ -126,7 +126,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)`,
     )
     .eq("id", turnoId)
     .maybeSingle();

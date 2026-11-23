@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { textoEquipe } from "@/lib/dominio/equipePrevista";
 import { formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { FaixaQuadro, ModeloQuadro, ResumoEquipe, Visao } from "@/lib/dominio/quadro";
 import { CAUSAS, type StatusAtividade } from "@/lib/dominio/tipos";
@@ -117,6 +118,7 @@ function Faixa({
                     {mostrarExtra && !a.programada && (
                       <span className="ml-1.5 align-middle text-[10px] font-bold text-destaque xl:text-xs">EXTRA</span>
                     )}
+                    {textoEquipe(a.equipe) && <span className="block text-xs text-texto-suave xl:text-sm">{textoEquipe(a.equipe)}</span>}
                   </span>
                   <span className="shrink-0 font-semibold">
                     {visao === "checkin"
