@@ -35,7 +35,7 @@ describe.skipIf(!ligado)("terminei minha parte e whatsapp da obra", () => {
     await criarClienteAdmin().from("atividades").update({ responsavel_id: j!.id }).eq("id", b.dados.id);
     const l = await aplicarAcao(u.cliente, t.dados.id, "liberar");
     if (!l.ok || !l.dados.token) throw new Error("liberar");
-    return { obraId: o.dados.id, turnoId: t.dados.id, atividadeId: a.dados.id, daJoao: b.dados.id, token: l.dados.token, ana: r!.id as string };
+    return { obraId: o.dados.id, turnoId: t.dados.id, atividadeId: a.dados.id, daJoao: b.dados.id, token: l.dados.token, ana: r!.id as string, joao: j!.id as string };
   }
 
   async function lancar(c: { turnoId: string }, id: string, d: Partial<DadosExecucao> & { qtd_realizada: number | null }) {
@@ -72,6 +72,39 @@ describe.skipIf(!ligado)("terminei minha parte e whatsapp da obra", () => {
     expect((await obterTurnoCompleto(u.cliente, c.turnoId))?.terminados).toEqual([{ responsavel_id: c.ana, terminou_em: "15:20:00" }]);
     expect((await desfazerTerminouCampo(c.token, c.ana)).ok).toBe(true);
     expect((await obterTurnoCompleto(u.cliente, c.turnoId))?.terminados).toEqual([]);
+  });
+
+  const statusDe = async (id: string) => (await criarClienteAdmin().from("turnos").select("status").eq("id", id).single()).data!.status;
+  async function concluirTudo(c: { turnoId: string; atividadeId: string; daJoao: string }) {
+    expect((await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.atividadeId, { qtd_realizada: 1, causa: null, observacao: null }, VAZIO)).ok).toBe(true);
+    expect((await salvarExecucaoPlanejador(u.cliente, c.turnoId, c.daJoao, { qtd_realizada: 8, causa: null, observacao: null }, VAZIO)).ok).toBe(true);
+  }
+
+  it("envia sozinho quando todos terminam e volta ao desfazer", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    await concluirTudo(c);
+    expect((await marcarTerminouCampo(c.token, c.ana, "16:00")).ok).toBe(true);
+    expect(await statusDe(c.turnoId)).toBe("em_campo");
+    expect((await marcarTerminouCampo(c.token, c.joao, "16:10")).ok).toBe(true);
+    expect(await statusDe(c.turnoId)).toBe("enviado");
+    expect((await marcarTerminouCampo(c.token, c.joao, "16:10")).ok).toBe(true);
+    expect(await statusDe(c.turnoId)).toBe("enviado");
+    expect((await desfazerTerminouCampo(c.token, c.ana)).ok).toBe(true);
+    expect(await statusDe(c.turnoId)).toBe("em_campo");
+    // repetição após falha: já terminou (23505) e ainda envia
+    await criarClienteAdmin().from("turno_equipes_terminadas").insert({ turno_id: c.turnoId, responsavel_id: c.ana, terminou_em: "16:20" });
+    expect((await marcarTerminouCampo(c.token, c.ana, "16:20")).ok).toBe(true);
+    expect(await statusDe(c.turnoId)).toBe("enviado");
+  });
+
+  it("atividade sem responsável: não envia sozinho", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    await concluirTudo(c);
+    const x = await adicionarAtividade(u.cliente, c.turnoId, { descricao: "Sem dono", unidade: "un", qtd_planejada: 1 });
+    if (!x.ok) throw new Error(x.erro);
+    await marcarTerminouCampo(c.token, c.ana, "16:00");
+    await marcarTerminouCampo(c.token, c.joao, "16:00");
+    expect(await statusDe(c.turnoId)).toBe("em_campo");
   });
 
   it("hora inválida é recusada", { timeout: 60_000 }, async () => {
