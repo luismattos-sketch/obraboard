@@ -145,8 +145,10 @@ function avaliar(ia: ItemIA, a: AtividadeRelato, chave: string, resp: Respostas)
   const depois: DadosExecucao = { qtd_realizada: qtd, causa, observacao };
   const un = a.unidade;
   const de = a.tipo === "extra" ? "" : ` de ${numeroBR(a.qtd_planejada)} ${un}`;
-  const situacao = a.tipo === "extra" ? "" : qtd !== null && concluida ? " (concluída)" : qtd !== null && qtd > 0 ? " (parcial)" : "";
-  let linha = `${titulo} — ${numeroBR(feito)} → ${qtd === null ? "?" : numeroBR(qtd)} ${un}${de}${situacao}`;
+  // Quantidade ainda depende de pergunta (somar/trocar ou quanto): mostra "?" em vez do valor antigo.
+  const qtdPendente = perguntas.some((p) => p.tipo === "modo" || p.tipo === "quantidade");
+  const situacao = a.tipo === "extra" || qtdPendente ? "" : qtd !== null && concluida ? " (concluída)" : qtd !== null && qtd > 0 ? " (parcial)" : "";
+  let linha = `${titulo} — ${numeroBR(feito)} → ${qtd === null || qtdPendente ? "?" : numeroBR(qtd)} ${un}${de}${situacao}`;
   if (causa && causa !== a.causa) linha += ` · ${CAUSAS[causa]}`;
   const aviso = obsGrande ? `${titulo}: observação grande demais — ${COMPLETE}` : undefined;
   const igual = depois.qtd_realizada === a.qtd_realizada && depois.causa === a.causa && depois.observacao === a.observacao;
@@ -255,4 +257,17 @@ export function aplicarRespostas(
     gravar.push({ atividadeId: id, dados: r.depois, esperado: antesDe(a) });
   }
   return { gravar, faltam };
+}
+
+/** Linha de cada item já com as respostas dadas (a prévia se atualiza ao tocar os botões). */
+export function linhasComRespostas(previa: Previa, respostas: Respostas): Record<string, string> {
+  const porId = new Map(previa.atividades.map((a) => [a.id, a]));
+  const linhas: Record<string, string> = {};
+  for (const item of previa.itens) {
+    const escolhida = respostas[`${item.chave}:atividade`];
+    const a = porId.get(item.atividadeId ?? (typeof escolhida === "string" ? escolhida : ""));
+    const r = a ? avaliar(item.ia, a, item.chave, respostas) : null;
+    linhas[item.chave] = r && r.tipo !== "falta" ? r.linha : item.linha;
+  }
+  return linhas;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ItemIA } from "@/lib/ia/esquema";
-import { aplicarRespostas, codigosParaIA, conferirRelato, type AtividadeRelato } from "@/lib/dominio/relato";
+import { aplicarRespostas, codigosParaIA, conferirRelato, linhasComRespostas, type AtividadeRelato } from "@/lib/dominio/relato";
 
 const T: AtividadeRelato = { id: "t", descricao: "Tubulação linha 3", local: null, unidade: "m", qtd_planejada: 50, qtd_realizada: null, causa: null, observacao: null, tipo: null };
 const S: AtividadeRelato = { id: "s", descricao: "Suporte de tubo", local: null, unidade: "un", qtd_planejada: 8, qtd_realizada: null, causa: null, observacao: null, tipo: null };
@@ -52,6 +52,9 @@ describe("conferirRelato", () => {
   it("já havia 40 e modo incerto: pergunta somar ou trocar", () => {
     const p = conferirRelato({ itens: [it_({ quantidade: 30, modo: "incerto" })] }, [{ ...T, qtd_realizada: 40 }]);
     expect(p.perguntas).toEqual([expect.objectContaining({ tipo: "modo", texto: "30 m a mais ou no total?", somar: 70, trocar: 30 })]);
+    expect(p.itens[0].linha).toBe("Tubulação linha 3 — 40 → ? m de 50 m");
+    expect(linhasComRespostas(p, { [p.perguntas[0].chave]: "trocar" })[p.itens[0].chave]).toBe("Tubulação linha 3 — 40 → 30 m de 50 m (parcial)");
+    expect(linhasComRespostas(p, {})[p.itens[0].chave]).toBe("Tubulação linha 3 — 40 → ? m de 50 m");
     expect(aplicarRespostas(p, { [p.perguntas[0].chave]: "somar" }).gravar[0].dados.qtd_realizada).toBe(70);
     expect(aplicarRespostas(p, { [p.perguntas[0].chave]: "trocar" }).gravar[0].dados.qtd_realizada).toBe(30);
   });

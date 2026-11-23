@@ -4,7 +4,7 @@ import { useContext, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
-import { aplicarRespostas, type Pergunta, type Previa, type Respostas } from "@/lib/dominio/relato";
+import { aplicarRespostas, linhasComRespostas, type Pergunta, type Previa, type Respostas } from "@/lib/dominio/relato";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { numeroBR } from "@/lib/dominio/formato";
 import type { DadosExecucao } from "@/lib/dominio/tipos";
@@ -30,6 +30,7 @@ export function PreviaRelato({
   resultados: Record<string, ResultadoItem>;
   responder: (chave: string, valor: string | number) => void;
 }) {
+  const linhas = linhasComRespostas(previa, respostas);
   if (previa.semNada) return <Aviso tom="neutro">Não achei nada para lançar — escreva o que foi feito.</Aviso>;
   return (
     <div className="flex flex-col gap-3">
@@ -37,7 +38,7 @@ export function PreviaRelato({
       <ul className="flex flex-col gap-1 text-sm">
         {previa.itens.map((i) => (
           <li key={i.chave}>
-            • {i.linha}
+            • {linhas[i.chave] ?? i.linha}
             {i.atividadeId && resultados[i.atividadeId] && (
               <span className={resultados[i.atividadeId] === "ok" ? " text-sucesso" : " text-perigo"}> — {TEXTO_RESULTADO(resultados[i.atividadeId])}</span>
             )}
