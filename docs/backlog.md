@@ -57,7 +57,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
    Em atividade concluída a Observação some — mantê-la. [Carlos, Rita, P2]
 8. ✅ **No ar desde 2026-11-22** (merge 36e777e) — **"Informe a causa" em vermelho cedo demais** — aparece às 7 h e com avanço parcial, antes de qualquer problema.
    Mostrar só no fim do dia/fechamento, em tom neutro, e enxugar o card. [P1, Ana, João, Carlos, Rita]
-9. **Efetivo pré-preenchido** — começa vazio e fica a ~1,5 tela do topo. Vir com a equipe prevista da programação,
+9. ✅ **No ar desde 2026-11-23** (merge dfbbef2) — **Efetivo pré-preenchido** — começa vazio e fica a ~1,5 tela do topo. Vir com a equipe prevista da programação,
    botões +/− para luva, mais acima na tela. A equipe prevista também deve aparecer no turno e no quadro. [Ana, P1]
    **Decidido em 2026-11-17 (caminho B):** o "Adicionar atividade" do turno ganha **Responsável** (obrigatório, já
    vem com quem está lançando; o planejador pode trocar) e **Equipe** (função + quantidade, opcional, igual à
