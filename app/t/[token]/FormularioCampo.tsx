@@ -1,5 +1,6 @@
 "use client";
 
+import { equipePrevista } from "@/lib/dominio/equipePrevista";
 import { useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
@@ -227,6 +228,28 @@ export function FormularioCampo({
           Intervalo: {turno.intervalo.inicio.slice(0, 5)}–{turno.intervalo.fim.slice(0, 5)} (descontado do HH)
         </p>
       )}
+      <EfetivoPorEquipe
+        obraId=""
+        responsaveis={responsaveis}
+        efetivo={turno.efetivo}
+        previsto={equipePrevista(turno.atividades)}
+        opcoesFuncao={opcoesFuncao}
+        somenteLeitura={somenteLeitura}
+        adicionarEquipe={false}
+        equipesIniciais={responsavelId !== null ? [responsavelId] : [...new Set(turno.atividades.map((a) => a.responsavel_id))]}
+        salvar={(id, l, esperado) => salvarEfetivo(token, l, esperado, id)}
+        movimentacoes={{
+          ocorrencias: turno.ocorrencias,
+          efetivoTodo: turno.efetivoTodo,
+          janela: turno.janela,
+          intervalo: turno.intervalo,
+          criar: (id, d) => criarOcorrencia(token, d, id),
+          remover: (id) => removerOcorrencia(token, id, responsavelId),
+          atualizar: () => router.refresh(),
+          estado: mov,
+          agora,
+        }}
+      />
       <PainelParadas
         responsavelId={responsavelId}
         ocorrencias={mov.lista}
@@ -277,27 +300,6 @@ export function FormularioCampo({
           aoConcluir={() => router.refresh()}
         />
       )}
-      <EfetivoPorEquipe
-        obraId=""
-        responsaveis={responsaveis}
-        efetivo={turno.efetivo}
-        opcoesFuncao={opcoesFuncao}
-        somenteLeitura={somenteLeitura}
-        adicionarEquipe={false}
-        equipesIniciais={responsavelId !== null ? [responsavelId] : [...new Set(turno.atividades.map((a) => a.responsavel_id))]}
-        salvar={(id, l, esperado) => salvarEfetivo(token, l, esperado, id)}
-        movimentacoes={{
-          ocorrencias: turno.ocorrencias,
-          efetivoTodo: turno.efetivoTodo,
-          janela: turno.janela,
-          intervalo: turno.intervalo,
-          criar: (id, d) => criarOcorrencia(token, d, id),
-          remover: (id) => removerOcorrencia(token, id, responsavelId),
-          atualizar: () => router.refresh(),
-          estado: mov,
-          agora,
-        }}
-      />
       <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
         limpar={(p) => limparClima(token, p)}
       />

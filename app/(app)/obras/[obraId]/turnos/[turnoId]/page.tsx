@@ -1,4 +1,5 @@
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
+import { equipePrevista } from "@/lib/dominio/equipePrevista";
 import { telaDoTurno } from "@/lib/ajuda/destino";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -106,6 +107,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
               efetivo={efetivo}
               opcoesFuncao={opcoesFuncao}
               equipesIniciais={equipesIniciais}
+              previsto={equipePrevista(turno.atividades)}
             />
           </section>
           <DadosTurno

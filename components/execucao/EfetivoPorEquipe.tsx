@@ -24,6 +24,8 @@ type Props = {
   adicionarEquipe?: boolean;
   /** Equipes que aparecem mesmo sem efetivo (ex.: responsáveis com atividade no turno). */
   equipesIniciais?: (string | null)[];
+  /** Equipe prevista por responsável (soma das atividades), mostrada enquanto a equipe não tem efetivo gravado. */
+  previsto?: Map<string | null, LinhaEfetivo[]>;
   salvar: (responsavelId: string | null, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) => Promise<Resultado<unknown>>;
   /** Empréstimo, saída antes e parados (turno em andamento). Ausente = só as linhas de efetivo. */
   movimentacoes?: AcoesOcorrencias & {
@@ -53,6 +55,7 @@ export function EfetivoPorEquipe({
   somenteLeitura,
   adicionarEquipe = true,
   equipesIniciais = [],
+  previsto,
   salvar: salvarLinhas,
   movimentacoes,
 }: Props) {
@@ -82,6 +85,8 @@ export function EfetivoPorEquipe({
   const chaves = new Set<string | null>([
     ...(adicionarEquipe ? [null] : []),
     ...equipesIniciais,
+    // Link de campo mostra só a própria equipe (equipesIniciais); o planejador vê todas as com previsto.
+    ...(adicionarEquipe && previsto ? [...previsto.keys()] : []),
     ...efetivo.map((e) => e.responsavel_id),
     ...extras,
     // Planejador: equipe que só recebeu empréstimo também aparece.
@@ -110,6 +115,7 @@ export function EfetivoPorEquipe({
     const unico = (
       <BlocoEfetivo
         inicial={efetivo.filter((e) => e.responsavel_id === null)}
+        previsto={previsto?.get(null)}
         opcoes={opcoesFuncao}
         somenteLeitura={somenteLeitura}
         salvar={(l, esperado) => salvar(null, l, esperado)}
@@ -133,6 +139,7 @@ export function EfetivoPorEquipe({
           <BlocoEfetivo
             equipe={nome(id)}
             inicial={efetivo.filter((e) => e.responsavel_id === id)}
+            previsto={previsto?.get(id)}
             opcoes={opcoesFuncao}
             somenteLeitura={somenteLeitura}
             salvar={(l, esperado) => salvar(id, l, esperado)}
