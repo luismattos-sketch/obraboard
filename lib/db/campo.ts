@@ -1,7 +1,7 @@
 import "server-only";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { hashToken } from "@/lib/dominio/token";
-import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { DadosExecucao, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -10,6 +10,7 @@ import { lancarExtra, opcoesDoTurno, puxarDaSemana, reajustarCopiasFuturas, remo
 import { SEM_OPCOES, type ModoPuxar, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
 import {
   ERRO_EFETIVO_CONFLITO,
+  ERRO_ENVIO_POR_TERMINEI,
   ERRO_EXTRA_SEM_QTD,
   ERRO_FECHADO_CAMPO,
   ERRO_RESPONSAVEL_INVALIDO,
@@ -20,12 +21,9 @@ import { opcoesFuncaoDoTurno, semanaDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
 import {
   camposExecucao,
-  validarClima,
   validarEfetivo,
   validarEfetivoEsperado,
   validarExecucao,
-  validarHorario,
-  validarPeriodoClima,
   type LinhaEfetivo,
 } from "./validacao";
 
@@ -118,7 +116,7 @@ export async function responsaveisDoTurno(
 
 /**
  * `responsavelId` (escolhido no link): só aceita atividade dessa equipe e grava `lancado_por_id`.
- * null ("Ver tudo"): qualquer atividade do turno, sem autor.
+ * null ("Ver tudo" / turno sem responsáveis): só atividade sem responsável.
  */
 export async function salvarExecucao(
   token: string,
@@ -147,7 +145,7 @@ export async function salvarExecucao(
     return falha(ERRO_GENERICO);
   }
   if (!at) return falha(ERRO_ATIVIDADE);
-  if (responsavelId !== null && at.responsavel_id !== responsavelId) return falha(ERRO_ATIVIDADE);
+  if ((at.responsavel_id ?? null) !== responsavelId) return falha(ERRO_ATIVIDADE);
 
   // Extra não tem meta: o banco iguala o planejado ao executado.
   const concluida = at.tipo === "extra" || statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
@@ -158,7 +156,7 @@ export async function salvarExecucao(
     .eq("id", atividadeId)
     .eq("turno_id", t.dados.id);
   // Troca de responsável entre a leitura e a gravação: não grava na equipe de outro.
-  if (responsavelId !== null) gravar = gravar.eq("responsavel_id", responsavelId);
+  gravar = responsavelId !== null ? gravar.eq("responsavel_id", responsavelId) : gravar.is("responsavel_id", null);
   // Checagem otimista: aba/tela desatualizada não sobrescreve o que foi gravado em outro lugar.
   const { data, error } = await filtrarEsperado(gravar, esperado).select("id");
   if (error) {
@@ -173,7 +171,7 @@ export async function salvarExecucao(
       .eq("id", atividadeId)
       .eq("turno_id", t.dados.id)
       .maybeSingle();
-    if (!atual || (responsavelId !== null && atual.responsavel_id !== responsavelId)) return falha(ERRO_ATIVIDADE);
+    if (!atual || (atual.responsavel_id ?? null) !== responsavelId) return falha(ERRO_ATIVIDADE);
     return conflitoOuJaGravado(lerValores(atual), campos);
   }
   if (at.tipo === "adiantada" && at.programacao_atividade_id) {
@@ -248,63 +246,22 @@ export async function salvarEfetivo(
   return ok(undefined);
 }
 
-export async function salvarClima(
-  token: string,
-  dados: { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean },
-): Promise<Resultado> {
-  const v = validarClima(dados);
-  if (!v.ok) return v;
-  const t = await turnoAberto(token);
-  if (!t.ok) return t;
-  const { error } = await criarClienteAdmin()
-    .from("clima")
-    .upsert(
-      { turno_id: t.dados.id, periodo: dados.periodo, condicao: dados.condicao, impediu: dados.impediu === true },
-      { onConflict: "turno_id,periodo" },
-    );
-  if (error) {
-    console.error("salvarClima:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
-export async function removerClima(token: string, periodo: PeriodoClima): Promise<Resultado> {
-  const v = validarPeriodoClima(periodo);
-  if (!v.ok) return v;
-  const t = await turnoAberto(token);
-  if (!t.ok) return t;
-  const { error } = await criarClienteAdmin().from("clima").delete().eq("turno_id", t.dados.id).eq("periodo", periodo);
-  if (error) {
-    console.error("removerClima:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
-export async function salvarHorarioReal(
-  token: string,
-  dados: { hora_inicio_real: string | null; hora_fim_real: string | null },
-): Promise<Resultado> {
-  const v = validarHorario(dados);
-  if (!v.ok) return v;
-  const t = await turnoAberto(token);
-  if (!t.ok) return t;
-  const { error } = await criarClienteAdmin()
-    .from("turnos")
-    .update({ hora_inicio_real: dados.hora_inicio_real, hora_fim_real: dados.hora_fim_real })
-    .eq("id", t.dados.id);
-  if (error) {
-    console.error("salvarHorarioReal:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
 export async function enviarTurnoCampo(token: string): Promise<Resultado<{ status: StatusTurno }>> {
   const t = await turnoAberto(token);
   if (!t.ok) return t;
   if (t.dados.status === "enviado") return ok({ status: "enviado" });
+  // Com responsáveis, o envio é pelo "Terminei minha parte" de todos (terminados.ts).
+  const { data: comDono, error: ed } = await criarClienteAdmin()
+    .from("atividades")
+    .select("id")
+    .eq("turno_id", t.dados.id)
+    .not("responsavel_id", "is", null)
+    .limit(1);
+  if (ed) {
+    console.error("enviarTurnoCampo:", ed.message);
+    return falha(ERRO_GENERICO);
+  }
+  if ((comDono ?? []).length > 0) return falha(ERRO_ENVIO_POR_TERMINEI);
   const r = await aplicarAcao(criarClienteAdmin(), t.dados.id, "enviar");
   if (!r.ok) return r;
   return ok({ status: r.dados.status });
