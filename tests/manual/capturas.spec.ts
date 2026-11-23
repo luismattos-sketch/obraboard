@@ -175,6 +175,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   // ---------- Durante o turno (planejador) ----------
   await pl.goto(turnoUrl);
   await fotografar(pl, "durante-o-turno", "paradas");
+  await fotografar(pl, "durante-o-turno", "o-que-falta");
   await fotografar(pl, "durante-o-turno", "servico-extra");
   await pl.goto(`${obraUrl}/quadro?turno=${turnoId}`);
   await fotografar(pl, "durante-o-turno", "quadro");
