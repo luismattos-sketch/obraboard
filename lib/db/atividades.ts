@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { saldoPendente, statusAtividade } from "@/lib/dominio/calculos";
 import { compararTurnos } from "@/lib/dominio/regras";
+import { validarEquipe } from "@/lib/dominio/equipePrevista";
+import type { EquipePrevista } from "@/lib/dominio/programacao";
 import type { AtividadeExec, Causa, TipoAtividade } from "@/lib/dominio/tipos";
 import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
@@ -26,12 +28,28 @@ export type Atividade = AtividadeExec & {
   foto_path: string | null;
   /** Trazida da semana por "Adiantar"/"Continuar atrasada": o planejador pode remover até fechar. */
   puxada: boolean;
+  /** Equipe prevista: a própria (avulsa/extra) ou, se vazia, a da programação. */
+  equipe: EquipePrevista[];
 };
 
+const linhasEquipe = (v: unknown): EquipePrevista[] =>
+  (Array.isArray(v) ? v : [])
+    .map((e: Record<string, unknown>) => ({ funcao: String(e?.funcao ?? ""), quantidade: Number(e?.quantidade) }))
+    .filter((e) => e.funcao && e.quantidade > 0);
+
+export function equipeDaLinha(r: Record<string, unknown>): EquipePrevista[] {
+  const propria = linhasEquipe(r.equipe);
+  if (propria.length > 0) return propria;
+  const pa = r.programacao_atividades as { programacao_efetivo?: Record<string, unknown>[] | null } | null | undefined;
+  const prog = [...(pa?.programacao_efetivo ?? [])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  return linhasEquipe(prog);
+}
+
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, tipo, criada_por_id, foto_path, puxada";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, tipo, criada_por_id, foto_path, puxada, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
+export const ERRO_SEM_RESPONSAVEL = "Escolha o responsável";
 const ERRO_QTD_MAX = "Quantidade deve ser no máximo 1.000.000.000";
 
 /** Erro do banco: turno fechado (trigger) vira a mensagem do planejador; o resto, a mensagem padrão. */
@@ -72,6 +90,7 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     criada_por_id: (r.criada_por_id as string | null) ?? null,
     foto_path: (r.foto_path as string | null) ?? null,
     puxada: r.puxada === true,
+    equipe: equipeDaLinha(r),
   };
 }
 
@@ -103,13 +122,16 @@ async function atividadeEditavel(c: SupabaseClient, atividadeId: string): Promis
 export async function adicionarAtividade(
   c: SupabaseClient,
   turnoId: string,
-  dados: { descricao: string; local?: string | null; unidade: string; qtd_planejada: number },
+  dados: { descricao: string; local?: string | null; unidade: string; qtd_planejada: number; responsavel_id?: string | null; equipe?: unknown },
 ): Promise<Resultado<Atividade>> {
   const descricao = dados.descricao.trim();
   const unidade = dados.unidade.trim();
   if (!descricao) return falha("Informe a descrição");
   if (!unidade) return falha("Informe a unidade");
   if (!(dados.qtd_planejada > 0)) return falha("Quantidade deve ser maior que zero");
+  const responsavelId = dados.responsavel_id?.trim() || null;
+  const { equipe, erro: erroEquipe } = validarEquipe(dados.equipe);
+  if (erroEquipe) return falha(erroEquipe, { equipe: erroEquipe });
   const tamanho = validarPlanejamento(dados);
   if (tamanho) return tamanho;
   const t = await turnoEditavel(c, turnoId);
@@ -136,6 +158,8 @@ export async function adicionarAtividade(
       local: vazioParaNull(dados.local),
       unidade,
       qtd_planejada: dados.qtd_planejada,
+      responsavel_id: responsavelId,
+      equipe,
     })
     .select(COLUNAS)
     .single();

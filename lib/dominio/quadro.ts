@@ -47,6 +47,8 @@ export type EntradaQuadro = {
     responsavel_id: string | null;
     /** Ausente em fotos antigas (= regra antiga: programadas contam, avulsas são extra). */
     tipo?: TipoAtividade | null;
+    /** Equipe prevista; ausente em fotos antigas. */
+    equipe?: { funcao: string; quantidade: number }[];
   }[];
   efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[];
   /** Ausente na foto do check-in antiga (= nenhuma). */

@@ -144,6 +144,7 @@ export async function lancarExtra(
     responsavel_id: d.responsavel_id,
     criada_por_id: criadaPorId,
     tipo: "extra",
+    equipe: d.equipe,
   });
   if (!error) return ok({ id: d.id });
   if (error.code === UNICIDADE) return (await jaGravado()) ?? falha(ERRO_ID_REUSADO);

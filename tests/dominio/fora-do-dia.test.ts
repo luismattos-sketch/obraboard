@@ -104,9 +104,14 @@ describe("copiasParaAjustar", () => {
 });
 
 describe("validarExtra", () => {
+  it("valida e devolve a equipe", () => {
+    const base = { id: "4f1c2b3a-1111-4222-8333-444455556666", descricao: "Extra", unidade: "un", qtd: 1 };
+    expect(validarExtra({ ...base, equipe: [{ funcao: "", quantidade: 1 }] })).toMatchObject({ ok: false, erro: "Informe a função de cada linha da equipe" });
+    expect(validarExtra({ ...base, equipe: [{ funcao: "Soldador", quantidade: 2 }] })).toMatchObject({ ok: true, dados: { equipe: [{ funcao: "Soldador", quantidade: 2 }] } });
+  });
   const ok = { id: "6f1c2a52-9a0b-4c55-8a39-1f2b3c4d5e6f", descricao: "  Troca de iluminação ", unidade: " un ", qtd: 12, observacao: " ", responsavel_id: null };
   it("aceita e apara", () => {
-    expect(validarExtra(ok)).toEqual({ ok: true, dados: { ...ok, descricao: "Troca de iluminação", unidade: "un", observacao: null } });
+    expect(validarExtra(ok)).toEqual({ ok: true, dados: { ...ok, descricao: "Troca de iluminação", unidade: "un", observacao: null, equipe: [] } });
   });
   it("recusa quantidade zero, descrição vazia e id inválido", () => {
     expect(validarExtra({ ...ok, qtd: 0 }).ok).toBe(false);

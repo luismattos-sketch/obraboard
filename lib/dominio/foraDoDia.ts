@@ -1,5 +1,7 @@
 import { LIMITES, QTD_PLANEJADA_MAX } from "@/lib/db/validacao";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
+import { validarEquipe } from "./equipePrevista";
+import type { EquipePrevista } from "./programacao";
 import {
   diaDaSemana,
   realizadoAte,
@@ -100,6 +102,7 @@ export type DadosExtra = {
   qtd: number;
   observacao: string | null;
   responsavel_id: string | null;
+  equipe: EquipePrevista[];
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -119,7 +122,9 @@ export function validarExtra(d: unknown): Resultado<DadosExtra> {
   const obs = typeof x.observacao === "string" && x.observacao.trim() ? x.observacao.trim() : null;
   if (obs !== null && obs.length > 500) return falha("Observação deve ter no máximo 500 caracteres");
   const resp = typeof x.responsavel_id === "string" && x.responsavel_id ? x.responsavel_id : null;
-  return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp });
+  const { equipe, erro: erroEquipe } = validarEquipe(x.equipe);
+  if (erroEquipe) return falha(erroEquipe, { equipe: erroEquipe });
+  return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp, equipe });
 }
 
 /** "lançado por você" (quem está no link) ou "lançado pelo campo — Nome"; null = criada pelo planejador. */
