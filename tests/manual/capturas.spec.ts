@@ -145,14 +145,14 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(cel, "campo", "escolher-nome");
 
   await cel.goto(`/t/${token}?r=${ids["Ana Souza"]}`);
-  await cartao(ATIVIDADE_NA_TELA.descricao).getByLabel(/Executado/).fill("12");
+  await cartao(ATIVIDADE_NA_TELA.descricao).getByLabel(/Total feito hoje/).fill("12");
   await expect(cartao(ATIVIDADE_NA_TELA.descricao).getByText("Salvo ✓")).toBeVisible({ timeout: 20_000 });
   await fotografar(cel, "campo", "lancar");
   await cartao("Base do compressor").getByRole("button", { name: /Marcar como concluída/ }).click();
   await expect(cartao("Base do compressor").getByText("Salvo ✓")).toBeVisible({ timeout: 20_000 });
 
   await cel.goto(`/t/${token}?r=${ids["João Lima"]}`);
-  await cartao("Pintura do guarda-corpo").getByLabel(/Executado/).fill("10");
+  await cartao("Pintura do guarda-corpo").getByLabel(/Total feito hoje/).fill("10");
   await expect(cartao("Pintura do guarda-corpo").getByText("Salvo ✓")).toBeVisible({ timeout: 20_000 });
   const paradas = cel.getByRole("region", { name: "Paradas", exact: true });
   await paradas.getByRole("button", { name: "⚠ Avisar parada" }).click();

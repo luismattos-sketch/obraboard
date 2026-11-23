@@ -43,20 +43,20 @@ test("sinal fraco: nunca desiste, avisa, não mostra verde antes de salvar e per
   const topo = campo.getByText(/lançamentos? não salvos?\./);
 
   // 1. Rede boa: salva e o aviso do topo nunca aparece
-  await c0.getByLabel(/Executado/).fill("2");
+  await c0.getByLabel(/Total feito hoje/).fill("2");
   await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
   await expect(topo).toHaveCount(0);
 
   // 2. Nova edição: o "Salvo ✓" antigo some na hora
-  await c0.getByLabel(/Executado/).fill("3");
+  await c0.getByLabel(/Total feito hoje/).fill("3");
   await expect(c0.getByText("Salvo ✓")).toHaveCount(0, { timeout: 300 });
   await expect(c0.getByText("Salvando…")).toBeVisible();
   await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
 
   // 3. Rede que finge: dois blocos falham
   await fingir(campo);
-  await c0.getByLabel(/Executado/).fill("5");
-  await c1.getByLabel(/Executado/).fill("4");
+  await c0.getByLabel(/Total feito hoje/).fill("5");
+  await c1.getByLabel(/Total feito hoje/).fill("4");
   await expect(c0.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
   await expect(c1.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
   await expect(campo.getByText("⚠ 2 lançamentos não salvos. Não feche nem atualize esta tela.")).toBeVisible();
@@ -64,13 +64,13 @@ test("sinal fraco: nunca desiste, avisa, não mostra verde antes de salvar e per
   await expect(c0.locator("[data-tom]")).toHaveAttribute("data-tom", "neutro");
 
   // 4. Muda durante a falha e espera mais que o antigo "desistir" (~26 s)
-  await c0.getByLabel(/Executado/).fill("7");
+  await c0.getByLabel(/Total feito hoje/).fill("7");
   await campo.waitForTimeout(40_000);
   await expect(c0.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible();
   await expect(campo.getByText(/Recarregue a página/)).toHaveCount(0);
 
   // 5. Erro de negócio não conta como "não salvo"
-  await c1.getByLabel(/Executado/).fill("abc");
+  await c1.getByLabel(/Total feito hoje/).fill("abc");
   await expect(c1.getByText("Digite um número válido").first()).toBeVisible({ timeout: 15_000 });
   await expect(campo.getByText("⚠ 1 lançamento não salvo. Não feche nem atualize esta tela.")).toBeVisible({ timeout: 15_000 });
 
@@ -80,12 +80,12 @@ test("sinal fraco: nunca desiste, avisa, não mostra verde antes de salvar e per
   await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
   expect(await qtdNoBanco()).toBe(7);
   await expect(topo).toHaveCount(0);
-  await c1.getByLabel(/Executado/).fill("4");
+  await c1.getByLabel(/Total feito hoje/).fill("4");
   await expect(c1.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
 
   // 7. Sem rede de verdade: volta sozinho quando a conexão volta
   await ctx.setOffline(true);
-  await c0.getByLabel(/Executado/).fill("8");
+  await c0.getByLabel(/Total feito hoje/).fill("8");
   await expect(c0.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
   await ctx.setOffline(false);
   await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
@@ -97,11 +97,11 @@ test("sinal fraco: nunca desiste, avisa, não mostra verde antes de salvar e per
     await r.fetch();
     await r.abort("connectionreset");
   });
-  await c0.getByLabel(/Executado/).fill("6");
+  await c0.getByLabel(/Total feito hoje/).fill("6");
   await expect(c0.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
   await expect.poll(qtdNoBanco, { timeout: 15_000 }).toBe(6);
   await campo.unroute("**/*");
-  await c0.getByLabel(/Executado/).fill("5");
+  await c0.getByLabel(/Total feito hoje/).fill("5");
   await expect(c0.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
   await expect(c0.getByText(/Mudou em outra tela/)).toHaveCount(0);
   expect(await qtdNoBanco()).toBe(5);
@@ -123,7 +123,7 @@ test("sinal fraco: nunca desiste, avisa, não mostra verde antes de salvar e per
 
   // 8. Sair com pendência: o navegador pergunta
   await fingir(campo);
-  await c0.getByLabel(/Executado/).fill("9");
+  await c0.getByLabel(/Total feito hoje/).fill("9");
   await expect(c0.getByText("Não salvo — sem sinal. Tentando de novo…")).toBeVisible({ timeout: 15_000 });
   const dialogo = campo.waitForEvent("dialog");
   await campo.close({ runBeforeUnload: true });

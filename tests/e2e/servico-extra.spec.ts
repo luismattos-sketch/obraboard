@@ -87,7 +87,7 @@ test("Carlos lança serviço extra e Rita adianta a pintura pelo link → quadro
   await cel.getByRole("button", { name: /^Pintura do guarda-corpo — .* — saldo 80 m²$/ }).click();
   const pintura = cartao("Pintura do guarda-corpo");
   await expect(pintura).toContainText("Adiantada", { timeout: 20_000 });
-  await pintura.getByLabel(/Executado/).fill("40");
+  await pintura.getByLabel(/Total feito hoje/).fill("40");
   await expect(pintura.getByText("Salvo ✓")).toBeVisible({ timeout: 20_000 });
   await ctx.close();
 
