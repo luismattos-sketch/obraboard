@@ -154,7 +154,7 @@ export async function salvarExecucao(
   const campos = camposExecucao(concluida, dados);
   let gravar = admin
     .from("atividades")
-    .update({ ...campos, lancado_por_id: responsavelId })
+    .update({ ...campos, lancado_por_id: responsavelId, lancado_em: new Date().toISOString() })
     .eq("id", atividadeId)
     .eq("turno_id", t.dados.id);
   // Troca de responsável entre a leitura e a gravação: não grava na equipe de outro.

@@ -82,6 +82,18 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.hora_inicio_real).toBe("07:00:00");
   });
 
+  it("guarda a última alteração pelo planejador (atividade e efetivo)", { timeout: 60_000 }, async () => {
+    const { turnoId, atividadeId } = await turnoEmCampo("2027-01-20");
+    expect((await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 3, causa: "material", observacao: null }, VAZIO)).ok).toBe(true);
+    const admin = criarClienteAdmin();
+    const { data: at } = await admin.from("atividades").select("lancado_por_id, lancado_em").eq("id", atividadeId).single();
+    expect(at?.lancado_por_id).toBeNull();
+    expect(at?.lancado_em).not.toBeNull();
+    expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, [{ funcao: "Pedreiro", quantidade: 2 }], [])).ok).toBe(true);
+    const { data: ef } = await admin.from("efetivo").select("lancado_pelo_planejador").eq("turno_id", turnoId);
+    expect(ef).toEqual([{ lancado_pelo_planejador: true }]);
+  });
+
   it("recusa turno fechado e volta a aceitar ao reabrir", { timeout: 60_000 }, async () => {
     const { turnoId, atividadeId } = await turnoEmCampo("2027-01-11");
     await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO);

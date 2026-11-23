@@ -21,6 +21,8 @@ export type Atividade = AtividadeExec & {
   responsavel_id: string | null;
   /** Quem salvou a execução pelo link de campo por último (null = "Ver tudo" ou planejador). */
   lancado_por_id: string | null;
+  /** Hora da última alteração (com lancado_por_id nulo = planejador). */
+  lancado_em: string | null;
   tipo: TipoAtividade | null;
   /** Responsável que criou a atividade pelo link de campo (extra/adiantada/atrasada). */
   criada_por_id: string | null;
@@ -46,7 +48,7 @@ export function equipeDaLinha(r: Record<string, unknown>): EquipePrevista[] {
 }
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, tipo, criada_por_id, foto_path, puxada, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, puxada, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 export const ERRO_SEM_RESPONSAVEL = "Escolha o responsável";
@@ -86,6 +88,7 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     programacao_atividade_id: (r.programacao_atividade_id as string | null) ?? null,
     responsavel_id: (r.responsavel_id as string | null) ?? null,
     lancado_por_id: (r.lancado_por_id as string | null) ?? null,
+    lancado_em: (r.lancado_em as string | null) ?? null,
     tipo: (r.tipo as TipoAtividade | null) ?? null,
     criada_por_id: (r.criada_por_id as string | null) ?? null,
     foto_path: (r.foto_path as string | null) ?? null,
