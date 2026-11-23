@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
-// O helper de admin importa "server-only", que lan�a fora do Next: usa o mesmo stub do vitest.
+// O helper de admin importa "server-only", que lan�a fora do Next: usa o mesmo stub do vitest.
 const resolver = (Module as unknown as { _resolveFilename: (r: string, ...a: unknown[]) => string })._resolveFilename;
 (Module as unknown as { _resolveFilename: unknown })._resolveFilename = function (request: string, ...resto: unknown[]) {
   if (request === "server-only") return path.resolve("tests/stubs/server-only.ts");
@@ -39,6 +39,9 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: true,
+    // IA de mentira (lib/ia/falsa.ts): E2E e capturas não chamam a Claude nem gastam crédito.
+    // Um next dev já aberto à mão é reaproveitado e NÃO tem isso: feche-o antes de rodar os testes.
+    env: { FRENTIA_IA_FALSA: "1" },
     timeout: 180_000,
   },
 });

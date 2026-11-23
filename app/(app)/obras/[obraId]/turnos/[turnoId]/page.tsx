@@ -25,6 +25,8 @@ import { ListaAtividades } from "./ListaAtividades";
 import { PainelLink } from "./PainelLink";
 import { Resumo } from "./Resumo";
 import { FaixaParadas } from "./FaixaParadas";
+import { RelatosCampo } from "./RelatosCampo";
+import { relatosDoTurno } from "@/lib/db/relatos";
 import { urlsFotos } from "@/lib/db/fotosParada";
 import { paradasAbertas } from "@/lib/dominio/efetivoHH";
 import { opcoesPuxarPlanejador } from "@/lib/db/foraDoDia";
@@ -33,11 +35,12 @@ import { SEM_OPCOES } from "@/lib/dominio/foraDoDia";
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
   const supabase = await criarClienteServidor();
-  const [turno, versoes, eventos, link] = await Promise.all([
+  const [turno, versoes, eventos, link, relatos] = await Promise.all([
     obterTurnoCompleto(supabase, turnoId),
     versoesDoTurno(supabase, turnoId),
     listarEventos(supabase, turnoId).catch(() => null),
     linkCampo(supabase, turnoId).catch(() => ({ existe: false, token: null })),
+    relatosDoTurno(supabase, turnoId),
   ]);
   if (!turno || turno.obra_id !== obraId) notFound();
   const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
@@ -114,6 +117,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
         <>
           <Resumo turno={turno} />
           <BlocoRdo turnoId={turno.id} fechado={turno.status === "fechado"} versoes={versoes} />
+          <RelatosCampo relatos={relatos} responsaveis={responsaveis} />
           {turno.status === "fechado" ? (
             <AcoesTurno turnoId={turno.id} fechado />
           ) : (
