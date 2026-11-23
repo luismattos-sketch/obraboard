@@ -9,6 +9,8 @@ import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
 import { urlsFotos } from "@/lib/db/fotosParada";
+import { relatoPendente } from "@/lib/db/relatos";
+import { iaLigada } from "@/lib/ia/cliente";
 
 // Página de token: nunca cacheada, nunca indexada, sem vazar o link por Referer.
 export const dynamic = "force-dynamic";
@@ -49,6 +51,10 @@ export default async function PaginaCampo({
     atual ? xs.filter((x) => x.responsavel_id === atual.id) : xs;
   const abertoCampo = turno.status === "em_campo" || turno.status === "enviado";
   const opcoesPuxar = atual && abertoCampo ? await opcoesPuxarCampo(turno, atual.id) : undefined;
+  // "Conte como foi o dia": só com responsável escolhido, IA ligada e atividade da equipe.
+  const comContar = atual !== null && abertoCampo && iaLigada() && daEquipe(turno.atividades).length > 0;
+  const pendente = comContar ? await relatoPendente(turno.id, atual.id) : null;
+  const contarDia = comContar ? { texto: pendente?.texto ?? "", relatoId: pendente?.id ?? null } : null;
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6">
@@ -79,6 +85,7 @@ export default async function PaginaCampo({
             responsaveis={responsaveis}
             responsavelId={atual?.id ?? null}
             opcoesPuxar={opcoesPuxar}
+            contarDia={contarDia}
             turno={{
               status: turno.status,
               data: turno.data,

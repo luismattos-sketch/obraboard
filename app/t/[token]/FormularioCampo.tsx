@@ -35,7 +35,10 @@ import {
   salvarEfetivo,
   salvarExecucao,
   salvarHorarioReal,
+  organizarRelato,
+  lancarRelato,
 } from "./acoes";
+import { ContarDia } from "@/components/execucao/ContarDia";
 import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao/rastreioSalvamento";
 import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
@@ -77,6 +80,7 @@ export function FormularioCampo({
   responsaveis = [],
   responsavelId = null,
   opcoesPuxar = SEM_OPCOES,
+  contarDia = null,
 }: {
   token: string;
   turno: DadosTurnoCampo;
@@ -84,6 +88,8 @@ export function FormularioCampo({
   responsaveis?: ResponsavelRef[];
   /** Adiantar / atrasada do responsável escolhido. */
   opcoesPuxar?: OpcoesPuxar;
+  /** "Conte como foi o dia" (null = não mostra): texto guardado da rodada não lançada. */
+  contarDia?: { texto: string; relatoId: string | null } | null;
   /** Responsável escolhido no link (null = "Ver tudo"): sem botão Enviar. */
   responsavelId?: string | null;
 }) {
@@ -237,6 +243,16 @@ export function FormularioCampo({
         anexarFoto={(id, f) => void mov.anexarFoto(id, f)}
       />
       {mov.erro && <Aviso tom="alerta">{mov.erro}</Aviso>}
+      {contarDia && responsavelId !== null && !somenteLeitura && (
+        <ContarDia
+          textoInicial={contarDia.texto}
+          relatoIdInicial={contarDia.relatoId}
+          organizar={(t, id) => organizarRelato(token, responsavelId, t, id)}
+          salvar={(id, d, esperado) => salvarExecucao(token, id, d, esperado, responsavelId)}
+          marcarLancado={(id) => lancarRelato(token, responsavelId, id)}
+          aoLancar={() => router.refresh()}
+        />
+      )}
       <BlocoAtividades
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
