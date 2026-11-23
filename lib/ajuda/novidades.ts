@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-22",
+    texto: "Lançamento mais claro: \"Total feito hoje\", botão \"+ Somar\" e pergunta antes de trocar um parcial pela meta.",
+    href: "/ajuda/campo#lancar",
+  },
+  {
+    data: "2026-11-22",
     texto: "A causa só é pedida no fim: ao tocar \"Terminei minha parte\", enviar ou fechar o turno.",
     href: "/ajuda/fechar-turno#causas",
   },
