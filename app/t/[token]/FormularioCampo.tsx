@@ -269,6 +269,7 @@ export function FormularioCampo({
         <ForaDoDia
           adiantar={opcoesPuxar.adiantar}
           atrasadas={opcoesPuxar.atrasadas}
+          funcoes={opcoesFuncao}
           puxar={(id, modo) => puxarDaSemana(token, id, modo, responsavelId)}
           lancarExtra={(d) => lancarExtra(token, d, responsavelId)}
           enviarFoto={(id, form) => enviarFotoExtra(token, id, responsavelId, form)}

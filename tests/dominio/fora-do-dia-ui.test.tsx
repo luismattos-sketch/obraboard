@@ -31,6 +31,12 @@ describe("ForaDoDia", () => {
     expect(plan).toContain(">Carlos<");
   });
 
+  it("extra tem equipe opcional", () => {
+    expect(renderToStaticMarkup(<ForaDoDia {...base} abertoInicial="extra" />)).toContain("Equipe (opcional)");
+    expect(montarExtra({ descricao: "Reparo", qtd: "1", unidade: "un", observacao: "", responsavel: "", equipe: [{ funcao: "Eletricista", quantidade: "2" }, { funcao: "", quantidade: "" }] }, ID))
+      .toMatchObject({ ok: true, dados: { equipe: [{ funcao: "Eletricista", quantidade: 2 }] } });
+  });
+
   it("rotuloOpcao", () => {
     expect(rotuloOpcao({ ...pintura, unidade: null, saldo: 2.5 })).toBe("Pintura — Qui, Sex — saldo 2,5");
   });

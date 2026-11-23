@@ -97,7 +97,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
 
       {turno.status === "planejado" ? (
         <>
-          <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} />
+          <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} sugestoesFuncao={opcoesFuncao} />
           <section className="rounded-cartao border border-borda bg-superficie p-4">
             <EfetivoTurno
               turnoId={turno.id}
@@ -147,6 +147,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                     atividades={turno.atividades}
                     trazerPendentes={false}
                     semanaStatus={semanaStatus}
+                    sugestoesFuncao={opcoesFuncao}
                   />
                 </div>
               </details>

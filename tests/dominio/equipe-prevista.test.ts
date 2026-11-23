@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { equipePrevista, validarEquipe } from "@/lib/dominio/equipePrevista";
+import { equipePrevista, lerEquipeDoForm, validarEquipe } from "@/lib/dominio/equipePrevista";
 
 describe("equipePrevista", () => {
   it("soma por responsável juntando grafias da mesma função", () => {
@@ -23,4 +23,15 @@ describe("validarEquipe", () => {
     expect(validarEquipe([{ funcao: "Soldador", quantidade: 1.5 }]).erro).toBe("Quantidade de pessoas inválida"));
   it("limpa espaços", () =>
     expect(validarEquipe([{ funcao: " Soldador ", quantidade: 2 }]).equipe).toEqual([{ funcao: "Soldador", quantidade: 2 }]));
+});
+
+describe("lerEquipeDoForm", () => {
+  it("lê linhas repetidas, ignora vazias e marca quantidade inválida", () => {
+    const f = new FormData();
+    for (const [fn, q] of [["Soldador", "2"], ["", ""], ["Ajudante", "1,5"]]) { f.append("funcao", fn); f.append("quantidade", q); }
+    const e = lerEquipeDoForm(f);
+    expect(e[0]).toEqual({ funcao: "Soldador", quantidade: 2 });
+    expect(e).toHaveLength(2);
+    expect(Number.isNaN(e[1].quantidade)).toBe(true);
+  });
 });

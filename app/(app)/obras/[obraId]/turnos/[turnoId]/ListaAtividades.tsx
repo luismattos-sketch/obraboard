@@ -16,6 +16,7 @@ export function ListaAtividades({
   atividades,
   trazerPendentes = true,
   semanaStatus = null,
+  sugestoesFuncao = [],
   obraId,
   responsaveis,
 }: {
@@ -27,6 +28,8 @@ export function ListaAtividades({
   trazerPendentes?: boolean;
   /** Status da semana da programação que contém o turno (null: sem programação). */
   semanaStatus?: StatusSemana | null;
+  /** Funções para a equipe prevista do "Adicionar atividade". */
+  sugestoesFuncao?: string[];
 }) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(trazerPendentesAcao, null);
   const [estadoProg, actionProg, pendenteProg] = useActionState<EstadoAcao, FormData>(trazerDaProgramacaoAcao, null);
@@ -90,7 +93,7 @@ export function ListaAtividades({
 
       <Cartao>
         <h2 className="mb-3 text-lg font-semibold text-primaria">Adicionar atividade</h2>
-        <FormAtividade key={atividades.length} turnoId={turnoId} />
+        <FormAtividade key={atividades.length} turnoId={turnoId} obraId={obraId} responsaveis={responsaveis} sugestoesFuncao={sugestoesFuncao} />
       </Cartao>
     </div>
   );

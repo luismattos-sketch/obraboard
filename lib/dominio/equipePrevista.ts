@@ -3,6 +3,20 @@ import { normalizarFuncao, type EquipePrevista } from "./programacao";
 export const QTD_PESSOAS_MAX = 10_000;
 export const FUNCAO_MAX = 60;
 
+/** Converte linhas digitadas (texto) em equipe; linha toda vazia é ignorada, quantidade não inteira vira NaN (recusada na validação). */
+export function linhasParaEquipe(linhas: { funcao: string; quantidade: string }[]): EquipePrevista[] {
+  return linhas
+    .map((l) => ({ funcao: l.funcao.trim(), qtd: l.quantidade.trim() }))
+    .filter((l) => l.funcao || l.qtd)
+    .map((l) => ({ funcao: l.funcao, quantidade: /^\d+$/.test(l.qtd) ? Number(l.qtd) : NaN }));
+}
+
+/** Lê os campos repetidos `funcao`/`quantidade` do formulário (EditorEquipe). */
+export function lerEquipeDoForm(form: FormData): EquipePrevista[] {
+  const q = form.getAll("quantidade").map(String);
+  return linhasParaEquipe(form.getAll("funcao").map((f, i) => ({ funcao: String(f), quantidade: q[i] ?? "" })));
+}
+
 /** Valida linhas de equipe (função + quantidade de pessoas), como na programação. */
 export function validarEquipe(bruta: unknown): { equipe: EquipePrevista[]; erro: string | null } {
   const linhas = (Array.isArray(bruta) ? bruta : []) as { funcao?: unknown; quantidade?: unknown }[];

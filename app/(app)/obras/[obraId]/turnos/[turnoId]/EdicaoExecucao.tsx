@@ -175,6 +175,7 @@ export function EdicaoExecucao({
         <ForaDoDia
           adiantar={opcoesPuxar.adiantar}
           atrasadas={opcoesPuxar.atrasadas}
+          funcoes={opcoesFuncao}
           responsaveis={responsaveis}
           textoSemAdiantar={TEXTO_SEM_ADIANTAR_PLANEJADOR}
           puxar={(id, modo) => puxarDaSemanaAcao(turnoId, id, modo)}

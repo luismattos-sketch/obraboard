@@ -6,13 +6,13 @@ import { Botao } from "@/components/ui/Botao";
 import { Campo } from "@/components/ui/Campo";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { numeroBR } from "@/lib/dominio/formato";
-import { canonizarFuncao, ROTULO_DIAS, sugestaoDoDia, type AtividadeProgramada, type DiaSemana } from "@/lib/dominio/programacao";
+import { ROTULO_DIAS, sugestaoDoDia, type AtividadeProgramada, type DiaSemana } from "@/lib/dominio/programacao";
 import type { Periodo } from "@/lib/dominio/tipos";
+import { EditorEquipe, type LinhaEquipe } from "@/components/execucao/EditorEquipe";
 import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { salvarAtividadeProgramadaAcao, type EstadoSemana } from "./acoes";
 
-type Linha = { funcao: string; quantidade: string };
 
 export function FormAtividadeProgramada({
   semanaId,
@@ -39,7 +39,7 @@ export function FormAtividadeProgramada({
   const [dias, setDias] = useState<DiaSemana[]>(atividade?.dias ?? []);
   const [periodo, setPeriodo] = useState<Periodo>(atividade?.periodo ?? "diurno");
   const [responsavel, setResponsavel] = useState<string | null>(atividade?.responsavel_id ?? null);
-  const [equipe, setEquipe] = useState<Linha[]>(
+  const [equipe, setEquipe] = useState<LinhaEquipe[]>(
     atividade?.equipe.length
       ? atividade.equipe.map((e) => ({ funcao: e.funcao, quantidade: String(e.quantidade) }))
       : [{ funcao: "", quantidade: "" }],
@@ -59,9 +59,6 @@ export function FormAtividadeProgramada({
       ? sugestaoDoDia({ meta: metaNum, dias }, primeiro, 0)
       : null;
   const alternarDia = (d: DiaSemana) => setDias((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]));
-  const mudarLinha = (i: number, campo: keyof Linha, valor: string) =>
-    setEquipe((ls) => ls.map((l, j) => (j === i ? { ...l, [campo]: valor } : l)));
-
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="semana_id" value={semanaId} />
@@ -115,39 +112,7 @@ export function FormAtividadeProgramada({
       <input type="hidden" name="responsavel_id" value={responsavel ?? ""} />
       <MenuResponsavel obraId={obraId} responsaveis={responsaveis} valor={responsavel} aoMudar={setResponsavel} />
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium text-texto">Equipe prevista</legend>
-        <datalist id="funcoes-sugeridas">
-          {sugestoesFuncao.map((f) => (
-            <option key={f} value={f} />
-          ))}
-        </datalist>
-        {equipe.map((l, i) => (
-          <div key={i} className="flex items-end gap-2">
-            <div className="min-w-0 flex-1">
-              <Campo rotulo="Função" name="funcao" list="funcoes-sugeridas" maxLength={60} value={l.funcao} onChange={(e) => mudarLinha(i, "funcao", e.target.value)} onBlur={() => mudarLinha(i, "funcao", canonizarFuncao(l.funcao, sugestoesFuncao))} />
-            </div>
-            <div className="w-24">
-              <Campo rotulo="Qtd" name="quantidade" inputMode="numeric" value={l.quantidade} onChange={(e) => mudarLinha(i, "quantidade", e.target.value)} />
-            </div>
-            <Botao
-              type="button"
-              variante="secundario"
-              className="min-h-12 px-3 text-sm"
-              aria-label={`Remover função ${l.funcao || i + 1}`}
-              onClick={() => setEquipe((ls) => (ls.length === 1 ? [{ funcao: "", quantidade: "" }] : ls.filter((_, j) => j !== i)))}
-            >
-              Remover
-            </Botao>
-          </div>
-        ))}
-        {campos?.equipe && <p className="text-sm text-perigo">{campos.equipe}</p>}
-        <div>
-          <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={() => setEquipe((ls) => [...ls, { funcao: "", quantidade: "" }])}>
-            Adicionar função
-          </Botao>
-        </div>
-      </fieldset>
+      <EditorEquipe linhas={equipe} aoMudar={setEquipe} sugestoes={sugestoesFuncao} erro={campos?.equipe} />
 
       {falhou && !falhou.campos && <Aviso tom="perigo">{falhou.erro}</Aviso>}
       <div className="flex gap-2">
