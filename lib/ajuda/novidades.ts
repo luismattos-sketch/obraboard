@@ -3,6 +3,11 @@ import type { Novidade } from "./tipos";
 
 export const NOVIDADES: Novidade[] = [
   {
+    data: "2026-11-23",
+    texto: "O que falta: no turno, veja por responsável o que ainda não foi registrado e cobre pelo WhatsApp com um toque.",
+    href: "/ajuda/durante-o-turno#o-que-falta",
+  },
+  {
     data: "2026-11-22",
     texto: "Conte como foi o dia: no link de campo, escreva ou dite e a IA organiza o lançamento para você conferir antes de gravar.",
     href: "/ajuda/campo#contar-dia",

@@ -34,6 +34,20 @@ export const duranteOTurno: Capitulo = {
       },
     },
     {
+      id: "o-que-falta",
+      titulo: "Veja o que falta e cobre o responsável",
+      texto: [
+        "No alto da tela do turno, \"O que falta\" mostra, por responsável, o que ainda não foi registrado: atividade sem lançamento, texto contado à IA que não foi lançado e, depois do fim do turno (ou quando a equipe toca \"Terminei minha parte\"), causa não informada e o \"Terminei\" que faltou.",
+        "Enquanto o turno está em andamento, o grupo aparece como \"em andamento\": é normal ainda faltar. Depois do fim, fica em destaque. Toque em \"ir\" para ir direto à atividade.",
+        "\"Cobrar no WhatsApp\" abre a conversa com o responsável e uma mensagem pronta com o que falta e o link de campo dele. Para abrir direto no número, cadastre o telefone em Responsáveis da obra.",
+      ],
+      captura: {
+        alt: "Bloco O que falta no turno, com as pendências por responsável e o botão Cobrar no WhatsApp",
+        alvo: { papel: "region", nome: "O que falta" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "servico-extra",
       titulo: "Lance um serviço extra",
       texto: [

@@ -1,6 +1,7 @@
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { horaCurta, type Ocorrencia } from "./efetivoHH";
 import { numeroBR, ROTULO_PERIODO } from "./formato";
+import type { Falta } from "./faltas";
 import { CAUSAS, type Periodo } from "./tipos";
 
 /** Aviso ao planejador pelo WhatsApp: só um link wa.me com a mensagem pronta (o app do aparelho envia). */
@@ -48,4 +49,13 @@ export function mensagemTerminou(p: Contexto & { hora: string }): string {
 
 export function mensagemExtra(p: Contexto & { descricao: string; qtd: number; unidade: string }): string {
   return `➕ Extra — ${onde(p)}\n${p.equipe}: ${p.descricao} — ${numeroBR(p.qtd)} ${p.unidade}`;
+}
+
+/** Cobrança do planejador ao responsável: o que falta e o link de campo dele (spec 2026-11-23). */
+export function mensagemCobranca(p: { obra: string; data: string; periodo: Periodo; nome: string; faltas: Falta[]; link: string | null }): string {
+  return [
+    `Oi, ${p.nome}! Falta completar no Frentia — ${onde({ ...p, equipe: p.nome })}:`,
+    ...p.faltas.map((f) => `• ${f.texto.replace(" — ", ": ")}`),
+    ...(p.link ? [`Abra aqui: ${p.link}`] : []),
+  ].join("\n");
 }

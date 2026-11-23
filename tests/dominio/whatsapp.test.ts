@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Ocorrencia } from "@/lib/dominio/efetivoHH";
-import { linkWhatsapp, mensagemParada, mensagemRetomada, mensagemExtra, mensagemTerminou, normalizarWhatsapp } from "@/lib/dominio/whatsapp";
+import { linkWhatsapp, mensagemParada, mensagemRetomada, mensagemExtra, mensagemTerminou, normalizarWhatsapp, mensagemCobranca } from "@/lib/dominio/whatsapp";
 
 const parada = (p: Partial<Ocorrencia> = {}): Ocorrencia => ({
   id: "p1", responsavel_id: "joao", funcao: "Mecânico", tipo: "parado", quantidade: 2, hora_inicio: "10:40:00", hora_fim: null,
@@ -60,5 +60,21 @@ describe("mensagemExtra", () => {
     expect(mensagemExtra({ ...ctx, descricao: "Troca de iluminação", qtd: 12.5, unidade: "un" })).toBe(
       "➕ Extra — Caldeira 3 · 16/11 Diurno\nCarlos: Troca de iluminação — 12,5 un",
     );
+  });
+});
+
+describe("mensagemCobranca", () => {
+  const faltas = [
+    { tipo: "sem_lancamento" as const, atividadeId: "a1", texto: "Montagem — lançar quanto foi feito" },
+    { tipo: "terminei" as const, atividadeId: null, texto: "Não apertou \"Terminei minha parte\"" },
+  ];
+  const p = { obra: "Caldeira 3", data: "2026-11-23", periodo: "diurno" as const, nome: "João", faltas };
+  it("lista o que falta e manda o link do responsável", () => {
+    expect(mensagemCobranca({ ...p, link: "https://x/t/tok?r=joao" })).toBe(
+      "Oi, João! Falta completar no Frentia — Caldeira 3 · 23/11 Diurno:\n• Montagem: lançar quanto foi feito\n• Não apertou \"Terminei minha parte\"\nAbra aqui: https://x/t/tok?r=joao",
+    );
+  });
+  it("sem link, sem a linha Abra aqui", () => {
+    expect(mensagemCobranca({ ...p, link: null }).split("\n")).toHaveLength(3);
   });
 });
