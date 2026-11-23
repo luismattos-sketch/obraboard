@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { equipePrevista, lerEquipeDoForm, validarEquipe } from "@/lib/dominio/equipePrevista";
+import { equipePrevista, lerEquipeDoForm, textoEquipe, validarEquipe } from "@/lib/dominio/equipePrevista";
 
 describe("equipePrevista", () => {
   it("soma por responsável juntando grafias da mesma função", () => {
@@ -33,5 +33,13 @@ describe("lerEquipeDoForm", () => {
     expect(e[0]).toEqual({ funcao: "Soldador", quantidade: 2 });
     expect(e).toHaveLength(2);
     expect(Number.isNaN(e[1].quantidade)).toBe(true);
+  });
+});
+
+describe("textoEquipe", () => {
+  it("resume ou some", () => {
+    expect(textoEquipe([{ funcao: "Soldador", quantidade: 2 }, { funcao: "Ajudante", quantidade: 1 }])).toBe("Equipe prevista: 2 Soldador + 1 Ajudante");
+    expect(textoEquipe([])).toBeNull();
+    expect(textoEquipe(undefined)).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { textoEquipe } from "@/lib/dominio/equipePrevista";
 import { useActionState, useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
@@ -127,6 +128,7 @@ export function ItemAtividade({
           {numeroBR(a.qtd_planejada)} {a.unidade}
           {a.origem_id ? " · pendente do turno anterior" : ""}
         </p>
+        {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}
       </div>
       <div className="max-w-xs">
         <MenuResponsavel obraId={obraId} responsaveis={responsaveis} valor={a.responsavel_id} aoMudar={trocarResponsavel} desabilitado={trocando} />

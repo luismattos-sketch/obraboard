@@ -1,5 +1,6 @@
 "use client";
 
+import { textoEquipe } from "@/lib/dominio/equipePrevista";
 import { Fragment, useCallback, useContext, useRef, useState } from "react";
 import { Selo } from "@/components/ui/Selo";
 import type { Atividade } from "@/lib/db/atividades";
@@ -243,6 +244,7 @@ function ItemExecucao({
               {extra ? "" : `Previsto: ${numeroBR(a.qtd_planejada)} ${a.unidade}`}
             </p>
           )}
+          {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}
         </div>
         {/* Cor só depois de o banco confirmar: antes disso, cinza. */}
         <div className="flex flex-col items-end gap-1">
