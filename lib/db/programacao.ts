@@ -10,6 +10,8 @@ import {
   unirFuncoes,
   resumirSemana,
   rotuloTurnosAbertos,
+  somarDias,
+  type ResumoSemana,
   type AtividadeProgramada,
   type DadosSemana,
   type DiaSemana,
@@ -21,9 +23,10 @@ import {
   type TurnoDaSemana,
 } from "@/lib/dominio/programacao";
 import { metaNoTurno, textoOrigemMeta, type MetaNoTurno } from "@/lib/dominio/sequencia";
+import { saldoDaOrigem } from "@/lib/dominio/trazerSaldo";
 import { FUNCOES_SUGERIDAS, type Causa, type Periodo, type TipoAtividade } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
-import { erroBanco, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
+import { erroBanco, ERRO_TRAZIDA_REPETIDA, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 import { causaValida, errosDeTamanho, LIMITES, QTD_PLANEJADA_MAX } from "./validacao";
 
@@ -38,6 +41,9 @@ export type EntradaAtividadeProgramada = {
   responsavel_id?: string | null;
   /** Só na inclusão ("Continuar no próximo turno"). */
   continua_de?: string | null;
+  /** Só na inclusão (item 1.6, "Trazer" da semana anterior). */
+  trazida_de?: string | null;
+  saldo_trazido?: number | null;
 };
 
 export const ERRO_DIAS_COM_EXECUCAO =
@@ -115,6 +121,8 @@ function atividadeDe(r: Record<string, unknown>, equipe: EquipePrevista[]): Ativ
     causa: (r.causa as Causa | null) ?? null,
     responsavel_id: (r.responsavel_id as string | null) ?? null,
     continua_de: (r.continua_de as string | null) ?? null,
+    trazida_de: (r.trazida_de as string | null) ?? null,
+    saldo_trazido: numOuNull(r.saldo_trazido),
     equipe,
   };
 }
@@ -125,7 +133,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
   const [pa, tu] = await Promise.all([
     c
       .from("programacao_atividades")
-      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
+      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, trazida_de, saldo_trazido, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
       .eq("semana_id", semana.id),
     c
       .from("turnos")
@@ -266,6 +274,10 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
   if (dias.length === 0) erros.dias = "Marque ao menos um dia";
   else if (dias.some((x) => !Number.isInteger(x) || x < 0 || x > 6) || new Set(dias).size !== dias.length) erros.dias = "Dias inválidos";
   if (d.periodo !== "diurno" && d.periodo !== "noturno") erros.periodo = "Período inválido";
+  if (d.saldo_trazido !== undefined && d.saldo_trazido !== null
+      && (typeof d.saldo_trazido !== "number" || !Number.isFinite(d.saldo_trazido) || d.saldo_trazido < 0)) {
+    erros.meta = "Saldo trazido inválido";
+  }
   const { equipe, erro: erroEquipe } = validarEquipe(d.equipe);
   if (erroEquipe) erros.equipe = erroEquipe;
   const primeira = Object.values(erros)[0];
@@ -280,6 +292,8 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
     equipe,
     responsavel_id: typeof d.responsavel_id === "string" && d.responsavel_id ? d.responsavel_id : null,
     continua_de: typeof d.continua_de === "string" && d.continua_de ? d.continua_de : null,
+    trazida_de: typeof d.trazida_de === "string" && d.trazida_de ? d.trazida_de : null,
+    saldo_trazido: typeof d.trazida_de === "string" && d.trazida_de && typeof d.saldo_trazido === "number" ? d.saldo_trazido : null,
   });
 }
 
@@ -298,6 +312,7 @@ export async function salvarAtividadeProgramada(
   });
   if (error) {
     if (erroBanco(error) === "programacao_incompativel") return falha(ERRO_DIAS_COM_EXECUCAO);
+    if (error.code === UNICIDADE) return falha(ERRO_TRAZIDA_REPETIDA);
     console.error("salvarAtividadeProgramada:", error.message);
     return falha(mensagemProgramacao(error, "Não foi possível salvar a atividade."));
   }
@@ -350,6 +365,44 @@ export async function reabrirSemana(c: SupabaseClient, semanaId: string, motivo:
   const destino = REABRIR_PARA[(data as { status: StatusSemana }).status];
   if (!destino) return falha(MENSAGENS_PROGRAMACAO.transicao_invalida!);
   return mudarStatus(c, semanaId, { status: destino, motivo_reabertura: m.dados }, "Não foi possível reabrir a semana.");
+}
+
+/** Item 1.6: resumo da semana anterior (segunda − 7) da mesma obra; null se não existe ou é rascunho. */
+export async function resumoSemanaAnterior(c: SupabaseClient, semana: Pick<Semana, "obra_id" | "inicio">): Promise<ResumoSemana | null> {
+  const anterior = await obterSemana(c, semana.obra_id, somarDias(semana.inicio, -7));
+  if (!anterior || anterior.status === "rascunho") return null;
+  return resumirSemana(await dadosOficiais(c, anterior));
+}
+
+/** "Atualizar meta" (item 1.6): meta da atividade trazida = saldo atual da origem na semana anterior. */
+export async function atualizarMetaTrazida(c: SupabaseClient, atividadeId: string): Promise<Resultado<{ meta: number }>> {
+  const { data: a, error } = await c
+    .from("programacao_atividades")
+    .select("id, trazida_de, semanas(obra_id, inicio)")
+    .eq("id", atividadeId)
+    .maybeSingle();
+  if (error && error.code !== UUID_INVALIDO) {
+    console.error("atualizarMetaTrazida:", error.message);
+    return falha("Não foi possível atualizar a meta.");
+  }
+  const semana = (a?.semanas ?? null) as unknown as Pick<Semana, "obra_id" | "inicio"> | null;
+  const naoVeio = falha("Esta atividade não veio da semana anterior.");
+  if (!a || !a.trazida_de || !semana) return naoVeio;
+  const resumo = await resumoSemanaAnterior(c, semana);
+  const saldo = resumo ? saldoDaOrigem(resumo, a.trazida_de as string) : null;
+  if (saldo === null) return naoVeio;
+  if (saldo <= 0) return falha("A semana anterior já concluiu esta atividade.");
+  const { data: feitas, error: eu } = await c
+    .from("programacao_atividades")
+    .update({ meta: saldo, saldo_trazido: saldo })
+    .eq("id", atividadeId)
+    .select("id");
+  if (!eu && (!feitas || feitas.length === 0)) return naoVeio;
+  if (eu) {
+    console.error("atualizarMetaTrazida (update):", eu.message);
+    return falha(mensagemProgramacao(eu, "Não foi possível atualizar a meta."));
+  }
+  return ok({ meta: saldo });
 }
 
 /** Semana da obra que contém `data` (null se ainda não foi criada). */
