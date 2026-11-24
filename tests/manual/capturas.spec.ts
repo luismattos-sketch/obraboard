@@ -145,6 +145,9 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(cel, "campo", "escolher-nome");
 
   await cel.goto(`/t/${token}?r=${ids["Ana Souza"]}`);
+  await fotografar(cel, "campo", "iniciar");
+  await cel.getByRole("region", { name: "Início do turno" }).getByRole("button", { name: "▶ Iniciar turno" }).click();
+  await expect(cel.getByRole("region", { name: "Início do turno" }).getByText(/✓ Você iniciou às/)).toBeVisible({ timeout: 20_000 });
   await cartao(ATIVIDADE_NA_TELA.descricao).getByLabel(/Total feito hoje/).fill("12");
   await expect(cartao(ATIVIDADE_NA_TELA.descricao).getByText("Salvo ✓")).toBeVisible({ timeout: 20_000 });
   await fotografar(cel, "campo", "lancar");
