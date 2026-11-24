@@ -10,6 +10,8 @@ import {
   type DiaSemana,
   type StatusSemana,
 } from "./programacao";
+import { compararTurnos } from "./regras";
+import { membrosDaSequencia, metaNoTurno, type MetaNoTurno } from "./sequencia";
 import { ROTULO_TIPO, type Periodo, type TipoAtividade, type Tom } from "./tipos";
 
 /**
@@ -66,17 +68,34 @@ export function opcoesParaPuxar(
   return r;
 }
 
+export type AjusteCopia = { turnoId: string; atividadeId: string; nova: number | null; origem: MetaNoTurno };
+
 /**
  * Depois de lançar execução numa adiantada: cópias dessa atividade em turnos futuros ainda planejados
  * e sem execução recebem a nova sugestão do dia (null = remover a cópia).
+ * Em sequência (item 19), vale para qualquer lançamento: as cópias dos turnos seguintes da sequência
+ * recebem a meta herdada nova. `turno` = turno onde houve o lançamento.
  */
 export function copiasParaAjustar(
   d: DadosSemana,
   programacaoId: string,
-  aPartirDe: string,
-): { turnoId: string; atividadeId: string; nova: number | null }[] {
+  turno: { data: string; periodo: Periodo },
+  adiantada = true,
+): AjusteCopia[] {
   const a = d.atividades.find((x) => x.id === programacaoId);
   if (!a) return [];
+  const membros = membrosDaSequencia(d.atividades, programacaoId);
+  if (membros.length > 1) {
+    const ids = new Set(membros.map((m) => m.id));
+    return d.execucoes
+      .filter((e) => ids.has(e.programacao_atividade_id) && compararTurnos(e, turno) > 0 && e.status_turno === "planejado" && e.qtd_realizada === null && !e.tipo)
+      .flatMap((e) => {
+        const origem = metaNoTurno(d, e.programacao_atividade_id, { id: e.turno_id, data: e.data, periodo: e.periodo });
+        return [{ turnoId: e.turno_id, atividadeId: e.id, nova: origem.meta, origem }];
+      });
+  }
+  if (!adiantada) return [];
+  const aPartirDe = turno.data;
   const realizado = realizadoAte(d.execucoes, programacaoId);
   return d.execucoes
     .filter(
@@ -91,7 +110,7 @@ export function copiasParaAjustar(
       const dia = diaDaSemana(d.semana.inicio, e.data);
       if (dia === null) return [];
       const nova = sugestaoDoDia(a, dia, realizado);
-      return nova === e.qtd_planejada ? [] : [{ turnoId: e.turno_id, atividadeId: e.id, nova }];
+      return nova === e.qtd_planejada ? [] : [{ turnoId: e.turno_id, atividadeId: e.id, nova, origem: { meta: nova, herdado: 0, anterior: null } }];
     });
 }
 

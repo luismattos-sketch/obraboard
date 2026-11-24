@@ -125,6 +125,7 @@ function Faixa({
                       <span className="ml-1.5 align-middle text-[10px] font-bold text-destaque xl:text-xs">EXTRA</span>
                     )}
                     {textoEquipe(a.equipe) && <span className="block text-xs text-texto-suave xl:text-sm">{textoEquipe(a.equipe)}</span>}
+                    {a.meta_origem && <span className="block text-xs text-texto-suave xl:text-sm">{`Meta ${a.meta_origem}`}</span>}
                   </span>
                   <span className="shrink-0 font-semibold">
                     {visao === "checkin"

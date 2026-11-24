@@ -32,6 +32,8 @@ export type AtividadeProgramada = {
   causa: Causa | null;
   responsavel_id: string | null;
   equipe: EquipePrevista[];
+  /** Item 19: continua a atividade `continua_de` (sequência de turnos). Ausente em fotos antigas. */
+  continua_de?: string | null;
 };
 
 export type ExecucaoLigada = {

@@ -242,6 +242,7 @@ function ItemExecucao({
               {a.local ?? ""}
               {a.local && !extra ? " · " : ""}
               {extra ? "" : `Previsto: ${qtdComUnidade(a.qtd_planejada, a.unidade)}`}
+              {!extra && a.meta_origem ? ` · ${a.meta_origem}` : ""}
             </p>
           )}
           {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}

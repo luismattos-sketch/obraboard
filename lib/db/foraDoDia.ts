@@ -12,7 +12,8 @@ import {
 import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
 import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
 import { removerFoto } from "./fotosParada";
-import { obterDadosSemana, semanaDoTurno } from "./programacao";
+import { nomesResponsaveis, obterDadosSemana, semanaDoTurno } from "./programacao";
+import { textoOrigemMeta } from "@/lib/dominio/sequencia";
 import { falha, ok, type Resultado } from "./resultado";
 
 /**
@@ -174,18 +175,31 @@ export async function removerForaDoDia(
   return ok(undefined);
 }
 
-/** Depois de execução numa adiantada: ajusta/remove cópias em turnos futuros ainda planejados. Melhor esforço. */
-export async function reajustarCopiasFuturas(c: SupabaseClient, programacaoAtividadeId: string, turnoId: string): Promise<void> {
+/**
+ * Depois de execução numa adiantada (ou em qualquer turno de uma sequência, item 19): ajusta/remove cópias
+ * em turnos futuros ainda planejados. Melhor esforço.
+ */
+export async function reajustarCopiasFuturas(
+  c: SupabaseClient,
+  programacaoAtividadeId: string,
+  turnoId: string,
+  adiantada = true,
+): Promise<void> {
   try {
     const turno = await lerTurno(c, turnoId);
     if (!turno) return;
     const semana = await semanaDoTurno(c, turno.obra_id, turno.data);
     if (!semana) return;
-    const ajustes = copiasParaAjustar(await obterDadosSemana(c, semana), programacaoAtividadeId, turno.data);
+    const dados = await obterDadosSemana(c, semana);
+    const ajustes = copiasParaAjustar(dados, programacaoAtividadeId, turno, adiantada);
+    if (ajustes.length === 0) return;
+    const nomes = await nomesResponsaveis(c, turno.obra_id);
     for (const x of ajustes) {
+      const a = dados.atividades.find((p) => p.id === dados.execucoes.find((e) => e.id === x.atividadeId)?.programacao_atividade_id);
+      const meta_origem = textoOrigemMeta(x.origem, a?.unidade ?? null, nomes.get(x.origem.anterior?.responsavel_id ?? "") ?? null);
       const q = x.nova === null
         ? c.from("atividades").delete().eq("id", x.atividadeId).is("qtd_realizada", null)
-        : c.from("atividades").update({ qtd_planejada: x.nova }).eq("id", x.atividadeId).is("qtd_realizada", null);
+        : c.from("atividades").update({ qtd_planejada: x.nova, meta_origem }).eq("id", x.atividadeId).is("qtd_realizada", null);
       const { error } = await q;
       if (error) console.error("reajustarCopiasFuturas:", error.message);
     }

@@ -30,6 +30,8 @@ export type Atividade = AtividadeExec & {
   foto_path: string | null;
   /** Trazida da semana por "Adiantar"/"Continuar atrasada": o planejador pode remover até fechar. */
   puxada: boolean;
+  /** Atividade em sequência (item 19): "inclui 4 m do turno do dia (Luis)"; null = meta própria. */
+  meta_origem?: string | null;
   /** Equipe prevista: a própria (avulsa/extra) ou, se vazia, a da programação. */
   equipe: EquipePrevista[];
 };
@@ -48,7 +50,7 @@ export function equipeDaLinha(r: Record<string, unknown>): EquipePrevista[] {
 }
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, puxada, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, puxada, meta_origem, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 export const ERRO_SEM_RESPONSAVEL = "Escolha o responsável";
@@ -93,6 +95,7 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     criada_por_id: (r.criada_por_id as string | null) ?? null,
     foto_path: (r.foto_path as string | null) ?? null,
     puxada: r.puxada === true,
+    meta_origem: (r.meta_origem as string | null) ?? null,
     equipe: equipeDaLinha(r),
   };
 }

@@ -41,6 +41,7 @@ export async function salvarAtividadeProgramadaAcao(_: EstadoSemana, form: FormD
       periodo: texto(form, "periodo") as Periodo,
       equipe,
       responsavel_id: texto(form, "responsavel_id") || null,
+      continua_de: id ? null : texto(form, "continua_de") || null,
     },
     id,
   );

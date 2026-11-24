@@ -8,7 +8,6 @@ import {
   diaDaSemana,
   funcoesDaProgramacao,
   unirFuncoes,
-  realizadoAte,
   resumirSemana,
   rotuloTurnosAbertos,
   type AtividadeProgramada,
@@ -20,8 +19,8 @@ import {
   type Semana,
   type StatusSemana,
   type TurnoDaSemana,
-  sugestaoDoDia,
 } from "@/lib/dominio/programacao";
+import { metaNoTurno, textoOrigemMeta, type MetaNoTurno } from "@/lib/dominio/sequencia";
 import { FUNCOES_SUGERIDAS, type Causa, type Periodo, type TipoAtividade } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
 import { erroBanco, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
@@ -37,6 +36,8 @@ export type EntradaAtividadeProgramada = {
   periodo: Periodo;
   equipe: EquipePrevista[];
   responsavel_id?: string | null;
+  /** Só na inclusão ("Continuar no próximo turno"). */
+  continua_de?: string | null;
 };
 
 export const ERRO_DIAS_COM_EXECUCAO =
@@ -113,6 +114,7 @@ function atividadeDe(r: Record<string, unknown>, equipe: EquipePrevista[]): Ativ
     periodo: r.periodo as Periodo,
     causa: (r.causa as Causa | null) ?? null,
     responsavel_id: (r.responsavel_id as string | null) ?? null,
+    continua_de: (r.continua_de as string | null) ?? null,
     equipe,
   };
 }
@@ -123,7 +125,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
   const [pa, tu] = await Promise.all([
     c
       .from("programacao_atividades")
-      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
+      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
       .eq("semana_id", semana.id),
     c
       .from("turnos")
@@ -277,6 +279,7 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
     periodo: d.periodo,
     equipe,
     responsavel_id: typeof d.responsavel_id === "string" && d.responsavel_id ? d.responsavel_id : null,
+    continua_de: typeof d.continua_de === "string" && d.continua_de ? d.continua_de : null,
   });
 }
 
@@ -369,19 +372,20 @@ export async function trazerDaProgramacao(c: SupabaseClient, turnoId: string): P
 
   const dados = await obterDadosSemana(c, semana);
   const jaNoTurno = new Set(dados.execucoes.filter((e) => e.turno_id === turnoId).map((e) => e.programacao_atividade_id));
-  const outras = dados.execucoes.filter((e) => e.turno_id !== turnoId);
   const { data: ordens, error: eo } = await c.from("atividades").select("ordem").eq("turno_id", turnoId);
   if (eo) {
     console.error("trazerDaProgramacao (ordem):", eo.message);
     return falha("Não foi possível trazer da programação.");
   }
   let ordem = (ordens ?? []).reduce((m, r) => Math.max(m, Number(r.ordem)), -1) + 1;
+  const nomes = await nomesResponsaveis(c, turno.obra_id);
 
   const novas = dados.atividades
     .filter((a) => a.periodo === turno.periodo && !jaNoTurno.has(a.id))
-    .map((a) => ({ a, qtd: sugestaoDoDia(a, dia, realizadoAte(outras, a.id)) }))
-    .filter((x): x is { a: AtividadeProgramada; qtd: number } => x.qtd !== null)
-    .map(({ a, qtd }) => ({
+    .map((a) => ({ a, m: metaNoTurno(dados, a.id, turno) }))
+    .filter((x): x is { a: AtividadeProgramada; m: MetaNoTurno & { meta: number } } => x.m.meta !== null)
+    .map(({ a, m }) => ({ a, qtd: m.meta, origem: textoOrigemMeta(m, a.unidade, nomes.get(m.anterior?.responsavel_id ?? "") ?? null) }))
+    .map(({ a, qtd, origem }) => ({
       turno_id: turnoId,
       ordem: ordem++,
       descricao: a.descricao,
@@ -390,6 +394,7 @@ export async function trazerDaProgramacao(c: SupabaseClient, turnoId: string): P
       qtd_planejada: qtd,
       programacao_atividade_id: a.id,
       responsavel_id: a.responsavel_id,
+      meta_origem: origem,
     }));
   if (novas.length === 0) return ok({ adicionadas: 0 });
 
@@ -410,6 +415,13 @@ export async function trazerDaProgramacao(c: SupabaseClient, turnoId: string): P
     }
   }
   return ok({ adicionadas });
+}
+
+/** Nomes dos responsáveis da obra (para a origem da meta herdada). Melhor esforço: vazio se falhar. */
+export async function nomesResponsaveis(c: SupabaseClient, obraId: string): Promise<Map<string, string>> {
+  const { data, error } = await c.from("responsaveis").select("id, nome").eq("obra_id", obraId);
+  if (error) console.error("nomesResponsaveis:", error.message);
+  return new Map(((data ?? []) as { id: string; nome: string }[]).map((r) => [r.id, r.nome]));
 }
 
 /** Semanas programadas/encerradas com início >= `desde`, resumidas para a análise de PPC. */

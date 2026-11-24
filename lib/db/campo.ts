@@ -178,8 +178,8 @@ export async function salvarExecucao(
     if (!atual || (atual.responsavel_id ?? null) !== responsavelId) return falha(ERRO_ATIVIDADE);
     return conflitoOuJaGravado(lerValores(atual), campos);
   }
-  if (at.tipo === "adiantada" && at.programacao_atividade_id) {
-    await reajustarCopiasFuturas(admin, at.programacao_atividade_id as string, t.dados.id);
+  if (at.programacao_atividade_id) {
+    await reajustarCopiasFuturas(admin, at.programacao_atividade_id as string, t.dados.id, at.tipo === "adiantada");
   }
   return ok(campos);
 }

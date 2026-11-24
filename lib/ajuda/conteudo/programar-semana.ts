@@ -36,6 +36,21 @@ export const programarSemana: Capitulo = {
       },
     },
     {
+      id: "continuar-proximo-turno",
+      titulo: "Continue a atividade no próximo turno",
+      texto: [
+        "Quando o turno da noite continua o mesmo serviço do dia (ex.: o mesmo andaime), clique em \"Continuar no próximo turno\" na atividade. Atividade de um dia vai para o turno seguinte (dia → noite, noite → dia seguinte); de vários dias, vai para o outro período nos mesmos dias. Troque o responsável e a equipe e clique em \"Adicionar atividade\". Dá para encadear quantos turnos precisar.",
+        "As atividades ligadas aparecem juntas na lista, com a meta total da sequência. O que faltar num turno passa para o seguinte: faltou 4 m no dia, a noite fica com meta 16 m; sobrou 3 m, a noite fica com 9 m. O último turno da sequência fica com todo o saldo.",
+        "O turno que não cumpriu continua \"não cumprido\" e pede causa; o seguinte é medido pela meta herdada. No link de campo e no quadro aparece de onde veio a diferença, ex.: \"inclui 4 m do turno do dia (Luis)\".",
+      ],
+      dica: "O vínculo é opcional e só vale dentro da mesma semana. Sem vínculo, cada atividade segue a divisão normal da meta pelos dias.",
+      captura: {
+        alt: "Atividades do dia e da noite agrupadas como uma sequência, com o botão Continuar no próximo turno",
+        alvo: { papel: "button", nome: "Continuar no próximo turno" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "programar",
       titulo: "Programe a semana",
       texto: [
