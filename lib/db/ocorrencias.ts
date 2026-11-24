@@ -157,7 +157,8 @@ export async function removerOcorrenciaCampo(token: string, id: string, responsa
   const c = criarClienteAdmin();
   const fotos = await fotosDaRemocao(c, t.dados.id, id);
   let q = c.from("efetivo_ocorrencias").delete().eq("id", id).eq("turno_id", t.dados.id);
-  if (responsavelId !== null) q = q.eq("responsavel_id", responsavelId);
+  // null = equipe sem responsável: nunca remove a de outra equipe.
+  q = responsavelId !== null ? q.eq("responsavel_id", responsavelId) : q.is("responsavel_id", null);
   const { data, error } = await q.select("id");
   if (error && error.code !== "22P02") return traduzir(error, ERRO_FECHADO_CAMPO);
   if (data && data.length > 0) await Promise.all(fotos.map(removerFoto));

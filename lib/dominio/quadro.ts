@@ -220,6 +220,11 @@ export function resolverEscolhaCampo(
   return { modo: "escolher" };
 }
 
+/** Turno do fluxo antigo: nenhuma atividade tem responsável (campo edita e envia; mesma regra do servidor). */
+export function campoSemResponsaveis(atividades: { responsavel_id: string | null }[]): boolean {
+  return atividades.every((a) => a.responsavel_id === null);
+}
+
 export function contarSemResponsavel(atividades: { responsavel_id: string | null }[]): number {
   return atividades.filter((a) => a.responsavel_id === null).length;
 }

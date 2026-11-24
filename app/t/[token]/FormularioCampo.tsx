@@ -42,7 +42,7 @@ import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
-import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
+import { campoSemResponsaveis, ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { ForaDoDia } from "@/components/execucao/ForaDoDia";
 import { SEM_OPCOES, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
 import { mensagemExtra } from "@/lib/dominio/whatsapp";
@@ -94,7 +94,7 @@ export function FormularioCampo({
   const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
   // Turno sem nenhum responsável: fluxo antigo (um só no campo, com Enviar). Com responsáveis, "Ver tudo" só lê.
-  const semResponsaveis = responsaveis.length === 0;
+  const semResponsaveis = campoSemResponsaveis(turno.atividades);
   const leitura = somenteLeitura || (responsavelId === null && !semResponsaveis);
   const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
