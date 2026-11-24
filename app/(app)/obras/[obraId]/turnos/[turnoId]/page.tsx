@@ -52,7 +52,13 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const listaResponsaveis = await listarResponsaveis(supabase, obraId);
   const responsaveis = listaResponsaveis.map(({ id, nome, ativo }) => ({ id, nome, ativo }));
   const temFoto = turno.status !== "planejado" && (await fotoCheckin(supabase, turno.id).catch(() => null)) !== null;
-  const efetivo = turno.efetivo.map((e) => ({ funcao: e.funcao, quantidade: e.quantidade, responsavel_id: e.responsavel_id }));
+  const efetivo = turno.efetivo.map((e) => ({
+    funcao: e.funcao,
+    quantidade: e.quantidade,
+    responsavel_id: e.responsavel_id,
+    created_at: e.created_at,
+    lancado_pelo_planejador: e.lancado_pelo_planejador,
+  }));
   const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
   const fotos = await urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
   const opcoesPuxar =

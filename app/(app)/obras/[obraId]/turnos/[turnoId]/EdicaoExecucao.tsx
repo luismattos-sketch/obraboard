@@ -15,6 +15,7 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
+import { ultimaAlteracao, ultimaAlteracaoEfetivo } from "@/lib/dominio/ultimaAlteracao";
 import { AcoesTurno } from "./AcoesTurno";
 import { CausasPendentes } from "@/components/execucao/CausasPendentes";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
@@ -49,7 +50,7 @@ type Props = {
   hora_inicio_real: string | null;
   hora_fim_real: string | null;
   atividades: Atividade[];
-  efetivo: Pick<Efetivo, "funcao" | "quantidade" | "responsavel_id">[];
+  efetivo: Pick<Efetivo, "funcao" | "quantidade" | "responsavel_id" | "created_at" | "lancado_pelo_planejador">[];
   clima: Clima[];
   opcoesFuncao: string[];
   obraId: string;
@@ -168,7 +169,10 @@ export function EdicaoExecucao({
           salvar={(id, d, esperado) => corrigirExecucao(turnoId, id, d, esperado)}
           onMudar={mudar}
           erros={cobrado ? erros : {}}
-          autorDe={(a) => autorDoLancamento(a, nomeEquipe, null)}
+          autorDe={(a) => {
+            const ult = ultimaAlteracao(a, nomeEquipe);
+            return [autorDoLancamento(a, nomeEquipe, null), ult && `Última alteração: ${ult}`].filter(Boolean).join(" · ") || null;
+          }}
           podeRemover={podeRemoverPlanejador}
           remover={(a) => void removerLancamento(a.id)}
         />
@@ -192,6 +196,13 @@ export function EdicaoExecucao({
           opcoesFuncao={opcoesFuncao}
           equipesIniciais={[...new Set(atividades.map((a) => a.responsavel_id))]}
           salvar={(id, l, esperado) => corrigirEfetivo(turnoId, id, l, esperado)}
+          notaDe={(id) => {
+            const linhas = efetivo.flatMap((e) =>
+              e.responsavel_id === id && e.created_at ? [{ created_at: e.created_at, lancado_pelo_planejador: e.lancado_pelo_planejador === true }] : [],
+            );
+            const ult = ultimaAlteracaoEfetivo(linhas, nomeEquipe(id));
+            return ult && `Última alteração: ${ult}`;
+          }}
           movimentacoes={{
             ocorrencias,
             janela,

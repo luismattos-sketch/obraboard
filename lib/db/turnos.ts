@@ -29,7 +29,16 @@ export type Turno = {
   intervalo_inicio: string | null;
   intervalo_fim: string | null;
 };
-export type Efetivo = { id: string; turno_id: string; funcao: string; quantidade: number; responsavel_id: string | null };
+export type Efetivo = {
+  id: string;
+  turno_id: string;
+  funcao: string;
+  quantidade: number;
+  responsavel_id: string | null;
+  /** Hora do último salvamento da equipe (linhas recriadas a cada vez). Ausente em fotos antigas. */
+  created_at?: string;
+  lancado_pelo_planejador?: boolean;
+};
 export type Clima = { turno_id: string; periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
 export type TurnoCompleto = Turno & {
   obra: Obra;
@@ -126,7 +135,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
