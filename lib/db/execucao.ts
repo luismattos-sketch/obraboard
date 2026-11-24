@@ -117,7 +117,7 @@ export async function salvarExecucaoPlanejador(
   const concluida = at.tipo === "extra" || statusAtividade(Number(at.qtd_planejada), dados.qtd_realizada) === "concluida";
   const campos = camposExecucao(concluida, dados);
   const { data, error } = await filtrarEsperado(
-    c.from("atividades").update(campos).eq("id", atividadeId).eq("turno_id", turnoId),
+    c.from("atividades").update({ ...campos, lancado_por_id: null, lancado_em: new Date().toISOString() }).eq("id", atividadeId).eq("turno_id", turnoId),
     esperado,
   ).select("id");
   if (error) {
@@ -160,6 +160,7 @@ export async function salvarEfetivoPlanejador(
     p_responsavel_id: responsavelId,
     p_esperado: e.dados,
     p_linhas: v.dados,
+    p_pelo_planejador: true,
   });
   if (error) {
     if (erroBanco(error) === "efetivo_conflito") return falhaConflito(ERRO_EFETIVO_CONFLITO);

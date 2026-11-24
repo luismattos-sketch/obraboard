@@ -5,12 +5,9 @@ import { adicionarAtividade } from "@/lib/db/atividades";
 import {
   enviarTurnoCampo,
   obterTurnoPorToken,
-  removerClima,
-  salvarClima,
   salvarEfetivo,
   salvarExecucao,
   responsaveisDoTurno,
-  salvarHorarioReal,
 } from "@/lib/db/campo";
 import { hashToken } from "@/lib/dominio/token";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -18,6 +15,7 @@ import { criarUsuarioTeste, ligado, removerUsuarioTeste, VAZIO, type UsuarioTest
 
 const LINK_INVALIDO = "Link inválido ou substituído. Peça um novo link ao planejador.";
 const FECHADO = "Este turno não está aberto para lançamentos.";
+const ERRO_ENVIO_POR_TERMINEI = "Este turno é enviado quando todos os responsáveis tocam “Terminei minha parte”.";
 const FORA = "Esta atividade foi removida pelo planejador. Recarregue a página.";
 
 describe.skipIf(!ligado)("campo (token)", () => {
@@ -92,9 +90,6 @@ describe.skipIf(!ligado)("campo (token)", () => {
     expect((await salvarExecucao(A.token, A.ids[1], { qtd_realizada: 2, causa: "clima", observacao: null }, p1)).ok).toBe(true);
     expect(await enviarTurnoCampo(A.token)).toEqual({ ok: true, dados: { status: "enviado" } });
     expect(await enviarTurnoCampo(A.token)).toEqual({ ok: true, dados: { status: "enviado" } });
-    // ainda editável após enviado
-    expect((await salvarHorarioReal(A.token, { hora_inicio_real: "07:00", hora_fim_real: "16:30" })).ok).toBe(true);
-    expect(await salvarHorarioReal(A.token, { hora_inicio_real: "7h", hora_fim_real: null })).toMatchObject({ ok: false });
 
     const novo = await gerarNovoLink(u.cliente, A.turnoId);
     expect(novo.ok).toBe(true);
@@ -155,16 +150,10 @@ describe.skipIf(!ligado)("campo (token)", () => {
     const t = await obterTurnoPorToken(C.token);
     expect(t?.efetivo).toHaveLength(1);
 
-    expect((await salvarClima(C.token, { periodo: "manha", condicao: "bom", impediu: false })).ok).toBe(true);
-    expect((await salvarClima(C.token, { periodo: "manha", condicao: "chuva_leve", impediu: true })).ok).toBe(true);
-    const t2 = await obterTurnoPorToken(C.token);
-    expect(t2?.clima).toEqual([{ turno_id: C.turnoId, periodo: "manha", condicao: "chuva_leve", impediu: true }]);
-    expect(await salvarClima(C.token, { periodo: "dia" as never, condicao: "bom", impediu: false })).toMatchObject({ ok: false });
 
     await salvarExecucao(C.token, C.ids[0], { qtd_realizada: 4, causa: null, observacao: null }, VAZIO);
     const f = await aplicarAcao(u.cliente, C.turnoId, "fechar");
     expect(f.ok).toBe(true);
-    expect(await salvarClima(C.token, { periodo: "tarde", condicao: "bom", impediu: false })).toEqual({ ok: false, erro: FECHADO });
     expect(await salvarEfetivo(C.token, [], pedreiro)).toEqual({ ok: false, erro: FECHADO });
     expect(await obterTurnoPorToken(C.token)).toMatchObject({ status: "fechado" });
   });
@@ -176,22 +165,9 @@ describe.skipIf(!ligado)("campo (token)", () => {
     const token = "p".repeat(43);
     const { error } = await criarClienteAdmin().from("turnos").update({ token_hash: hashToken(token) }).eq("id", t.dados.id);
     expect(error).toBeNull();
-    expect(await salvarClima(token, { periodo: "manha", condicao: "bom", impediu: false })).toEqual({ ok: false, erro: FECHADO });
     expect(await salvarEfetivo(token, [], [])).toEqual({ ok: false, erro: FECHADO });
-    expect(await removerClima(token, "manha")).toEqual({ ok: false, erro: FECHADO });
   });
 
-  it("removerClima apaga só o período do turno do token", { timeout: 60_000 }, async () => {
-    const A = await turnoLiberado("2026-12-05", [4]);
-    const B = await turnoLiberado("2026-12-06", [4]);
-    await salvarClima(A.token, { periodo: "manha", condicao: "bom", impediu: false });
-    await salvarClima(A.token, { periodo: "tarde", condicao: "bom", impediu: false });
-    await salvarClima(B.token, { periodo: "manha", condicao: "bom", impediu: false });
-    expect((await removerClima(A.token, "manha")).ok).toBe(true);
-    expect((await obterTurnoPorToken(A.token))?.clima.map((c) => c.periodo)).toEqual(["tarde"]);
-    expect((await obterTurnoPorToken(B.token))?.clima).toHaveLength(1);
-    expect(await removerClima(A.token, "dia" as never)).toMatchObject({ ok: false });
-  });
   describe("por responsável", () => {
     async function cenario(data: string) {
       const T = await turnoLiberado(data, [10, 5]);
@@ -217,10 +193,11 @@ describe.skipIf(!ligado)("campo (token)", () => {
       ]);
     });
 
-    it("campo ver tudo", { timeout: 60_000 }, async () => {
+    it("ver tudo não edita equipe de ninguém nem envia", { timeout: 60_000 }, async () => {
       const c = await cenario("2026-12-11");
-      expect((await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, VAZIO)).ok).toBe(true);
+      expect(await salvarExecucao(c.token, c.ids[1], { qtd_realizada: 5, causa: null, observacao: null }, VAZIO)).toEqual({ ok: false, erro: FORA });
       expect(await lancadoPor(c.ids[1])).toBeNull();
+      expect(await enviarTurnoCampo(c.token)).toEqual({ ok: false, erro: ERRO_ENVIO_POR_TERMINEI });
     });
 
     it("efetivo do campo por equipe", { timeout: 60_000 }, async () => {

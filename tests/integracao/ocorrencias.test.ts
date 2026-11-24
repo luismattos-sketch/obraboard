@@ -103,6 +103,9 @@ describe.skipIf(!ligado)("ocorrências do efetivo", () => {
     await criarOcorrenciaCampo(c.token, d, c.rita);
     await removerOcorrenciaCampo(c.token, d.id, c.ana);
     expect((await obterTurnoCompleto(u.cliente, c.turnoId))?.ocorrencias).toHaveLength(1);
+    // "Ver tudo" (sem responsável) também não remove a da equipe de alguém
+    await removerOcorrenciaCampo(c.token, d.id, null);
+    expect((await obterTurnoCompleto(u.cliente, c.turnoId))?.ocorrencias).toHaveLength(1);
   });
 
   it("campo não lança parado em empréstimo de outra equipe", { timeout: 60_000 }, async () => {

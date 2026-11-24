@@ -27,6 +27,8 @@ type Props = {
   /** Equipe prevista por responsável (soma das atividades), mostrada enquanto a equipe não tem efetivo gravado. */
   previsto?: Map<string | null, LinhaEfetivo[]>;
   salvar: (responsavelId: string | null, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[]) => Promise<Resultado<unknown>>;
+  /** Texto curto embaixo da equipe (ex.: última alteração, só no planejador). */
+  notaDe?: (responsavelId: string | null) => string | null;
   /** Empréstimo, saída antes e parados (turno em andamento). Ausente = só as linhas de efetivo. */
   movimentacoes?: AcoesOcorrencias & {
     ocorrencias: Ocorrencia[];
@@ -58,6 +60,7 @@ export function EfetivoPorEquipe({
   previsto,
   salvar: salvarLinhas,
   movimentacoes,
+  notaDe,
 }: Props) {
   const [extras, setExtras] = useState<string[]>([]);
   const [escolhendo, setEscolhendo] = useState(false);
@@ -146,6 +149,7 @@ export function EfetivoPorEquipe({
             somenteLeitura={somenteLeitura}
             salvar={(l, esperado) => salvar(id, l, esperado)}
           />
+          {notaDe?.(id) && <p className="text-sm text-texto-suave">{notaDe(id)}</p>}
           {movDe(id)}
         </div>
       ))}

@@ -11,7 +11,8 @@ export const fecharTurno: Capitulo = {
       titulo: "Confira a execução (check-out)",
       texto: [
         "Quando o campo termina (os responsáveis avisam por \"✓ Terminei minha parte\" ou o turno chega como enviado), abra o turno. Em \"Corrigir execução\" estão o executado de cada atividade, agrupado por responsável, e o efetivo de cada equipe.",
-        "Corrija o que precisar: o número salva sozinho (\"Salvando…\" e depois \"Salvo ✓\").",
+        "Corrija o que precisar: o número salva sozinho (\"Salvando…\" e depois \"Salvo ✓\"). Cada atividade e cada equipe mostra quem alterou por último (\"Última alteração: Ana · 09:12\").",
+        "O horário real e o clima do turno são preenchidos aqui, pelo planejador: no campo eles aparecem só para leitura.",
       ],
       captura: {
         alt: "Tela do turno em andamento com a correção da execução por responsável",

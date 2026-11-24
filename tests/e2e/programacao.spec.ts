@@ -80,9 +80,6 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
     await campo.goto(urlCampo!);
     const salvo = (secao: string) =>
       expect(campo.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
-    await campo.getByLabel("Início").fill("07:00");
-    await campo.getByLabel("Fim").fill("17:00");
-    await salvo("titulo-horario");
     const card = campo.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);
     await card.getByLabel(/Total feito hoje/).fill("3");
     await card.getByRole("button", { name: "Não vai dar para concluir? Informar causa" }).click();
@@ -100,6 +97,14 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
   }
 
   await page.goto(turnoUrl);
+
+  // Horário: quem preenche é o planejador
+  const salvoP = (secao: string) =>
+    expect(page.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
+  await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
+  await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("17:00");
+  await salvoP("titulo-horario");
+  await page.reload();
   await page.getByRole("button", { name: "Fechar turno" }).click();
   await page.getByRole("button", { name: "Confirmar fechamento" }).click();
   await expect(page.getByRole("button", { name: "Reabrir turno" })).toBeVisible();

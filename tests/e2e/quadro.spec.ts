@@ -93,6 +93,7 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
     await campo.goto(urlCampo);
     await expect(campo.getByRole("heading", { name: "Quem é você?" })).toBeVisible();
     await campo.getByRole("link", { name: "Ana" }).click();
+    await campo.getByRole("link", { name: "Sou eu" }).click();
     await expect(campo.getByText("Lançando como")).toBeVisible();
     await expect(campo.getByText("Troca de rolos")).toHaveCount(0);
     const card = campo.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);

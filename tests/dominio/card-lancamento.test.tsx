@@ -7,7 +7,7 @@ import type { Atividade } from "@/lib/db/atividades";
 const at = (p: Partial<Atividade> = {}): Atividade => ({ equipe: [],
   id: "a1", turno_id: "t", ordem: 0, descricao: "Montagem", local: null, unidade: "tubo", qtd_planejada: 8, qtd_realizada: 3,
   causa: null, observacao: null, origem_id: null, programacao_atividade_id: null, responsavel_id: null,
-  lancado_por_id: null, tipo: null, criada_por_id: null, foto_path: null, puxada: false, ...p,
+  lancado_por_id: null, lancado_em: null, tipo: null, criada_por_id: null, foto_path: null, puxada: false, ...p,
 });
 const salvar = async () => ({ ok: true as const, dados: { qtd_realizada: 3, causa: null, observacao: null } });
 

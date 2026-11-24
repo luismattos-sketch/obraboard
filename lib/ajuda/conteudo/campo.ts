@@ -10,8 +10,8 @@ export const campo: Capitulo = {
       id: "escolher-nome",
       titulo: "Escolha o seu nome",
       texto: [
-        "Abra o link que o planejador mandou. Em \"Quem é você?\", toque no seu nome: você vê e lança só as atividades e o efetivo da sua equipe. \"Ver tudo\" mostra o turno inteiro.",
-        "Escolheu errado? Toque em \"Trocar\", no topo.",
+        "Abra o link que o planejador mandou. Em \"Quem é você?\", toque no seu nome e confirme em \"Sou eu\": você vê e lança só as atividades e o efetivo da sua equipe. \"Ver tudo\" mostra o turno inteiro, só para olhar.",
+        "Não é você? Toque em \"Não, voltar\". Já entrou com o nome errado? Toque em \"Trocar\", no topo.",
       ],
       captura: {
         alt: "Tela Quem é você? com um botão por responsável e o botão Ver tudo",
@@ -52,7 +52,7 @@ export const campo: Capitulo = {
       id: "efetivo",
       titulo: "Informe o efetivo",
       texto: [
-        "O \"Efetivo\" fica logo abaixo do horário. Se o planejador previu a equipe, ela já aparece preenchida: confira e toque em \"Confirmar equipe\", ou ajuste a quantidade com os botões − e + (o ajuste já grava).",
+        "O horário real e o clima do turno aparecem no topo só para leitura: quem preenche é o planejador. O \"Efetivo\" fica logo abaixo. Se o planejador previu a equipe, ela já aparece preenchida: confira e toque em \"Confirmar equipe\", ou ajuste a quantidade com os botões − e + (o ajuste já grava).",
         "Enquanto você não confirma, a equipe prevista não conta no HH. Use \"+ Adicionar função\" se faltar alguma.",
         "Emprestou gente para outra equipe ou alguém saiu antes? Use \"+ Emprestar\" ou \"+ Saída antes\": assim o HH não conta em dobro.",
       ],
@@ -88,7 +88,8 @@ export const campo: Capitulo = {
       titulo: "Avise o planejador",
       texto: [
         "Terminou a sua parte? Toque em \"✓ Terminei minha parte\". Se alguma atividade não chegou ao previsto, o app pede antes a \"Causa do não cumprimento\" (toque em \"ir\" para chegar ao campo). O planejador vê no quadro, e você pode avisar também pelo WhatsApp.",
-        "Em \"Ver tudo\", quem fecha o turno inteiro pelo campo toca em \"Enviar turno\". Toda atividade programada que não chegou ao planejado precisa da \"Causa do não cumprimento\"; o app lista o que falta ao tocar em \"Enviar turno\". Serviço extra e atividade adiantada não pedem causa.",
+        "Quando todos os responsáveis do turno tocam em \"Terminei minha parte\", o turno chega ao planejador como enviado. Se alguém tocar em \"Desfazer\", ele volta para em campo.",
+        "Turno sem responsáveis cadastrados: quem está no campo toca em \"Enviar turno\" no fim da tela. Toda atividade programada que não chegou ao planejado precisa da \"Causa do não cumprimento\". Serviço extra e atividade adiantada não pedem causa.",
       ],
       captura: {
         alt: "Botão Terminei minha parte no celular",

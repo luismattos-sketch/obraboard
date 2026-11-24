@@ -77,3 +77,5 @@ export function mensagemProgramacao(error: { code?: string; message?: string } |
 
 /** "Terminei minha parte" com atividade da equipe sem causa (o app cobra antes; isto protege aba antiga). */
 export const ERRO_CAUSA_TERMINEI = "Informe a causa das atividades não concluídas antes de terminar.";
+
+export const ERRO_ENVIO_POR_TERMINEI = "Este turno é enviado quando todos os responsáveis tocam “Terminei minha parte”.";
