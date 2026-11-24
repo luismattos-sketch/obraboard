@@ -1,5 +1,4 @@
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
-import { equipePrevista } from "@/lib/dominio/equipePrevista";
 import { telaDoTurno } from "@/lib/ajuda/destino";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,7 +18,6 @@ import { AcoesTurno } from "./AcoesTurno";
 import { BlocoRdo } from "./BlocoRdo";
 import { DadosTurno } from "./DadosTurno";
 import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
-import { EfetivoTurno } from "./EfetivoTurno";
 import { HistoricoTurno } from "./HistoricoTurno";
 import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
@@ -59,7 +57,6 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
     created_at: e.created_at,
     lancado_pelo_planejador: e.lancado_pelo_planejador,
   }));
-  const equipesIniciais = [...new Set(turno.atividades.map((a) => a.responsavel_id))];
   const fotos = await urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
   const opcoesPuxar =
     turno.status === "em_campo" || turno.status === "enviado" ? await opcoesPuxarPlanejador(supabase, turno.id).catch(() => SEM_OPCOES) : SEM_OPCOES;
@@ -105,18 +102,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
 
       {turno.status === "planejado" ? (
         <>
-          <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} sugestoesFuncao={opcoesFuncao} />
-          <section className="rounded-cartao border border-borda bg-superficie p-4">
-            <EfetivoTurno
-              turnoId={turno.id}
-              obraId={obraId}
-              responsaveis={responsaveis}
-              efetivo={efetivo}
-              opcoesFuncao={opcoesFuncao}
-              equipesIniciais={equipesIniciais}
-              previsto={equipePrevista(turno.atividades)}
-            />
-          </section>
+          <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} sugestoesFuncao={opcoesFuncao} planejado />
           <DadosTurno
             turnoId={turno.id}
             data={turno.data}

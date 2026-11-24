@@ -19,6 +19,7 @@ export function ListaAtividades({
   sugestoesFuncao = [],
   obraId,
   responsaveis,
+  planejado = false,
 }: {
   turnoId: string;
   obraId: string;
@@ -30,6 +31,8 @@ export function ListaAtividades({
   semanaStatus?: StatusSemana | null;
   /** Funções para a equipe prevista do "Adicionar atividade". */
   sugestoesFuncao?: string[];
+  /** Turno ainda não liberado: editar inclui a equipe e cada atividade tem "Confirmar". */
+  planejado?: boolean;
 }) {
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(trazerPendentesAcao, null);
   // Incluir várias atividades seguidas: o formulário novo já vem com o último responsável escolhido.
@@ -63,6 +66,8 @@ export function ListaAtividades({
                     semanaStatus={semanaStatus}
                     obraId={obraId}
                     responsaveis={responsaveis}
+                    planejado={planejado}
+                    sugestoesFuncao={sugestoesFuncao}
                   />
                 </Fragment>
               );

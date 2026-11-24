@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-24",
+    texto: "Check-in mais simples: a equipe se ajusta no \"Editar\" de cada atividade e o botão \"Confirmar\" confirma a atividade e a equipe dela, que já entra no efetivo do responsável. Saiu o quadro \"Efetivo\" separado.",
+    href: "/ajuda/check-in#efetivo",
+  },
+  {
+    data: "2026-11-24",
     texto: "Atividades em sequência: \"Continuar no próximo turno\" liga a atividade do dia à da noite (ou ao dia seguinte) e o que faltar ou sobrar num turno passa para a meta do próximo.",
     href: "/ajuda/programar-semana#continuar-proximo-turno",
   },
