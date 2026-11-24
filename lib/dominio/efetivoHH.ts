@@ -377,3 +377,38 @@ export function lerTerminados(x: unknown): Terminado[] {
     .map((r: Record<string, unknown>) => ({ responsavel_id: String(r.responsavel_id), terminou_em: String(r.terminou_em ?? "") }))
     .sort((a, b) => a.terminou_em.localeCompare(b.terminou_em) || a.responsavel_id.localeCompare(b.responsavel_id));
 }
+
+export type Iniciado = { responsavel_id: string; iniciou_em: string };
+
+/** Iniciados vindos do banco (JSON): ausente = nenhum; ordem por horário. */
+export function lerIniciados(x: unknown): Iniciado[] {
+  if (!Array.isArray(x)) return [];
+  return x
+    .map((r: Record<string, unknown>) => ({ responsavel_id: String(r.responsavel_id), iniciou_em: String(r.iniciou_em ?? "") }))
+    .sort((a, b) => a.iniciou_em.localeCompare(b.iniciou_em) || a.responsavel_id.localeCompare(b.responsavel_id));
+}
+
+/**
+ * Horário real do turno a partir dos toques das equipes: início = primeiro "Iniciar"; fim = último "Terminei",
+ * só quando todas as equipes com atividade terminaram. Ordem pelo momento do toque (created_at), não pelo
+ * relógio: no noturno 00:30 vem depois de 19:00.
+ */
+export function horarioRealDasEquipes(p: {
+  iniciados: { iniciou_em: string; created_at: string }[];
+  terminados: { responsavel_id: string; terminou_em: string; created_at: string }[];
+  equipes: string[];
+}): { hora_inicio_real: string | null; hora_fim_real: string | null } {
+  const primeiro = p.iniciados.reduce<(typeof p.iniciados)[number] | null>(
+    (m, x) => (m === null || x.created_at < m.created_at ? x : m),
+    null,
+  );
+  const terminaram = new Set(p.terminados.map((t) => t.responsavel_id));
+  const todos = p.equipes.length > 0 && p.equipes.every((e) => terminaram.has(e));
+  const ultimo = todos
+    ? p.terminados.reduce<(typeof p.terminados)[number] | null>((m, x) => (m === null || x.created_at > m.created_at ? x : m), null)
+    : null;
+  return {
+    hora_inicio_real: primeiro ? horaCurta(primeiro.iniciou_em) : null,
+    hora_fim_real: ultimo ? horaCurta(ultimo.terminou_em) : null,
+  };
+}
