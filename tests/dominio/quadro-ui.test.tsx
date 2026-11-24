@@ -40,11 +40,11 @@ describe("Quadro: empréstimo e parados", () => {
   it("check-out mostra HH parado e o recebido na equipe destino", () => {
     const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkout" publico />);
     expect(h).toContain("6 pessoas · 46,0 HH · 4,0 HH parados");
-    expect(h).toContain("+2 Montador (de Marcos, 13:00–17:00)");
+    expect(h).toContain("+2 Montadores (de Marcos, 13:00–17:00)");
   });
   it("check-in também mostra o recebido", () => {
     const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkin" publico />);
-    expect(h).toContain("+2 Montador (de Marcos, 13:00–17:00)");
+    expect(h).toContain("+2 Montadores (de Marcos, 13:00–17:00)");
   });
   it("sem parados não mostra HH parados", () => {
     expect(html("em_campo", "checkout")).not.toContain("HH parados");
@@ -108,7 +108,7 @@ describe("Quadro: equipe prevista", () => {
     const e = base("em_campo");
     e.atividades[0] = { ...e.atividades[0], equipe: [{ funcao: "Eletricista", quantidade: 2 }, { funcao: "Ajudante", quantidade: 1 }] };
     const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e)} visao="checkin" publico={false} editarHref={null} />);
-    expect(h).toContain("Equipe prevista: 2 Eletricista + 1 Ajudante");
+    expect(h).toContain("Equipe prevista: 2 Eletricistas + 1 Ajudante");
     expect(html("em_campo", "checkin")).not.toContain("Equipe prevista:");
   });
 });

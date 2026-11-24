@@ -2,6 +2,7 @@ import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { horaCurta, type Ocorrencia } from "./efetivoHH";
 import { numeroBR, ROTULO_PERIODO } from "./formato";
 import type { Falta } from "./faltas";
+import { pessoas } from "./plural";
 import { CAUSAS, type Periodo } from "./tipos";
 
 /** Aviso ao planejador pelo WhatsApp: só um link wa.me com a mensagem pronta (o app do aparelho envia). */
@@ -30,7 +31,7 @@ export function mensagemParada(p: Contexto & { o: Ocorrencia; aguardando: string
   const motivo = p.o.causa ? `${CAUSAS[p.o.causa]}${p.aguardando ? ` (${p.aguardando})` : ""}` : "—";
   return [
     `⚠ Parada — ${onde(p)}`,
-    `${p.equipe}: ${q} ${p.o.funcao} ${q === 1 ? "parado" : "parados"} desde ${horaCurta(p.o.hora_inicio)}`,
+    `${p.equipe}: ${pessoas(q, p.o.funcao)} ${q === 1 ? "parado" : "parados"} desde ${horaCurta(p.o.hora_inicio)}`,
     `Motivo: ${motivo}`,
     ...(p.o.observacao ? [p.o.observacao] : []),
   ].join("\n");
@@ -38,7 +39,7 @@ export function mensagemParada(p: Contexto & { o: Ocorrencia; aguardando: string
 
 export function mensagemRetomada(p: Contexto & { o: Ocorrencia }): string {
   const q = p.o.quantidade;
-  return `✅ ${p.equipe}: ${q} ${p.o.funcao} ${q === 1 ? "voltou" : "voltaram"} às ${horaCurta(p.o.hora_fim ?? "")} (${
+  return `✅ ${p.equipe}: ${pessoas(q, p.o.funcao)} ${q === 1 ? "voltou" : "voltaram"} às ${horaCurta(p.o.hora_fim ?? "")} (${
     q === 1 ? "parado" : "parados"
   } desde ${horaCurta(p.o.hora_inicio)}) — ${onde(p)}`;
 }
