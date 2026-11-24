@@ -91,7 +91,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     confirmação; tela do nome errado já abre editável; não há histórico de quem alterou. [Ana, João, Carlos, Rita]
 11. ✅ **No ar desde 2026-11-22** (merge e3417a0) — **Clareza do lançamento** — "✓ Concluída" troca o parcial pela meta; "Executado" substitui, não soma; não há botão
     Salvar explícito. Deixar claro na tela. [Carlos]
-12. **Detalhes do campo** — "Trocar" com 43×17 px; plurais ("8 tubo", "2 Soldador"); meta fracionada "0,5 un"
+12. ✅ **No ar desde 2026-11-23** — **Detalhes do campo** — "Trocar" com 43×17 px; plurais ("8 tubo", "2 Soldador"); meta fracionada "0,5 un"
     (meta da semana dividida pelos dias — rever para itens unitários); tela de erro 500 em inglês e sem "tentar de
     novo" (houve 1 falha momentânea servidor→Supabase); validação do navegador em inglês ("Please fill out this
     field."); texto de ajuda usa "encarregado" (trocar por "responsável" — inclui o subtítulo da tela Responsáveis da obra:

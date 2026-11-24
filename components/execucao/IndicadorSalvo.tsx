@@ -35,8 +35,8 @@ export function IndicadorSalvo({ estado, mensagem, conflito, onVerAtual, nota, t
   }
   if (mensagem === undefined) {
     return (
-      <div className="flex flex-wrap items-center gap-2" role="alert">
-        <p className="text-sm font-medium text-perigo">{MSG_SEM_SINAL}</p>
+      <div className="flex flex-wrap items-center gap-2 rounded-botao border border-perigo bg-perigo-clara p-3" role="alert">
+        <p className="text-base font-semibold text-perigo">⚠ {MSG_SEM_SINAL}</p>
         {tentar && (
           <button
             type="button"

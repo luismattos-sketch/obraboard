@@ -47,7 +47,7 @@ export function Responsaveis({ obraId, responsaveis }: { obraId: string; respons
         Responsáveis ({responsaveis.filter((r) => r.ativo).length})
       </summary>
       <div className="mt-3 flex flex-col gap-3">
-        <p className="text-sm text-texto-suave">Quem assume as atividades no turno: encarregado, líder, supervisor…</p>
+        <p className="text-sm text-texto-suave">Quem assume as atividades no turno: o responsável de cada equipe (líder, supervisor…).</p>
         {responsaveis.length > 0 && (
           <ul className="divide-y divide-borda">
             {responsaveis.map((r) => (

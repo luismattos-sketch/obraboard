@@ -1,4 +1,5 @@
 import { calcularHH, intervaloDoTurno, janelaDoTurno, type Ocorrencia } from "./efetivoHH";
+import { pessoas } from "./plural";
 import { formatarData } from "./formato";
 import { compararTurnos } from "./regras";
 import type { Causa, Periodo, StatusTurno, TipoAtividade, Tom } from "./tipos";
@@ -126,7 +127,7 @@ export const resumoDias = (dias: DiaSemana[]) =>
   [...dias].sort((a, b) => a - b).map((d) => ROTULO_DIAS[d]).join(", ");
 
 export const resumoEquipe = (equipe: EquipePrevista[]) =>
-  equipe.length === 0 ? "Sem equipe prevista" : equipe.map((e) => `${e.quantidade} ${e.funcao}`).join(" + ");
+  equipe.length === 0 ? "Sem equipe prevista" : equipe.map((e) => pessoas(e.quantidade, e.funcao)).join(" + ");
 
 export type GradeSemana = {
   /** Colunas visíveis: Seg–Sáb sempre; Dom só se alguma atividade usa o domingo. */
@@ -191,7 +192,9 @@ export function sugestaoDoDia(
   if (!a.dias.includes(dia)) return null;
   const saldo = Math.max(a.meta - realizado, 0);
   if (saldo <= 0) return null;
-  const sugestao = dia === Math.max(...a.dias) ? arred2(saldo) : Math.min(arred2(a.meta / a.dias.length), arred2(saldo));
+  // Meta inteira (tubos, peças, un) não vira "0,5 un": arredonda a parte do dia para cima; o último dia fica com o saldo.
+  const parte = Number.isInteger(a.meta) ? Math.ceil(a.meta / a.dias.length) : arred2(a.meta / a.dias.length);
+  const sugestao = dia === Math.max(...a.dias) ? arred2(saldo) : Math.min(parte, arred2(saldo));
   // Quantidade planejada precisa ser > 0 no banco.
   return sugestao > 0 ? sugestao : null;
 }

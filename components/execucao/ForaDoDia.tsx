@@ -1,11 +1,11 @@
 "use client";
 
 import { useContext, useRef, useState } from "react";
+import { qtdComUnidade } from "@/lib/dominio/plural";
 import { Aviso } from "@/components/ui/Aviso";
 import type { Resultado } from "@/lib/db/resultado";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { linhasParaEquipe } from "@/lib/dominio/equipePrevista";
-import { numeroBR } from "@/lib/dominio/formato";
 import { validarExtra, type DadosExtra, type ModoPuxar, type OpcaoPuxar } from "@/lib/dominio/foraDoDia";
 import { resumoDias } from "@/lib/dominio/programacao";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
@@ -27,7 +27,7 @@ const botao =
 export type FormExtra = { descricao: string; qtd: string; unidade: string; observacao: string; responsavel: string; equipe?: LinhaEquipe[] };
 
 export const rotuloOpcao = (o: OpcaoPuxar) =>
-  `${o.descricao} — ${resumoDias(o.dias)} — saldo ${numeroBR(o.saldo)}${o.unidade ? ` ${o.unidade}` : ""}`;
+  `${o.descricao} — ${resumoDias(o.dias)} — saldo ${qtdComUnidade(o.saldo, o.unidade)}`;
 
 /** Formulário → dados do extra (mesma validação do servidor). */
 export function montarExtra(f: FormExtra, id: string): Resultado<DadosExtra> {

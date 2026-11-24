@@ -1,6 +1,7 @@
 "use client";
 
 import { Aviso } from "@/components/ui/Aviso";
+import { qtdComUnidade } from "@/lib/dominio/plural";
 import { numeroBR } from "@/lib/dominio/formato";
 import type { AtividadeExec } from "@/lib/dominio/tipos";
 
@@ -8,7 +9,7 @@ type Pendente = AtividadeExec & { unidade: string };
 
 /** "Montagem (3 de 8 tubo)": o que foi feito do previsto (sem lançamento = 0). */
 export function linhaPendente(a: Pendente): string {
-  return `${a.descricao} (${numeroBR(a.qtd_realizada ?? 0)} de ${numeroBR(a.qtd_planejada)} ${a.unidade})`;
+  return `${a.descricao} (${numeroBR(a.qtd_realizada ?? 0)} de ${qtdComUnidade(a.qtd_planejada, a.unidade)})`;
 }
 
 function irPara(id: string) {

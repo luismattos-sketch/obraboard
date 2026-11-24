@@ -1,4 +1,5 @@
 import { chaveFuncao, horasEntre, minutos } from "./calculos";
+import { pessoas } from "./plural";
 import { CAUSAS, type Causa, type Periodo, type StatusTurno } from "./tipos";
 
 /**
@@ -309,7 +310,7 @@ export function descreverOcorrencia(o: Ocorrencia, nome: (id: string | null) => 
   const ini = horaCurta(o.hora_inicio);
   if (o.tipo === "emprestimo") {
     const quando = o.hora_fim ? `de ${ini} até ${horaCurta(o.hora_fim)}` : `a partir de ${ini}`;
-    return `${q} ${o.funcao} ${q === 1 ? "emprestado" : "emprestados"} → ${nome(o.destino_responsavel_id)} ${quando}`;
+    return `${pessoas(q, o.funcao)} ${q === 1 ? "emprestado" : "emprestados"} → ${nome(o.destino_responsavel_id)} ${quando}`;
   }
   if (o.tipo === "saida") return `${q} ${q === 1 ? "saiu" : "saíram"} às ${ini}`;
   const aguardando = o.aguardando_responsavel_id ? ` (${nome(o.aguardando_responsavel_id)})` : "";

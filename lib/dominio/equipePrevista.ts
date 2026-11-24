@@ -1,4 +1,5 @@
 import { normalizarFuncao, type EquipePrevista } from "./programacao";
+import { pessoas } from "./plural";
 
 export const QTD_PESSOAS_MAX = 10_000;
 export const FUNCAO_MAX = 60;
@@ -6,7 +7,7 @@ export const FUNCAO_MAX = 60;
 /** "Equipe prevista: 2 Soldador + 1 Ajudante"; sem equipe, null (não mostrar nada). */
 export function textoEquipe(equipe: EquipePrevista[] | undefined): string | null {
   if (!equipe || equipe.length === 0) return null;
-  return `Equipe prevista: ${equipe.map((e) => `${e.quantidade} ${e.funcao}`).join(" + ")}`;
+  return `Equipe prevista: ${equipe.map((e) => pessoas(e.quantidade, e.funcao)).join(" + ")}`;
 }
 
 /** Converte linhas digitadas (texto) em equipe; linha toda vazia é ignorada, quantidade não inteira vira NaN (recusada na validação). */

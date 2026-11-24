@@ -1,6 +1,7 @@
 "use client";
 
 import { textoEquipe } from "@/lib/dominio/equipePrevista";
+import { qtdComUnidade } from "@/lib/dominio/plural";
 import { Fragment, useCallback, useContext, useRef, useState } from "react";
 import { Selo } from "@/components/ui/Selo";
 import type { Atividade } from "@/lib/db/atividades";
@@ -15,7 +16,6 @@ import {
 } from "@/lib/dominio/conflito";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { parseNumero } from "@/lib/dominio/entrada";
-import { numeroBR } from "@/lib/dominio/formato";
 import {
   CAUSAS,
   ROTULO_STATUS_ATIVIDADE,
@@ -241,7 +241,7 @@ function ItemExecucao({
             <p className="text-sm text-texto-suave">
               {a.local ?? ""}
               {a.local && !extra ? " · " : ""}
-              {extra ? "" : `Previsto: ${numeroBR(a.qtd_planejada)} ${a.unidade}`}
+              {extra ? "" : `Previsto: ${qtdComUnidade(a.qtd_planejada, a.unidade)}`}
             </p>
           )}
           {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}

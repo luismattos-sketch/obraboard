@@ -1,3 +1,4 @@
+import { ValidacaoPtBR } from "@/components/ui/ValidacaoPtBR";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -13,7 +14,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={inter.className}>
-      <body>{children}</body>
+      <body>
+        <ValidacaoPtBR />
+        {children}
+      </body>
     </html>
   );
 }

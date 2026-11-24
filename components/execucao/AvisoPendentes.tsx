@@ -8,7 +8,7 @@ export function AvisoPendentes({ falhas, tentar }: { falhas: number; tentar: () 
       role="alert"
       className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-botao border border-alerta bg-alerta-clara p-3 text-alerta-escura shadow-sm"
     >
-      <p className="font-semibold">{textoPendentes(falhas)}</p>
+      <p className="text-lg font-semibold">⚠ {textoPendentes(falhas)}</p>
       <button
         type="button"
         className="min-h-12 rounded-botao border border-alerta-escura bg-superficie px-4 font-semibold text-alerta-escura"

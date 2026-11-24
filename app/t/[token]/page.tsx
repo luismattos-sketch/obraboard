@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Aviso } from "@/components/ui/Aviso";
 import { ComoUsarCampo } from "@/components/ajuda/ComoUsarCampo";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo, opcoesPuxarCampo, responsaveisDoTurno } from "@/lib/db/campo";
-import { resolverEscolhaCampo } from "@/lib/dominio/quadro";
+import { COOKIE_RESPONSAVEL, resolverEscolhaCampo } from "@/lib/dominio/quadro";
 import { ConfirmarResponsavel, EscolhaResponsavel } from "./EscolhaResponsavel";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
@@ -28,7 +29,9 @@ export default async function PaginaCampo({
   searchParams: Promise<{ [k: string]: string | string[] | undefined }>;
 }) {
   const { token } = await params;
-  const { r, confirmar } = await searchParams;
+  const { r, confirmar, trocar } = await searchParams;
+  // Reabrir o link: sem ?r, usa quem já confirmou "Sou eu" neste aparelho ("Trocar" ignora o lembrete).
+  const lembrado = trocar === "1" ? undefined : (await cookies()).get(COOKIE_RESPONSAVEL)?.value;
   const turno = await obterTurnoPorToken(token);
 
   if (!turno) {
@@ -45,7 +48,7 @@ export default async function PaginaCampo({
     responsaveisDoTurno(turno),
     urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? "")),
   ]);
-  const escolha = resolverEscolhaCampo(r, responsaveis.map((x) => x.id));
+  const escolha = resolverEscolhaCampo(r ?? lembrado, responsaveis.map((x) => x.id));
   const atual = escolha.modo === "responsavel" ? responsaveis.find((x) => x.id === escolha.id) ?? null : null;
   const daEquipe = <T extends { responsavel_id: string | null }>(xs: T[]) =>
     atual ? xs.filter((x) => x.responsavel_id === atual.id) : xs;
@@ -70,15 +73,19 @@ export default async function PaginaCampo({
       {escolha.modo === "escolher" ? (
         <EscolhaResponsavel responsaveis={responsaveis} />
       ) : atual && confirmar === "1" ? (
-        <ConfirmarResponsavel responsavel={atual} />
+        <ConfirmarResponsavel token={token} responsavel={atual} />
       ) : (
         <>
           {responsaveis.length > 0 && (
-            <p className="text-sm text-texto">
-              {atual ? <>Lançando como <strong>{atual.nome}</strong></> : <>Vendo <strong>tudo</strong></>}
-              {" · "}
-              <Link href="?" className="text-operacional underline">Trocar</Link>
-            </p>
+            <div className="flex items-center justify-between gap-3 text-texto">
+              <p>{atual ? <>Lançando como <strong>{atual.nome}</strong></> : <>Vendo <strong>tudo</strong></>}</p>
+              <Link
+                href="?trocar=1"
+                className="flex min-h-12 min-w-20 items-center justify-center rounded-botao border border-operacional bg-superficie px-4 font-semibold text-primaria hover:bg-primaria-clara"
+              >
+                Trocar
+              </Link>
+            </div>
           )}
           <FormularioCampo
             key={atual?.id ?? "todos"}

@@ -1,12 +1,12 @@
 "use client";
 
 import { textoEquipe } from "@/lib/dominio/equipePrevista";
+import { qtdComUnidade } from "@/lib/dominio/plural";
 import { useActionState, useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import type { Atividade } from "@/lib/db/atividades";
 import { Selo } from "@/components/ui/Selo";
-import { numeroBR } from "@/lib/dominio/formato";
 import type { StatusSemana } from "@/lib/dominio/programacao";
 import { seloDaAtividade } from "@/lib/dominio/foraDoDia";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
@@ -125,7 +125,7 @@ export function ItemAtividade({
         </p>
         <p className="text-sm text-texto-suave">
           {a.local ? `${a.local} · ` : ""}
-          {numeroBR(a.qtd_planejada)} {a.unidade}
+          {qtdComUnidade(a.qtd_planejada, a.unidade)}
           {a.origem_id ? " · pendente do turno anterior" : ""}
         </p>
         {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}
