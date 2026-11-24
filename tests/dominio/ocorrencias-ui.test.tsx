@@ -68,7 +68,7 @@ describe("OcorrenciasEfetivo", () => {
         }]}
       />,
     );
-    expect(html).toContain("2 Montador emprestados → Ana a partir de 13:00");
+    expect(html).toContain("2 Montadores emprestados → Ana a partir de 13:00");
     expect(html).toContain("6 pessoas · 52,0 HH (4,0 HH parados)");
     expect(html).toContain("+ Emprestar");
   });
@@ -84,7 +84,7 @@ describe("OcorrenciasEfetivo", () => {
         })}
       />,
     );
-    expect(html).toContain("+2 Montador (de Rita, 13:00–17:00)");
+    expect(html).toContain("+2 Montadores (de Rita, 13:00–17:00)");
     expect(html).toContain("+ Saída antes");
     expect(html).toContain("⚠ Parada");
     expect(html).not.toContain("Emprestar");

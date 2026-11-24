@@ -37,6 +37,7 @@ export const FLUXOGRAMA: FaseFluxo[] = [
       ],
       [
         { rotulo: "\"Quem é você?\"", ator: "campo", href: "/ajuda/campo#escolher-nome" },
+        { rotulo: "Iniciar turno", detalhe: "marca a hora de início", ator: "campo", href: "/ajuda/campo#iniciar" },
         { rotulo: "Lançar execução e efetivo", ator: "campo", href: "/ajuda/campo#lancar" },
         { rotulo: "Parada · serviço extra · adiantar", detalhe: "quando acontece", ator: "campo", href: "/ajuda/campo#parada" },
         { rotulo: "Terminei minha parte", detalhe: "todos terminaram = enviado", ator: "campo", href: "/ajuda/campo#avisar" },

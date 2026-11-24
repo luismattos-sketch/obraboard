@@ -89,6 +89,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     aparecem editáveis para cada responsável (um sobrescreve o outro; início veio "07:00" sem preencher).
     "Ver tudo" deixa editar as atividades e o efetivo de todos e "Enviar turno"; "Trocar" lança como outra pessoa sem
     confirmação; tela do nome errado já abre editável; não há histórico de quem alterou. [Ana, João, Carlos, Rita]
+    **Correção (2026-11-24, pedido do Luis):** horário volta ao responsável com o botão **"Iniciar turno"** por equipe (hora do toque); início real = primeiro Iniciar, fim real = último Terminei (só quando todas as equipes terminam). Clima volta a ser lançado no campo, com "última alteração" para o planejador.
 11. ✅ **No ar desde 2026-11-22** (merge e3417a0) — **Clareza do lançamento** — "✓ Concluída" troca o parcial pela meta; "Executado" substitui, não soma; não há botão
     Salvar explícito. Deixar claro na tela. [Carlos]
 12. ✅ **No ar desde 2026-11-23** — **Detalhes do campo** — "Trocar" com 43×17 px; plurais ("8 tubo", "2 Soldador"); meta fracionada "0,5 un"
@@ -124,6 +125,8 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     - Campo/quadro mostram a origem: "Meta 16 m · inclui 4 m do turno do dia (Luis)". Recalcula quando o
       turno anterior lança execução, até o próximo começar a lançar.
     [Luis/P1]
+
+21. **HH pela janela de cada equipe** — hoje o HH usa a janela do turno (primeiro Iniciar → último Terminei). Com o "Iniciar turno" por equipe já gravado, dá para contar o HH de cada equipe do seu início ao seu fim. [Luis, 2026-11-24]
 
 ---
 

@@ -73,7 +73,7 @@ test("João avisa parada pelo link → quadro e turno mostram → encerra → RD
   await cel.getByRole("button", { name: "Registrar parada" }).click();
 
   const parada = cel.getByRole("status").filter({ hasText: "parados desde 10:40" });
-  await expect(parada).toContainText("2 Mecânico parados desde 10:40 · Aguardando outra equipe (Carlos)");
+  await expect(parada).toContainText("2 Mecânicos parados desde 10:40 · Aguardando outra equipe (Carlos)");
   await expect(parada.getByRole("button", { name: "Voltamos a trabalhar" })).toBeVisible();
   const whats = parada.getByRole("link", { name: "Avisar no WhatsApp" });
   await expect(whats).toHaveAttribute("href", /^https:\/\/wa\.me\/5511988887777\?text=.*Parada/);
@@ -93,7 +93,7 @@ test("João avisa parada pelo link → quadro e turno mostram → encerra → RD
   await parada.getByRole("button", { name: "Voltamos a trabalhar" }).click();
   await cel.getByLabel("Voltaram às").fill("13:15");
   await cel.getByRole("button", { name: "Confirmar" }).click();
-  await expect(cel.getByText("✅ 2 Mecânico voltaram às 13:15")).toBeVisible();
+  await expect(cel.getByText("✅ 2 Mecânicos voltaram às 13:15")).toBeVisible();
   await expect(cel.getByText("2 parados 10:40–13:15 · Aguardando outra equipe (Carlos)")).toBeVisible({ timeout: 30_000 });
 
   // Ana termina a parte dela.

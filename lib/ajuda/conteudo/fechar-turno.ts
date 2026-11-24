@@ -12,7 +12,7 @@ export const fecharTurno: Capitulo = {
       texto: [
         "Quando o campo termina (os responsáveis avisam por \"✓ Terminei minha parte\" ou o turno chega como enviado), abra o turno. Em \"Corrigir execução\" estão o executado de cada atividade, agrupado por responsável, e o efetivo de cada equipe.",
         "Corrija o que precisar: o número salva sozinho (\"Salvando…\" e depois \"Salvo ✓\"). Cada atividade e cada equipe mostra quem alterou por último (\"Última alteração: Ana · 09:12\").",
-        "O horário real e o clima do turno são preenchidos aqui, pelo planejador: no campo eles aparecem só para leitura.",
+        "O horário real sai sozinho do campo: o início é o do primeiro responsável que tocou em \"Iniciar turno\", e o fim, o do último que tocou em \"Terminei minha parte\". O clima também vem do campo, com quem alterou por último. Se precisar, corrija os dois aqui. O início corrigido só muda se um responsável tocar em \"Iniciar turno\" (ou desfizer); o fim, quando todos terminarem ou alguém desfizer o \"Terminei\".",
       ],
       captura: {
         alt: "Tela do turno em andamento com a correção da execução por responsável",

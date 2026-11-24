@@ -80,11 +80,11 @@ const painel = (p: Partial<PropsPainelParadas> = {}): PropsPainelParadas => ({
 describe("PainelParadas", () => {
   it("parada confirmada: descrição, Voltamos a trabalhar e WhatsApp", () => {
     const html = renderToStaticMarkup(<PainelParadas {...painel()} />);
-    expect(html).toContain("2 Mecânico parados desde 10:40 · Aguardando outra equipe (Carlos)");
+    expect(html).toContain("2 Mecânicos parados desde 10:40 · Aguardando outra equipe (Carlos)");
     expect(html).toContain("rolamento 6312");
     expect(html).toContain("Voltamos a trabalhar");
     expect(html).toContain("https://wa.me/5511988887777?text=");
-    expect(html).toContain(encodeURIComponent("João: 2 Mecânico parados desde 10:40"));
+    expect(html).toContain(encodeURIComponent("João: 2 Mecânicos parados desde 10:40"));
     expect(html).toContain("⚠ Avisar parada");
   });
   it("parada ainda registrando: sem botões", () => {

@@ -15,7 +15,7 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
-import { ultimaAlteracao, ultimaAlteracaoEfetivo } from "@/lib/dominio/ultimaAlteracao";
+import { ultimaAlteracao, ultimaAlteracaoClima, ultimaAlteracaoEfetivo } from "@/lib/dominio/ultimaAlteracao";
 import { AcoesTurno } from "./AcoesTurno";
 import { CausasPendentes } from "@/components/execucao/CausasPendentes";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
@@ -218,6 +218,9 @@ export function EdicaoExecucao({
           salvar={(d) => corrigirClima(turnoId, d)}
           limpar={(p) => limparClimaPlanejador(turnoId, p)}
         />
+        {ultimaAlteracaoClima(clima, nomeEquipe) && (
+          <p className="-mt-4 text-sm text-texto-suave">{`Última alteração do clima: ${ultimaAlteracaoClima(clima, nomeEquipe)}`}</p>
+        )}
         <CausasPendentes titulo="Antes de fechar, informe a causa em:" pendentes={pendentes} aoIr={() => setCobrado(true)} />
         <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} abertas={paradasAbertas(mov.lista)} janela={janela} nome={nomeEquipe}
           aoBloquear={() => {

@@ -54,7 +54,8 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
     await page.getByLabel("Descrição").fill(descricao);
     await page.getByLabel("Meta da semana").fill("4");
     await page.getByLabel("Unidade").fill("un");
-    await page.locator("label", { hasText: new RegExp(`^${DIAS[hoje.dia]}$`) }).click();
+    // O formulário mantém os dias entre inclusões (item 15): marca o dia só na primeira.
+    if (descricao === "Montagem de duto") await page.locator("label", { hasText: new RegExp(`^${DIAS[hoje.dia]}$`) }).click();
     await page.getByLabel("Responsável").selectOption({ label: nome });
     await page.getByRole("button", { name: "Adicionar atividade" }).click();
     await expect(page.getByText(descricao)).toBeVisible();
@@ -93,7 +94,7 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
     await campo.goto(urlCampo);
     await expect(campo.getByRole("heading", { name: "Quem é você?" })).toBeVisible();
     await campo.getByRole("link", { name: "Ana" }).click();
-    await campo.getByRole("link", { name: "Sou eu" }).click();
+    await campo.getByRole("button", { name: "Sou eu" }).click();
     await expect(campo.getByText("Lançando como")).toBeVisible();
     await expect(campo.getByText("Troca de rolos")).toHaveCount(0);
     const card = campo.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);

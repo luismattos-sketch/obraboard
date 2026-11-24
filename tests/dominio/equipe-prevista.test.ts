@@ -38,7 +38,7 @@ describe("lerEquipeDoForm", () => {
 
 describe("textoEquipe", () => {
   it("resume ou some", () => {
-    expect(textoEquipe([{ funcao: "Soldador", quantidade: 2 }, { funcao: "Ajudante", quantidade: 1 }])).toBe("Equipe prevista: 2 Soldador + 1 Ajudante");
+    expect(textoEquipe([{ funcao: "Soldador", quantidade: 2 }, { funcao: "Ajudante", quantidade: 1 }])).toBe("Equipe prevista: 2 Soldadores + 1 Ajudante");
     expect(textoEquipe([])).toBeNull();
     expect(textoEquipe(undefined)).toBeNull();
   });

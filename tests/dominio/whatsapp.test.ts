@@ -33,12 +33,12 @@ describe("linkWhatsapp", () => {
 describe("mensagens", () => {
   it("parada com equipe aguardada e observação", () => {
     expect(mensagemParada({ ...ctx, o: parada(), aguardando: "Carlos" })).toBe(
-      "⚠ Parada — Caldeira 3 · 16/11 Diurno\nJoão: 2 Mecânico parados desde 10:40\nMotivo: Aguardando outra equipe (Carlos)\nrolamento 6312",
+      "⚠ Parada — Caldeira 3 · 16/11 Diurno\nJoão: 2 Mecânicos parados desde 10:40\nMotivo: Aguardando outra equipe (Carlos)\nrolamento 6312",
     );
   });
   it("parada sem aguardando nem observação", () => {
     expect(mensagemParada({ ...ctx, o: parada({ causa: "material", observacao: null, aguardando_responsavel_id: null }), aguardando: null })).toBe(
-      "⚠ Parada — Caldeira 3 · 16/11 Diurno\nJoão: 2 Mecânico parados desde 10:40\nMotivo: Falta material",
+      "⚠ Parada — Caldeira 3 · 16/11 Diurno\nJoão: 2 Mecânicos parados desde 10:40\nMotivo: Falta material",
     );
   });
   it("uma pessoa: singular", () => {
@@ -46,7 +46,7 @@ describe("mensagens", () => {
   });
   it("retomada", () => {
     expect(mensagemRetomada({ ...ctx, o: parada({ hora_fim: "13:15:00" }) })).toBe(
-      "✅ João: 2 Mecânico voltaram às 13:15 (parados desde 10:40) — Caldeira 3 · 16/11 Diurno",
+      "✅ João: 2 Mecânicos voltaram às 13:15 (parados desde 10:40) — Caldeira 3 · 16/11 Diurno",
     );
   });
   it("terminou", () => {

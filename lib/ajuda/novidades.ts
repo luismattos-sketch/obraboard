@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-23",
+    texto: "Botão \"Iniciar turno\" no link de campo: o horário real do turno sai sozinho do primeiro início e do último \"Terminei minha parte\". O clima voltou a ser lançado pelo responsável no celular.",
+    href: "/ajuda/campo#iniciar",
+  },
+  {
+    data: "2026-11-23",
     texto: "Programação mais rápida: o formulário mantém local, dias, período, responsável e equipe entre uma atividade e outra, botão \"Duplicar\", confirmação antes de programar e especialidade no responsável.",
     href: "/ajuda/programar-semana#adicionar-atividade",
   },

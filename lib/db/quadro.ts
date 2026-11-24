@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { lerOcorrencias, lerTerminados } from "@/lib/dominio/efetivoHH";
+import { lerIniciados, lerOcorrencias, lerTerminados } from "@/lib/dominio/efetivoHH";
 import type { EntradaQuadro, ResponsavelRef, TurnoRef } from "@/lib/dominio/quadro";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { Causa, Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
@@ -23,7 +23,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
   const { data, error } = await c
     .from("turnos")
     .select(
-      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id, tipo, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)",
+      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id, tipo, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)",
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -39,6 +39,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     efetivo: Record<string, unknown>[] | null;
     efetivo_ocorrencias: unknown;
     turno_equipes_terminadas: unknown;
+    turno_equipes_iniciadas?: unknown;
   };
 
   const atividades: EntradaQuadro["atividades"] = (t.atividades ?? []).map((a) => ({
@@ -92,6 +93,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     efetivo,
     ocorrencias,
     terminados: lerTerminados(t.turno_equipes_terminadas),
+    iniciados: lerIniciados(t.turno_equipes_iniciadas),
   };
 }
 

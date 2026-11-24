@@ -2,6 +2,7 @@ import "server-only";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { turnoAberto } from "./campo";
 import { aplicarAcao } from "./turnos";
+import { sincronizarHorarioReal } from "./horarioReal";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import type { AtividadeExec } from "@/lib/dominio/tipos";
 import { ERRO_CAUSA_TERMINEI, ERRO_FECHADO_CAMPO, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
@@ -62,6 +63,7 @@ export async function marcarTerminouCampo(token: string, responsavelId: string, 
     .from("turno_equipes_terminadas")
     .insert({ turno_id: t.dados.id, responsavel_id: responsavelId, terminou_em: hora });
   if (error && error.code !== "23505") return traduzir(error);
+  await sincronizarHorarioReal(admin, t.dados.id, "fim", false);
   await sincronizarEnvio(admin, t.dados.id);
   return ok(undefined);
 }
@@ -83,5 +85,6 @@ export async function desfazerTerminouCampo(token: string, responsavelId: string
     .eq("id", t.dados.id)
     .eq("status", "enviado");
   if (ev) return traduzir(ev);
+  await sincronizarHorarioReal(admin, t.dados.id, "fim", true);
   return ok(undefined);
 }

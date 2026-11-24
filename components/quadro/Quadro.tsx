@@ -84,6 +84,7 @@ function Faixa({
               </ul>
             )}
             <Recebidos r={r} nome={nomeDe} />
+            {r.iniciouEm && <p className="text-sm font-semibold text-operacional xl:text-base">{`▶ iniciou ${r.iniciouEm}`}</p>}
           </>
         ) : (
           <>
@@ -93,7 +94,11 @@ function Faixa({
               {r.hhParado ? ` · ${hh(r.hhParado)} HH parados` : ""}
             </p>
             <Recebidos r={r} nome={nomeDe} />
-            {r.terminouEm && <p className="text-sm font-semibold text-sucesso xl:text-base">{`✓ terminou ${r.terminouEm}`}</p>}
+            {(r.iniciouEm || r.terminouEm) && (
+              <p className="text-sm font-semibold text-sucesso xl:text-base">
+                {[r.iniciouEm && `▶ iniciou ${r.iniciouEm}`, r.terminouEm && `✓ terminou ${r.terminouEm}`].filter(Boolean).join(" · ")}
+              </p>
+            )}
             <p className="text-sm font-semibold text-texto xl:text-base">
               {textoResumo(r)}
               {r.extras > 0 && <span className="ml-1 text-destaque">{`+${r.extras} extra`}</span>}

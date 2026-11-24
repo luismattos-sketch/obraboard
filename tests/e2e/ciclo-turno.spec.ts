@@ -110,12 +110,17 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // Escolher o nome pede confirmação antes de lançar
     await campo.getByRole("link", { name: "Ana Souza" }).click();
     await expect(campo.getByRole("heading", { name: "Você é Ana Souza?" })).toBeVisible();
-    await campo.getByRole("link", { name: "Sou eu" }).click();
+    await campo.getByRole("button", { name: "Sou eu" }).click();
     await expect(campo.getByText("Lançando como")).toBeVisible();
     const campo2 = await ctx.newPage();
     await campo2.goto(campo.url());
     const salvo = (secao: string) =>
       expect(campo.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
+
+    // Iniciar turno: grava a hora do toque e vira o início real
+    await campo.getByRole("region", { name: "Início do turno" }).getByRole("button", { name: "▶ Iniciar turno" }).click();
+    await expect(campo.getByRole("region", { name: "Início do turno" }).getByText(/✓ Você iniciou às \d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
+    await expect(campo.getByText(/Início real: \d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
 
 
     // Atividades
@@ -146,6 +151,9 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await campo.getByLabel("Quantidade").fill("4");
     await salvo("titulo-efetivo");
 
+    // Clima: o responsável lança no celular
+    await campo.getByLabel("Manhã").selectOption({ label: "Bom" });
+    await salvo("titulo-clima");
 
     // Terminei de todos (só a Ana) envia o turno sozinho
     await campo.getByRole("button", { name: "✓ Terminei minha parte" }).click();
@@ -154,14 +162,13 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // Planejador vê o resumo
     await page.goto(turnoUrl);
 
-    // Horário e clima: quem preenche é o planejador
+    // Planejador corrige o horário (vale até o próximo toque no campo) e vê quem lançou o clima
     const salvoP = (secao: string) =>
       expect(page.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("16:00");
     await salvoP("titulo-horario");
-    await page.getByLabel("Manhã").selectOption({ label: "Bom" });
-    await salvoP("titulo-clima");
+    await expect(page.getByText(/Última alteração do clima: Ana Souza · \d\d:\d\d/)).toBeVisible();
     await page.reload();
     const resumo = page.locator("section[aria-labelledby='titulo-resumo']");
     await expect(resumo.getByText("50%")).toBeVisible();

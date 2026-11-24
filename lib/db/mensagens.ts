@@ -79,3 +79,4 @@ export function mensagemProgramacao(error: { code?: string; message?: string } |
 export const ERRO_CAUSA_TERMINEI = "Informe a causa das atividades não concluídas antes de terminar.";
 
 export const ERRO_ENVIO_POR_TERMINEI = "Este turno é enviado quando todos os responsáveis tocam “Terminei minha parte”.";
+export const ERRO_HORARIO_POR_INICIAR = "O horário deste turno sai do “Iniciar turno” e do “Terminei minha parte” de cada responsável.";

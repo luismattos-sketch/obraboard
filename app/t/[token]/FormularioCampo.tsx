@@ -8,12 +8,15 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
-import { CONDICOES, PERIODOS_CLIMA, type Periodo, type StatusTurno } from "@/lib/dominio/tipos";
-import { agoraDoTurno, paradasAbertas, type Terminado } from "@/lib/dominio/efetivoHH";
+import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
+import { agoraDoTurno, paradasAbertas, type Iniciado, type Terminado } from "@/lib/dominio/efetivoHH";
 import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import { linkWhatsapp, mensagemTerminou } from "@/lib/dominio/whatsapp";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
 import { BotaoTerminei } from "@/components/execucao/BotaoTerminei";
+import { BotaoIniciar } from "@/components/execucao/BotaoIniciar";
+import { BlocoClima } from "@/components/execucao/BlocoClima";
+import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 import { CausasPendentes } from "@/components/execucao/CausasPendentes";
 import { ERRO_CAUSA_TERMINEI } from "@/lib/db/mensagens";
 import { useOcorrencias } from "@/components/execucao/useOcorrencias";
@@ -21,7 +24,12 @@ import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
 import {
   criarOcorrencia,
+  desfazerInicio,
   desfazerTerminou,
+  limparClima,
+  marcarInicio,
+  salvarClima,
+  salvarHorarioReal,
   encerrarParada,
   enviarFotoParada,
   enviarFotoExtra,
@@ -55,6 +63,8 @@ export type DadosTurnoCampo = {
   /** WhatsApp do planejador (null = escolher o contato). */
   whatsapp: string | null;
   terminados: Terminado[];
+  /** Equipes que tocaram "Iniciar turno". */
+  iniciados: Iniciado[];
   /** Caminho da foto da parada → URL assinada. */
   fotos: Record<string, string>;
   hora_inicio_real: string | null;
@@ -125,6 +135,11 @@ export function FormularioCampo({
   const [terminouEm, setTerminouEm] = useState<string | null>(
     turno.terminados.find((x) => x.responsavel_id === responsavelId)?.terminou_em ?? null,
   );
+  const [iniciouEm, setIniciouEm] = useState<string | null>(
+    turno.iniciados.find((x) => x.responsavel_id === responsavelId)?.iniciou_em ?? null,
+  );
+  const [salvandoInicio, setSalvandoInicio] = useState(false);
+  const [erroInicio, setErroInicio] = useState<string | null>(null);
   const [salvandoTerminei, setSalvandoTerminei] = useState(false);
   const [erroTerminei, setErroTerminei] = useState<string | null>(null);
   const abertas = paradasAbertas(mov.lista);
@@ -155,6 +170,42 @@ export function FormularioCampo({
       setErroTerminei("Sem conexão — tente de novo.");
     } finally {
       setSalvandoTerminei(false);
+    }
+  }
+
+  async function iniciar(hora: string) {
+    if (responsavelId === null) return;
+    setErroInicio(null);
+    setIniciouEm(hora);
+    setSalvandoInicio(true);
+    try {
+      const res = await marcarInicio(token, responsavelId, hora);
+      if (!res.ok) {
+        setIniciouEm(null);
+        setErroInicio(res.erro);
+      } else router.refresh();
+    } catch {
+      setIniciouEm(null);
+      setErroInicio("Sem conexão — tente de novo.");
+    } finally {
+      setSalvandoInicio(false);
+    }
+  }
+
+  async function desfazerIniciar() {
+    if (responsavelId === null) return;
+    const antes = iniciouEm;
+    setErroInicio(null);
+    setIniciouEm(null);
+    try {
+      const res = await desfazerInicio(token, responsavelId);
+      if (!res.ok) {
+        setIniciouEm(antes);
+        setErroInicio(res.erro);
+      } else router.refresh();
+    } catch {
+      setIniciouEm(antes);
+      setErroInicio("Sem conexão — tente de novo.");
     }
   }
 
@@ -215,7 +266,27 @@ export function FormularioCampo({
     <ProvedorSalvamento registrar={registrar}>
     <div className="flex flex-col gap-8">
       <AvisoPendentes falhas={falhas} tentar={tentarTodos} />
-      <DadosDoTurno inicio={horaCurta(turno.hora_inicio_real)} fim={horaCurta(turno.hora_fim_real)} clima={turno.clima} />
+      {!somenteLeitura && responsavelId !== null && (
+        <section aria-label="Início do turno" className="flex flex-col gap-2">
+          <BotaoIniciar
+            iniciouEm={iniciouEm}
+            marcar={(h) => void iniciar(h)}
+            desfazer={() => void desfazerIniciar()}
+            salvando={salvandoInicio}
+          />
+          {erroInicio && <Aviso tom="perigo">{erroInicio}</Aviso>}
+        </section>
+      )}
+      {semResponsaveis ? (
+        <BlocoHorario
+          inicio={horaCurta(turno.hora_inicio_real)}
+          fim={horaCurta(turno.hora_fim_real)}
+          somenteLeitura={somenteLeitura}
+          salvar={(d) => salvarHorarioReal(token, d)}
+        />
+      ) : (
+        <DadosDoTurno inicio={horaCurta(turno.hora_inicio_real)} fim={horaCurta(turno.hora_fim_real)} />
+      )}
       {turno.intervalo && (
         <p className="-mt-6 text-sm text-texto-suave">
           Intervalo: {turno.intervalo.inicio.slice(0, 5)}–{turno.intervalo.fim.slice(0, 5)} (descontado do HH)
@@ -281,6 +352,12 @@ export function FormularioCampo({
         remover={(a) => void removerLancamento(a.id)}
       />
       {erroRemover && <Aviso tom="perigo">{erroRemover}</Aviso>}
+      <BlocoClima
+        inicial={turno.clima}
+        somenteLeitura={leitura}
+        salvar={(d) => salvarClima(token, d, responsavelId)}
+        limpar={(p) => limparClima(token, p)}
+      />
       {!somenteLeitura && responsavelId !== null && (
         <ForaDoDia
           adiantar={opcoesPuxar.adiantar}
@@ -328,17 +405,12 @@ export function FormularioCampo({
   );
 }
 
-/** Horário real e clima: valem para o turno todo e quem preenche é o planejador. */
-function DadosDoTurno({ inicio, fim, clima }: { inicio: string; fim: string; clima: Clima[] }) {
-  const partes = PERIODOS_CLIMA.flatMap((p) => {
-    const c = clima.find((x) => x.periodo === p.id);
-    return c ? [`${p.rotulo}: ${CONDICOES[c.condicao]}${c.impediu ? " (impediu o trabalho)" : ""}`] : [];
-  });
+/** Horário real do turno: sai do primeiro "Iniciar turno" e do último "Terminei" (o planejador pode corrigir). */
+function DadosDoTurno({ inicio, fim }: { inicio: string; fim: string }) {
   return (
     <section aria-label="Dados do turno" className="flex flex-col gap-1 text-sm text-texto">
       <p>Início real: {inicio || "—"} · Fim real: {fim || "—"}</p>
-      <p>Clima: {partes.length > 0 ? partes.join(" · ") : "não informado"}</p>
-      <p className="text-texto-suave">Horário e clima são preenchidos pelo planejador.</p>
+      <p className="text-texto-suave">O início é o do primeiro responsável que iniciou; o fim, o do último que terminou.</p>
     </section>
   );
 }

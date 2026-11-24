@@ -8,17 +8,21 @@ import {
   lancarExtraCampo,
   puxarCampo,
   removerForaDoDiaCampo,
+  removerClima as dbRemoverClima,
+  salvarClima as dbSalvarClima,
   salvarEfetivo as dbSalvarEfetivo,
   salvarExecucao as dbSalvarExecucao,
+  salvarHorarioReal as dbSalvarHorarioReal,
 } from "@/lib/db/campo";
 import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } from "@/lib/db/ocorrencias";
 import { enviarFotoExtraCampo, enviarFotoParadaCampo } from "@/lib/db/fotosParada";
 import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
+import { desfazerIniciouCampo, marcarIniciouCampo } from "@/lib/db/iniciados";
 import { lancarRelatoCampo, organizarRelatoCampo } from "@/lib/db/relatoCampo";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
-import type { DadosExecucao } from "@/lib/dominio/tipos";
+import type { CondicaoClima, DadosExecucao, PeriodoClima } from "@/lib/dominio/tipos";
 
 // O token vem do cliente (já está na URL); cada função o revalida no servidor. Nunca logar o token.
 
@@ -34,6 +38,25 @@ export async function salvarExecucao(
 
 export async function salvarEfetivo(token: string, linhas: LinhaEfetivo[], esperado: LinhaEfetivo[], responsavelId: string | null = null) {
   return dbSalvarEfetivo(token, linhas, esperado, responsavelId);
+}
+
+export async function salvarClima(
+  token: string,
+  dados: { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean },
+  responsavelId: string | null,
+) {
+  return dbSalvarClima(token, dados, responsavelId);
+}
+
+export async function limparClima(token: string, periodo: PeriodoClima) {
+  return dbRemoverClima(token, periodo);
+}
+
+export async function salvarHorarioReal(
+  token: string,
+  dados: { hora_inicio_real: string | null; hora_fim_real: string | null },
+) {
+  return dbSalvarHorarioReal(token, dados);
 }
 
 export async function enviarTurno(token: string) {
@@ -54,6 +77,14 @@ export async function encerrarParada(token: string, id: string, horaFim: string,
 
 export async function marcarTerminou(token: string, responsavelId: string, hora: string) {
   return marcarTerminouCampo(token, responsavelId, hora);
+}
+
+export async function marcarInicio(token: string, responsavelId: string, hora: string) {
+  return marcarIniciouCampo(token, responsavelId, hora);
+}
+
+export async function desfazerInicio(token: string, responsavelId: string) {
+  return desfazerIniciouCampo(token, responsavelId);
 }
 
 export async function desfazerTerminou(token: string, responsavelId: string) {

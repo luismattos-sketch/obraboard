@@ -9,7 +9,7 @@ const p = (descricao: string, qtd_planejada: number, qtd_realizada: number | nul
 
 describe("linhaPendente", () => {
   it("mostra feito de previsto", () => {
-    expect(linhaPendente(p("Montagem", 8, 3, "tubo"))).toBe("Montagem (3 de 8 tubo)");
+    expect(linhaPendente(p("Montagem", 8, 3, "tubo"))).toBe("Montagem (3 de 8 tubos)");
   });
   it("sem lançamento vale 0", () => {
     expect(linhaPendente(p("Solda", 4, null, "un"))).toBe("Solda (0 de 4 un)");
@@ -25,7 +25,7 @@ describe("CausasPendentes", () => {
       <CausasPendentes titulo="Antes de terminar, informe a causa em:" pendentes={[p("Montagem", 8, 3, "tubo"), p("Solda", 4, null, "un")]} />,
     );
     expect(html).toContain("Antes de terminar, informe a causa em:");
-    expect(html).toContain("Montagem (3 de 8 tubo)");
+    expect(html).toContain("Montagem (3 de 8 tubos)");
     expect(html).toContain("Solda (0 de 4 un)");
     expect(html).toContain('aria-label="Ir para a causa: Montagem"');
     expect(html).not.toContain("perigo");
