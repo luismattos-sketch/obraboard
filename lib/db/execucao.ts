@@ -179,7 +179,14 @@ export async function salvarClimaPlanejador(c: SupabaseClient, turnoId: string, 
   const { error } = await c
     .from("clima")
     .upsert(
-      { turno_id: turnoId, periodo: dados.periodo, condicao: dados.condicao, impediu: dados.impediu === true },
+      {
+        turno_id: turnoId,
+        periodo: dados.periodo,
+        condicao: dados.condicao,
+        impediu: dados.impediu === true,
+        lancado_por_id: null,
+        lancado_em: new Date().toISOString(),
+      },
       { onConflict: "turno_id,periodo" },
     );
   if (error) {

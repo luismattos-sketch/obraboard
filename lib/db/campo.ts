@@ -1,7 +1,7 @@
 import "server-only";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { hashToken } from "@/lib/dominio/token";
-import type { DadosExecucao, StatusTurno } from "@/lib/dominio/tipos";
+import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -11,6 +11,7 @@ import { SEM_OPCOES, type ModoPuxar, type OpcoesPuxar } from "@/lib/dominio/fora
 import {
   ERRO_EFETIVO_CONFLITO,
   ERRO_ENVIO_POR_TERMINEI,
+  ERRO_HORARIO_POR_INICIAR,
   ERRO_EXTRA_SEM_QTD,
   ERRO_FECHADO_CAMPO,
   ERRO_RESPONSAVEL_INVALIDO,
@@ -21,9 +22,12 @@ import { opcoesFuncaoDoTurno, semanaDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
 import {
   camposExecucao,
+  validarClima,
   validarEfetivo,
   validarEfetivoEsperado,
   validarExecucao,
+  validarHorario,
+  validarPeriodoClima,
   type LinhaEfetivo,
 } from "./validacao";
 
@@ -241,6 +245,82 @@ export async function salvarEfetivo(
     if (erroBanco(error) === "efetivo_conflito") return falhaConflito(ERRO_EFETIVO_CONFLITO);
     if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivo:", error.message);
+    return erroGravacao(error);
+  }
+  return ok(undefined);
+}
+
+/** Clima vale para o turno todo: qualquer responsável do link salva; fica o último (com autor). */
+export async function salvarClima(
+  token: string,
+  dados: { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean },
+  responsavelId: string | null,
+): Promise<Resultado> {
+  const v = validarClima(dados);
+  if (!v.ok) return v;
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  const { error } = await criarClienteAdmin()
+    .from("clima")
+    .upsert(
+      {
+        turno_id: t.dados.id,
+        periodo: dados.periodo,
+        condicao: dados.condicao,
+        impediu: dados.impediu === true,
+        lancado_por_id: responsavelId,
+        lancado_em: new Date().toISOString(),
+      },
+      { onConflict: "turno_id,periodo" },
+    );
+  if (error) {
+    if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
+    console.error("salvarClima:", error.message);
+    return erroGravacao(error);
+  }
+  return ok(undefined);
+}
+
+export async function removerClima(token: string, periodo: PeriodoClima): Promise<Resultado> {
+  const v = validarPeriodoClima(periodo);
+  if (!v.ok) return v;
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  const { error } = await criarClienteAdmin().from("clima").delete().eq("turno_id", t.dados.id).eq("periodo", periodo);
+  if (error) {
+    console.error("removerClima:", error.message);
+    return erroGravacao(error);
+  }
+  return ok(undefined);
+}
+
+/** Só no turno sem responsáveis (fluxo antigo, horário digitado). Com responsáveis, o horário sai do Iniciar/Terminei. */
+export async function salvarHorarioReal(
+  token: string,
+  dados: { hora_inicio_real: string | null; hora_fim_real: string | null },
+): Promise<Resultado> {
+  const v = validarHorario(dados);
+  if (!v.ok) return v;
+  const t = await turnoAberto(token);
+  if (!t.ok) return t;
+  const admin = criarClienteAdmin();
+  const { data: comDono, error: ed } = await admin
+    .from("atividades")
+    .select("id")
+    .eq("turno_id", t.dados.id)
+    .not("responsavel_id", "is", null)
+    .limit(1);
+  if (ed) {
+    console.error("salvarHorarioReal:", ed.message);
+    return falha(ERRO_GENERICO);
+  }
+  if ((comDono ?? []).length > 0) return falha(ERRO_HORARIO_POR_INICIAR);
+  const { error } = await admin
+    .from("turnos")
+    .update({ hora_inicio_real: dados.hora_inicio_real, hora_fim_real: dados.hora_fim_real })
+    .eq("id", t.dados.id);
+  if (error) {
+    console.error("salvarHorarioReal:", error.message);
     return erroGravacao(error);
   }
   return ok(undefined);
