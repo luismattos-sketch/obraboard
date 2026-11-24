@@ -20,6 +20,7 @@ export function FormAtividadeProgramada({
   responsaveis,
   atividade,
   modelo,
+  continuaDe,
   sugestoesFuncao,
   aoConcluir,
 }: {
@@ -29,6 +30,8 @@ export function FormAtividadeProgramada({
   atividade?: AtividadeProgramada;
   /** Inclusão a partir de uma cópia ("Duplicar"): preenche tudo, mas cria uma atividade nova. */
   modelo?: AtividadeProgramada;
+  /** "Continuar no próximo turno": a nova atividade fica vinculada a esta (o saldo segue). */
+  continuaDe?: AtividadeProgramada;
   /** Funções já usadas na obra + padrão (evita duas grafias da mesma função). */
   sugestoesFuncao: string[];
   /** Chamado após salvar (edição) ou ao cancelar. */
@@ -59,10 +62,10 @@ export function FormAtividadeProgramada({
     return r;
   }, null);
 
-  // Edição: fecha o formulário ao salvar.
+  // Edição e próximo turno da sequência: fecha o formulário ao salvar.
   useEffect(() => {
-    if (estado?.ok && atividade) aoConcluir?.();
-  }, [estado, atividade, aoConcluir]);
+    if (estado?.ok && (atividade || continuaDe)) aoConcluir?.();
+  }, [estado, atividade, continuaDe, aoConcluir]);
 
   const falhou = estado && !estado.ok ? estado : null;
   const campos = falhou?.campos;
@@ -77,6 +80,15 @@ export function FormAtividadeProgramada({
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="semana_id" value={semanaId} />
       {atividade && <input type="hidden" name="atividade_id" value={atividade.id} />}
+      {continuaDe && (
+        <>
+          <input type="hidden" name="continua_de" value={continuaDe.id} />
+          <Aviso tom="info">
+            Continua de “{continuaDe.descricao}” ({continuaDe.periodo === "diurno" ? "diurno" : "noturno"}). O que faltar ou sobrar
+            no turno anterior passa para este. Troque o responsável e a equipe se for outra turma.
+          </Aviso>
+        </>
+      )}
       <Campo rotulo="Descrição" name="descricao" maxLength={200} value={descricao} onChange={(e) => setDescricao(e.target.value)} erro={campos?.descricao} />
       <Campo rotulo="Local (opcional)" name="local" maxLength={100} value={local} onChange={(e) => setLocal(e.target.value)} erro={campos?.local} />
       <div className="grid grid-cols-2 gap-3">

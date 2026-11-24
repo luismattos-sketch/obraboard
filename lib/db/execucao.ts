@@ -135,8 +135,8 @@ export async function salvarExecucaoPlanejador(
     if (!atual) return falha("Atividade não encontrada");
     return conflitoOuJaGravado(lerValores(atual), campos);
   }
-  if (at.tipo === "adiantada" && at.programacao_atividade_id) {
-    await reajustarCopiasFuturas(c, at.programacao_atividade_id as string, turnoId);
+  if (at.programacao_atividade_id) {
+    await reajustarCopiasFuturas(c, at.programacao_atividade_id as string, turnoId, at.tipo === "adiantada");
   }
   return ok(campos);
 }

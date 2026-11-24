@@ -81,25 +81,28 @@ describe("opcoesParaPuxar", () => {
   });
 });
 
+const QUA = { data: "2026-11-18", periodo: "diurno" as const };
+const semOrigem = (xs: { origem: unknown }[]) => xs.map(({ origem: _o, ...x }) => x);
+
 describe("copiasParaAjustar", () => {
   const adiantadaQua = (real: number) => exec({ id: "xq", turno_id: "tq", data: "2026-11-18", status_turno: "em_campo", qtd_planejada: 80, qtd_realizada: real, tipo: "adiantada" });
   const copiaQui = exec({ id: "xqi", turno_id: "tqi", data: "2026-11-19", status_turno: "planejado", qtd_planejada: 40, qtd_realizada: null, tipo: null });
 
   it("recalcula a cópia de quinta pelo novo saldo", () => {
     const d = dados({ atividades: [ativ()], execucoes: [adiantadaQua(50), copiaQui], turnos: [turno()] });
-    expect(copiasParaAjustar(d, "p1", "2026-11-18")).toEqual([{ turnoId: "tqi", atividadeId: "xqi", nova: 30 }]);
+    expect(semOrigem(copiasParaAjustar(d, "p1", QUA))).toEqual([{ turnoId: "tqi", atividadeId: "xqi", nova: 30 }]);
   });
 
   it("sem saldo: cópia removida (nova null)", () => {
     const d = dados({ atividades: [ativ()], execucoes: [adiantadaQua(80), copiaQui], turnos: [turno()] });
-    expect(copiasParaAjustar(d, "p1", "2026-11-18")).toEqual([{ turnoId: "tqi", atividadeId: "xqi", nova: null }]);
+    expect(semOrigem(copiasParaAjustar(d, "p1", QUA))).toEqual([{ turnoId: "tqi", atividadeId: "xqi", nova: null }]);
   });
 
   it("turno já em campo ou cópia com execução não é tocado", () => {
     const emCampo = dados({ atividades: [ativ()], execucoes: [adiantadaQua(50), { ...copiaQui, status_turno: "em_campo" }], turnos: [turno({ status: "em_campo" })] });
-    expect(copiasParaAjustar(emCampo, "p1", "2026-11-18")).toEqual([]);
+    expect(copiasParaAjustar(emCampo, "p1", QUA)).toEqual([]);
     const comExec = dados({ atividades: [ativ()], execucoes: [adiantadaQua(50), { ...copiaQui, qtd_realizada: 1 }], turnos: [turno()] });
-    expect(copiasParaAjustar(comExec, "p1", "2026-11-18")).toEqual([]);
+    expect(copiasParaAjustar(comExec, "p1", QUA)).toEqual([]);
   });
 });
 

@@ -6,13 +6,19 @@ import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { numeroBR } from "@/lib/dominio/formato";
 import { resumoDias, resumoEquipe, type AtividadeProgramada } from "@/lib/dominio/programacao";
+import { agruparSequencias, proximoTurno } from "@/lib/dominio/sequencia";
 import { contarSemResponsavel, textoSemResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
 import { programarSemanaAcao, removerAtividadeProgramadaAcao, type EstadoSemana } from "./acoes";
 import { FormAtividadeProgramada } from "./FormAtividadeProgramada";
 
 type Comum = { semanaId: string; obraId: string; responsaveis: ResponsavelRef[]; sugestoesFuncao: string[] };
 
-function ItemRascunho({ atividade: a, aoDuplicar, ...comum }: Comum & { atividade: AtividadeProgramada; aoDuplicar: () => void }) {
+function ItemRascunho({
+  atividade: a,
+  aoDuplicar,
+  aoContinuar,
+  ...comum
+}: Comum & { atividade: AtividadeProgramada; aoDuplicar: () => void; aoContinuar: (() => void) | null }) {
   const { responsaveis } = comum;
   const nome = a.responsavel_id ? responsaveis.find((r) => r.id === a.responsavel_id)?.nome : null;
   const [editando, setEditando] = useState(false);
@@ -35,13 +41,18 @@ function ItemRascunho({ atividade: a, aoDuplicar, ...comum }: Comum & { atividad
         <p className="text-sm text-texto-suave">{resumoEquipe(a.equipe)}</p>
         <p className="text-sm text-texto-suave">Responsável: {nome ?? "sem responsável"}</p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={() => setEditando(true)}>
           Editar
         </Botao>
         <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={aoDuplicar}>
           Duplicar
         </Botao>
+        {aoContinuar && (
+          <Botao type="button" variante="secundario" className="min-h-10 px-3 text-sm" onClick={aoContinuar}>
+            Continuar no próximo turno
+          </Botao>
+        )}
         <form
           action={action}
           onSubmit={(e) => {
@@ -59,16 +70,31 @@ function ItemRascunho({ atividade: a, aoDuplicar, ...comum }: Comum & { atividad
   );
 }
 
+/** "Sequência · 120 m — Diurno Seg–Sex 60 · Luis / Noturno Seg–Sex 60 · Alberto" */
+export function textoSequencia(g: AtividadeProgramada[], responsaveis: ResponsavelRef[]): string {
+  const total = g.reduce((s, a) => s + a.meta, 0);
+  const partes = g.map((a) => {
+    const nome = responsaveis.find((r) => r.id === a.responsavel_id)?.nome;
+    return `${a.periodo === "diurno" ? "Diurno" : "Noturno"} ${resumoDias(a.dias)} ${numeroBR(a.meta)}${nome ? ` · ${nome}` : ""}`;
+  });
+  return `Sequência · ${numeroBR(total)} ${g[0].unidade ?? ""} — ${partes.join(" / ")}`;
+}
+
 export function ListaRascunho({ atividades, ...comum }: Comum & { atividades: AtividadeProgramada[] }) {
   const { semanaId } = comum;
   const semResponsavel = textoSemResponsavel(contarSemResponsavel(atividades));
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(programarSemanaAcao, null);
   // "Duplicar": copia a atividade para o formulário de inclusão (a key remonta o formulário com a cópia).
-  const [copia, setCopia] = useState<{ atividade: AtividadeProgramada; n: number } | null>(null);
+  // "Continuar no próximo turno" (item 19): a mesma cópia, no turno seguinte e vinculada à original.
+  const [copia, setCopia] = useState<{ atividade: AtividadeProgramada; n: number; continuaDe: AtividadeProgramada | null } | null>(null);
   const novaRef = useRef<HTMLDivElement>(null);
-  const duplicar = (a: AtividadeProgramada) => {
-    setCopia((c) => ({ atividade: a, n: (c?.n ?? 0) + 1 }));
+  const duplicar = (a: AtividadeProgramada, continuaDe: AtividadeProgramada | null = null) => {
+    setCopia((c) => ({ atividade: a, n: (c?.n ?? 0) + 1, continuaDe }));
     novaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const continuar = (a: AtividadeProgramada) => {
+    const p = proximoTurno(a);
+    return p ? () => duplicar({ ...a, ...p }, a) : null;
   };
   return (
     <div className="flex flex-col gap-4">
@@ -78,20 +104,34 @@ export function ListaRascunho({ atividades, ...comum }: Comum & { atividades: At
           <p className="text-texto-suave">Nenhuma atividade ainda. Inclua o que a equipe vai se comprometer a entregar.</p>
         ) : (
           <ul className="divide-y divide-borda">
-            {atividades.map((a) => (
-              <ItemRascunho key={a.id} {...comum} atividade={a} aoDuplicar={() => duplicar(a)} />
-            ))}
+            {agruparSequencias(atividades).map((g) =>
+              g.length === 1 ? (
+                <ItemRascunho key={g[0].id} {...comum} atividade={g[0]} aoDuplicar={() => duplicar(g[0])} aoContinuar={continuar(g[0])} />
+              ) : (
+                <li key={g[0].id} className="py-3">
+                  <p className="text-sm font-semibold text-operacional">{textoSequencia(g, comum.responsaveis)}</p>
+                  <ul className="ml-3 divide-y divide-borda border-l-2 border-operacional pl-3">
+                    {g.map((a) => (
+                      <ItemRascunho key={a.id} {...comum} atividade={a} aoDuplicar={() => duplicar(a)} aoContinuar={continuar(a)} />
+                    ))}
+                  </ul>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </Cartao>
 
       <div ref={novaRef} className="scroll-mt-4">
         <Cartao>
-          <h2 className="mb-3 text-lg font-semibold text-primaria">{copia ? "Nova atividade (cópia)" : "Nova atividade"}</h2>
+          <h2 className="mb-3 text-lg font-semibold text-primaria">
+            {copia?.continuaDe ? "Próximo turno da sequência" : copia ? "Nova atividade (cópia)" : "Nova atividade"}
+          </h2>
           <FormAtividadeProgramada
             key={copia ? `copia-${copia.n}` : "nova"}
             {...comum}
             modelo={copia?.atividade}
+            continuaDe={copia?.continuaDe ?? undefined}
             aoConcluir={copia ? () => setCopia(null) : undefined}
           />
         </Cartao>

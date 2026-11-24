@@ -3,6 +3,11 @@ import type { Novidade } from "./tipos";
 
 export const NOVIDADES: Novidade[] = [
   {
+    data: "2026-11-24",
+    texto: "Atividades em sequência: \"Continuar no próximo turno\" liga a atividade do dia à da noite (ou ao dia seguinte) e o que faltar ou sobrar num turno passa para a meta do próximo.",
+    href: "/ajuda/programar-semana#continuar-proximo-turno",
+  },
+  {
     data: "2026-11-23",
     texto: "Botão \"Iniciar turno\" no link de campo: o horário real do turno sai sozinho do primeiro início e do último \"Terminei minha parte\". O clima voltou a ser lançado pelo responsável no celular.",
     href: "/ajuda/campo#iniciar",

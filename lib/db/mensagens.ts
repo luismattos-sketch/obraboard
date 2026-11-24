@@ -33,7 +33,8 @@ export type ErroBanco =
   | "transicao_invalida"
   | "responsavel_invalido"
   | "ocorrencia_invalida"
-  | "extra_sem_quantidade";
+  | "extra_sem_quantidade"
+  | "sequencia_invalida";
 
 const CONHECIDOS: readonly ErroBanco[] = [
   "turno_fechado",
@@ -50,6 +51,7 @@ const CONHECIDOS: readonly ErroBanco[] = [
   "responsavel_invalido",
   "ocorrencia_invalida",
   "extra_sem_quantidade",
+  "sequencia_invalida",
 ];
 
 export function erroBanco(error: { code?: string; message?: string } | null | undefined): ErroBanco | null {
@@ -68,6 +70,7 @@ export const MENSAGENS_PROGRAMACAO: Partial<Record<ErroBanco, string>> = {
   transicao_invalida: "Ação não permitida para o status atual da semana.",
   motivo_obrigatorio: ERRO_MOTIVO,
   motivo_repetido: ERRO_MOTIVO_REPETIDO,
+  sequencia_invalida: "Só dá para continuar uma atividade da mesma semana.",
 };
 
 export function mensagemProgramacao(error: { code?: string; message?: string } | null | undefined, padrao: string): string {

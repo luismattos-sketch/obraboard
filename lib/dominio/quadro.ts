@@ -50,6 +50,8 @@ export type EntradaQuadro = {
     tipo?: TipoAtividade | null;
     /** Equipe prevista; ausente em fotos antigas. */
     equipe?: { funcao: string; quantidade: number }[];
+    /** Meta herdada da sequência (item 19), ex.: "inclui 4 m do turno do dia (Luis)". */
+    meta_origem?: string | null;
   }[];
   efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[];
   /** Ausente na foto do check-in antiga (= nenhuma). */

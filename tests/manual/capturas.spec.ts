@@ -103,7 +103,17 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
     });
     if (!r.ok) throw new Error(r.erro);
   }
+  // Item 19: a tubulação continua no turno da noite (sequência).
+  const { data: tubulacao } = await c
+    .from("programacao_atividades").select("id").eq("semana_id", semana.id).eq("descricao", ATIVIDADE_NA_TELA.descricao).single();
+  const noite = await salvarAtividadeProgramada(c, semana.id, {
+    descricao: ATIVIDADE_NA_TELA.descricao, local: ATIVIDADE_NA_TELA.local, unidade: ATIVIDADE_NA_TELA.unidade,
+    meta: Number(ATIVIDADE_NA_TELA.meta), dias, periodo: "noturno", responsavel_id: ids[OUTRAS_ATIVIDADES[0].responsavel],
+    equipe: [{ funcao: ATIVIDADE_NA_TELA.funcao, quantidade: Number(ATIVIDADE_NA_TELA.qtd) }], continua_de: tubulacao!.id as string,
+  });
+  if (!noite.ok) throw new Error(noite.erro);
   await pl.reload();
+  await fotografar(pl, "programar-semana", "continuar-proximo-turno");
   await fotografar(pl, "programar-semana", "programar");
   await pl.getByRole("button", { name: "Programar semana" }).click();
   await expect(pl.getByText("Programada", { exact: true })).toBeVisible();

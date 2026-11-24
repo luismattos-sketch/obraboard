@@ -108,7 +108,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
 18. **Análise** — começa 7 semanas antes da obra existir (começar na 1ª semana da obra); selo "provisório" também no
     cartão principal; causas sem separar externas/internas. [P2]
 
-19. **Vincular atividades em sequência (débito do dia passa para a noite)** — ex.: "Montagem de Andaime" 12 m
+19. ✅ **Feito em 2026-11-24** — **Vincular atividades em sequência (débito do dia passa para a noite)** — ex.: "Montagem de Andaime" 12 m
     Seg diurno (Luis) + 12 m Seg noturno (Alberto) são o mesmo andaime. Opção de vincular ("Continua de…") para o
     saldo seguir: faltou 4 m no dia → noite com meta 16 m; sobrou 3 m → noite com 9 m. Decidido em 2026-11-17:
     - Atividades vinculadas formam **uma sequência na ordem dos turnos** (Seg D, Seg N, Ter D, Ter N…). Meta de
