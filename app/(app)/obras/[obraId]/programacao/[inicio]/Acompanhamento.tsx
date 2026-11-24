@@ -6,16 +6,36 @@ import {
   type Semana,
 } from "@/lib/dominio/programacao";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
+import { textoSaldoMudou } from "@/lib/dominio/trazerSaldo";
+import { AvisoSaldoMudou } from "./AvisoSaldoMudou";
 import { FormEncerrar } from "./FormEncerrar";
 import { FormReabrir } from "./FormReabrir";
 import { GradeSemana } from "./GradeSemana";
 import { PrevistoReal } from "./PrevistoReal";
 
-export function Acompanhamento({ semana, resumo, hoje, responsaveis }: { semana: Semana; resumo: ResumoSemana; hoje: string; responsaveis: ResponsavelRef[] }) {
+export function Acompanhamento({
+  semana,
+  resumo,
+  hoje,
+  responsaveis,
+  saldosAtuais = {},
+}: {
+  semana: Semana;
+  resumo: ResumoSemana;
+  hoje: string;
+  responsaveis: ResponsavelRef[];
+  /** Item 1.6: saldo atual da origem de cada atividade trazida (id da atividade → saldo). */
+  saldosAtuais?: Record<string, number>;
+}) {
   const encerrada = semana.status === "encerrada";
   const { ppc } = resumo;
   const naoCumpridas = resumo.atividades.filter((a) => a.situacao !== "cumprida");
   const podeEncerrar = !encerrada && encerramentoLiberado(resumo.atividades, semana.inicio, hoje);
+  const mudaram = encerrada
+    ? []
+    : resumo.atividades.filter(
+        (a) => saldosAtuais[a.id] !== undefined && textoSaldoMudou(a.saldo_trazido ?? a.meta, saldosAtuais[a.id], a.unidade) !== null,
+      );
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,6 +48,20 @@ export function Acompanhamento({ semana, resumo, hoje, responsaveis }: { semana:
           <p className="text-sm text-texto-suave">+{resumo.extras.length} fora da programação</p>
         )}
       </Cartao>
+
+      {mudaram.length > 0 && (
+        <Cartao className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-primaria">Saldo da semana anterior mudou</h2>
+          <ul className="flex flex-col gap-3">
+            {mudaram.map((a) => (
+              <li key={a.id} className="flex flex-col gap-1">
+                <p className="font-semibold text-texto">{a.descricao}</p>
+                <AvisoSaldoMudou atividade={a} saldoAtual={saldosAtuais[a.id]} />
+              </li>
+            ))}
+          </ul>
+        </Cartao>
+      )}
 
       <Cartao className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-primaria">Atividades programadas</h2>

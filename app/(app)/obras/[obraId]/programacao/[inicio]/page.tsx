@@ -4,13 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
-import { dadosOficiais, obterSemana, sugestoesFuncaoDaObra } from "@/lib/db/programacao";
+import { dadosOficiais, obterSemana, resumoSemanaAnterior, sugestoesFuncaoDaObra } from "@/lib/db/programacao";
 import { listarResponsaveis } from "@/lib/db/responsaveis";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData } from "@/lib/dominio/formato";
 import { dataDoDia, resumirSemana, ROTULO_STATUS_SEMANA, statusExibido, TOM_STATUS_SEMANA } from "@/lib/dominio/programacao";
 import { FUNCOES_SUGERIDAS } from "@/lib/dominio/tipos";
+import { pendentesDaSemanaAnterior, saldoDaOrigem } from "@/lib/dominio/trazerSaldo";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { AbrirSemana } from "../AbrirSemana";
 import { Acompanhamento } from "./Acompanhamento";
@@ -69,21 +70,39 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
     );
   }
 
-  const [dados, sugestoesFuncao, responsaveis] = await Promise.all([
+  const [dados, sugestoesFuncao, responsaveis, anterior] = await Promise.all([
     dadosOficiais(supabase, semana),
     semana.status === "rascunho"
       ? sugestoesFuncaoDaObra(supabase, obra.id).catch(() => [...FUNCOES_SUGERIDAS])
       : Promise.resolve([]),
     listarResponsaveis(supabase, obra.id),
+    semana.status === "encerrada" ? Promise.resolve(null) : resumoSemanaAnterior(supabase, semana),
   ]);
+  // Item 1.6: o que ficou da semana anterior e o saldo atual da origem de cada atividade já trazida.
+  const pendentes = anterior && semana.status === "rascunho" ? pendentesDaSemanaAnterior(anterior) : [];
+  const saldosAtuais: Record<string, number> = {};
+  if (anterior) {
+    for (const a of dados.atividades) {
+      const s = a.trazida_de ? saldoDaOrigem(anterior, a.trazida_de) : null;
+      if (s !== null) saldosAtuais[a.id] = s;
+    }
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {cabecalho}
       {semana.status === "rascunho" ? (
-        <ListaRascunho semanaId={semana.id} obraId={obra.id} responsaveis={responsaveis} atividades={dados.atividades} sugestoesFuncao={sugestoesFuncao} />
+        <ListaRascunho
+          semanaId={semana.id}
+          obraId={obra.id}
+          responsaveis={responsaveis}
+          atividades={dados.atividades}
+          sugestoesFuncao={sugestoesFuncao}
+          pendentes={pendentes}
+          saldosAtuais={saldosAtuais}
+        />
       ) : (
-        <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} responsaveis={responsaveis} />
+        <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} responsaveis={responsaveis} saldosAtuais={saldosAtuais} />
       )}
     </div>
   );
