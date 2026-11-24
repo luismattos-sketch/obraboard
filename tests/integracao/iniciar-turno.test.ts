@@ -71,6 +71,21 @@ describe.skipIf(!ligado)("iniciar turno por equipe e horário real", () => {
     expect((await horario(c.turnoId)).hora_fim_real).toBeNull();
   });
 
+  it("correção do planejador não é apagada por toque que não muda aquele horário", { timeout: 60_000 }, async () => {
+    const c = await cenario();
+    for (const [id, q] of [[c.daAna, 1], [c.daJoao, 8]] as const) {
+      const r = await salvarExecucaoPlanejador(u.cliente, c.turnoId, id, { qtd_realizada: q, causa: null, observacao: null }, VAZIO);
+      if (!r.ok) throw new Error(r.erro);
+    }
+    // Ninguém iniciou; o planejador corrige início e fim.
+    await criarClienteAdmin().from("turnos").update({ hora_inicio_real: "07:00", hora_fim_real: "16:30" }).eq("id", c.turnoId);
+    expect((await marcarTerminouCampo(c.token, c.ana, "16:00")).ok).toBe(true);
+    expect(await horario(c.turnoId)).toEqual({ hora_inicio_real: "07:00:00", hora_fim_real: "16:30:00" });
+    // Iniciar mexe só no início.
+    expect((await marcarIniciouCampo(c.token, c.joao, "07:20")).ok).toBe(true);
+    expect(await horario(c.turnoId)).toEqual({ hora_inicio_real: "07:20:00", hora_fim_real: "16:30:00" });
+  });
+
   it("hora inválida é recusada", { timeout: 60_000 }, async () => {
     const c = await cenario();
     expect(await marcarIniciouCampo(c.token, c.ana, "25:00")).toEqual({ ok: false, erro: "Informe o horário" });

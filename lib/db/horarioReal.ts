@@ -5,10 +5,18 @@ import type { criarClienteAdmin } from "@/lib/supabase/admin";
 type Admin = ReturnType<typeof criarClienteAdmin>;
 
 /**
- * Recalcula o horário real do turno a partir dos toques das equipes (Iniciar / Terminei).
- * Só roda nas ações do campo: correção do planejador vale até o próximo toque. Falha só loga (o toque vale).
+ * Recalcula UM horário real do turno a partir dos toques das equipes: "inicio" (Iniciar/Desfazer) ou
+ * "fim" (Terminei/Desfazer). O outro horário não é tocado — correção do planejador sobrevive.
+ * `apagar = false` (toque que acrescenta): sem valor calculado, mantém o que está gravado (ex.: fim digitado
+ * pelo planejador quando nem todos terminaram; também evita que dois toques simultâneos gravem vazio).
+ * Falha só loga (o toque vale).
  */
-export async function sincronizarHorarioReal(admin: Admin, turnoId: string): Promise<void> {
+export async function sincronizarHorarioReal(
+  admin: Admin,
+  turnoId: string,
+  campo: "inicio" | "fim",
+  apagar: boolean,
+): Promise<void> {
   const [{ data: ats, error: ea }, { data: ini, error: ei }, { data: fim, error: ef }] = await Promise.all([
     admin.from("atividades").select("responsavel_id").eq("turno_id", turnoId),
     admin.from("turno_equipes_iniciadas").select("iniciou_em, created_at").eq("turno_id", turnoId),
@@ -24,6 +32,9 @@ export async function sincronizarHorarioReal(admin: Admin, turnoId: string): Pro
     terminados: (fim ?? []) as { responsavel_id: string; terminou_em: string; created_at: string }[],
     equipes,
   });
-  const { error } = await admin.from("turnos").update(h).eq("id", turnoId);
+  const coluna = campo === "inicio" ? "hora_inicio_real" : "hora_fim_real";
+  const valor = h[coluna];
+  if (valor === null && !apagar) return;
+  const { error } = await admin.from("turnos").update({ [coluna]: valor }).eq("id", turnoId);
   if (error) console.error("sincronizarHorarioReal (gravar):", error.message);
 }

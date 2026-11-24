@@ -28,7 +28,7 @@ export async function marcarIniciouCampo(token: string, responsavelId: string, h
     .from("turno_equipes_iniciadas")
     .insert({ turno_id: t.dados.id, responsavel_id: responsavelId, iniciou_em: hora });
   if (error && error.code !== "23505") return traduzir(error);
-  await sincronizarHorarioReal(admin, t.dados.id);
+  await sincronizarHorarioReal(admin, t.dados.id, "inicio", false);
   return ok(undefined);
 }
 
@@ -42,6 +42,6 @@ export async function desfazerIniciouCampo(token: string, responsavelId: string)
     .eq("turno_id", t.dados.id)
     .eq("responsavel_id", responsavelId);
   if (error) return traduzir(error);
-  await sincronizarHorarioReal(admin, t.dados.id);
+  await sincronizarHorarioReal(admin, t.dados.id, "inicio", true);
   return ok(undefined);
 }

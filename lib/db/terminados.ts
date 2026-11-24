@@ -63,7 +63,7 @@ export async function marcarTerminouCampo(token: string, responsavelId: string, 
     .from("turno_equipes_terminadas")
     .insert({ turno_id: t.dados.id, responsavel_id: responsavelId, terminou_em: hora });
   if (error && error.code !== "23505") return traduzir(error);
-  await sincronizarHorarioReal(admin, t.dados.id);
+  await sincronizarHorarioReal(admin, t.dados.id, "fim", false);
   await sincronizarEnvio(admin, t.dados.id);
   return ok(undefined);
 }
@@ -85,6 +85,6 @@ export async function desfazerTerminouCampo(token: string, responsavelId: string
     .eq("id", t.dados.id)
     .eq("status", "enviado");
   if (ev) return traduzir(ev);
-  await sincronizarHorarioReal(admin, t.dados.id);
+  await sincronizarHorarioReal(admin, t.dados.id, "fim", true);
   return ok(undefined);
 }

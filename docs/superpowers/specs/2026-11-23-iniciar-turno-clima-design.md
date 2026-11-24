@@ -11,7 +11,8 @@ começou é o responsável no campo, e o clima também é visto por ele. O horá
 - Botão **"Iniciar turno"** para cada responsável, gravando a hora do toque (por equipe).
 - Fim por equipe continua sendo o **"Terminei minha parte"** (já grava a hora do toque).
 - Horário real do turno = **primeiro início** e **último Terminei** entre as equipes; recalculado a cada
-  iniciar / terminar / desfazer. Correção do planejador vale até o próximo toque no campo.
+  iniciar / terminar / desfazer. Iniciar mexe só no início; Terminei só no fim, e nunca apaga um fim já gravado
+  (só o Desfazer limpa) — correção do planejador sobrevive (revisão final).
 - **Clima volta editável** no campo para o responsável (como antes do item 10). Vale para o turno todo; o último
   a salvar prevalece. "Ver tudo" continua só leitura.
 - Quadro e página do turno mostram por equipe "iniciou HH:MM · terminou HH:MM".
