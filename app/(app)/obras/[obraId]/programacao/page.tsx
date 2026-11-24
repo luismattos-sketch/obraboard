@@ -5,6 +5,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { obterObra } from "@/lib/db/obras";
+import { inicioDaSemana } from "@/lib/dominio/analise";
 import { listarSemanasComResumo } from "@/lib/db/programacao";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { formatarData, formatarPercentual } from "@/lib/dominio/formato";
@@ -29,6 +30,12 @@ export default async function ProgramacaoPage({ params }: { params: Promise<{ ob
     semanas = null;
   }
 
+  // Destaque na semana atual enquanto ela não tem programação (obra nova); depois, na próxima.
+  const atualSemProgramacao = semanas !== null && !semanas.some((s) => s.semana.inicio === inicioDaSemana(hoje));
+  const destaque = atualSemProgramacao
+    ? { data: hoje, rotulo: "Programar esta semana" }
+    : { data: somarDias(hoje, 7), rotulo: "Programar próxima semana" };
+
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -41,7 +48,7 @@ export default async function ProgramacaoPage({ params }: { params: Promise<{ ob
             <BotaoAjuda tela="programacao" />
           </div>
         </div>
-        <AbrirSemana obraId={obra.id} data={somarDias(hoje, 7)} rotulo="Programar próxima semana" />
+        <AbrirSemana obraId={obra.id} data={destaque.data} rotulo={destaque.rotulo} />
       </div>
 
       <Cartao>
@@ -53,7 +60,7 @@ export default async function ProgramacaoPage({ params }: { params: Promise<{ ob
       ) : semanas.length === 0 ? (
         <Cartao>
           <p className="text-texto-suave">
-            Nenhuma semana programada ainda. Programe a próxima semana para firmar o compromisso da equipe.
+            Nenhuma semana programada ainda. Programe esta semana para firmar o compromisso da equipe.
           </p>
         </Cartao>
       ) : (

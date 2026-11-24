@@ -3,18 +3,21 @@ import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { ERRO_RESPONSAVEL_DUPLICADO } from "./mensagens";
 import { falha, ok, type Resultado } from "./resultado";
 
-export type Responsavel = ResponsavelRef & { obra_id: string; telefone: string | null };
+export type Responsavel = ResponsavelRef & { obra_id: string; telefone: string | null; especialidade: string | null };
+export type DadosResponsavel = { nome: string; telefone?: string | null; especialidade?: string | null };
 
-const COLUNAS = "id, obra_id, nome, telefone, ativo";
+const COLUNAS = "id, obra_id, nome, telefone, especialidade, ativo";
 const ERRO_GENERICO = "Não foi possível salvar o responsável.";
 
-function validar(dados: { nome: string; telefone?: string | null }): Resultado<{ nome: string; telefone: string | null }> {
+function validar(dados: DadosResponsavel): Resultado<{ nome: string; telefone: string | null; especialidade: string | null }> {
   const nome = typeof dados.nome === "string" ? dados.nome.trim() : "";
   if (!nome) return falha("Informe o nome do responsável");
   if (nome.length > 60) return falha("Nome com até 60 caracteres");
   const tel = typeof dados.telefone === "string" ? dados.telefone.trim() : "";
   if (tel.length > 30) return falha("Telefone com até 30 caracteres");
-  return ok({ nome, telefone: tel || null });
+  const esp = typeof dados.especialidade === "string" ? dados.especialidade.trim() : "";
+  if (esp.length > 40) return falha("Especialidade com até 40 caracteres");
+  return ok({ nome, telefone: tel || null, especialidade: esp || null });
 }
 
 function erroGravacao(error: { code?: string; message?: string }, onde: string): Resultado<never> {
@@ -37,7 +40,7 @@ export async function listarResponsaveis(c: SupabaseClient, obraId: string): Pro
 export async function criarResponsavel(
   c: SupabaseClient,
   obraId: string,
-  dados: { nome: string; telefone?: string | null },
+  dados: DadosResponsavel,
 ): Promise<Resultado<Responsavel>> {
   const v = validar(dados);
   if (!v.ok) return v;
@@ -49,7 +52,7 @@ export async function criarResponsavel(
 export async function editarResponsavel(
   c: SupabaseClient,
   id: string,
-  dados: { nome: string; telefone?: string | null },
+  dados: DadosResponsavel,
 ): Promise<Resultado<Responsavel>> {
   const v = validar(dados);
   if (!v.ok) return v;

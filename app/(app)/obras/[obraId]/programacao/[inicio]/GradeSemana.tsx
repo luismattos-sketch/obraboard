@@ -19,12 +19,13 @@ const COR_BARRA: Record<Situacao, string> = {
   em_andamento: "bg-alerta",
   sem_execucao: "bg-texto-suave/40",
 };
-const ICONE: Record<Periodo, string> = { diurno: "☀", noturno: "☾" };
+// Texto curto em vez de ☀/☾ (o sol parecia um asterisco em telas pequenas).
+const ICONE: Record<Periodo, string> = { diurno: "Dia", noturno: "Noite" };
 
 /** Linha de grade: coluna estreita do período + uma coluna por dia. */
 function Linha({ colunas, rotulo, children }: { colunas: number; rotulo: ReactNode; children: ReactNode }) {
   return (
-    <div className="grid items-center" style={{ gridTemplateColumns: `1.5rem repeat(${colunas}, minmax(0, 1fr))` }}>
+    <div className="grid items-center" style={{ gridTemplateColumns: `2.75rem repeat(${colunas}, minmax(0, 1fr))` }}>
       <span className="text-center text-xs text-texto-suave">{rotulo}</span>
       {children}
     </div>

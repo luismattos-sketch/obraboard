@@ -42,13 +42,21 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
         {/* Programação, RDOs e Análise ficam no menu lateral; aqui só a ação do dia a dia. */}
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
           <Link href={`/obras/${obra.id}/quadro`} className={classesBotao("secundario")}>Quadro</Link>
-          <Link href={`/obras/${obra.id}/turnos/novo`} className={classesBotao()}>Novo turno</Link>
+          {turnos.length === 0 ? (
+            <Link href={`/obras/${obra.id}/programacao`} className={classesBotao()}>Programar semana</Link>
+          ) : (
+            <Link href={`/obras/${obra.id}/turnos/novo`} className={classesBotao()}>Novo turno</Link>
+          )}
         </div>
       </div>
 
       {turnos.length === 0 ? (
         <Cartao>
-          <p className="text-texto-suave">Nenhum turno ainda. Crie o primeiro para planejar as atividades.</p>
+          <p className="text-texto-suave">
+            Nenhum turno ainda. Comece pela <Link href={`/obras/${obra.id}/programacao`} className="text-operacional underline">Programação</Link>:
+            com a semana programada, cada turno novo já vem com as atividades do dia. Se preferir, crie um{" "}
+            <Link href={`/obras/${obra.id}/turnos/novo`} className="text-operacional underline">Novo turno</Link> direto.
+          </p>
         </Cartao>
       ) : (
         <ul className="flex flex-col gap-3">

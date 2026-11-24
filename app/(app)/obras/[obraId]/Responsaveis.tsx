@@ -9,7 +9,7 @@ import { Selo } from "@/components/ui/Selo";
 import type { Responsavel } from "@/lib/db/responsaveis";
 import { criarResponsavelAcao, definirAtivoAcao, editarResponsavelAcao } from "./acoesResponsaveis";
 
-type Edicao = { id: string | null; nome: string; telefone: string };
+type Edicao = { id: string | null; nome: string; telefone: string; especialidade: string };
 
 /** Seção "Responsáveis" da obra: lista, adicionar, editar, desativar/reativar. */
 export function Responsaveis({ obraId, responsaveis }: { obraId: string; responsaveis: Responsavel[] }) {
@@ -34,7 +34,7 @@ export function Responsaveis({ obraId, responsaveis }: { obraId: string; respons
   function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!edicao) return;
-    const dados = { nome: edicao.nome, telefone: edicao.telefone };
+    const dados = { nome: edicao.nome, telefone: edicao.telefone, especialidade: edicao.especialidade };
     void executar(
       () => (edicao.id ? editarResponsavelAcao(obraId, edicao.id, dados) : criarResponsavelAcao(obraId, dados)),
       () => setEdicao(null),
@@ -54,12 +54,13 @@ export function Responsaveis({ obraId, responsaveis }: { obraId: string; respons
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="flex items-center gap-2">
                   <span className={r.ativo ? "font-medium text-texto" : "text-texto-suave"}>{r.nome}</span>
+                  {r.especialidade && <span className="text-sm text-texto-suave">{r.especialidade}</span>}
                   {r.telefone && <span className="text-sm text-texto-suave">{r.telefone}</span>}
                   {!r.ativo && <Selo tom="neutro">inativo</Selo>}
                 </div>
                 <div className="flex gap-3 text-sm">
                   <button type="button" className="text-operacional underline" disabled={ocupado}
-                    onClick={() => setEdicao({ id: r.id, nome: r.nome, telefone: r.telefone ?? "" })}>
+                    onClick={() => setEdicao({ id: r.id, nome: r.nome, telefone: r.telefone ?? "", especialidade: r.especialidade ?? "" })}>
                     Editar
                   </button>
                   <button type="button" className="text-operacional underline" disabled={ocupado}
@@ -76,6 +77,8 @@ export function Responsaveis({ obraId, responsaveis }: { obraId: string; respons
           <form onSubmit={salvar} className="flex flex-col gap-3">
             <Campo rotulo="Nome" maxLength={60} required autoFocus value={edicao.nome}
               onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })} />
+            <Campo rotulo="Especialidade (opcional)" maxLength={40} placeholder="Elétrica, andaime, solda…" value={edicao.especialidade}
+              onChange={(e) => setEdicao({ ...edicao, especialidade: e.target.value })} />
             <Campo rotulo="Telefone (opcional)" maxLength={30} inputMode="tel" value={edicao.telefone}
               onChange={(e) => setEdicao({ ...edicao, telefone: e.target.value })} />
             <div className="flex gap-2">
@@ -84,7 +87,7 @@ export function Responsaveis({ obraId, responsaveis }: { obraId: string; respons
             </div>
           </form>
         ) : (
-          <Botao type="button" variante="secundario" onClick={() => setEdicao({ id: null, nome: "", telefone: "" })}>
+          <Botao type="button" variante="secundario" onClick={() => setEdicao({ id: null, nome: "", telefone: "", especialidade: "" })}>
             + Novo responsável
           </Botao>
         )}

@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-23",
+    texto: "Programação mais rápida: o formulário mantém local, dias, período, responsável e equipe entre uma atividade e outra, botão \"Duplicar\", confirmação antes de programar e especialidade no responsável.",
+    href: "/ajuda/programar-semana#adicionar-atividade",
+  },
+  {
+    data: "2026-11-23",
     texto: "Link de campo mais fácil: reabrir o link no mesmo celular já entra com o seu nome, botão \"Trocar\" maior, aviso de sem sinal em destaque, metas inteiras para peças e mensagens em português.",
     href: "/ajuda/campo#escolher-nome",
   },

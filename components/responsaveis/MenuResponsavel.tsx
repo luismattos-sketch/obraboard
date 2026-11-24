@@ -23,6 +23,7 @@ type Props = {
 export function MenuResponsavel({ obraId, responsaveis, valor, aoMudar, desabilitado, podeCriar = true, rotulo = "Responsável" }: Props) {
   const id = useId();
   const [novo, setNovo] = useState<string | null>(null);
+  const [especialidade, setEspecialidade] = useState("");
   const [criados, setCriados] = useState<ResponsavelRef[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -36,10 +37,11 @@ export function MenuResponsavel({ obraId, responsaveis, valor, aoMudar, desabili
     setSalvando(true);
     setErro(null);
     try {
-      const r = await criarResponsavelAcao(obraId, { nome: novo });
+      const r = await criarResponsavelAcao(obraId, { nome: novo, especialidade });
       if (!r.ok) return setErro(r.erro);
-      setCriados((cs) => [...cs, { id: r.dados.id, nome: r.dados.nome, ativo: true }]);
+      setCriados((cs) => [...cs, { id: r.dados.id, nome: r.dados.nome, ativo: true, especialidade: r.dados.especialidade }]);
       setNovo(null);
+      setEspecialidade("");
       aoMudar(r.dados.id);
     } catch {
       setErro("Sem conexão — tente de novo.");
@@ -65,12 +67,12 @@ export function MenuResponsavel({ obraId, responsaveis, valor, aoMudar, desabili
         <option value="">Sem responsável</option>
         {atual && !atual.ativo && <option value={atual.id}>{atual.nome} (inativo)</option>}
         {ativos.map((r) => (
-          <option key={r.id} value={r.id}>{r.nome}</option>
+          <option key={r.id} value={r.id}>{r.especialidade ? `${r.nome} — ${r.especialidade}` : r.nome}</option>
         ))}
         {podeCriar && <option value={NOVO}>+ Novo responsável…</option>}
       </select>
       {novo !== null && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 sm:flex-nowrap">
           <input
             aria-label="Nome do novo responsável"
             maxLength={60}
@@ -79,6 +81,20 @@ export function MenuResponsavel({ obraId, responsaveis, valor, aoMudar, desabili
             placeholder="Nome"
             value={novo}
             onChange={(e) => setNovo(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void criar();
+              }
+            }}
+          />
+          <input
+            aria-label="Especialidade do novo responsável (opcional)"
+            maxLength={40}
+            className={campo}
+            placeholder="Especialidade (opcional)"
+            value={especialidade}
+            onChange={(e) => setEspecialidade(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();

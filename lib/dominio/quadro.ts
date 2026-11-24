@@ -17,7 +17,7 @@ import type { Causa, Periodo, StatusAtividade, StatusTurno, TipoAtividade } from
 
 /** Quadro de check-in/check-out: puro, a partir de um único formato de entrada (também a foto do check-in). */
 
-export type ResponsavelRef = { id: string; nome: string; ativo: boolean };
+export type ResponsavelRef = { id: string; nome: string; ativo: boolean; especialidade?: string | null };
 export type EntradaQuadro = {
   obra: { id: string; nome: string };
   turno: {

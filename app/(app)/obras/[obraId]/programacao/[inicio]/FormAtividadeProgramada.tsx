@@ -19,6 +19,7 @@ export function FormAtividadeProgramada({
   obraId,
   responsaveis,
   atividade,
+  modelo,
   sugestoesFuncao,
   aoConcluir,
 }: {
@@ -26,26 +27,39 @@ export function FormAtividadeProgramada({
   obraId: string;
   responsaveis: ResponsavelRef[];
   atividade?: AtividadeProgramada;
+  /** Inclusão a partir de uma cópia ("Duplicar"): preenche tudo, mas cria uma atividade nova. */
+  modelo?: AtividadeProgramada;
   /** Funções já usadas na obra + padrão (evita duas grafias da mesma função). */
   sugestoesFuncao: string[];
   /** Chamado após salvar (edição) ou ao cancelar. */
   aoConcluir?: () => void;
 }) {
-  const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(salvarAtividadeProgramadaAcao, null);
-  const [descricao, setDescricao] = useState(atividade?.descricao ?? "");
-  const [local, setLocal] = useState(atividade?.local ?? "");
-  const [unidade, setUnidade] = useState(atividade?.unidade ?? "");
-  const [meta, setMeta] = useState(atividade ? String(atividade.meta).replace(".", ",") : "");
-  const [dias, setDias] = useState<DiaSemana[]>(atividade?.dias ?? []);
-  const [periodo, setPeriodo] = useState<Periodo>(atividade?.periodo ?? "diurno");
-  const [responsavel, setResponsavel] = useState<string | null>(atividade?.responsavel_id ?? null);
+  const base = atividade ?? modelo;
+  const [descricao, setDescricao] = useState(base?.descricao ?? "");
+  const [local, setLocal] = useState(base?.local ?? "");
+  const [unidade, setUnidade] = useState(base?.unidade ?? "");
+  const [meta, setMeta] = useState(base ? String(base.meta).replace(".", ",") : "");
+  const [dias, setDias] = useState<DiaSemana[]>(base?.dias ?? []);
+  const [periodo, setPeriodo] = useState<Periodo>(base?.periodo ?? "diurno");
+  const [responsavel, setResponsavel] = useState<string | null>(base?.responsavel_id ?? null);
   const [equipe, setEquipe] = useState<LinhaEquipe[]>(
-    atividade?.equipe.length
-      ? atividade.equipe.map((e) => ({ funcao: e.funcao, quantidade: String(e.quantidade) }))
+    base?.equipe.length
+      ? base.equipe.map((e) => ({ funcao: e.funcao, quantidade: String(e.quantidade) }))
       : [{ funcao: "", quantidade: "" }],
   );
 
-  // Edição: fecha o formulário ao salvar. Inclusão: o pai remonta o formulário (key) quando a lista cresce.
+  // Inclusão: ao salvar, limpa só descrição e meta; local, dias, período, responsável e equipe ficam
+  // para a próxima atividade (menos cliques ao programar a semana).
+  const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(async (anterior, form) => {
+    const r = await salvarAtividadeProgramadaAcao(anterior, form);
+    if (r?.ok && !atividade) {
+      setDescricao("");
+      setMeta("");
+    }
+    return r;
+  }, null);
+
+  // Edição: fecha o formulário ao salvar.
   useEffect(() => {
     if (estado?.ok && atividade) aoConcluir?.();
   }, [estado, atividade, aoConcluir]);
@@ -119,7 +133,7 @@ export function FormAtividadeProgramada({
         <Botao type="submit" carregando={pendente}>
           {atividade ? "Salvar" : "Adicionar atividade"}
         </Botao>
-        {atividade && aoConcluir && (
+        {aoConcluir && (atividade || modelo) && (
           <Botao type="button" variante="secundario" onClick={aoConcluir}>
             Cancelar
           </Botao>
