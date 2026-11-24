@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-23",
+    texto: "No link de campo, cada um lança só o que é seu: confirmação do nome, \"Ver tudo\" só para olhar, horário e clima com o planejador e envio automático quando todos terminam.",
+    href: "/ajuda/campo#escolher-nome",
+  },
+  {
+    data: "2026-11-23",
     texto: "O efetivo já vem com a equipe prevista: confirme ou ajuste com − e +.",
     href: "/ajuda/campo#efetivo",
   },
