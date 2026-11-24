@@ -235,7 +235,7 @@ describe.skipIf(!ligado)("campo (token)", () => {
     });
 
     it("clima pelo responsável guarda o autor; horário digitado recusado com responsáveis", { timeout: 60_000 }, async () => {
-      const c = await cenario("2026-12-14");
+      const c = await cenario("2026-12-15");
       expect((await salvarClima(c.token, { periodo: "manha", condicao: "bom", impediu: false }, c.ana)).ok).toBe(true);
       expect((await obterTurnoPorToken(c.token))!.clima).toMatchObject([{ periodo: "manha", lancado_por_id: c.ana }]);
       expect((await salvarClima(c.token, { periodo: "manha", condicao: "chuva_forte", impediu: true }, c.bia)).ok).toBe(true);
