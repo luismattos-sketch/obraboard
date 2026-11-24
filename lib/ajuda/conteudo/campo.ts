@@ -20,6 +20,19 @@ export const campo: Capitulo = {
       },
     },
     {
+      id: "iniciar",
+      titulo: "Inicie o turno",
+      texto: [
+        "Quando a sua equipe começar, toque em \"Iniciar turno\", no topo. A hora do toque fica registrada para o planejador (\"✓ Você iniciou às 07:12\"). Tocou sem querer? Toque em \"Desfazer\".",
+        "O início real do turno é o do primeiro responsável que iniciou, e o fim real é o do último que tocou em \"Terminei minha parte\". Não precisa digitar horário. Esqueceu de iniciar? Você lança normalmente, e o planejador pode corrigir o horário.",
+      ],
+      captura: {
+        alt: "Botão Iniciar turno no topo da tela do celular",
+        alvo: { papel: "button", nome: "▶ Iniciar turno" },
+        dispositivo: "celular",
+      },
+    },
+    {
       id: "lancar",
       titulo: "Lance o que foi feito",
       texto: [
@@ -52,9 +65,17 @@ export const campo: Capitulo = {
       id: "efetivo",
       titulo: "Informe o efetivo",
       texto: [
-        "O horário real e o clima do turno aparecem no topo só para leitura: quem preenche é o planejador. O \"Efetivo\" fica logo abaixo. Se o planejador previu a equipe, ela já aparece preenchida: confira e toque em \"Confirmar equipe\", ou ajuste a quantidade com os botões − e + (o ajuste já grava).",
+        "O \"Efetivo\" fica logo abaixo do horário. Se o planejador previu a equipe, ela já aparece preenchida: confira e toque em \"Confirmar equipe\", ou ajuste a quantidade com os botões − e + (o ajuste já grava).",
         "Enquanto você não confirma, a equipe prevista não conta no HH. Use \"+ Adicionar função\" se faltar alguma.",
         "Emprestou gente para outra equipe ou alguém saiu antes? Use \"+ Emprestar\" ou \"+ Saída antes\": assim o HH não conta em dobro.",
+      ],
+    },
+    {
+      id: "clima",
+      titulo: "Informe o clima",
+      texto: [
+        "No fim da tela, em \"Clima\", escolha como estava a manhã, a tarde e a noite e marque se o clima impediu o trabalho. Salva sozinho.",
+        "O clima vale para o turno todo: se outro responsável mudar, fica o último. O planejador vê quem alterou.",
       ],
     },
     {
