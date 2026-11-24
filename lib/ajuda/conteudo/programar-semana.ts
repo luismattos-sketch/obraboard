@@ -36,6 +36,21 @@ export const programarSemana: Capitulo = {
       },
     },
     {
+      id: "trazer-semana-anterior",
+      titulo: "Traga o que ficou da semana anterior",
+      texto: [
+        "No rascunho, o bloco \"Não concluídas da semana anterior\" lista as atividades da semana passada que ficaram com saldo, ex.: \"faltam 20 m² de 120 m²\". Clique em \"Trazer\": o formulário abre já preenchido, com a meta igual ao saldo. Ajuste os dias, o responsável e a meta se precisar e clique em \"Adicionar atividade\". Depois de trazida, a linha mostra \"Trazida ✓\".",
+        "A semana anterior não muda: a atividade continua \"não cumprida\" no PPC dela, com a causa informada.",
+        "Se a semana anterior ainda lançar execução depois que você trouxe (ex.: o turno de sábado), a atividade trazida mostra \"Saldo da semana anterior mudou: era 20 m², agora 12 m²\" e o botão \"Atualizar meta\". Nada muda sozinho: você decide. O botão vale também com a semana já programada, enquanto a atividade ainda não entrou em nenhum turno; depois disso, reabra a semana para mudar a meta.",
+      ],
+      dica: "Atividades em sequência (dia e noite) entram como um item só, com o saldo somado da sequência.",
+      captura: {
+        alt: "Bloco Não concluídas da semana anterior com o saldo e o botão Trazer",
+        alvo: { papel: "button", nome: "Trazer" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "continuar-proximo-turno",
       titulo: "Continue a atividade no próximo turno",
       texto: [

@@ -1,9 +1,9 @@
 // Roteiro das capturas do manual: monta a obra de exemplo e fotografa cada passo de lib/ajuda/.
 // Rodar: SUPABASE_TEST=1 npm run manual:capturas   (um capítulo só: MANUAL_CAPITULO=check-in ...)
 import { devices, expect, test, type Browser, type Page } from "@playwright/test";
-import { salvarAtividadeProgramada, obterSemana } from "@/lib/db/programacao";
+import { criarRascunho, programarSemana, salvarAtividadeProgramada, obterSemana } from "@/lib/db/programacao";
 import { inicioDaSemana } from "@/lib/dominio/analise";
-import { diaDaSemana, type DiaSemana } from "@/lib/dominio/programacao";
+import { diaDaSemana, somarDias, type DiaSemana } from "@/lib/dominio/programacao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarUsuarioTeste, removerUsuarioTeste, type UsuarioTeste } from "../integracao/ajuda";
 import { fotografar, naoFotografados } from "./fotografar";
@@ -77,12 +77,25 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await expect(pl.getByRole("button", { name: "Gerar novo link" }).first()).toBeVisible();
   await fotografar(pl, "primeiros-passos", "link-quadro");
 
+  // Item 1.6: semana anterior programada com uma atividade que ficou com saldo (aparece em "Trazer").
+  const anterior = await criarRascunho(c, obraId, somarDias(inicio, -7));
+  if (!anterior.ok) throw new Error(anterior.erro);
+  const pintura = await salvarAtividadeProgramada(c, anterior.dados.id, {
+    descricao: "Pintura do galpão", local: "Galpão 2", unidade: "m²", meta: 120, dias: [0, 1, 2, 3, 4], periodo: "diurno",
+    responsavel_id: ids[RESPONSAVEIS[0]], equipe: [{ funcao: "Pintor", quantidade: 3 }],
+  });
+  if (!pintura.ok) throw new Error(pintura.erro);
+  const prog = await programarSemana(c, anterior.dados.id);
+  if (!prog.ok) throw new Error(prog.erro);
+
   // ---------- Programar a semana ----------
   await pl.goto(`${obraUrl}/programacao`);
   await fotografar(pl, "programar-semana", "abrir-programacao");
   await pl.getByLabel("Data da semana").fill(hoje);
   await pl.getByRole("button", { name: "Abrir semana" }).click();
   await pl.waitForURL(`**/programacao/${inicio}`);
+  await expect(pl.getByRole("button", { name: "Trazer" })).toBeVisible();
+  await fotografar(pl, "programar-semana", "trazer-semana-anterior");
   const dias = diasAteHoje(dia);
   await pl.getByLabel("Descrição").fill(ATIVIDADE_NA_TELA.descricao);
   await pl.getByLabel("Local (opcional)").fill(ATIVIDADE_NA_TELA.local);
