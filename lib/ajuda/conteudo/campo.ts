@@ -11,7 +11,7 @@ export const campo: Capitulo = {
       titulo: "Escolha o seu nome",
       texto: [
         "Abra o link que o planejador mandou. Em \"Quem é você?\", toque no seu nome e confirme em \"Sou eu\": você vê e lança só as atividades e o efetivo da sua equipe. \"Ver tudo\" mostra o turno inteiro, só para olhar.",
-        "Não é você? Toque em \"Não, voltar\". Já entrou com o nome errado? Toque em \"Trocar\", no topo.",
+        "Não é você? Toque em \"Não, voltar\". Reabriu o link no mesmo celular? Ele já entra com o seu nome. Entrou com o nome errado ou o celular é de outra pessoa? Toque em \"Trocar\", no topo.",
       ],
       captura: {
         alt: "Tela Quem é você? com um botão por responsável e o botão Ver tudo",

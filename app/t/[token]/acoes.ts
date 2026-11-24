@@ -1,5 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { COOKIE_RESPONSAVEL } from "@/lib/dominio/quadro";
 import {
   enviarTurnoCampo,
   lancarExtraCampo,
@@ -84,4 +87,19 @@ export async function organizarRelato(token: string, responsavelId: string, text
 
 export async function lancarRelato(token: string, responsavelId: string, relatoId: string) {
   return lancarRelatoCampo(token, responsavelId, relatoId);
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "Sou eu": lembra a escolha só para este link (cookie no caminho do token), para não perguntar de novo ao reabrir. */
+export async function lembrarResponsavel(token: string, responsavelId: string) {
+  if (!UUID.test(responsavelId) || !/^[\w-]+$/.test(token)) redirect(`/t/${encodeURIComponent(token)}`);
+  (await cookies()).set(COOKIE_RESPONSAVEL, responsavelId, {
+    path: `/t/${token}`,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 3,
+  });
+  redirect(`/t/${token}?r=${responsavelId}`);
 }

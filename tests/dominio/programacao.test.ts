@@ -68,7 +68,10 @@ describe("sugestaoDoDia", () => {
     expect(sugestaoDoDia({ ...a, dias: [...a.dias] }, 0, 120)).toBeNull();
   });
   it("arredonda em 2 casas", () => {
-    expect(sugestaoDoDia({ meta: 10, dias: [0, 1, 2] }, 0, 0)).toBe(3.33);
+    expect(sugestaoDoDia({ meta: 10.5, dias: [0, 1, 2] }, 0, 0)).toBe(3.5);
+    expect(sugestaoDoDia({ meta: 10, dias: [0, 1, 2] }, 0, 0)).toBe(4);
+    expect(sugestaoDoDia({ meta: 2, dias: [0, 1, 2, 3] }, 0, 0)).toBe(1);
+    expect(sugestaoDoDia({ meta: 2, dias: [0, 1, 2, 3] }, 2, 2)).toBeNull();
   });
 });
 

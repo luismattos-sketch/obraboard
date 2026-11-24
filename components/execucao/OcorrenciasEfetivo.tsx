@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { pessoas } from "@/lib/dominio/plural";
 import { Aviso } from "@/components/ui/Aviso";
 import type { DadosOcorrencia } from "@/lib/db/validacao";
 import { descreverOcorrencia, type HHEquipe, type Ocorrencia, type TipoOcorrencia } from "@/lib/dominio/efetivoHH";
@@ -209,7 +210,7 @@ export function OcorrenciasEfetivo({
       {funcoes.length > 0 && botoes(destinos.some((d) => d.id !== responsavelId && d.ativo) ? ["emprestimo", "saida", "parado"] : ["saida", "parado"], null, funcoes)}
       {recebidos.map((r) => (
         <div key={r.emprestimo_id} className="flex flex-col gap-1 rounded-botao bg-primaria-clara/40 p-2">
-          <p className="text-sm font-medium text-texto">{`+${r.quantidade} ${r.funcao} (de ${nome(r.de)}, ${r.inicio}–${r.fim})`}</p>
+          <p className="text-sm font-medium text-texto">{`+${pessoas(r.quantidade, r.funcao)} (de ${nome(r.de)}, ${r.inicio}–${r.fim})`}</p>
           <ul className="flex flex-col gap-1">
             {sobre(r.emprestimo_id).map((o) => <Item key={o.id} o={o} />)}
           </ul>

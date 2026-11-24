@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pessoas } from "@/lib/dominio/plural";
 import { textoEquipe } from "@/lib/dominio/equipePrevista";
 import { formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { FaixaQuadro, ModeloQuadro, ResumoEquipe, Visao } from "@/lib/dominio/quadro";
@@ -42,7 +43,7 @@ function Recebidos({ r, nome }: { r: ResumoEquipe; nome: (id: string | null) => 
   return (
     <ul className="text-sm text-operacional xl:text-base">
       {r.recebidos.map((x) => (
-        <li key={x.emprestimo_id}>{`+${x.quantidade} ${x.funcao} (de ${nome(x.de)}, ${x.inicio}–${x.fim})`}</li>
+        <li key={x.emprestimo_id}>{`+${pessoas(x.quantidade, x.funcao)} (de ${nome(x.de)}, ${x.inicio}–${x.fim})`}</li>
       ))}
     </ul>
   );
@@ -78,7 +79,7 @@ function Faixa({
             ) : (
               <ul className="text-sm text-operacional xl:text-base">
                 {faixa.efetivo.map((e, i) => (
-                  <li key={i}>{`${e.quantidade} ${e.funcao}`}</li>
+                  <li key={i}>{pessoas(e.quantidade, e.funcao)}</li>
                 ))}
               </ul>
             )}

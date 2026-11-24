@@ -24,7 +24,7 @@ export const programarSemana: Capitulo = {
       titulo: "Adicione as atividades",
       texto: [
         "A semana começa como rascunho. Em \"Nova atividade\", preencha a \"Descrição\", o \"Local (opcional)\", a \"Unidade\" e a \"Meta da semana\" (quanto deve ficar pronto até domingo).",
-        "Marque os \"Dias\" em que a atividade vai ser feita e o \"Período\" (Diurno ou Noturno). O app divide a meta pelos dias e mostra a sugestão diária.",
+        "Marque os \"Dias\" em que a atividade vai ser feita e o \"Período\" (Diurno ou Noturno). O app divide a meta pelos dias e mostra a sugestão diária. Meta inteira (peças, tubos, un) é dividida em números inteiros, sem \"0,5 un\": o último dia fica com o que sobrar.",
         "Em \"Equipe prevista\", informe as funções e quantas pessoas de cada (\"Adicionar função\" para mais linhas). Escolha o \"Responsável\" pela atividade e clique em \"Adicionar atividade\".",
       ],
       dica: "Atividade sem responsável não trava nada, mas o app avisa. Com responsável, cada um vê só a sua parte no link de campo.",

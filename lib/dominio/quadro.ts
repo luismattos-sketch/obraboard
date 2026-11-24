@@ -210,6 +210,9 @@ export function visaoValida(pedida: unknown, status: StatusTurno): Visao {
   return pedida === "checkin" || pedida === "checkout" ? pedida : visaoPadrao(status);
 }
 
+/** Cookie (no caminho do link) com o responsável que confirmou "Sou eu". */
+export const COOKIE_RESPONSAVEL = "frentia_responsavel";
+
 export function resolverEscolhaCampo(
   r: unknown,
   idsDoTurno: string[],

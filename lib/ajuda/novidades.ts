@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-23",
+    texto: "Link de campo mais fácil: reabrir o link no mesmo celular já entra com o seu nome, botão \"Trocar\" maior, aviso de sem sinal em destaque, metas inteiras para peças e mensagens em português.",
+    href: "/ajuda/campo#escolher-nome",
+  },
+  {
+    data: "2026-11-23",
     texto: "No link de campo, cada um lança só o que é seu: confirmação do nome, \"Ver tudo\" só para olhar, horário e clima com o planejador e envio automático quando todos terminam.",
     href: "/ajuda/campo#escolher-nome",
   },

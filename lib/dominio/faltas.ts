@@ -1,4 +1,5 @@
 import { horaAgoraSaoPaulo, hojeSaoPaulo } from "./entrada";
+import { qtdComUnidade } from "./plural";
 import { janelaDoTurno, type Terminado } from "./efetivoHH";
 import { numeroBR } from "./formato";
 import { errosDeCausa } from "./regras";
@@ -57,7 +58,7 @@ export function faltasDoTurno(p: {
       if (a.qtd_realizada === null && a.tipo !== "extra") {
         faltas.push({ tipo: "sem_lancamento", atividadeId: a.id, texto: `${a.descricao} — lançar quanto foi feito` });
       } else if (horaDeCobrar && semCausa[a.id]) {
-        const feito = `${numeroBR(a.qtd_realizada ?? 0)} de ${numeroBR(a.qtd_planejada)} ${a.unidade}`;
+        const feito = `${numeroBR(a.qtd_realizada ?? 0)} de ${qtdComUnidade(a.qtd_planejada, a.unidade)}`;
         faltas.push({ tipo: "sem_causa", atividadeId: a.id, texto: `${a.descricao} — informar a causa (${feito})` });
       }
     }

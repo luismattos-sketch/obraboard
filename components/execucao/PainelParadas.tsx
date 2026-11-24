@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { pessoas } from "@/lib/dominio/plural";
 import { Aviso } from "@/components/ui/Aviso";
 import type { DadosOcorrencia } from "@/lib/db/validacao";
 import { descreverOcorrencia, horaCurta } from "@/lib/dominio/efetivoHH";
@@ -89,7 +90,7 @@ export function PainelParadas(p: PropsPainelParadas) {
           <div key={o.id} className="flex flex-col gap-2 rounded-cartao border-2 border-perigo bg-perigo/5 p-3" role="status">
             <p className="font-semibold text-texto">
               ⚠ {p.responsavelId === null ? `${p.nome(o.responsavel_id)} · ` : ""}
-              {`${o.quantidade} ${o.funcao} ${descreverOcorrencia(o, p.nome).replace(/^\d+ /, "")}`}
+              {`${pessoas(o.quantidade, o.funcao)} ${descreverOcorrencia(o, p.nome).replace(/^\d+ /, "")}`}
             </p>
             {o.observacao && <p className="text-sm text-texto">“{o.observacao}”</p>}
             {/* URL assinada do Storage (privada, curta): sem otimização do next/image. */}
@@ -156,7 +157,7 @@ export function PainelParadas(p: PropsPainelParadas) {
 
       {voltaram.map((o) => (
         <div key={o.id} className="flex flex-wrap items-center gap-2 rounded-cartao border border-borda p-3">
-          <p className="min-w-0 flex-1 text-sm text-texto">{`✅ ${o.quantidade} ${o.funcao} voltaram às ${horaCurta(o.hora_fim!)}`}</p>
+          <p className="min-w-0 flex-1 text-sm text-texto">{`✅ ${pessoas(o.quantidade, o.funcao)} ${o.quantidade === 1 ? "voltou" : "voltaram"} às ${horaCurta(o.hora_fim!)}`}</p>
           <a className={botao} href={linkWhatsapp(p.contexto.whatsapp, mensagemRetomada({ ...ctx(o), o }))} target="_blank" rel="noopener noreferrer">
             Avisar no WhatsApp
           </a>
