@@ -17,7 +17,7 @@ function exigir<T>(r: { ok: true; dados: T } | { ok: false; erro: string }): T {
   return r.dados;
 }
 
-test("campo: confirma o nome, Ver tudo só leitura, horário e clima do planejador", async ({ browser, request }) => {
+test("campo: confirma o nome, Ver tudo só leitura, Iniciar turno e clima do responsável", async ({ browser, request }) => {
   test.setTimeout(240_000);
   u = await criarUsuarioTeste();
   const obra = exigir(await criarObra(u.cliente, { nome: "Obra Permissões E2E" }));
@@ -48,16 +48,27 @@ test("campo: confirma o nome, Ver tudo só leitura, horário e clima do planejad
   await expect(cel.getByText("Lançando como")).toBeVisible();
   await expect(cel.getByText("Solda linha 4")).toBeVisible();
 
-  // Horário e clima: só texto, vindos do planejador.
+  // Horário: sem campo digitado; sai do Iniciar turno (o planejador tinha posto 07:10).
   await expect(cel.getByText("Início real: 07:10 · Fim real: —")).toBeVisible();
-  await expect(cel.getByText("Clima: não informado")).toBeVisible();
   await expect(cel.locator("#hora-inicio")).toHaveCount(0);
+  await cel.getByRole("button", { name: "▶ Iniciar turno" }).click();
+  await expect(cel.getByText(/✓ Você iniciou às dd:dd/)).toBeVisible({ timeout: 15_000 });
+  await expect(cel.getByText("Início real: 07:10")).toBeHidden({ timeout: 15_000 });
+  const iniciou = (await admin.from("turno_equipes_iniciadas").select("responsavel_id").eq("turno_id", turno.id)).data ?? [];
+  expect(iniciou.map((x) => x.responsavel_id)).toEqual([ana]);
+
+  // Clima: o responsável lança; fica com o nome dele.
+  await cel.getByLabel("Manhã").selectOption({ label: "Bom" });
+  await expect(cel.locator('section[aria-labelledby="titulo-clima"]').getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
+  const clima = (await admin.from("clima").select("lancado_por_id").eq("turno_id", turno.id)).data ?? [];
+  expect(clima).toEqual([{ lancado_por_id: ana }]);
 
   // Ver tudo: vê as duas equipes, sem nada editável e sem Enviar turno.
   await cel.getByRole("link", { name: "Trocar" }).click();
   await cel.getByRole("link", { name: "Ver tudo" }).click();
   await expect(cel.getByText("Montar suporte")).toBeVisible();
   await expect(cel.getByRole("button", { name: /Enviar turno/ })).toHaveCount(0);
+  await expect(cel.getByRole("button", { name: /Iniciar turno/ })).toHaveCount(0);
   await expect(cel.locator("main input:not([disabled]), main select:not([disabled]), main textarea:not([disabled])")).toHaveCount(0);
   await ctx.close();
 });

@@ -78,7 +78,7 @@ describe("resumoEquipe", () => {
       atividades: [at("j", 2, 1), at("j", 2, null), at("j", 1, 1, { programada: false })],
       efetivo: [{ funcao: "Mecânico", quantidade: 2, responsavel_id: "j" }, { funcao: "Soldador", quantidade: 1, responsavel_id: "j" }],
     }));
-    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, adiantadas: 0, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [], terminouEm: null });
+    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, adiantadas: 0, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [], terminouEm: null, iniciouEm: null });
   });
 
   it("empréstimo: horas vão para a equipe destino, pessoas ficam na origem", () => {
@@ -219,6 +219,11 @@ describe("quadro: paradas abertas e equipes que terminaram", () => {
   });
   it("sem agora: sem duração (conta até o fim do turno)", () => {
     expect(montarQuadro(comParada()).paradas[0].duracaoMin).toBeNull();
+  });
+  it("equipe que iniciou", () => {
+    const m = montarQuadro({ ...comParada(), iniciados: [{ responsavel_id: "j", iniciou_em: "07:05:00" }] });
+    expect(m.faixas.find((x) => x.responsavel?.id === "j")!.resumo.iniciouEm).toBe("07:05");
+    expect(montarQuadro(comParada()).faixas.find((x) => x.responsavel?.id === "j")!.resumo.iniciouEm).toBeNull();
   });
   it("equipe que terminou", () => {
     expect(montarQuadro(comParada()).faixas.find((f) => f.responsavel?.id === "j")!.resumo.terminouEm).toBe("15:20");

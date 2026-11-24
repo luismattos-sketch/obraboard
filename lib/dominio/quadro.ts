@@ -76,6 +76,8 @@ export type ResumoEquipe = {
   avisos: string[];
   /** "HH:MM" em que a equipe avisou que terminou. */
   terminouEm: string | null;
+  /** "HH:MM" em que a equipe tocou "Iniciar turno". */
+  iniciouEm: string | null;
 };
 export type FaixaQuadro = {
   /** null = "Sem responsável". */
@@ -131,6 +133,7 @@ export function resumoEquipe(
     recebidos: h?.recebidos ?? [],
     avisos: h?.avisos ?? [],
     terminouEm: null,
+    iniciouEm: null,
   };
 }
 
@@ -168,7 +171,13 @@ export function montarQuadro(e: EntradaQuadro, agora?: string): ModeloQuadro {
     const hhEquipe = hh.equipes.find((x) => x.responsavel_id === id);
     const resumo = resumoEquipe({ atividades, efetivo }, e.turno, temProgramada, hhEquipe);
     const t = (e.terminados ?? []).find((x) => x.responsavel_id === id);
-    return { responsavel, atividades, efetivo, resumo: { ...resumo, terminouEm: t ? horaCurta(t.terminou_em) : null } };
+    const i = (e.iniciados ?? []).find((x) => x.responsavel_id === id);
+    return {
+      responsavel,
+      atividades,
+      efetivo,
+      resumo: { ...resumo, terminouEm: t ? horaCurta(t.terminou_em) : null, iniciouEm: i ? horaCurta(i.iniciou_em) : null },
+    };
   });
   const nome = nomeDaEquipe(e.responsaveis);
   const ag = agora ? minutos(agora) : null;

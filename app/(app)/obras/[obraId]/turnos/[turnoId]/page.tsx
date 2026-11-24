@@ -88,6 +88,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
           turnoId={turno.id}
           abertas={paradasAbertas(turno.ocorrencias)}
           terminados={turno.terminados ?? []}
+          iniciados={turno.iniciados ?? []}
           responsaveis={responsaveis}
         />
       )}

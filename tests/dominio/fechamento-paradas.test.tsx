@@ -39,6 +39,13 @@ describe("FaixaParadasVisao", () => {
   it("mudou desde que a página abriu: oferece atualizar", () => {
     expect(renderToStaticMarkup(<FaixaParadasVisao abertas={[]} terminados={[]} nome={nome} mudou />)).toContain("Atualizar números");
   });
+  it("equipes que iniciaram vêm antes das que terminaram", () => {
+    const html = renderToStaticMarkup(
+      <FaixaParadasVisao abertas={[]} iniciados={[{ responsavel_id: "joao", iniciou_em: "07:05:00" }]} terminados={[{ responsavel_id: "ana", terminou_em: "15:20:00" }]} nome={nome} mudou={false} />,
+    );
+    expect(html).toContain("▶ João iniciou às 07:05");
+    expect(html.indexOf("iniciou")).toBeLessThan(html.indexOf("terminou"));
+  });
   it("nada a mostrar", () => {
     expect(renderToStaticMarkup(<FaixaParadasVisao abertas={[]} terminados={[]} nome={nome} mudou={false} />)).toBe("");
   });

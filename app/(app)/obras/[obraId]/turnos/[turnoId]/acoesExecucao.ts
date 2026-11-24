@@ -15,7 +15,7 @@ import { enviarFotoExtraPlanejador, enviarFotoParadaPlanejador } from "@/lib/db/
 import { lancarExtraPlanejador, puxarPlanejador, removerForaDoDiaPlanejador } from "@/lib/db/foraDoDia";
 import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
-import { lerOcorrencias, lerTerminados, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
+import { lerIniciados, lerOcorrencias, lerTerminados, type Iniciado, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import type { PeriodoClima } from "@/lib/dominio/tipos";
@@ -75,14 +75,15 @@ export async function enviarFotoParadaAcao(turnoId: string, ocorrenciaId: string
 }
 
 /** Faixa do turno: só paradas abertas e "terminei" (consultado a cada 30 s, sem recarregar a página). */
-export async function paradasDoTurnoAcao(turnoId: string): Promise<Resultado<{ abertas: Ocorrencia[]; terminados: Terminado[] }>> {
+export async function paradasDoTurnoAcao(turnoId: string): Promise<Resultado<{ abertas: Ocorrencia[]; terminados: Terminado[]; iniciados: Iniciado[] }>> {
   const c = await criarClienteServidor();
-  const [a, t] = await Promise.all([
+  const [a, t, i] = await Promise.all([
     c.from("efetivo_ocorrencias").select("*").eq("turno_id", turnoId).eq("tipo", "parado").is("hora_fim", null),
     c.from("turno_equipes_terminadas").select("responsavel_id, terminou_em").eq("turno_id", turnoId),
+    c.from("turno_equipes_iniciadas").select("responsavel_id, iniciou_em").eq("turno_id", turnoId),
   ]);
-  if (a.error || t.error) return falha("Não foi possível atualizar.");
-  return ok({ abertas: lerOcorrencias(a.data), terminados: lerTerminados(t.data) });
+  if (a.error || t.error || i.error) return falha("Não foi possível atualizar.");
+  return ok({ abertas: lerOcorrencias(a.data), terminados: lerTerminados(t.data), iniciados: lerIniciados(i.data) });
 }
 
 export async function puxarDaSemanaAcao(turnoId: string, programacaoAtividadeId: string, modo: ModoPuxar) {
