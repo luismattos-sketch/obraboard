@@ -85,7 +85,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
 
 ## Prioridade 4 — Demais
 
-10. **Dados do turno compartilhados e permissões no campo** — horário real e clima valem para o turno inteiro, mas
+10. ✅ **No ar desde 2026-11-23** (merge 9f2dbb8) — **Dados do turno compartilhados e permissões no campo** — horário real e clima valem para o turno inteiro, mas
     aparecem editáveis para cada responsável (um sobrescreve o outro; início veio "07:00" sem preencher).
     "Ver tudo" deixa editar as atividades e o efetivo de todos e "Enviar turno"; "Trocar" lança como outra pessoa sem
     confirmação; tela do nome errado já abre editável; não há histórico de quem alterou. [Ana, João, Carlos, Rita]
