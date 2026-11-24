@@ -106,16 +106,17 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });
   try {
     const campo = await ctx.newPage();
-    await campo.goto(`${urlCampo!}?r=todos`);
+    await campo.goto(urlCampo!);
+    // Escolher o nome pede confirmação antes de lançar
+    await campo.getByRole("link", { name: "Ana Souza" }).click();
+    await expect(campo.getByRole("heading", { name: "Você é Ana Souza?" })).toBeVisible();
+    await campo.getByRole("link", { name: "Sou eu" }).click();
+    await expect(campo.getByText("Lançando como")).toBeVisible();
     const campo2 = await ctx.newPage();
-    await campo2.goto(`${urlCampo!}?r=todos`);
+    await campo2.goto(campo.url());
     const salvo = (secao: string) =>
       expect(campo.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
 
-    // Horário
-    await campo.getByLabel("Início").fill("07:00");
-    await campo.getByLabel("Fim").fill("16:00");
-    await salvo("titulo-horario");
 
     // Atividades
     const cards = campo.locator("section[aria-labelledby='titulo-atividades'] > div");
@@ -145,16 +146,23 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await campo.getByLabel("Quantidade").fill("4");
     await salvo("titulo-efetivo");
 
-    // Clima
-    await campo.getByLabel("Manhã").selectOption({ label: "Bom" });
-    await salvo("titulo-clima");
 
-    // Enviar
-    await campo.getByRole("button", { name: "Enviar turno" }).click();
-    await expect(campo.getByText("Turno enviado ✓")).toBeVisible({ timeout: 15_000 });
+    // Terminei de todos (só a Ana) envia o turno sozinho
+    await campo.getByRole("button", { name: "✓ Terminei minha parte" }).click();
+    await expect(campo.getByText(/Você avisou que terminou às \d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
 
     // Planejador vê o resumo
     await page.goto(turnoUrl);
+
+    // Horário e clima: quem preenche é o planejador
+    const salvoP = (secao: string) =>
+      expect(page.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
+    await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
+    await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("16:00");
+    await salvoP("titulo-horario");
+    await page.getByLabel("Manhã").selectOption({ label: "Bom" });
+    await salvoP("titulo-clima");
+    await page.reload();
     const resumo = page.locator("section[aria-labelledby='titulo-resumo']");
     await expect(resumo.getByText("50%")).toBeVisible();
     await expect(resumo.getByText("Homens-hora").locator("xpath=following-sibling::p[1]")).toHaveText("32"); // 4 × (9 h − 1 h de almoço)
@@ -188,7 +196,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await expect(causas.getByText(/Alvenaria/)).toBeVisible();
 
     // Campo após o fechamento
-    await campo.reload();
+    await campo.goto(campo.url());
     await expect(campo.getByText("Turno fechado pelo planejador")).toBeVisible();
 
     // Histórico de RDO: v1 na lista da obra; reabrir → prévia + v1 oficial; fechar de novo → v2

@@ -4,7 +4,7 @@ import { ComoUsarCampo } from "@/components/ajuda/ComoUsarCampo";
 import Link from "next/link";
 import { ERRO_FECHADO, ERRO_LINK, obterTurnoPorToken, opcoesFuncaoCampo, opcoesPuxarCampo, responsaveisDoTurno } from "@/lib/db/campo";
 import { resolverEscolhaCampo } from "@/lib/dominio/quadro";
-import { EscolhaResponsavel } from "./EscolhaResponsavel";
+import { ConfirmarResponsavel, EscolhaResponsavel } from "./EscolhaResponsavel";
 import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
@@ -28,7 +28,7 @@ export default async function PaginaCampo({
   searchParams: Promise<{ [k: string]: string | string[] | undefined }>;
 }) {
   const { token } = await params;
-  const { r } = await searchParams;
+  const { r, confirmar } = await searchParams;
   const turno = await obterTurnoPorToken(token);
 
   if (!turno) {
@@ -69,6 +69,8 @@ export default async function PaginaCampo({
       {turno.status === "planejado" && <Aviso tom="alerta">{ERRO_FECHADO}</Aviso>}
       {escolha.modo === "escolher" ? (
         <EscolhaResponsavel responsaveis={responsaveis} />
+      ) : atual && confirmar === "1" ? (
+        <ConfirmarResponsavel responsavel={atual} />
       ) : (
         <>
           {responsaveis.length > 0 && (

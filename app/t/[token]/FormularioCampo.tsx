@@ -8,7 +8,7 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
-import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
+import { CONDICOES, PERIODOS_CLIMA, type Periodo, type StatusTurno } from "@/lib/dominio/tipos";
 import { agoraDoTurno, paradasAbertas, type Terminado } from "@/lib/dominio/efetivoHH";
 import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import { linkWhatsapp, mensagemTerminou } from "@/lib/dominio/whatsapp";
@@ -30,12 +30,9 @@ import {
   marcarTerminou,
   puxarDaSemana,
   removerForaDoDia,
-  limparClima,
   removerOcorrencia,
-  salvarClima,
   salvarEfetivo,
   salvarExecucao,
-  salvarHorarioReal,
   organizarRelato,
   lancarRelato,
 } from "./acoes";
@@ -44,10 +41,8 @@ import { ProvedorSalvamento, useRastreioSalvamento } from "@/components/execucao
 import { AvisoPendentes } from "@/components/execucao/AvisoPendentes";
 import { useAtualizarAoVoltar } from "@/components/execucao/useAtualizarAoVoltar";
 import { BlocoAtividades, useExecucaoLocal } from "@/components/execucao/BlocoAtividades";
-import { BlocoClima } from "@/components/execucao/BlocoClima";
 import { EfetivoPorEquipe } from "@/components/execucao/EfetivoPorEquipe";
 import { ordenarPorResponsavel, type ResponsavelRef } from "@/lib/dominio/quadro";
-import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 import { ForaDoDia } from "@/components/execucao/ForaDoDia";
 import { SEM_OPCOES, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
 import { mensagemExtra } from "@/lib/dominio/whatsapp";
@@ -91,13 +86,16 @@ export function FormularioCampo({
   opcoesPuxar?: OpcoesPuxar;
   /** "Conte como foi o dia" (null = não mostra): texto guardado da rodada não lançada. */
   contarDia?: { texto: string; relatoId: string | null } | null;
-  /** Responsável escolhido no link (null = "Ver tudo"): sem botão Enviar. */
+  /** Responsável escolhido no link (null = "Ver tudo", só leitura; ou turno sem responsáveis, com Enviar). */
   responsavelId?: string | null;
 }) {
   const agrupar = responsavelId === null && turno.atividades.some((a) => a.responsavel_id !== null);
   const ordenadas = agrupar ? ordenarPorResponsavel(turno.atividades, responsaveis) : turno.atividades;
   const nomeDe = (id: string | null) => (id === null ? null : (responsaveis.find((r) => r.id === id)?.nome ?? "—"));
   const somenteLeitura = turno.status !== "em_campo" && turno.status !== "enviado";
+  // Turno sem nenhum responsável: fluxo antigo (um só no campo, com Enviar). Com responsáveis, "Ver tudo" só lê.
+  const semResponsaveis = responsaveis.length === 0;
+  const leitura = somenteLeitura || (responsavelId === null && !semResponsaveis);
   const { lista: atividades, mudar } = useExecucaoLocal(turno.atividades);
   const [status, setStatus] = useState<StatusTurno>(turno.status);
   const { ocupado: salvando, falhas, tentarTodos, registrar } = useRastreioSalvamento();
@@ -217,12 +215,7 @@ export function FormularioCampo({
     <ProvedorSalvamento registrar={registrar}>
     <div className="flex flex-col gap-8">
       <AvisoPendentes falhas={falhas} tentar={tentarTodos} />
-      <BlocoHorario
-        inicio={horaCurta(turno.hora_inicio_real)}
-        fim={horaCurta(turno.hora_fim_real)}
-        somenteLeitura={somenteLeitura}
-        salvar={(d) => salvarHorarioReal(token, d)}
-      />
+      <DadosDoTurno inicio={horaCurta(turno.hora_inicio_real)} fim={horaCurta(turno.hora_fim_real)} clima={turno.clima} />
       {turno.intervalo && (
         <p className="-mt-6 text-sm text-texto-suave">
           Intervalo: {turno.intervalo.inicio.slice(0, 5)}–{turno.intervalo.fim.slice(0, 5)} (descontado do HH)
@@ -234,7 +227,7 @@ export function FormularioCampo({
         efetivo={turno.efetivo}
         previsto={equipePrevista(turno.atividades)}
         opcoesFuncao={opcoesFuncao}
-        somenteLeitura={somenteLeitura}
+        somenteLeitura={leitura}
         adicionarEquipe={false}
         equipesIniciais={responsavelId !== null ? [responsavelId] : [...new Set(turno.atividades.map((a) => a.responsavel_id))]}
         salvar={(id, l, esperado) => salvarEfetivo(token, l, esperado, id)}
@@ -279,7 +272,7 @@ export function FormularioCampo({
       <BlocoAtividades
         atividades={ordenadas}
         grupoDe={agrupar ? (a) => nomeDe(a.responsavel_id) : undefined}
-        somenteLeitura={somenteLeitura}
+        somenteLeitura={leitura}
         salvar={(id, d, esperado) => salvarExecucao(token, id, d, esperado, responsavelId)}
         onMudar={mudar}
         erros={cobrado ? erros : {}}
@@ -300,9 +293,6 @@ export function FormularioCampo({
           aoConcluir={() => router.refresh()}
         />
       )}
-      <BlocoClima inicial={turno.clima} somenteLeitura={somenteLeitura} salvar={(d) => salvarClima(token, d)}
-        limpar={(p) => limparClima(token, p)}
-      />
 
       {!somenteLeitura && responsavelId !== null && (
         <section className="flex flex-col gap-2 pb-8">
@@ -320,7 +310,7 @@ export function FormularioCampo({
           {erroTerminei && <Aviso tom="perigo">{erroTerminei}</Aviso>}
         </section>
       )}
-      {!somenteLeitura && responsavelId === null && (
+      {!somenteLeitura && responsavelId === null && semResponsaveis && (
         <section className="flex flex-col gap-3 pb-8">
           {cobrado && <CausasPendentes titulo="Antes de enviar, informe a causa em:" pendentes={pendentes} />}
           {abertas.length > 0 && <Aviso tom="alerta">Há parada sem fim; o planejador vai encerrar.</Aviso>}
@@ -335,5 +325,20 @@ export function FormularioCampo({
       )}
     </div>
     </ProvedorSalvamento>
+  );
+}
+
+/** Horário real e clima: valem para o turno todo e quem preenche é o planejador. */
+function DadosDoTurno({ inicio, fim, clima }: { inicio: string; fim: string; clima: Clima[] }) {
+  const partes = PERIODOS_CLIMA.flatMap((p) => {
+    const c = clima.find((x) => x.periodo === p.id);
+    return c ? [`${p.rotulo}: ${CONDICOES[c.condicao]}${c.impediu ? " (impediu o trabalho)" : ""}`] : [];
+  });
+  return (
+    <section aria-label="Dados do turno" className="flex flex-col gap-1 text-sm text-texto">
+      <p>Início real: {inicio || "—"} · Fim real: {fim || "—"}</p>
+      <p>Clima: {partes.length > 0 ? partes.join(" · ") : "não informado"}</p>
+      <p className="text-texto-suave">Horário e clima são preenchidos pelo planejador.</p>
+    </section>
   );
 }
