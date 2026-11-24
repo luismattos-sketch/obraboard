@@ -102,6 +102,7 @@ export default async function PaginaCampo({
               obraNome: turno.obra.nome,
               whatsapp: turno.obra.whatsapp_planejador ?? null,
               terminados: turno.terminados ?? [],
+              iniciados: turno.iniciados ?? [],
               fotos,
               hora_inicio_real: turno.hora_inicio_real,
               hora_fim_real: turno.hora_fim_real,
