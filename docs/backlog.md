@@ -97,7 +97,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     field."); texto de ajuda usa "encarregado" (trocar por "responsável" — inclui o subtítulo da tela Responsáveis da obra:
     "Quem assume as atividades no turno: encarregado, líder, supervisor…"); aviso de sem sinal pequeno; reabrir o link
     pergunta "Quem é você?" de novo; hora "07:00 AM" (conferir em aparelho real). [Ana, Carlos, P1, P2]
-15. **Programação mais rápida** — ~85 cliques/campos para 8 atividades: manter campos entre inclusões e "duplicar";
+15. **Programação mais rápida** — NO AR 2026-11-23. ~85 cliques/campos para 8 atividades: manter campos entre inclusões e "duplicar";
     confirmar antes de "Programar semana" (trava a semana); obra nova deveria apontar para a Programação, não
     "Novo turno"; botão em destaque é "Programar próxima semana" em vez da atual; responsável sem campo de
     especialidade; ícone ☀ parece asterisco. [P1]
