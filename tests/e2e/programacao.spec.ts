@@ -37,7 +37,7 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
 
   // Programação da semana atual
   await page.request.get(`${obraUrl}/programacao`);
-  await page.getByRole("link", { name: "Programação", exact: true }).click();
+  await page.getByRole("complementary", { name: "Menu" }).getByRole("link", { name: "Programação", exact: true }).click();
   await page.waitForURL("**/programacao");
   await page.request.get(`${obraUrl}/programacao/${hoje.iso}`);
   await page.getByLabel("Data da semana").fill(hoje.iso);

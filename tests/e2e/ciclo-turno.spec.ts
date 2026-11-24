@@ -110,7 +110,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // Escolher o nome pede confirmação antes de lançar
     await campo.getByRole("link", { name: "Ana Souza" }).click();
     await expect(campo.getByRole("heading", { name: "Você é Ana Souza?" })).toBeVisible();
-    await campo.getByRole("link", { name: "Sou eu" }).click();
+    await campo.getByRole("button", { name: "Sou eu" }).click();
     await expect(campo.getByText("Lançando como")).toBeVisible();
     const campo2 = await ctx.newPage();
     await campo2.goto(campo.url());
@@ -118,9 +118,9 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
       expect(campo.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
 
     // Iniciar turno: grava a hora do toque e vira o início real
-    await campo.getByRole("button", { name: "▶ Iniciar turno" }).click();
-    await expect(campo.getByText(/✓ Você iniciou às dd:dd/)).toBeVisible({ timeout: 15_000 });
-    await expect(campo.getByText(/Início real: dd:dd/)).toBeVisible({ timeout: 15_000 });
+    await campo.getByRole("region", { name: "Início do turno" }).getByRole("button", { name: "▶ Iniciar turno" }).click();
+    await expect(campo.getByRole("region", { name: "Início do turno" }).getByText(/✓ Você iniciou às \d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
+    await expect(campo.getByText(/Início real: \d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
 
 
     // Atividades
@@ -168,7 +168,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("16:00");
     await salvoP("titulo-horario");
-    await expect(page.getByText(/Última alteração do clima: Ana Souza · dd:dd/)).toBeVisible();
+    await expect(page.getByText(/Última alteração do clima: Ana Souza · \d\d:\d\d/)).toBeVisible();
     await page.reload();
     const resumo = page.locator("section[aria-labelledby='titulo-resumo']");
     await expect(resumo.getByText("50%")).toBeVisible();

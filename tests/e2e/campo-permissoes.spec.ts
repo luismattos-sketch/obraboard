@@ -44,15 +44,15 @@ test("campo: confirma o nome, Ver tudo só leitura, Iniciar turno e clima do res
   await cel.getByRole("link", { name: "Não, voltar" }).click();
   await expect(cel.getByRole("heading", { name: "Quem é você?" })).toBeVisible();
   await cel.getByRole("link", { name: "Ana Souza" }).click();
-  await cel.getByRole("link", { name: "Sou eu" }).click();
+  await cel.getByRole("button", { name: "Sou eu" }).click();
   await expect(cel.getByText("Lançando como")).toBeVisible();
   await expect(cel.getByText("Solda linha 4")).toBeVisible();
 
   // Horário: sem campo digitado; sai do Iniciar turno (o planejador tinha posto 07:10).
   await expect(cel.getByText("Início real: 07:10 · Fim real: —")).toBeVisible();
   await expect(cel.locator("#hora-inicio")).toHaveCount(0);
-  await cel.getByRole("button", { name: "▶ Iniciar turno" }).click();
-  await expect(cel.getByText(/✓ Você iniciou às dd:dd/)).toBeVisible({ timeout: 15_000 });
+  await cel.getByRole("region", { name: "Início do turno" }).getByRole("button", { name: "▶ Iniciar turno" }).click();
+  await expect(cel.getByRole("region", { name: "Início do turno" }).getByText(/✓ Você iniciou às \d\d:\d\d/)).toBeVisible({ timeout: 15_000 });
   await expect(cel.getByText("Início real: 07:10")).toBeHidden({ timeout: 15_000 });
   const iniciou = (await admin.from("turno_equipes_iniciadas").select("responsavel_id").eq("turno_id", turno.id)).data ?? [];
   expect(iniciou.map((x) => x.responsavel_id)).toEqual([ana]);

@@ -57,7 +57,7 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   // Terminei cobra a causa e não registra.
   await cel.getByRole("button", { name: "✓ Terminei minha parte" }).click();
   await expect(cel.getByText("Antes de terminar, informe a causa em:")).toBeVisible();
-  await expect(cel.getByText("Montagem de tubulação (3 de 8 tubo)")).toBeVisible();
+  await expect(cel.getByText("Montagem de tubulação (3 de 8 tubos)")).toBeVisible();
   await expect(cel.getByText(/Você avisou que terminou/)).toHaveCount(0);
   await cel.getByRole("button", { name: "Ir para a causa: Montagem de tubulação" }).click();
   await expect(cel.getByLabel("Causa do não cumprimento")).toBeFocused();
