@@ -4,7 +4,7 @@ import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
-import { lerOcorrencias, lerTerminados, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
+import { lerIniciados, lerOcorrencias, lerTerminados, type Iniciado, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
 import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
@@ -39,7 +39,15 @@ export type Efetivo = {
   created_at?: string;
   lancado_pelo_planejador?: boolean;
 };
-export type Clima = { turno_id: string; periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
+export type Clima = {
+  turno_id: string;
+  periodo: PeriodoClima;
+  condicao: CondicaoClima;
+  impediu: boolean;
+  /** Quem alterou por último (null com lancado_em = planejador). Ausentes em registros antigos. */
+  lancado_por_id?: string | null;
+  lancado_em?: string | null;
+};
 export type TurnoCompleto = Turno & {
   obra: Obra;
   atividades: Atividade[];
@@ -48,6 +56,8 @@ export type TurnoCompleto = Turno & {
   ocorrencias: Ocorrencia[];
   /** Equipes que tocaram "Terminei minha parte" (ausente nas fotos antigas = nenhuma). */
   terminados?: Terminado[];
+  /** Equipes que tocaram "Iniciar turno" (ausente = nenhuma). */
+  iniciados?: Iniciado[];
   /** Nomes dos responsáveis da obra (para descrever empréstimos). */
   responsaveis: { id: string; nome: string }[];
 };
@@ -135,7 +145,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima(turno_id, periodo, condicao, impediu), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima(turno_id, periodo, condicao, impediu, lancado_por_id, lancado_em), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -145,10 +155,11 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     throw new Error(`obterTurnoCompleto: ${error.message}`);
   }
   if (!data) return null;
-  const { efetivo_ocorrencias, turno_equipes_terminadas, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis" | "terminados"> & {
+  const { efetivo_ocorrencias, turno_equipes_terminadas, turno_equipes_iniciadas, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis" | "terminados" | "iniciados"> & {
     atividades: Record<string, unknown>[] | null;
     efetivo_ocorrencias: unknown;
     turno_equipes_terminadas: Terminado[] | null;
+    turno_equipes_iniciadas: Iniciado[] | null;
   };
   const atividades = (t.atividades ?? []).map(normalizarAtividade).sort((a, b) => a.ordem - b.ordem);
   const { data: resp, error: er } = await c.from("responsaveis").select("id, nome").eq("obra_id", t.obra_id);
@@ -163,6 +174,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     clima: t.clima ?? [],
     ocorrencias: lerOcorrencias(efetivo_ocorrencias),
     terminados: lerTerminados(turno_equipes_terminadas),
+    iniciados: lerIniciados(turno_equipes_iniciadas),
     responsaveis: (resp ?? []) as { id: string; nome: string }[],
   };
 }

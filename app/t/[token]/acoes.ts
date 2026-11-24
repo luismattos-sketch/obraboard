@@ -15,6 +15,7 @@ import { criarOcorrenciaCampo, encerrarParadaCampo, removerOcorrenciaCampo } fro
 import { enviarFotoExtraCampo, enviarFotoParadaCampo } from "@/lib/db/fotosParada";
 import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { desfazerTerminouCampo, marcarTerminouCampo } from "@/lib/db/terminados";
+import { desfazerIniciouCampo, marcarIniciouCampo } from "@/lib/db/iniciados";
 import { lancarRelatoCampo, organizarRelatoCampo } from "@/lib/db/relatoCampo";
 import type { DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -54,6 +55,14 @@ export async function encerrarParada(token: string, id: string, horaFim: string,
 
 export async function marcarTerminou(token: string, responsavelId: string, hora: string) {
   return marcarTerminouCampo(token, responsavelId, hora);
+}
+
+export async function marcarInicio(token: string, responsavelId: string, hora: string) {
+  return marcarIniciouCampo(token, responsavelId, hora);
+}
+
+export async function desfazerInicio(token: string, responsavelId: string) {
+  return desfazerIniciouCampo(token, responsavelId);
 }
 
 export async function desfazerTerminou(token: string, responsavelId: string) {

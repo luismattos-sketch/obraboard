@@ -8,6 +8,7 @@ import {
   nomeDaEquipe,
   paradasAbertas,
   type HHEquipe,
+  type Iniciado,
   type Ocorrencia,
   type Recebido,
   type Terminado,
@@ -55,6 +56,8 @@ export type EntradaQuadro = {
   ocorrencias?: Ocorrencia[];
   /** Equipes que tocaram "Terminei minha parte" (ausente = nenhuma). */
   terminados?: Terminado[];
+  /** Equipes que tocaram "Iniciar turno" (ausente = nenhuma; fotos antigas não têm). */
+  iniciados?: Iniciado[];
 };
 export type Visao = "checkin" | "checkout";
 export type ResumoEquipe = {
