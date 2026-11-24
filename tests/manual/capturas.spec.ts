@@ -138,6 +138,10 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   ];
   const { error: erroEfetivo } = await c.from("efetivo").insert(efetivo.map((e) => ({ ...e, turno_id: turnoId })));
   if (erroEfetivo) throw new Error(erroEfetivo.message);
+  // Todas confirmadas menos a primeira: a captura mostra o selo "Confirmada" e o botão "Confirmar".
+  const { data: doTurno } = await c.from("atividades").select("id").eq("turno_id", turnoId).order("ordem");
+  const { error: erroConf } = await c.from("atividades").update({ equipe_confirmada: true }).in("id", (doTurno ?? []).slice(1).map((a) => a.id as string));
+  if (erroConf) throw new Error(erroConf.message);
   await pl.reload();
   await fotografar(pl, "check-in", "efetivo");
   await fotografar(pl, "check-in", "liberar");

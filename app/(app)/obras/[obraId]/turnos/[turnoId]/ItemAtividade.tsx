@@ -12,6 +12,7 @@ import { seloDaAtividade } from "@/lib/dominio/foraDoDia";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
 import {
+  confirmarAtividadeAcao,
   definirResponsavelAcao,
   editarAtividadeAcao,
   moverAtividadeAcao,
@@ -36,7 +37,7 @@ function BotaoAcao({
   direcao?: "cima" | "baixo";
   rotulo: string;
   children: React.ReactNode;
-  variante?: "secundario" | "perigo";
+  variante?: "primario" | "secundario" | "perigo";
   desabilitado?: boolean;
   confirmar?: string;
   aoErro: (mensagem: string) => void;
@@ -74,6 +75,8 @@ export function ItemAtividade({
   semanaStatus = null,
   obraId,
   responsaveis,
+  planejado = false,
+  sugestoesFuncao = [],
 }: {
   atividade: Atividade;
   primeira: boolean;
@@ -81,6 +84,9 @@ export function ItemAtividade({
   semanaStatus?: StatusSemana | null;
   obraId: string;
   responsaveis: ResponsavelRef[];
+  /** Turno ainda não liberado: editar inclui a equipe e há "Confirmar". */
+  planejado?: boolean;
+  sugestoesFuncao?: string[];
 }) {
   const [editando, setEditando] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
@@ -111,6 +117,8 @@ export function ItemAtividade({
             return r;
           }}
           aoCancelar={() => setEditando(false)}
+          editarEquipe={planejado}
+          sugestoesFuncao={sugestoesFuncao}
         />
       </li>
     );
@@ -122,6 +130,7 @@ export function ItemAtividade({
         <p className="flex flex-wrap items-center gap-2 font-medium text-texto">
           {a.descricao}
           {selo && <Selo tom={selo.tom}>{selo.texto}</Selo>}
+          {planejado && a.equipe_confirmada && <Selo tom="sucesso">Confirmada</Selo>}
         </p>
         <p className="text-sm text-texto-suave">
           {a.local ? `${a.local} · ` : ""}
@@ -150,6 +159,11 @@ export function ItemAtividade({
         <BotaoAcao acao={removerAtividadeAcao} atividadeId={a.id} rotulo="Remover" variante="perigo" confirmar="Remover esta atividade?" aoErro={setErroAcao}>
           Remover
         </BotaoAcao>
+        {planejado && !a.equipe_confirmada && (
+          <BotaoAcao acao={confirmarAtividadeAcao} atividadeId={a.id} rotulo="Confirmar" variante="primario" aoErro={setErroAcao}>
+            Confirmar
+          </BotaoAcao>
+        )}
       </div>
     </li>
   );

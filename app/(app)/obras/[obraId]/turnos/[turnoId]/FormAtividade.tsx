@@ -23,15 +23,21 @@ type Props = {
   /** Responsável já escolhido (o último usado na inclusão anterior). */
   responsavelInicial?: string | null;
   aoEscolherResponsavel?: (id: string | null) => void;
+  /** Edição no turno planejado: a equipe da atividade também é editável. */
+  editarEquipe?: boolean;
 };
 
-export function FormAtividade({ turnoId, atividade, acao, aoCancelar, obraId, responsaveis, sugestoesFuncao = [], responsavelInicial = null, aoEscolherResponsavel }: Props) {
+export function FormAtividade({ turnoId, atividade, acao, aoCancelar, obraId, responsaveis, sugestoesFuncao = [], responsavelInicial = null, aoEscolherResponsavel, editarEquipe = false }: Props) {
   const [responsavel, setResponsavelLocal] = useState<string | null>(responsavelInicial);
   const setResponsavel = (id: string | null) => {
     setResponsavelLocal(id);
     aoEscolherResponsavel?.(id);
   };
-  const [equipe, setEquipe] = useState<LinhaEquipe[]>([LINHA_VAZIA]);
+  const [equipe, setEquipe] = useState<LinhaEquipe[]>(
+    atividade && atividade.equipe.length > 0
+      ? atividade.equipe.map((e) => ({ funcao: e.funcao, quantidade: String(e.quantidade) }))
+      : [LINHA_VAZIA],
+  );
   const comEquipe = !atividade && obraId !== undefined && responsaveis !== undefined;
   const [estado, action, pendente] = useActionState<EstadoAcao, FormData>(acao ?? adicionarAtividadeAcao, null);
   const falhou = estado && !estado.ok ? estado : null;
@@ -63,6 +69,12 @@ export function FormAtividade({ turnoId, atividade, acao, aoCancelar, obraId, re
           <MenuResponsavel obraId={obraId} responsaveis={responsaveis} valor={responsavel} aoMudar={setResponsavel} />
           {campos?.responsavel_id && <p className="-mt-2 text-sm text-perigo">{campos.responsavel_id}</p>}
           <EditorEquipe linhas={equipe} aoMudar={setEquipe} sugestoes={sugestoesFuncao} erro={campos?.equipe} />
+        </>
+      )}
+      {atividade && editarEquipe && (
+        <>
+          <input type="hidden" name="com_equipe" value="1" />
+          <EditorEquipe linhas={equipe} aoMudar={setEquipe} sugestoes={sugestoesFuncao} erro={campos?.equipe} legenda="Equipe" />
         </>
       )}
       {erro && <Aviso tom="perigo">{erro}</Aviso>}

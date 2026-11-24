@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { saldoPendente, statusAtividade } from "@/lib/dominio/calculos";
 import { compararTurnos } from "@/lib/dominio/regras";
-import { validarEquipe } from "@/lib/dominio/equipePrevista";
+import { equipePrevista, validarEquipe } from "@/lib/dominio/equipePrevista";
 import type { EquipePrevista } from "@/lib/dominio/programacao";
 import type { AtividadeExec, Causa, TipoAtividade } from "@/lib/dominio/tipos";
 import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
@@ -34,6 +34,8 @@ export type Atividade = AtividadeExec & {
   meta_origem?: string | null;
   /** Equipe prevista: a própria (avulsa/extra) ou, se vazia, a da programação. */
   equipe: EquipePrevista[];
+  /** Turno planejado: o planejador confirmou a atividade e a equipe (entra no efetivo do responsável). */
+  equipe_confirmada?: boolean;
 };
 
 const linhasEquipe = (v: unknown): EquipePrevista[] =>
@@ -50,7 +52,7 @@ export function equipeDaLinha(r: Record<string, unknown>): EquipePrevista[] {
 }
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, puxada, meta_origem, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, puxada, meta_origem, equipe, equipe_confirmada, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 export const ERRO_SEM_RESPONSAVEL = "Escolha o responsável";
@@ -97,6 +99,7 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     puxada: r.puxada === true,
     meta_origem: (r.meta_origem as string | null) ?? null,
     equipe: equipeDaLinha(r),
+    equipe_confirmada: r.equipe_confirmada === true,
   };
 }
 
@@ -178,7 +181,66 @@ export async function adicionarAtividade(
 
 export type CamposEditaveis = Partial<
   Pick<Atividade, "descricao" | "local" | "unidade" | "qtd_planejada" | "qtd_realizada" | "causa" | "observacao">
->;
+> & {
+  /** Equipe prevista (turno planejado). Mudar a equipe desfaz a confirmação: o planejador confirma de novo. */
+  equipe?: unknown;
+};
+
+/**
+ * Turno planejado: o efetivo de cada responsável é a soma das equipes das atividades confirmadas dele.
+ * Depois de liberado, o efetivo é o do campo e não é recalculado aqui.
+ */
+export async function ressincronizarEfetivo(c: SupabaseClient, turnoId: string, responsaveis: (string | null)[]): Promise<Resultado> {
+  const { data: t, error: et } = await c.from("turnos").select("status").eq("id", turnoId).maybeSingle();
+  if (et || !t) {
+    if (et) console.error("ressincronizarEfetivo (turno):", et.message);
+    return falha("Turno não encontrado");
+  }
+  if ((t as { status: string }).status !== "planejado") return ok(undefined);
+  const { data, error } = await c.from("atividades").select(COLUNAS).eq("turno_id", turnoId).eq("equipe_confirmada", true)
+    // Ordem da lista: a grafia da função que fica no efetivo é a da primeira atividade.
+    .order("ordem").order("created_at");
+  if (error) {
+    console.error("ressincronizarEfetivo:", error.message);
+    return falha("Não foi possível atualizar o efetivo.");
+  }
+  const somas = equipePrevista((data ?? []).map(normalizarAtividade));
+  for (const id of new Set(responsaveis)) {
+    let q = c.from("efetivo").select("funcao, quantidade").eq("turno_id", turnoId);
+    q = id === null ? q.is("responsavel_id", null) : q.eq("responsavel_id", id);
+    const { data: atual, error: ea } = await q;
+    if (ea) {
+      console.error("ressincronizarEfetivo (efetivo):", ea.message);
+      return falha("Não foi possível atualizar o efetivo.");
+    }
+    const { error: er } = await c.rpc("substituir_efetivo", {
+      p_turno_id: turnoId,
+      p_responsavel_id: id,
+      p_esperado: atual ?? [],
+      p_linhas: somas.get(id) ?? [],
+      p_pelo_planejador: true,
+    });
+    if (er) {
+      console.error("ressincronizarEfetivo (substituir):", er.message);
+      return erroGravacao(er, "Não foi possível atualizar o efetivo.");
+    }
+  }
+  return ok(undefined);
+}
+
+/** Confirma a atividade e a equipe dela (só no turno planejado): a equipe entra no efetivo do responsável. */
+export async function confirmarAtividade(c: SupabaseClient, atividadeId: string): Promise<Resultado> {
+  const a = await atividadeEditavel(c, atividadeId);
+  if (!a.ok) return a;
+  const { data: t } = await c.from("turnos").select("status").eq("id", a.dados.turno_id).maybeSingle();
+  if ((t as { status: string } | null)?.status !== "planejado") return falha("Só dá para confirmar antes de liberar o turno.");
+  const { error } = await c.from("atividades").update({ equipe_confirmada: true }).eq("id", atividadeId);
+  if (error) {
+    console.error("confirmarAtividade:", error.message);
+    return erroGravacao(error, "Não foi possível confirmar a atividade.");
+  }
+  return ressincronizarEfetivo(c, a.dados.turno_id, [a.dados.responsavel_id]);
+}
 
 /** Troca o responsável da atividade (turno não fechado; o banco confere que é da mesma obra). */
 export async function definirResponsavel(
@@ -194,6 +256,7 @@ export async function definirResponsavel(
     console.error("definirResponsavel:", error.message);
     return erroGravacao(error, "Não foi possível trocar o responsável.");
   }
+  if (a.dados.equipe_confirmada) return ressincronizarEfetivo(c, a.dados.turno_id, [a.dados.responsavel_id, responsavelId]);
   return ok(undefined);
 }
 
@@ -226,6 +289,12 @@ export async function editarAtividade(
     upd.causa = campos.causa;
   }
   if (campos.observacao !== undefined) upd.observacao = vazioParaNull(campos.observacao);
+  if (campos.equipe !== undefined) {
+    const { equipe, erro } = validarEquipe(campos.equipe);
+    if (erro) return falha(erro, { equipe: erro });
+    upd.equipe = equipe;
+    upd.equipe_confirmada = false;
+  }
   const tamanho = validarPlanejamento(campos);
   if (tamanho) return tamanho;
   if (Object.keys(upd).length === 0) return ok(undefined);
@@ -236,6 +305,9 @@ export async function editarAtividade(
   if (error) {
     console.error("editarAtividade:", error.message);
     return erroGravacao(error, "Não foi possível salvar a atividade.");
+  }
+  if (a.dados.equipe_confirmada && upd.equipe_confirmada === false) {
+    return ressincronizarEfetivo(c, a.dados.turno_id, [a.dados.responsavel_id]);
   }
   return ok(undefined);
 }
@@ -248,6 +320,7 @@ export async function removerAtividade(c: SupabaseClient, atividadeId: string): 
     console.error("removerAtividade:", error.message);
     return erroGravacao(error, "Não foi possível remover a atividade.");
   }
+  if (a.dados.equipe_confirmada) return ressincronizarEfetivo(c, a.dados.turno_id, [a.dados.responsavel_id]);
   return ok(undefined);
 }
 

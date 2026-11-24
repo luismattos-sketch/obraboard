@@ -6,6 +6,7 @@ import { fecharTurnoComParadas } from "@/lib/db/ocorrencias";
 import { revalidatePath } from "next/cache";
 import {
   adicionarAtividade,
+  confirmarAtividade,
   ERRO_SEM_RESPONSAVEL,
   definirResponsavel,
   editarAtividade,
@@ -84,8 +85,17 @@ export async function editarAtividadeAcao(_: EstadoAcao, form: FormData): Promis
   const l = lerAtividade(form);
   if (l.erro !== undefined) return l.erro;
   // Apenas campos de planejamento; origem_id e demais nunca vêm do formulário.
-  const r = await editarAtividade(await criarClienteServidor(), texto(form, "atividade_id"), l.dados);
+  // Turno planejado: o formulário de edição traz a equipe (marcador com_equipe).
+  const equipe = form.has("com_equipe") ? { equipe: lerEquipeDoForm(form) } : {};
+  const r = await editarAtividade(await criarClienteServidor(), texto(form, "atividade_id"), { ...l.dados, ...equipe });
   if (!r.ok) return falhaForm(form, r.erro, r.campos);
+  atualizar();
+  return ok(undefined);
+}
+
+export async function confirmarAtividadeAcao(_: EstadoAcao, form: FormData): Promise<EstadoAcao> {
+  const r = await confirmarAtividade(await criarClienteServidor(), texto(form, "atividade_id"));
+  if (!r.ok) return falha(r.erro);
   atualizar();
   return ok(undefined);
 }

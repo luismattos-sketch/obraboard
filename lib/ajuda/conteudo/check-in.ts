@@ -3,7 +3,7 @@ import type { Capitulo } from "../tipos";
 export const checkIn: Capitulo = {
   slug: "check-in",
   titulo: "Abrir o turno e fazer o check-in",
-  resumo: "Abra o turno do dia, confira quem faz o quê e o efetivo, e libere o link para o campo.",
+  resumo: "Abra o turno do dia, confira e confirme quem faz o quê e com que equipe, e libere o link para o campo.",
   noIndice: false,
   passos: [
     {
@@ -31,21 +31,21 @@ export const checkIn: Capitulo = {
       titulo: "Adicione uma atividade",
       texto: [
         "Para uma atividade que não está na programação, use \"Adicionar atividade\": \"Descrição\", \"Local (opcional)\", \"Quantidade\" planejada e \"Unidade\". Escolha o \"Responsável\" (obrigatório) e, se quiser, a \"Equipe prevista\" (função e quantidade).",
-        "O efetivo de cada equipe já vem com a soma das equipes previstas das atividades dela. É só uma sugestão: confira e toque em \"Confirmar equipe\" ou ajuste com − e +. A mesma pessoa pode estar em duas atividades, por isso o número continua ajustável.",
         "Numa semana programada, atividade adicionada à mão aparece com o selo \"Avulsa\" e não entra no PPC.",
       ],
     },
     {
       id: "efetivo",
-      titulo: "Faça o check-in: confira equipes e efetivo",
+      titulo: "Faça o check-in: confirme cada atividade",
       texto: [
         "O check-in é o combinado do turno: quais atividades cada responsável vai fazer e com quantas pessoas. As atividades aparecem agrupadas por responsável; troque no menu \"Responsável\" de cada uma se precisar.",
-        "Em \"Efetivo\", cada equipe tem as linhas de função e quantidade. Use \"+ Adicionar função\" para mais funções e \"+ Adicionar equipe\" para a equipe de outro responsável.",
+        "Precisa mudar a equipe de uma atividade? Clique em \"Editar\": além da descrição e da quantidade, dá para ajustar a \"Equipe\" (função e quantidade de pessoas) e clicar em \"Salvar\".",
+        "Com tudo certo, clique em \"Confirmar\", ao lado de \"Remover\". A atividade ganha o selo \"Confirmada\" e a equipe dela entra no efetivo do responsável: duas atividades do mesmo responsável somam as pessoas. Se editar uma atividade já confirmada, confirme de novo.",
         "O efetivo conta o horário do turno descontando o \"Intervalo de refeição\" para calcular os homens-hora (HH).",
       ],
       captura: {
-        alt: "Turno planejado com atividades agrupadas por responsável e o efetivo de cada equipe",
-        alvo: { papel: "heading", nome: "Efetivo" },
+        alt: "Turno planejado com atividades agrupadas por responsável, o selo Confirmada e o botão Confirmar",
+        alvo: { papel: "button", nome: "Confirmar" },
         dispositivo: "computador",
       },
     },
