@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listarProblemas } from "@/lib/db/problemas";
 import { entradaDoTurno, fotoCheckin, turnosDaObra } from "@/lib/db/quadro";
 import { listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
-import { ppcDoMes } from "@/lib/dominio/ppcMes";
+import { aderencia } from "@/lib/dominio/ritmo";
 import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import { agoraDoTurno } from "@/lib/dominio/efetivoHH";
 import { escolherTurno, montarQuadro, visaoValida, vizinhos } from "@/lib/dominio/quadro";
@@ -32,10 +32,9 @@ export async function prepararQuadro(
   if (!turno) return null;
 
   const visao = visaoValida(umValor(busca.visao), turno.status);
-  const mes = turno.data.slice(0, 7);
   const [entrada, fechados, problemas] = await Promise.all([
     entradaDoTurno(c, turno.id),
-    listarTurnosFechadosParaAnalise(c, obraId, `${mes}-01`),
+    listarTurnosFechadosParaAnalise(c, obraId, "0001-01-01"),
     listarProblemas(c, obraId, true),
   ]);
   if (!entrada) return null;
@@ -43,7 +42,8 @@ export async function prepararQuadro(
   let aviso: string | null = escolha.foraDeHoje
     ? `Sem turno hoje — mostrando ${ddmm(turno.data)} ${ROTULO_PERIODO[turno.periodo].toLowerCase()}`
     : null;
-  let modelo = montarQuadro(entrada, agoraDoTurno(entrada.turno, hojeSaoPaulo(), horaAgoraSaoPaulo()));
+  const agora = agoraDoTurno(entrada.turno, hojeSaoPaulo(), horaAgoraSaoPaulo());
+  let modelo = montarQuadro(entrada, agora);
   if (visao === "checkin" && turno.status !== "planejado") {
     const foto = await fotoCheckin(c, turno.id);
     if (foto) modelo = montarQuadro({ ...foto.dados, turno: { ...foto.dados.turno, status: entrada.turno.status } });
@@ -65,7 +65,8 @@ export async function prepararQuadro(
     props: {
       modelo,
       visao,
-      ppcMes: ppcDoMes(fechados, mes),
+      aderenciaObra: aderencia(fechados),
+      agora,
       problemas,
       hoje: hojeSaoPaulo(),
       aviso,
