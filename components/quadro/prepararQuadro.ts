@@ -2,8 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listarProblemas } from "@/lib/db/problemas";
 import { entradaDoTurno, fotoCheckin, turnosDaObra } from "@/lib/db/quadro";
-import { listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
-import { aderencia } from "@/lib/dominio/ritmo";
+import { aderenciaDaObra } from "@/lib/db/turnos";
 import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import { agoraDoTurno } from "@/lib/dominio/efetivoHH";
 import { escolherTurno, montarQuadro, visaoValida, vizinhos } from "@/lib/dominio/quadro";
@@ -32,9 +31,9 @@ export async function prepararQuadro(
   if (!turno) return null;
 
   const visao = visaoValida(umValor(busca.visao), turno.status);
-  const [entrada, fechados, problemas] = await Promise.all([
+  const [entrada, aderenciaObra, problemas] = await Promise.all([
     entradaDoTurno(c, turno.id),
-    listarTurnosFechadosParaAnalise(c, obraId, "0001-01-01"),
+    aderenciaDaObra(c, obraId),
     listarProblemas(c, obraId, true),
   ]);
   if (!entrada) return null;
@@ -65,7 +64,7 @@ export async function prepararQuadro(
     props: {
       modelo,
       visao,
-      aderenciaObra: aderencia(fechados),
+      aderenciaObra,
       agora,
       problemas,
       hoje: hojeSaoPaulo(),

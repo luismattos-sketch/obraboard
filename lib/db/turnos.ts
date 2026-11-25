@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TurnoAnalise } from "@/lib/dominio/analise";
 import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/eventos";
+import { aderencia } from "@/lib/dominio/ritmo";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
@@ -363,3 +364,37 @@ export async function linkCampo(c: SupabaseClient, turnoId: string): Promise<{ e
   return { existe: !!d?.token_hash, token: d?.token_hash ? (d.token_campo ?? null) : null };
 }
 
+
+const PAGINA_ADERENCIA = 500;
+
+/**
+ * Aderência da obra (turnos fechados desde o início, sem extra/adiantada) para o quadro.
+ * Leitura enxuta (só quantidades) e paginada: o PostgREST corta em 1000 linhas sem avisar.
+ */
+export async function aderenciaDaObra(c: SupabaseClient, obraId: string): Promise<{ concluidas: number; total: number; ppc: number | null }> {
+  type Linha = { atividades: { qtd_planejada: unknown; qtd_realizada: unknown; tipo: unknown }[] | null };
+  const turnos: { atividades: { qtd_planejada: number; qtd_realizada: number | null }[] }[] = [];
+  for (let de = 0; ; de += PAGINA_ADERENCIA) {
+    const { data, error } = await c
+      .from("turnos")
+      .select("atividades(qtd_planejada, qtd_realizada, tipo)")
+      .eq("obra_id", obraId)
+      .eq("status", "fechado")
+      .order("id")
+      .range(de, de + PAGINA_ADERENCIA - 1);
+    if (error) {
+      console.error("aderenciaDaObra:", error.message);
+      throw new Error(`aderenciaDaObra: ${error.message}`);
+    }
+    const linhas = (data ?? []) as unknown as Linha[];
+    for (const t of linhas) {
+      turnos.push({
+        atividades: (t.atividades ?? [])
+          .filter((a) => !a.tipo)
+          .map((a) => ({ qtd_planejada: Number(a.qtd_planejada), qtd_realizada: a.qtd_realizada === null ? null : Number(a.qtd_realizada) })),
+      });
+    }
+    if (linhas.length < PAGINA_ADERENCIA) break;
+  }
+  return aderencia(turnos);
+}
