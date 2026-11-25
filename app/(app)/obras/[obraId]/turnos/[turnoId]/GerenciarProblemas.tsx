@@ -5,13 +5,13 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Campo } from "@/components/ui/Campo";
 import { ROTULO_TIPO_PROBLEMA, vencido, type Problema, type TipoProblema } from "@/lib/dominio/problemas";
-import { apagarProblemaAcao, criarProblemaAcao, definirResolvidoAcao, editarProblemaAcao } from "../acoesQuadro";
+import { apagarProblemaAcao, criarProblemaAcao, definirResolvidoAcao, editarProblemaAcao } from "../../acoesQuadro";
 
 type Edicao = { id: string | null; tipo: TipoProblema; descricao: string; acao: string; responsavel: string; prazo: string };
 const VAZIO: Edicao = { id: null, tipo: "problema", descricao: "", acao: "", responsavel: "", prazo: "" };
 const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
-/** Item 2.5: cadastro de problemas e oportunidades (planejador). O quadro e a TV só mostram os abertos. */
+/** Cadastro de problemas e oportunidades, na página do turno (item 22). O quadro e a TV só exibem os abertos. */
 export function GerenciarProblemas({
   obraId,
   problemas,

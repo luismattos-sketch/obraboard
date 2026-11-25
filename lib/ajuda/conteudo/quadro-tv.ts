@@ -45,7 +45,7 @@ export const quadroTv: Capitulo = {
       id: "problemas",
       titulo: "Problemas e oportunidades",
       texto: [
-        "Na página do quadro do planejador, abaixo do quadro, abra \"Problemas e oportunidades\" e use \"+ Problema ou oportunidade\": descreva, diga a ação, quem cuida (o app sugere os responsáveis da obra, mas pode ser qualquer nome) e o prazo.",
+        "O quadro só exibe. Para cadastrar, abra a página do turno e, no fim dela, abra \"Problemas e oportunidades\" e use \"+ Problema ou oportunidade\": descreva, diga a ação, quem cuida (o app sugere os responsáveis da obra, mas pode ser qualquer nome) e o prazo.",
         "Os itens em aberto aparecem no quadro e na TV, com o prazo vencido em vermelho. Quando resolver, clique em \"Resolvido\": o item sai do quadro e fica riscado na lista, onde dá para \"Reabrir\".",
       ],
       captura: {

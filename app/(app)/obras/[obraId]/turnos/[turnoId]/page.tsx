@@ -26,6 +26,9 @@ import { Resumo } from "./Resumo";
 import { FaixaParadas } from "./FaixaParadas";
 import { RelatosCampo } from "./RelatosCampo";
 import { OQueFalta } from "./OQueFalta";
+import { GerenciarProblemas } from "./GerenciarProblemas";
+import { listarProblemas } from "@/lib/db/problemas";
+import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { faltasDoTurno, fimDoTurno } from "@/lib/dominio/faltas";
 import { relatosDoTurno } from "@/lib/db/relatos";
 import { urlsFotos } from "@/lib/db/fotosParada";
@@ -36,12 +39,13 @@ import { SEM_OPCOES } from "@/lib/dominio/foraDoDia";
 export default async function TurnoPage({ params }: { params: Promise<{ obraId: string; turnoId: string }> }) {
   const { obraId, turnoId } = await params;
   const supabase = await criarClienteServidor();
-  const [turno, versoes, eventos, link, relatos] = await Promise.all([
+  const [turno, versoes, eventos, link, relatos, problemas] = await Promise.all([
     obterTurnoCompleto(supabase, turnoId),
     versoesDoTurno(supabase, turnoId),
     listarEventos(supabase, turnoId).catch(() => null),
     linkCampo(supabase, turnoId).catch(() => ({ existe: false, token: null })),
     relatosDoTurno(supabase, turnoId),
+    listarProblemas(supabase, obraId),
   ]);
   if (!turno || turno.obra_id !== obraId) notFound();
   const semana = await semanaDoTurno(supabase, obraId, turno.data).catch(() => null);
@@ -167,6 +171,12 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
           )}
         </>
       )}
+      <GerenciarProblemas
+        obraId={obraId}
+        problemas={problemas}
+        sugestoes={listaResponsaveis.filter((r) => r.ativo).map((r) => r.nome)}
+        hoje={hojeSaoPaulo()}
+      />
       <HistoricoTurno eventos={eventos} versoes={versoes} checkinHref={temFoto ? `/obras/${obraId}/turnos/${turno.id}/checkin` : null} />
     </div>
   );

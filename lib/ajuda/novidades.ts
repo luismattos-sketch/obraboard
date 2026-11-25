@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-25",
+    texto: "O quadro agora só exibe: \"Problemas e oportunidades\" se cadastram, resolvem e apagam na página do turno.",
+    href: "/ajuda/quadro-tv#problemas",
+  },
+  {
+    data: "2026-11-25",
     texto: "Números mais claros: o turno e o RDO mostram \"Cumprimento do dia\" com o avanço físico ao lado, e a semana mostra o avanço físico junto do PPC, cada um com uma explicação curta (ⓘ).",
     href: "/ajuda/encerrar-semana#numeros-diferentes",
   },
