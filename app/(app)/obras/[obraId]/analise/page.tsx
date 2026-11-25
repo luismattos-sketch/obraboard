@@ -20,6 +20,8 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Selo } from "@/components/ui/Selo";
 import { Barra } from "./Barra";
 import { Expansivel } from "@/components/ui/Expansivel";
+import { PpcDiaADia } from "@/components/analise/PpcDiaADia";
+import { ppcPorDia, type DiaPpc } from "@/lib/dominio/ppcMes";
 
 const OPCOES = [4, 8, 12] as const;
 
@@ -80,13 +82,13 @@ export default async function AnalisePage({
       {turnos === null ? (
         <Aviso tom="perigo">Não foi possível carregar a análise. Tente novamente.</Aviso>
       ) : (
-        <Conteudo analise={analisarObra(turnos, semanas, programadas)} obraId={obra.id} />
+        <Conteudo analise={analisarObra(turnos, semanas, programadas)} obraId={obra.id} dias={ppcPorDia(turnos, semanas[0], hojeSaoPaulo()).dias} />
       )}
     </div>
   );
 }
 
-function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
+function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string; dias: DiaPpc[] }) {
   if (analise.periodo.total === 0) {
     return (
       <Cartao>
@@ -171,6 +173,13 @@ function Conteudo({ analise, obraId }: { analise: Analise; obraId: string }) {
               </Expansivel>
             );
           })}
+        </Cartao>
+      </section>
+
+      <section aria-labelledby="titulo-dia-a-dia" className="flex min-w-0 flex-col gap-2">
+        <Cartao className="flex min-w-0 flex-col gap-2">
+          <h2 id="titulo-dia-a-dia" className="text-lg font-semibold text-primaria">PPC dia a dia</h2>
+          <PpcDiaADia dias={dias} />
         </Cartao>
       </section>
 
