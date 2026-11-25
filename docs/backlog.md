@@ -110,7 +110,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
 16. **Página do turno** — ~5.500–6.250 px, "Fechar turno" no fim; "Confirmar fechamento" clicável com pendências
     (deveria levar direto a cada pendência); botão vermelho "Remover" em cada atividade. [P1, P2]
 17. **RDO** — separar trabalho e efetivo por responsável; marcar o serviço extra; alargar a coluna de observações. [P2]
-18. **Análise** — começa 7 semanas antes da obra existir (começar na 1ª semana da obra); selo "provisório" também no
+18. ✅ **No ar desde 2026-11-25** — **Análise** — começa 7 semanas antes da obra existir (começar na 1ª semana da obra); selo "provisório" também no
     cartão principal; causas sem separar externas/internas. [P2]
 
 19. ✅ **Feito em 2026-11-24** — **Vincular atividades em sequência (débito do dia passa para a noite)** — ex.: "Montagem de Andaime" 12 m

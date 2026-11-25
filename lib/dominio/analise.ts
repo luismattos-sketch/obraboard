@@ -85,9 +85,14 @@ export function inicioDaSemana(data: string): string {
 }
 
 /** N segundas-feiras em ordem crescente; a última é a da semana de `hoje`. */
-export function semanasDaAnalise(hoje: string, n: number): string[] {
+/** N semanas até a de hoje; com `inicioObra`, não volta antes da semana em que a obra começou (mínimo: a atual). */
+export function semanasDaAnalise(hoje: string, n: number, inicioObra?: string | null): string[] {
   const atual = inicioDaSemana(hoje);
-  return Array.from({ length: n }, (_, i) => somarDias(atual, -7 * (n - 1 - i)));
+  const todas = Array.from({ length: n }, (_, i) => somarDias(atual, -7 * (n - 1 - i)));
+  if (!inicioObra) return todas;
+  const primeira = inicioDaSemana(inicioObra);
+  const filtradas = todas.filter((s) => s >= primeira);
+  return filtradas.length > 0 ? filtradas : [atual];
 }
 
 const concluida = (a: AtividadeAnalise) => statusAtividade(a.qtd_planejada, a.qtd_realizada) === "concluida";

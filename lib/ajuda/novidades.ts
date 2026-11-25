@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-25",
+    texto: "Análise (PPC) mais fiel: começa na semana em que a obra começou, mostra \"provisório\" no PPC do período enquanto há semana em andamento e separa as causas em externas, internas e outras.",
+    href: "/ajuda/encerrar-semana#analise",
+  },
+  {
+    data: "2026-11-25",
     texto: "O quadro agora só exibe: \"Problemas e oportunidades\" se cadastram, resolvem e apagam na página do turno.",
     href: "/ajuda/quadro-tv#problemas",
   },

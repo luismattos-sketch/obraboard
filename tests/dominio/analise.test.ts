@@ -54,6 +54,11 @@ describe("semanasDaAnalise", () => {
   it("lista N segundas em ordem crescente terminando na semana de hoje", () => {
     expect(semanasDaAnalise("2026-11-15", 3)).toEqual(SEMANAS);
   });
+  it("começa na semana em que a obra começou (sem semanas antes dela)", () => {
+    expect(semanasDaAnalise("2026-11-15", 3, "2026-11-04")).toEqual(["2026-11-02", "2026-11-09"]);
+    expect(semanasDaAnalise("2026-11-15", 3, "2026-11-20")).toEqual(["2026-11-09"]);
+    expect(semanasDaAnalise("2026-11-15", 3, "2026-10-01")).toEqual(SEMANAS);
+  });
   it("domingo à noite em São Paulo ainda é a semana que começou na segunda anterior", () => {
     expect(semanasDaAnalise(hojeSaoPaulo(new Date("2026-11-16T02:00:00Z")), 1)).toEqual(["2026-11-09"]);
   });
