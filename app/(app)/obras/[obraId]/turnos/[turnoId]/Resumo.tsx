@@ -9,12 +9,16 @@ import { CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE, type StatusAtividad
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
 
-function Metrica({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string }) {
+export const EXPLICA_CUMPRIMENTO =
+  "Conta só a atividade que chegou à meta do dia. A que andou parte entra no avanço físico. Extra e adiantada ficam de fora.";
+
+function Metrica({ rotulo, valor, detalhe, explicacao }: { rotulo: string; valor: string; detalhe?: string; explicacao?: string }) {
   return (
     <Cartao className="flex flex-col gap-1">
       <p className="text-sm text-texto-suave">{rotulo}</p>
       <p className="text-3xl font-semibold text-primaria">{valor}</p>
       {detalhe && <p className="text-xs text-texto-suave">{detalhe}</p>}
+      {explicacao && <p className="text-xs text-texto-suave">ⓘ {explicacao}</p>}
     </Cartao>
   );
 }
@@ -29,9 +33,16 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Metrica
-          rotulo="Cumprimento"
+          rotulo="Cumprimento do dia"
           valor={formatarPercentual(r.cumprimento)}
-          detalhe={[`${r.concluidas} de ${r.total} atividades concluídas`, textoForaDoDia(r)].filter(Boolean).join(" · ")}
+          detalhe={[
+            `${r.concluidas} de ${r.total} atividades concluídas`,
+            r.avanco === null ? null : `avanço físico ${formatarPercentual(r.avanco)}`,
+            textoForaDoDia(r),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          explicacao={EXPLICA_CUMPRIMENTO}
         />
         <Metrica
           rotulo="Homens-hora"

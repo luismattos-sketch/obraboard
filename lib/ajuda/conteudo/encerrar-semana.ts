@@ -35,6 +35,15 @@ export const encerrarSemana: Capitulo = {
       },
     },
     {
+      id: "numeros-diferentes",
+      titulo: "Por que os números mudam de uma tela para outra",
+      texto: [
+        "\"Cumprimento do dia\" (no turno e no RDO) conta a atividade que chegou à meta do dia. \"PPC da semana\" (na programação) conta a atividade que cumpriu a meta da semana inteira. Por isso o mesmo dia pode mostrar 63% no turno e 0% na semana: a atividade cumpriu o dia, mas a semana ainda não acabou.",
+        "Atividade que andou só uma parte não conta como cumprida. Ela aparece no \"avanço físico\", ao lado: 45 de 90 m³ é 50% de avanço físico, mesmo com cumprimento 0%.",
+        "Serviço extra e atividade adiantada ficam fora das duas contas.",
+      ],
+    },
+    {
       id: "ppc-dia-a-dia",
       titulo: "PPC dia a dia",
       texto: [

@@ -3,6 +3,11 @@ import type { Novidade } from "./tipos";
 
 export const NOVIDADES: Novidade[] = [
   {
+    data: "2026-11-25",
+    texto: "Números mais claros: o turno e o RDO mostram \"Cumprimento do dia\" com o avanço físico ao lado, e a semana mostra o avanço físico junto do PPC, cada um com uma explicação curta (ⓘ).",
+    href: "/ajuda/encerrar-semana#numeros-diferentes",
+  },
+  {
     data: "2026-11-24",
     texto: "Resumo do turno no topo do quadro: anel com as concluídas, \"Tempo do turno\" × \"Avanço do dia\" com aviso \"abaixo do ritmo\" e a aderência da obra. O gráfico dia a dia mudou para a Análise (PPC).",
     href: "/ajuda/quadro-tv#resumo-turno",

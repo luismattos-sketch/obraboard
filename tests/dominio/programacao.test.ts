@@ -8,6 +8,7 @@ import {
   gradeSemana,
   normalizarFuncao,
   ppcSemanal,
+  avancoSemanal,
   realizadoAte,
   resumirSemana,
   rotuloTurnosAbertos,
@@ -97,6 +98,11 @@ describe("situação e PPC", () => {
     expect(situacaoAtividade(10, 10)).toBe("cumprida");
     expect(situacaoAtividade(10, 12)).toBe("cumprida");
   });
+  it("avancoSemanal: média do realizado/meta limitada a 100%", () => {
+    expect(avancoSemanal([{ meta: 10, realizado: 10 }, { meta: 90, realizado: 45 }, { meta: 0, realizado: 0 }])).toBeCloseTo(2.5 / 3);
+    expect(avancoSemanal([])).toBeNull();
+  });
+
   it("ppcSemanal conta atividades", () => {
     expect(ppcSemanal([{ meta: 10, realizado: 10 }, { meta: 5, realizado: 1 }])).toEqual({ cumpridas: 1, total: 2, ppc: 0.5 });
     expect(ppcSemanal([])).toEqual({ cumpridas: 0, total: 0, ppc: null });

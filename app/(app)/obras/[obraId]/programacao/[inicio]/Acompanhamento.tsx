@@ -1,6 +1,7 @@
 import { Cartao } from "@/components/ui/Cartao";
 import { formatarData, formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import {
+  avancoSemanal,
   encerramentoLiberado,
   type ResumoSemana,
   type Semana,
@@ -44,9 +45,16 @@ export function Acompanhamento({
         <p className="text-titulo font-semibold text-primaria">
           {formatarPercentual(ppc.ppc)} — {ppc.cumpridas} de {ppc.total}
         </p>
+        {resumo.atividades.length > 0 && (
+          <p className="text-sm text-texto-suave">Avanço físico {formatarPercentual(avancoSemanal(resumo.atividades))}</p>
+        )}
         {resumo.extras.length > 0 && (
           <p className="text-sm text-texto-suave">+{resumo.extras.length} fora da programação</p>
         )}
+        <p className="text-xs text-texto-suave">
+          ⓘ Conta só a atividade que cumpriu a meta da semana inteira. A que andou parte entra no avanço físico; o
+          cumprimento de cada dia aparece no turno.
+        </p>
       </Cartao>
 
       {mudaram.length > 0 && (
