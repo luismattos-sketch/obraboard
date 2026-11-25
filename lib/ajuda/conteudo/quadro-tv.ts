@@ -28,15 +28,16 @@ export const quadroTv: Capitulo = {
       ],
     },
     {
-      id: "ppc-mes",
-      titulo: "PPC do mês e farol",
+      id: "resumo-turno",
+      titulo: "Vamos fechar o dia? O resumo do turno",
       texto: [
-        "No fim do quadro, \"PPC do mês\" tem uma barra por dia do mês do turno mostrado: a parte das atividades programadas que foi concluída naquele dia. Só contam turnos fechados; serviço extra e atividade adiantada não entram.",
-        "A cor é o farol: verde a partir de 80%, amarelo de 60% a 79% e vermelho abaixo de 60%. Ao lado do título, \"Aderência do mês\" soma o mês inteiro até agora, com o farol dela.",
+        "No check-out, o topo do quadro mostra o resumo do turno. O anel diz quantas atividades programadas já foram concluídas, com o farol: verde a partir de 80%, amarelo de 60% a 79% e vermelho abaixo de 60%. Ao lado, quantas estão concluídas, em andamento e não iniciadas.",
+        "As barras comparam o \"Tempo do turno\" (quanto do horário previsto já passou) com o \"Avanço do dia\" (quanto as atividades andaram, em média). Se o avanço fica mais de 15 pontos atrás do tempo, aparece \"⚠ abaixo do ritmo\": é a hora de agir. Com o turno fechado, fica o \"Resultado final\".",
+        "\"Aderência da obra\" soma todos os turnos fechados desde o início. O PPC dia a dia fica na Análise (PPC).",
       ],
       captura: {
-        alt: "Bloco PPC do mês com uma barra colorida por dia e a aderência do mês",
-        alvo: { papel: "region", nome: "PPC do mês" },
+        alt: "Resumo do turno com o anel de concluídas, as barras de tempo e avanço e a aderência da obra",
+        alvo: { papel: "region", nome: "Resumo do turno" },
         dispositivo: "computador",
       },
     },

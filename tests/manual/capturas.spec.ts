@@ -254,6 +254,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(pl, "encerrar-semana", "encerrar");
   await pl.goto(`${obraUrl}/analise`);
   await fotografar(pl, "encerrar-semana", "analise");
+  await fotografar(pl, "encerrar-semana", "ppc-dia-a-dia");
 
   // ---------- Problemas e oportunidades (planejador) ----------
   await pl.goto(`${obraUrl}/quadro?turno=${turnoId}`);
@@ -271,7 +272,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   const tv = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: "pt-BR", timezoneId: "America/Sao_Paulo" });
   await tv.goto(`/q/${o!.quadro_token as string}?turno=${turnoId}`);
   await fotografar(tv, "quadro-tv", "link");
-  await fotografar(tv, "quadro-tv", "ppc-mes");
+  await fotografar(tv, "quadro-tv", "resumo-turno");
   await fotografar(tv, "quadro-tv", "problemas");
 
   // ---------- A Ajuda em si ----------
