@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-24",
+    texto: "Quadro com \"PPC do mês\": uma barra por dia com farol (verde, amarelo, vermelho) e a aderência do mês. E \"Problemas e oportunidades\": anote o problema, a ação, quem cuida e o prazo; os abertos aparecem no quadro e na TV.",
+    href: "/ajuda/quadro-tv#ppc-mes",
+  },
+  {
+    data: "2026-11-24",
     texto: "O que ficou com saldo na semana anterior aparece no rascunho da semana seguinte: \"Trazer\" já preenche a atividade com a meta igual ao saldo. Se a semana anterior ainda lançar depois, o app avisa e oferece \"Atualizar meta\".",
     href: "/ajuda/programar-semana#trazer-semana-anterior",
   },

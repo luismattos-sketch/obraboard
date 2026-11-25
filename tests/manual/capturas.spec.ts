@@ -255,11 +255,24 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await pl.goto(`${obraUrl}/analise`);
   await fotografar(pl, "encerrar-semana", "analise");
 
+  // ---------- Problemas e oportunidades (planejador) ----------
+  await pl.goto(`${obraUrl}/quadro?turno=${turnoId}`);
+  await pl.getByText(/^Problemas e oportunidades \(/).click();
+  await pl.getByRole("button", { name: "+ Problema ou oportunidade" }).click();
+  await pl.getByLabel("Descrição").fill("Andaime da área 3 sem liberação");
+  await pl.getByLabel("Ação (opcional)").fill("Pedir a liberação ao fiscal do cliente");
+  await pl.getByLabel("Responsável (opcional)").fill("Carlos Pereira");
+  await pl.getByLabel("Prazo (opcional)").fill(hoje);
+  await pl.getByRole("button", { name: "Salvar" }).click();
+  await expect(pl.getByRole("region", { name: "Problemas e oportunidades" })).toBeVisible({ timeout: 20_000 });
+
   // ---------- Quadro na TV (público) ----------
   const { data: o } = await c.from("obras").select("quadro_token").eq("id", obraId).single();
   const tv = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: "pt-BR", timezoneId: "America/Sao_Paulo" });
   await tv.goto(`/q/${o!.quadro_token as string}?turno=${turnoId}`);
   await fotografar(tv, "quadro-tv", "link");
+  await fotografar(tv, "quadro-tv", "ppc-mes");
+  await fotografar(tv, "quadro-tv", "problemas");
 
   // ---------- A Ajuda em si ----------
   await pl.goto("/ajuda/nao-existe");

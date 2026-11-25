@@ -1,6 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listarProblemas } from "@/lib/db/problemas";
 import { entradaDoTurno, fotoCheckin, turnosDaObra } from "@/lib/db/quadro";
+import { listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
+import { ppcDoMes } from "@/lib/dominio/ppcMes";
 import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import { agoraDoTurno } from "@/lib/dominio/efetivoHH";
 import { escolherTurno, montarQuadro, visaoValida, vizinhos } from "@/lib/dominio/quadro";
@@ -29,7 +32,12 @@ export async function prepararQuadro(
   if (!turno) return null;
 
   const visao = visaoValida(umValor(busca.visao), turno.status);
-  const entrada = await entradaDoTurno(c, turno.id);
+  const mes = turno.data.slice(0, 7);
+  const [entrada, fechados, problemas] = await Promise.all([
+    entradaDoTurno(c, turno.id),
+    listarTurnosFechadosParaAnalise(c, obraId, `${mes}-01`),
+    listarProblemas(c, obraId, true),
+  ]);
   if (!entrada) return null;
 
   let aviso: string | null = escolha.foraDeHoje
@@ -57,6 +65,9 @@ export async function prepararQuadro(
     props: {
       modelo,
       visao,
+      ppcMes: ppcDoMes(fechados, mes),
+      problemas,
+      hoje: hojeSaoPaulo(),
       aviso,
       navegacao: {
         anterior: viz.anterior ? href(viz.anterior, null) : null,
