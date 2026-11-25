@@ -23,6 +23,20 @@ export function percentualCumprimento(
   return concluidas / atividades.length;
 }
 
+/** Fração realizada/meta de uma atividade, limitada a 0..1 (meta 0 conta como feita). */
+export function fracaoFeita(meta: number, realizado: number | null): number {
+  return meta > 0 ? Math.min(1, Math.max(0, (realizado ?? 0) / meta)) : 1;
+}
+
+/** Avanço físico (0..1): média do quanto cada atividade do dia andou, sem extra/adiantada; null sem atividades. */
+export function avancoFisico(
+  todas: Pick<AtividadeExec, "qtd_planejada" | "qtd_realizada" | "tipo">[],
+): number | null {
+  const atividades = todas.filter(contaNoDia);
+  if (atividades.length === 0) return null;
+  return atividades.reduce((s, a) => s + fracaoFeita(a.qtd_planejada, a.qtd_realizada), 0) / atividades.length;
+}
+
 export function minutos(hhmm: string): number | null {
   const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(hhmm.trim());
   if (!m) return null;

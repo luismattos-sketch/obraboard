@@ -73,9 +73,17 @@ export function ResumoBloco({ resumo, turno }: { resumo: ResumoTurno; turno: Tur
       <Text style={s.secao}>Resumo</Text>
       <View style={s.metricas}>
         <View style={s.metrica}>
-          <Text style={s.rotulo}>Cumprimento</Text>
+          <Text style={s.rotulo}>Cumprimento do dia</Text>
           <Text style={s.metricaValor}>{formatarPercentual(resumo.cumprimento)}</Text>
-          <Text style={s.suave}>{[`${resumo.concluidas} de ${resumo.total} atividades concluídas`, textoForaDoDia(resumo)].filter(Boolean).join(" · ")}</Text>
+          <Text style={s.suave}>
+            {[
+              `${resumo.concluidas} de ${resumo.total} atividades concluídas`,
+              resumo.avanco === null ? null : `avanço físico ${formatarPercentual(resumo.avanco)}`,
+              textoForaDoDia(resumo),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
         </View>
         <View style={s.metrica}>
           <Text style={s.rotulo}>Homens-hora (HH)</Text>

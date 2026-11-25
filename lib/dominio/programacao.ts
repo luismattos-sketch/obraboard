@@ -1,3 +1,4 @@
+import { fracaoFeita } from "./calculos";
 import { calcularHH, intervaloDoTurno, janelaDoTurno, type Ocorrencia } from "./efetivoHH";
 import { pessoas } from "./plural";
 import { formatarData } from "./formato";
@@ -207,6 +208,12 @@ export function sugestaoDoDia(
 export function situacaoAtividade(meta: number, realizado: number): Situacao {
   if (realizado >= meta) return "cumprida";
   return realizado > 0 ? "em_andamento" : "sem_execucao";
+}
+
+/** Avanço físico da semana (0..1): média de realizado/meta, limitada a 100%; null sem atividades. */
+export function avancoSemanal(itens: { meta: number; realizado: number }[]): number | null {
+  if (itens.length === 0) return null;
+  return itens.reduce((s, i) => s + fracaoFeita(i.meta, i.realizado), 0) / itens.length;
 }
 
 export function ppcSemanal(itens: { meta: number; realizado: number }[]): PpcSemanal {

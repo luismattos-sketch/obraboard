@@ -1,4 +1,4 @@
-import { contaNoDia, minutos, statusAtividade } from "./calculos";
+import { avancoFisico, contaNoDia, minutos, statusAtividade } from "./calculos";
 import type { StatusTurno, TipoAtividade } from "./tipos";
 
 /** Resumo do turno no quadro: "vamos fechar o dia?" (anel de cumprimento + ritmo tempo × avanço). */
@@ -44,10 +44,7 @@ export function resumoDoTurno(
   const concluidas = status.filter((s) => s === "concluida").length;
   const andamento = status.filter((s) => s === "parcial").length;
   const fechado = turno.status === "fechado";
-  const avanco =
-    total === 0
-      ? null
-      : atividades.reduce((s, x) => s + (x.qtd_planejada > 0 ? Math.min(1, Math.max(0, (x.qtd_realizada ?? 0) / x.qtd_planejada)) : 1), 0) / total;
+  const avanco = avancoFisico(atividades);
   const tempo = fechado ? null : fracaoTempo(turno.hora_inicio_prevista, turno.hora_fim_prevista, agora);
   return {
     concluidas,

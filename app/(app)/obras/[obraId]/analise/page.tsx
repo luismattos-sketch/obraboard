@@ -109,6 +109,7 @@ function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string;
           <p className="text-xs text-texto-suave">
             {analise.periodo.concluidas} de {analise.periodo.total} atividades
           </p>
+          <p className="text-xs text-texto-suave">ⓘ Soma dos turnos fechados: conta a atividade que chegou à meta do dia.</p>
         </Cartao>
         <Cartao className="flex flex-col gap-1">
           <p className="text-sm text-texto-suave">Semana atual</p>

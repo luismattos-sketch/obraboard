@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   statusAtividade,
   percentualCumprimento,
+  avancoFisico,
   horasEntre,
   hhTurno,
   saldoPendente,
@@ -99,5 +100,20 @@ describe("cumprimento fora do dia", () => {
   });
   it("só extras: sem cumprimento", () => {
     expect(percentualCumprimento([{ qtd_planejada: 12, qtd_realizada: 12, tipo: "extra" }])).toBeNull();
+  });
+});
+
+describe("avancoFisico", () => {
+  it("média do quanto cada atividade do dia andou (limitada a 100%), sem extra", () => {
+    expect(
+      avancoFisico([
+        { qtd_planejada: 90, qtd_realizada: 45 },
+        { qtd_planejada: 10, qtd_realizada: 20 },
+        { qtd_planejada: 5, qtd_realizada: null },
+        { qtd_planejada: 8, qtd_realizada: 8, tipo: "extra" },
+      ]),
+    ).toBeCloseTo(0.5);
+    expect(avancoFisico([{ qtd_planejada: 0, qtd_realizada: null }])).toBe(1);
+    expect(avancoFisico([])).toBeNull();
   });
 });

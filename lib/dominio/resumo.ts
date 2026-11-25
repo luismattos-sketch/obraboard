@@ -1,11 +1,13 @@
 import type { Atividade } from "@/lib/db/atividades";
 import type { TurnoCompleto } from "@/lib/db/turnos";
-import { percentualCumprimento, statusAtividade } from "./calculos";
+import { avancoFisico, percentualCumprimento, statusAtividade } from "./calculos";
 import { calcularHH, intervaloDoTurno, janelaDoTurno, type HHEquipe } from "./efetivoHH";
 import { CAUSAS, type Causa, type StatusAtividade } from "./tipos";
 
 export type ResumoTurno = {
   cumprimento: number | null;
+  /** Avanço físico (média de realizado/meta), sem extra/adiantada. */
+  avanco: number | null;
   /** HH total (produtivo + parado). */
   hh: number | null;
   hhParado: number | null;
@@ -57,6 +59,7 @@ export function resumirTurno(t: TurnoCompleto): ResumoTurno {
 
   return {
     cumprimento: percentualCumprimento(t.atividades),
+    avanco: avancoFisico(t.atividades),
     hh: hh.hh,
     hhParado: hh.hhParado,
     hhParadoPorCausa: hh.hhParadoPorCausa,
