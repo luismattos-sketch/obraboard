@@ -34,6 +34,9 @@ export type AtividadeProgramada = {
   equipe: EquipePrevista[];
   /** Item 19: continua a atividade `continua_de` (sequência de turnos). Ausente em fotos antigas. */
   continua_de?: string | null;
+  /** Item 1.6: trazida da atividade `trazida_de` da semana anterior, com o saldo de então. */
+  trazida_de?: string | null;
+  saldo_trazido?: number | null;
 };
 
 export type ExecucaoLigada = {

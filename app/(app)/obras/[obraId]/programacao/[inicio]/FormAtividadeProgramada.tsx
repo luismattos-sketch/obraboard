@@ -21,6 +21,7 @@ export function FormAtividadeProgramada({
   atividade,
   modelo,
   continuaDe,
+  trazidaDe,
   sugestoesFuncao,
   aoConcluir,
 }: {
@@ -32,6 +33,8 @@ export function FormAtividadeProgramada({
   modelo?: AtividadeProgramada;
   /** "Continuar no próximo turno": a nova atividade fica vinculada a esta (o saldo segue). */
   continuaDe?: AtividadeProgramada;
+  /** "Trazer" da semana anterior (item 1.6): guarda a origem e o saldo de agora. */
+  trazidaDe?: { id: string; saldo: number };
   /** Funções já usadas na obra + padrão (evita duas grafias da mesma função). */
   sugestoesFuncao: string[];
   /** Chamado após salvar (edição) ou ao cancelar. */
@@ -64,8 +67,8 @@ export function FormAtividadeProgramada({
 
   // Edição e próximo turno da sequência: fecha o formulário ao salvar.
   useEffect(() => {
-    if (estado?.ok && (atividade || continuaDe)) aoConcluir?.();
-  }, [estado, atividade, continuaDe, aoConcluir]);
+    if (estado?.ok && (atividade || continuaDe || trazidaDe)) aoConcluir?.();
+  }, [estado, atividade, continuaDe, trazidaDe, aoConcluir]);
 
   const falhou = estado && !estado.ok ? estado : null;
   const campos = falhou?.campos;
@@ -86,6 +89,15 @@ export function FormAtividadeProgramada({
           <Aviso tom="info">
             Continua de “{continuaDe.descricao}” ({continuaDe.periodo === "diurno" ? "diurno" : "noturno"}). O que faltar ou sobrar
             no turno anterior passa para este. Troque o responsável e a equipe se for outra turma.
+          </Aviso>
+        </>
+      )}
+      {trazidaDe && (
+        <>
+          <input type="hidden" name="trazida_de" value={trazidaDe.id} />
+          <input type="hidden" name="saldo_trazido" value={String(trazidaDe.saldo).replace(".", ",")} />
+          <Aviso tom="info">
+            Trazida da semana anterior com o saldo de agora. Ajuste os dias, o responsável e a meta se precisar.
           </Aviso>
         </>
       )}

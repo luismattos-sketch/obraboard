@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-24",
+    texto: "O que ficou com saldo na semana anterior aparece no rascunho da semana seguinte: \"Trazer\" já preenche a atividade com a meta igual ao saldo. Se a semana anterior ainda lançar depois, o app avisa e oferece \"Atualizar meta\".",
+    href: "/ajuda/programar-semana#trazer-semana-anterior",
+  },
+  {
+    data: "2026-11-24",
     texto: "Check-in mais simples: a equipe se ajusta no \"Editar\" de cada atividade e o botão \"Confirmar\" confirma a atividade e a equipe dela, que já entra no efetivo do responsável. Saiu o quadro \"Efetivo\" separado.",
     href: "/ajuda/check-in#efetivo",
   },

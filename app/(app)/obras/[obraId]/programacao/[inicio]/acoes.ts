@@ -3,6 +3,7 @@
 import { lerEquipeDoForm } from "@/lib/dominio/equipePrevista";
 import { revalidatePath } from "next/cache";
 import {
+  atualizarMetaTrazida,
   encerrarSemana,
   programarSemana,
   reabrirSemana,
@@ -42,6 +43,8 @@ export async function salvarAtividadeProgramadaAcao(_: EstadoSemana, form: FormD
       equipe,
       responsavel_id: texto(form, "responsavel_id") || null,
       continua_de: id ? null : texto(form, "continua_de") || null,
+      trazida_de: id ? null : texto(form, "trazida_de") || null,
+      saldo_trazido: id || !texto(form, "trazida_de") ? null : (parseNumero(texto(form, "saldo_trazido")) ?? null),
     },
     id,
   );
@@ -55,6 +58,13 @@ export async function removerAtividadeProgramadaAcao(_: EstadoSemana, form: Form
   if (!r.ok) return falha(r.erro);
   atualizar();
   return ok(undefined);
+}
+
+export async function atualizarMetaTrazidaAcao(_: EstadoSemana, form: FormData): Promise<EstadoSemana> {
+  const r = await atualizarMetaTrazida(await criarClienteServidor(), texto(form, "atividade_id"));
+  if (!r.ok) return { ...falha(r.erro), envio: Date.now() };
+  atualizar();
+  return { ...ok(undefined), envio: Date.now() };
 }
 
 export async function programarSemanaAcao(_: EstadoSemana, form: FormData): Promise<EstadoSemana> {

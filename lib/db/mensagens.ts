@@ -34,7 +34,9 @@ export type ErroBanco =
   | "responsavel_invalido"
   | "ocorrencia_invalida"
   | "extra_sem_quantidade"
-  | "sequencia_invalida";
+  | "sequencia_invalida"
+  | "trazida_invalida"
+  | "meta_trazida_travada";
 
 const CONHECIDOS: readonly ErroBanco[] = [
   "turno_fechado",
@@ -52,6 +54,8 @@ const CONHECIDOS: readonly ErroBanco[] = [
   "ocorrencia_invalida",
   "extra_sem_quantidade",
   "sequencia_invalida",
+  "trazida_invalida",
+  "meta_trazida_travada",
 ];
 
 export function erroBanco(error: { code?: string; message?: string } | null | undefined): ErroBanco | null {
@@ -71,7 +75,12 @@ export const MENSAGENS_PROGRAMACAO: Partial<Record<ErroBanco, string>> = {
   motivo_obrigatorio: ERRO_MOTIVO,
   motivo_repetido: ERRO_MOTIVO_REPETIDO,
   sequencia_invalida: "Só dá para continuar uma atividade da mesma semana.",
+  trazida_invalida: "Só dá para trazer atividade da semana anterior desta obra.",
+  meta_trazida_travada: "Esta atividade já está num turno. Reabra a semana para mudar a meta.",
 };
+
+/** Item 1.6: a mesma atividade da semana anterior trazida duas vezes (índice único). */
+export const ERRO_TRAZIDA_REPETIDA = "Esta atividade já foi trazida para esta semana.";
 
 export function mensagemProgramacao(error: { code?: string; message?: string } | null | undefined, padrao: string): string {
   const codigo = erroBanco(error);
