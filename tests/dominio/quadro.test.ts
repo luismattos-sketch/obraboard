@@ -4,6 +4,7 @@ import {
   escolherTurno,
   montarQuadro,
   ordenarPorResponsavel,
+  ordenarPorAjuda,
   resolverEscolhaCampo,
   resumoEquipe,
   textoSemResponsavel,
@@ -78,7 +79,7 @@ describe("resumoEquipe", () => {
       atividades: [at("j", 2, 1), at("j", 2, null), at("j", 1, 1, { programada: false })],
       efetivo: [{ funcao: "Mecânico", quantidade: 2, responsavel_id: "j" }, { funcao: "Soldador", quantidade: 1, responsavel_id: "j" }],
     }));
-    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, adiantadas: 0, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], avisos: [], terminouEm: null, iniciouEm: null });
+    expect(m.faixas[0].resumo).toEqual({ concluidas: 0, total: 2, percentual: 0, extras: 1, adiantadas: 0, base: "programadas", pessoas: 3, hh: 26.4, hhParado: 0, recebidos: [], cedidos: [], avisos: [], terminouEm: null, iniciouEm: null });
   });
 
   it("empréstimo: horas vão para a equipe destino, pessoas ficam na origem", () => {
@@ -94,6 +95,8 @@ describe("resumoEquipe", () => {
     expect(ana.resumo.recebidos).toHaveLength(1);
     const joao = m.faixas.find((f) => f.responsavel?.id === "j")!;
     expect(joao.resumo).toMatchObject({ pessoas: 6, hh: 46 });
+    expect(joao.resumo.cedidos).toEqual([{ emprestimo_id: ana.resumo.recebidos[0].emprestimo_id, para: "a", funcao: "Montador", quantidade: 2, inicio: "13:00", fim: ana.resumo.recebidos[0].fim }]);
+    expect(ana.resumo.cedidos).toEqual([]);
   });
 
   it("foto antiga sem ocorrências nem intervalo", () => {
@@ -164,6 +167,12 @@ describe("visão", () => {
     expect(visaoValida("xyz", "fechado")).toBe("checkout");
     expect(visaoValida("checkin", "fechado")).toBe("checkin");
   });
+  it("em campo sem nada lançado abre no check-in (de manhã não mostra 0% vermelho)", () => {
+    expect(visaoValida(undefined, "em_campo", false)).toBe("checkin");
+    expect(visaoValida(undefined, "em_campo", true)).toBe("checkout");
+    expect(visaoValida(undefined, "enviado", false)).toBe("checkout");
+    expect(visaoValida("checkout", "em_campo", false)).toBe("checkout");
+  });
 });
 
 describe("resolverEscolhaCampo", () => {
@@ -230,6 +239,25 @@ describe("quadro: paradas abertas e equipes que terminaram", () => {
   });
   it("sem paradas abertas: lista vazia", () => {
     expect(montarQuadro(entrada({})).paradas).toEqual([]);
+  });
+});
+
+describe("ordenarPorAjuda (check-out)", () => {
+  it("parada aberta primeiro, depois menor % concluído; sem responsável por último", () => {
+    const e = entrada({
+      responsaveis: [
+        { id: "j", nome: "João", ativo: true },
+        { id: "a", nome: "Ana", ativo: true },
+        { id: "c", nome: "Carlos", ativo: true },
+      ],
+      atividades: [at("a", 1, 1), at("j", 2, 0), at("c", 1, 1), at("c", 1, 0), at(null, 1, 0)],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "a", funcao: "Mecânico", tipo: "parado", quantidade: 1, hora_inicio: "10:00", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "material", created_at: "1" },
+      ],
+    });
+    const m = montarQuadro(e);
+    expect(ordenarPorAjuda(m).map((f) => f.responsavel?.nome ?? null)).toEqual(["Ana", "João", "Carlos", null]);
   });
 });
 

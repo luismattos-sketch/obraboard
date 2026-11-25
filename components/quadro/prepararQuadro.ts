@@ -30,13 +30,13 @@ export async function prepararQuadro(
   const turno = escolha.turno;
   if (!turno) return null;
 
-  const visao = visaoValida(umValor(busca.visao), turno.status);
   const [entrada, aderenciaObra, problemas] = await Promise.all([
     entradaDoTurno(c, turno.id),
     aderenciaDaObra(c, obraId),
     listarProblemas(c, obraId, true),
   ]);
   if (!entrada) return null;
+  const visao = visaoValida(umValor(busca.visao), turno.status, entrada.atividades.some((a) => a.qtd_realizada !== null));
 
   let aviso: string | null = escolha.foraDeHoje
     ? `Sem turno hoje — mostrando ${ddmm(turno.data)} ${ROTULO_PERIODO[turno.periodo].toLowerCase()}`

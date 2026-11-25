@@ -2,8 +2,8 @@ import Link from "next/link";
 import { pessoas } from "@/lib/dominio/plural";
 import { textoEquipe } from "@/lib/dominio/equipePrevista";
 import { formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
-import type { FaixaQuadro, ModeloQuadro, ResumoEquipe, Visao } from "@/lib/dominio/quadro";
-import { CAUSAS, type StatusAtividade } from "@/lib/dominio/tipos";
+import { ordenarPorAjuda, type FaixaQuadro, type ModeloQuadro, type ResumoEquipe, type Visao } from "@/lib/dominio/quadro";
+import { CAUSAS, GRUPO_CAUSA, type StatusAtividade } from "@/lib/dominio/tipos";
 import { nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 import { resumoDoTurno } from "@/lib/dominio/ritmo";
 import type { Problema } from "@/lib/dominio/problemas";
@@ -48,11 +48,14 @@ function textoResumo(r: ResumoEquipe): string {
 }
 
 function Recebidos({ r, nome }: { r: ResumoEquipe; nome: (id: string | null) => string }) {
-  if (r.recebidos.length === 0) return null;
+  if (r.recebidos.length === 0 && r.cedidos.length === 0) return null;
   return (
     <ul className="text-sm text-operacional xl:text-base">
       {r.recebidos.map((x) => (
         <li key={x.emprestimo_id}>{`+${pessoas(x.quantidade, x.funcao)} (de ${nome(x.de)}, ${x.inicio}–${x.fim})`}</li>
+      ))}
+      {r.cedidos.map((x) => (
+        <li key={`c-${x.emprestimo_id}`} className="text-texto-suave">{`−${pessoas(x.quantidade, x.funcao)} (para ${nome(x.para)}, ${x.inicio}–${x.fim})`}</li>
       ))}
     </ul>
   );
@@ -83,7 +86,7 @@ function Faixa({
         <h3 className="text-base font-bold text-primaria xl:text-xl">{nome}</h3>
         {visao === "checkin" ? (
           <>
-            {faixa.efetivo.length === 0 && r.recebidos.length === 0 ? (
+            {faixa.efetivo.length === 0 && r.recebidos.length === 0 && r.cedidos.length === 0 ? (
               <p className="text-sm text-texto-suave">Efetivo não informado</p>
             ) : (
               <ul className="text-sm text-operacional xl:text-base">
@@ -136,6 +139,9 @@ function Faixa({
                     {textoEquipe(a.equipe) && <span className="block text-xs text-texto-suave xl:text-sm">{textoEquipe(a.equipe)}</span>}
                     {a.meta_origem && <span className="block text-xs text-texto-suave xl:text-sm">{`Meta ${a.meta_origem}`}</span>}
                   </span>
+                  {visao === "checkout" && (a.qtd_realizada ?? 0) > a.qtd_planejada && (
+                    <span className="shrink-0 rounded-full bg-sucesso px-2 text-xs font-bold text-white xl:text-sm">▲ acima da meta</span>
+                  )}
                   <span className="shrink-0 font-semibold">
                     {visao === "checkin"
                       ? `${numeroBR(a.qtd_planejada)} ${un}`
@@ -145,11 +151,14 @@ function Faixa({
                 {visao === "checkout" && (
                   <>
                     <div className="mt-1 h-1.5 overflow-hidden rounded bg-borda xl:h-2" aria-hidden="true">
-                      <div className={`h-full ${COR_BARRA[a.situacao]}`} style={{ width: `${Math.max(pct * 100, 3)}%` }} />
+                      <div className={`h-full ${COR_BARRA[a.situacao]}`} style={{ width: `${pct > 0 ? Math.max(pct * 100, 3) : 0}%` }} />
                     </div>
                     {a.causa && a.situacao !== "concluida" && (
-                      <p className="mt-0.5 text-xs text-perigo xl:text-sm">{`Causa: ${CAUSAS[a.causa]}`}</p>
+                      <p className={`mt-0.5 text-sm font-semibold xl:text-lg ${GRUPO_CAUSA[a.causa] === "externa" ? "text-alerta-escura" : "text-perigo"}`}>
+                        {`${GRUPO_CAUSA[a.causa] === "externa" ? "Causa externa" : GRUPO_CAUSA[a.causa] === "interna" ? "Causa interna" : "Causa"}: ${CAUSAS[a.causa]}`}
+                      </p>
                     )}
+                    {a.observacao && <p className="mt-0.5 text-xs text-texto-suave xl:text-base">{a.observacao}</p>}
                   </>
                 )}
               </li>
@@ -183,6 +192,7 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
             {seloEtapa}
           </span>
           {fechado && <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-primaria xl:text-sm">Turno fechado</span>}
+          {!fechado && agora && <span className="text-xs opacity-90 xl:text-sm">{`Atualizado ${agora}`}</span>}
         </div>
       </header>
 
@@ -230,7 +240,7 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
       {faixas.length === 0 ? (
         <p className="rounded-cartao bg-superficie p-4 text-texto-suave">Nenhuma atividade neste turno.</p>
       ) : (
-        faixas.map((f) => (
+        (visao === "checkout" ? ordenarPorAjuda(modelo) : faixas).map((f) => (
           <Faixa key={f.responsavel?.id ?? "sem"} faixa={f} visao={visao} mostrarExtra={mostrarExtra} unidadeVazia="un" nome={nomeEquipe} />
         ))
       )}

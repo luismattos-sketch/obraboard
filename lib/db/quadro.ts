@@ -23,7 +23,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
   const { data, error } = await c
     .from("turnos")
     .select(
-      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, programacao_atividade_id, responsavel_id, tipo, meta_origem, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)",
+      "id, obra_id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, obra:obras(id, nome), atividades(id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, programacao_atividade_id, responsavel_id, tipo, meta_origem, equipe, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)",
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -56,6 +56,7 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     tipo: (a.tipo as TipoAtividade | null) ?? null,
     equipe: equipeDaLinha(a),
     meta_origem: (a.meta_origem as string | null) ?? null,
+    observacao: (a.observacao as string | null) ?? null,
   }));
   const efetivo: EntradaQuadro["efetivo"] = [...(t.efetivo ?? [])]
     .sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)) || String(x.id).localeCompare(String(y.id)))

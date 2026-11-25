@@ -52,6 +52,8 @@ export type EntradaQuadro = {
     equipe?: { funcao: string; quantidade: number }[];
     /** Meta herdada da sequência (item 19), ex.: "inclui 4 m do turno do dia (Luis)". */
     meta_origem?: string | null;
+    /** Observação do lançamento; ausente em fotos antigas. */
+    observacao?: string | null;
   }[];
   efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[];
   /** Ausente na foto do check-in antiga (= nenhuma). */
@@ -62,6 +64,7 @@ export type EntradaQuadro = {
   iniciados?: Iniciado[];
 };
 export type Visao = "checkin" | "checkout";
+export type Cedido = Omit<Recebido, "de"> & { para: string | null };
 export type ResumoEquipe = {
   concluidas: number;
   total: number;
@@ -75,6 +78,8 @@ export type ResumoEquipe = {
   hhParado: number | null;
   /** Pessoas emprestadas por outras equipes (não entram em `pessoas`). */
   recebidos: Recebido[];
+  /** Pessoas emprestadas a outras equipes (o outro lado de `recebidos`). */
+  cedidos: Cedido[];
   avisos: string[];
   /** "HH:MM" em que a equipe avisou que terminou. */
   terminouEm: string | null;
@@ -133,6 +138,7 @@ export function resumoEquipe(
     hh: total === null || (total === 0 && !h?.recebidos.length && faixa.efetivo.length === 0) ? null : umaCasa(total),
     hhParado: total === null ? null : umaCasa(h?.hhParado),
     recebidos: h?.recebidos ?? [],
+    cedidos: [],
     avisos: h?.avisos ?? [],
     terminouEm: null,
     iniciouEm: null,
@@ -172,13 +178,16 @@ export function montarQuadro(e: EntradaQuadro, agora?: string): ModeloQuadro {
       .map(({ funcao, quantidade }) => ({ funcao, quantidade }));
     const hhEquipe = hh.equipes.find((x) => x.responsavel_id === id);
     const resumo = resumoEquipe({ atividades, efetivo }, e.turno, temProgramada, hhEquipe);
+    const cedidos = hh.equipes.flatMap((x) =>
+      x.recebidos.filter((r) => r.de === id).map(({ de: _de, ...r }) => ({ ...r, para: x.responsavel_id })),
+    );
     const t = (e.terminados ?? []).find((x) => x.responsavel_id === id);
     const i = (e.iniciados ?? []).find((x) => x.responsavel_id === id);
     return {
       responsavel,
       atividades,
       efetivo,
-      resumo: { ...resumo, terminouEm: t ? horaCurta(t.terminou_em) : null, iniciouEm: i ? horaCurta(i.iniciou_em) : null },
+      resumo: { ...resumo, cedidos, terminouEm: t ? horaCurta(t.terminou_em) : null, iniciouEm: i ? horaCurta(i.iniciou_em) : null },
     };
   });
   const nome = nomeDaEquipe(e.responsaveis);
@@ -219,9 +228,25 @@ export function visaoPadrao(status: StatusTurno): Visao {
   return status === "planejado" ? "checkin" : "checkout";
 }
 
-export function visaoValida(pedida: unknown, status: StatusTurno): Visao {
+/** `algoLancado` = alguma atividade já tem realizado; em campo sem lançamento abre no check-in (não mostra 0% vermelho). */
+export function visaoValida(pedida: unknown, status: StatusTurno, algoLancado = true): Visao {
   if (status === "planejado") return "checkin";
-  return pedida === "checkin" || pedida === "checkout" ? pedida : visaoPadrao(status);
+  if (pedida === "checkin" || pedida === "checkout") return pedida;
+  return status === "em_campo" && !algoLancado ? "checkin" : visaoPadrao(status);
+}
+
+/** Faixas do check-out: quem precisa de ajuda primeiro (parada aberta, depois menor % concluído); "Sem responsável" por último. */
+export function ordenarPorAjuda(m: ModeloQuadro): FaixaQuadro[] {
+  const parada = new Set(paradasAbertas(m.entrada.ocorrencias ?? []).map((o) => o.responsavel_id));
+  const peso = (f: FaixaQuadro) => [
+    f.responsavel === null ? 1 : 0,
+    parada.has(f.responsavel?.id ?? null) ? 0 : 1,
+    f.resumo.percentual ?? 2,
+  ];
+  return m.faixas
+    .map((f, i) => ({ f, i, p: peso(f) }))
+    .sort((x, y) => x.p[0] - y.p[0] || x.p[1] - y.p[1] || x.p[2] - y.p[2] || x.i - y.i)
+    .map((x) => x.f);
 }
 
 /** Cookie (no caminho do link) com o responsável que confirmou "Sou eu". */
