@@ -112,3 +112,32 @@ describe("Quadro: equipe prevista", () => {
     expect(html("em_campo", "checkin")).not.toContain("Equipe prevista:");
   });
 });
+
+describe("Quadro: resumo do turno", () => {
+  const ad: { concluidas: number; total: number; ppc: number | null } = { concluidas: 39, total: 50, ppc: 0.78 };
+  const r = (status: EntradaQuadro["turno"]["status"], visao: "checkin" | "checkout", agora?: string, aderenciaObra = ad) =>
+    renderToStaticMarkup(<Quadro modelo={montarQuadro(base(status))} visao={visao} publico agora={agora} aderenciaObra={aderenciaObra} />);
+  it("check-out em campo: anel, tempo, ritmo e aderência", () => {
+    const h = r("em_campo", "checkout", "13:00");
+    expect(h).toContain('aria-label="Resumo do turno"');
+    expect(h).toContain("1 de 4 concluídas");
+    expect(h).toContain("25%");
+    expect(h).toContain("Tempo do turno");
+    expect(h).toContain("⚠ abaixo do ritmo");
+    expect(h).toContain("Aderência da obra: 78%");
+    expect(h).not.toContain("PPC do mês");
+  });
+  it("turno fechado: resultado final sem tempo", () => {
+    const h = r("fechado", "checkout");
+    expect(h).toContain("Resultado final");
+    expect(h).not.toContain("Tempo do turno");
+  });
+  it("check-in: só a aderência", () => {
+    const h = r("planejado", "checkin");
+    expect(h).not.toContain("1 de 4 concluídas");
+    expect(h).toContain("Aderência da obra: 78%");
+  });
+  it("obra sem turno fechado", () => {
+    expect(r("em_campo", "checkout", "13:00", { concluidas: 0, total: 0, ppc: null })).toContain("Aderência da obra: sem turno fechado");
+  });
+});

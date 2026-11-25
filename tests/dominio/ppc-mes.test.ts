@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { farol, ppcDoMes } from "@/lib/dominio/ppcMes";
+import { farol, ppcPorDia } from "@/lib/dominio/ppcMes";
 
 const at = (p: number, r: number | null) => ({ qtd_planejada: p, qtd_realizada: r });
 
@@ -13,26 +13,26 @@ describe("farol", () => {
   });
 });
 
-describe("ppcDoMes", () => {
-  it("um dia por dia do mês, junta turnos do mesmo dia e ignora outro mês", () => {
-    const r = ppcDoMes(
+describe("ppcPorDia", () => {
+  it("um dia por data do intervalo, atravessando o mês; junta turnos do dia; ignora fora", () => {
+    const r = ppcPorDia(
       [
-        { data: "2026-11-03", atividades: [at(10, 10), at(10, 5)] },
-        { data: "2026-11-03", atividades: [at(4, 4)] },
-        { data: "2026-11-05", atividades: [at(1, null)] },
-        { data: "2026-12-01", atividades: [at(1, 1)] },
+        { data: "2026-10-29", atividades: [at(1, 1)] },
+        { data: "2026-10-31", atividades: [at(10, 10), at(10, 5)] },
+        { data: "2026-10-31", atividades: [at(4, 4)] },
+        { data: "2026-11-02", atividades: [at(1, null)] },
+        { data: "2026-11-03", atividades: [at(1, 1)] },
       ],
-      "2026-11",
+      "2026-10-30",
+      "2026-11-02",
     );
-    expect(r.dias).toHaveLength(30);
-    expect(r.dias[2]).toEqual({ data: "2026-11-03", concluidas: 2, total: 3, ppc: 2 / 3 });
-    expect(r.dias[4].ppc).toBe(0);
+    expect(r.dias.map((d) => d.data)).toEqual(["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]);
+    expect(r.dias[1]).toEqual({ data: "2026-10-31", concluidas: 2, total: 3, ppc: 2 / 3 });
     expect(r.dias[0].ppc).toBeNull();
+    expect(r.dias[3].ppc).toBe(0);
     expect(r.aderencia).toEqual({ concluidas: 2, total: 4, ppc: 0.5 });
   });
-  it("fevereiro e mês vazio", () => {
-    const r = ppcDoMes([], "2027-02");
-    expect(r.dias).toHaveLength(28);
-    expect(r.aderencia.ppc).toBeNull();
+  it("sem turnos", () => {
+    expect(ppcPorDia([], "2026-11-01", "2026-11-01").aderencia.ppc).toBeNull();
   });
 });

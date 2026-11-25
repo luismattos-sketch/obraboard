@@ -34,5 +34,18 @@ export const encerrarSemana: Capitulo = {
         dispositivo: "computador",
       },
     },
+    {
+      id: "ppc-dia-a-dia",
+      titulo: "PPC dia a dia",
+      texto: [
+        "Abaixo do \"PPC por semana\", \"PPC dia a dia\" tem uma barra por dia do período escolhido: a parte das atividades do dia que foi concluída. Só contam turnos fechados; serviço extra e atividade adiantada não entram.",
+        "A cor é o farol: verde a partir de 80%, amarelo de 60% a 79% e vermelho abaixo de 60%. Passe o mouse (ou toque) numa barra para ver o dia e a conta.",
+      ],
+      captura: {
+        alt: "Gráfico PPC dia a dia com uma barra colorida por dia do período",
+        alvo: { papel: "heading", nome: "PPC dia a dia" },
+        dispositivo: "computador",
+      },
+    },
   ],
 };

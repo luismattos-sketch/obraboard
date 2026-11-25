@@ -4,8 +4,13 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-24",
-    texto: "Quadro com \"PPC do mês\": uma barra por dia com farol (verde, amarelo, vermelho) e a aderência do mês. E \"Problemas e oportunidades\": anote o problema, a ação, quem cuida e o prazo; os abertos aparecem no quadro e na TV.",
-    href: "/ajuda/quadro-tv#ppc-mes",
+    texto: "Resumo do turno no topo do quadro: anel com as concluídas, \"Tempo do turno\" × \"Avanço do dia\" com aviso \"abaixo do ritmo\" e a aderência da obra. O gráfico dia a dia mudou para a Análise (PPC).",
+    href: "/ajuda/quadro-tv#resumo-turno",
+  },
+  {
+    data: "2026-11-24",
+    texto: "Quadro com \"Problemas e oportunidades\": anote o problema, a ação, quem cuida e o prazo; os abertos aparecem no quadro e na TV.",
+    href: "/ajuda/quadro-tv#problemas",
   },
   {
     data: "2026-11-24",
