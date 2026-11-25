@@ -16,24 +16,24 @@ export async function gerarLinkQuadroAcao(obraId: string): Promise<Resultado<{ c
 
 export async function criarProblemaAcao(obraId: string, dados: DadosProblema): Promise<Resultado<Problema>> {
   const r = await criarProblema(await criarClienteServidor(), obraId, dados);
-  if (r.ok) revalidatePath(`/obras/${obraId}/quadro`);
+  if (r.ok) revalidatePath(`/obras/${obraId}`, "layout");
   return r;
 }
 
 export async function editarProblemaAcao(obraId: string, id: string, dados: DadosProblema): Promise<Resultado<Problema>> {
   const r = await editarProblema(await criarClienteServidor(), id, dados);
-  if (r.ok) revalidatePath(`/obras/${obraId}/quadro`);
+  if (r.ok) revalidatePath(`/obras/${obraId}`, "layout");
   return r;
 }
 
 export async function definirResolvidoAcao(obraId: string, id: string, resolvido: boolean): Promise<Resultado> {
   const r = await definirResolvido(await criarClienteServidor(), id, resolvido);
-  if (r.ok) revalidatePath(`/obras/${obraId}/quadro`);
+  if (r.ok) revalidatePath(`/obras/${obraId}`, "layout");
   return r;
 }
 
 export async function apagarProblemaAcao(obraId: string, id: string): Promise<Resultado> {
   const r = await apagarProblema(await criarClienteServidor(), id);
-  if (r.ok) revalidatePath(`/obras/${obraId}/quadro`);
+  if (r.ok) revalidatePath(`/obras/${obraId}`, "layout");
   return r;
 }

@@ -6,10 +6,6 @@ import { prepararQuadro } from "@/components/quadro/prepararQuadro";
 import { Quadro } from "@/components/quadro/Quadro";
 import { Cartao } from "@/components/ui/Cartao";
 import { obterObra } from "@/lib/db/obras";
-import { listarProblemas } from "@/lib/db/problemas";
-import { listarResponsaveis } from "@/lib/db/responsaveis";
-import { hojeSaoPaulo } from "@/lib/dominio/entrada";
-import { GerenciarProblemas } from "./GerenciarProblemas";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export default async function QuadroPlanejador({
@@ -23,11 +19,7 @@ export default async function QuadroPlanejador({
   const supabase = await criarClienteServidor();
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
-  const [q, problemas, responsaveis] = await Promise.all([
-    prepararQuadro(supabase, obra.id, busca, `/obras/${obra.id}/quadro`),
-    listarProblemas(supabase, obra.id),
-    listarResponsaveis(supabase, obra.id),
-  ]);
+  const q = await prepararQuadro(supabase, obra.id, busca, `/obras/${obra.id}/quadro`);
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -43,12 +35,6 @@ export default async function QuadroPlanejador({
       ) : (
         <Cartao><p className="text-texto-suave">Nenhum turno ainda</p></Cartao>
       )}
-      <GerenciarProblemas
-        obraId={obra.id}
-        problemas={problemas}
-        sugestoes={responsaveis.filter((r) => r.ativo).map((r) => r.nome)}
-        hoje={hojeSaoPaulo()}
-      />
     </div>
   );
 }

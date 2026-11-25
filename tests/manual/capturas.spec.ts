@@ -257,7 +257,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(pl, "encerrar-semana", "ppc-dia-a-dia");
 
   // ---------- Problemas e oportunidades (planejador) ----------
-  await pl.goto(`${obraUrl}/quadro?turno=${turnoId}`);
+  await pl.goto(`${obraUrl}/turnos/${turnoId}`);
   await pl.getByText(/^Problemas e oportunidades \(/).click();
   await pl.getByRole("button", { name: "+ Problema ou oportunidade" }).click();
   await pl.getByLabel("Descrição").fill("Andaime da área 3 sem liberação");
@@ -265,7 +265,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await pl.getByLabel("Responsável (opcional)").fill("Carlos Pereira");
   await pl.getByLabel("Prazo (opcional)").fill(hoje);
   await pl.getByRole("button", { name: "Salvar" }).click();
-  await expect(pl.getByRole("region", { name: "Problemas e oportunidades" })).toBeVisible({ timeout: 20_000 });
+  await expect(pl.getByTestId("gerenciar-problemas").getByText("Andaime da área 3 sem liberação")).toBeVisible({ timeout: 20_000 });
 
   // ---------- Quadro na TV (público) ----------
   const { data: o } = await c.from("obras").select("quadro_token").eq("id", obraId).single();

@@ -133,7 +133,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
 
 21. **HH pela janela de cada equipe** — hoje o HH usa a janela do turno (primeiro Iniciar → último Terminei). Com o "Iniciar turno" por equipe já gravado, dá para contar o HH de cada equipe do seu início ao seu fim. [Luis, 2026-11-24]
 
-22. **Quadro só exibe problemas e oportunidades** — hoje (item 2.5) o cadastro, "Resolvido", "Reabrir" e "Apagar"
+22. ✅ **No ar desde 2026-11-25** — **Quadro só exibe problemas e oportunidades** — hoje (item 2.5) o cadastro, "Resolvido", "Reabrir" e "Apagar"
     ficam na página do quadro do planejador. A ideia: o quadro serve só de exibição (como na TV) e o planejador
     controla e edita tudo pela aba Turno. Atualizar manual, capturas e Novidades. [Luis, 2026-11-24]
 
