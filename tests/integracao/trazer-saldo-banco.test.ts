@@ -4,6 +4,7 @@ import {
   criarRascunho,
   obterDadosSemana,
   programarSemana,
+  reabrirSemana,
   removerAtividadeProgramada,
   salvarAtividadeProgramada,
   trazerDaProgramacao,
@@ -82,5 +83,16 @@ describe.skipIf(!ligado)("trazer saldo da semana anterior — banco", () => {
     exigir(await removerAtividadeProgramada(u.cliente, origem));
     const dados = await obterDadosSemana(u.cliente, atual);
     expect(dados.atividades.find((a) => a.id === id)?.trazida_de).toBeNull();
+  });
+
+  it("apagar a origem com a semana seguinte programada zera trazida_de", { timeout: 90_000 }, async () => {
+    const { anterior, origem, atual } = await cenario();
+    exigir(await programarSemana(u.cliente, anterior.id));
+    const id = exigir(await salvarAtividadeProgramada(u.cliente, atual.id, { ...base, trazida_de: origem, saldo_trazido: 120 })).id;
+    exigir(await programarSemana(u.cliente, atual.id));
+    exigir(await reabrirSemana(u.cliente, anterior.id, "Corrigir a programação"));
+    exigir(await removerAtividadeProgramada(u.cliente, origem));
+    const dados = await obterDadosSemana(u.cliente, atual);
+    expect(dados.atividades.find((a) => a.id === id)).toMatchObject({ trazida_de: null, meta: 120 });
   });
 });
