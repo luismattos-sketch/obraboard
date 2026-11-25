@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TurnoAnalise } from "@/lib/dominio/analise";
 import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/eventos";
 import { aderencia } from "@/lib/dominio/ritmo";
+import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
@@ -104,6 +105,19 @@ export async function listarTurnosComAtividades(
     }),
   );
   return lista.sort((a, b) => compararTurnos(b, a));
+}
+
+/** Data (YYYY-MM-DD) em que a obra começou: a mais antiga entre o cadastro, o 1º turno e a 1ª semana programada. */
+export async function inicioDaObra(c: SupabaseClient, obraId: string, criadaEm: string): Promise<string> {
+  const [t, s] = await Promise.all([
+    c.from("turnos").select("data").eq("obra_id", obraId).order("data").limit(1).maybeSingle(),
+    c.from("semanas").select("inicio").eq("obra_id", obraId).order("inicio").limit(1).maybeSingle(),
+  ]);
+  if (t.error) throw t.error;
+  if (s.error) throw s.error;
+  return [hojeSaoPaulo(new Date(criadaEm)), t.data?.data as string | undefined, s.data?.inicio as string | undefined]
+    .filter((d): d is string => !!d)
+    .sort()[0];
 }
 
 /** Turnos fechados da obra com data >= `desde` (YYYY-MM-DD), com atividades em ordem, para a análise de PPC. */

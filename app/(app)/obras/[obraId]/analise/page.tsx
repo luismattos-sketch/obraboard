@@ -5,7 +5,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Cartao } from "@/components/ui/Cartao";
 import { obterObra } from "@/lib/db/obras";
 import { listarProgramadasParaAnalise } from "@/lib/db/programacao";
-import { listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
+import { inicioDaObra, listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
+import { GRUPO_CAUSA } from "@/lib/dominio/tipos";
 import {
   analisarObra,
   normalizarSemanas,
@@ -41,7 +42,8 @@ export default async function AnalisePage({
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
 
-  const semanas = semanasDaAnalise(hojeSaoPaulo(), n);
+  const inicio = await inicioDaObra(supabase, obraId, obra.created_at).catch(() => null);
+  const semanas = semanasDaAnalise(hojeSaoPaulo(), n, inicio);
   let turnos: TurnoAnalise[] | null = null;
   let programadas: SemanaProgramadaAnalise[] = [];
   try {
@@ -88,6 +90,12 @@ export default async function AnalisePage({
   );
 }
 
+const GRUPOS = [
+  { id: "externa", rotulo: "Externas (fora do controle da equipe)" },
+  { id: "interna", rotulo: "Internas" },
+  { id: "outra", rotulo: "Outras" },
+] as const;
+
 function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string; dias: DiaPpc[] }) {
   if (analise.periodo.total === 0) {
     return (
@@ -104,7 +112,9 @@ function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string;
       <section aria-labelledby="titulo-indicadores" className="grid gap-3 sm:grid-cols-2">
         <h2 id="titulo-indicadores" className="sr-only">Indicadores</h2>
         <Cartao className="flex flex-col gap-1">
-          <p className="text-sm text-texto-suave">PPC do período</p>
+          <p className="flex items-center gap-2 text-sm text-texto-suave">
+            PPC do período{analise.semanas.some((s) => s.provisorio || (s.atual && s.turnos.length > 0)) && <Selo tom="alerta">provisório</Selo>}
+          </p>
           <p className="text-3xl font-semibold text-primaria">{formatarPercentual(analise.periodo.ppc)}</p>
           <p className="text-xs text-texto-suave">
             {analise.periodo.concluidas} de {analise.periodo.total} atividades
@@ -190,7 +200,13 @@ function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string;
           {analise.causas.length === 0 ? (
             <p className="text-sm text-texto-suave">Nenhuma atividade deixou de ser cumprida no período.</p>
           ) : (
-            analise.causas.map((c) => (
+            GRUPOS.map((g) => {
+              const lista = analise.causas.filter((c) => (GRUPO_CAUSA[c.causa] ?? "outra") === g.id);
+              if (lista.length === 0) return null;
+              return (
+                <div key={g.id} className="flex flex-col gap-1">
+                  <h3 className="text-sm font-semibold text-texto">{g.rotulo}</h3>
+                  {lista.map((c) => (
               <Expansivel
                 key={c.causa}
                 resumo={<Barra rotulo={c.rotulo} fracao={c.fracao} texto={`${c.quantidade} (${formatarPercentual(c.fracao)})`} />}
@@ -214,7 +230,10 @@ function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string;
                   )}
                 </ul>
               </Expansivel>
-            ))
+                  ))}
+                </div>
+              );
+            })
           )}
         </Cartao>
       </section>

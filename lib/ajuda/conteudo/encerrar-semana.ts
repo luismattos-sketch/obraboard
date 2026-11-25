@@ -25,7 +25,8 @@ export const encerrarSemana: Capitulo = {
       titulo: "Leia a Análise (PPC)",
       texto: [
         "PPC é o Percentual de Planejamento Concluído: das atividades programadas, quantas foram cumpridas. Uma semana com 10 atividades programadas e 7 cumpridas tem PPC de 70%.",
-        "Na etapa \"Análise (PPC)\", escolha o período (4, 8 ou 12 semanas). Veja o \"PPC do período\", o \"PPC por semana\" e as \"Causas de não cumprimento\", que mostram o que mais atrapalhou.",
+        "Na etapa \"Análise (PPC)\", escolha o período (4, 8 ou 12 semanas). Veja o \"PPC do período\", o \"PPC por semana\" e as \"Causas de não cumprimento\", que mostram o que mais atrapalhou. A lista começa na semana em que a obra começou, e o selo \"provisório\" avisa que ainda há semana em andamento.",
+        "As causas vêm separadas em \"Externas\" (fora do controle da equipe, como material ou liberação de área), \"Internas\" (mão de obra e equipamento) e \"Outras\".",
         "Use as causas para programar melhor a semana seguinte: se \"Falta material\" se repete, por exemplo, confirme o material antes de programar.",
       ],
       captura: {
