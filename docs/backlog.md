@@ -78,7 +78,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     O cálculo está certo (PPC semanal só conta atividade 100% cumprida na semana), falta rótulo: "Cumprimento do dia"
     × "PPC da semana" com explicação (ⓘ), avanço físico ao lado; o extra não deve entrar no denominador do turno/RDO
     (como no quadro). Atividade a 50% aparecer "0%" precisa de explicação. [P2]
-14. **Quadro e TV** — abre em CHECK-OUT de manhã com 0% e barras vermelhas; causas externas e internas iguais;
+14. ✅ **No ar desde 2026-11-25** (exceto a dependência entre equipes, que virou o item 23) — **Quadro e TV** — abre em CHECK-OUT de manhã com 0% e barras vermelhas; causas externas e internas iguais;
     observações não aparecem; ordem alfabética (quem precisa de ajuda fica para trás); produção acima da meta não se
     destaca; fonte da causa ~14 px ilegível a 3 m; sem hora da última atualização; traço vermelho em atividade com 0.
     Dependência entre equipes não aparece (João esperando Carlos). [P1, P2, João, Rita]
@@ -136,6 +136,8 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
 22. ✅ **No ar desde 2026-11-25** — **Quadro só exibe problemas e oportunidades** — hoje (item 2.5) o cadastro, "Resolvido", "Reabrir" e "Apagar"
     ficam na página do quadro do planejador. A ideia: o quadro serve só de exibição (como na TV) e o planejador
     controla e edita tudo pela aba Turno. Atualizar manual, capturas e Novidades. [Luis, 2026-11-24]
+
+23. **Dependência entre equipes no quadro** — mostrar quando uma equipe espera outra (João esperando Carlos). A parada já guarda "aguardando responsável"; falta exibir no quadro e talvez ligar atividade a atividade. Saiu do item 14. [P1, 2026-11-25]
 
 ---
 

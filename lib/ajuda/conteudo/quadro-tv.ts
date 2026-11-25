@@ -24,7 +24,9 @@ export const quadroTv: Capitulo = {
       titulo: "Check-in e check-out no quadro",
       texto: [
         "Antes de liberar o turno, o quadro mostra o check-in: o que cada equipe vai fazer, a quantidade planejada e o efetivo. Atividade fora da programação aparece com o selo \"EXTRA\".",
-        "Depois de liberar, mostra o check-out: realizado sobre planejado, barra de cor, a causa quando há, e por equipe \"x de y programadas\", pessoas e HH. Use os links \"Check-in\" e \"Check-out\", abaixo do cabeçalho, para trocar de visão.",
+        "Depois de liberar, o quadro continua no check-in até a primeira quantidade ser lançada; aí passa ao check-out: realizado sobre planejado, barra de cor, a causa e a observação quando há, e por equipe \"x de y programadas\", pessoas e HH. Use os links \"Check-in\" e \"Check-out\", abaixo do cabeçalho, para trocar de visão.",
+        "No check-out, as equipes que mais precisam de ajuda vêm primeiro: quem está com parada em aberto e, depois, quem tem o menor percentual concluído. A causa aparece em letra maior: \"Causa externa\" (fora do controle da equipe) em marrom e \"Causa interna\" em vermelho. Quem passou da meta ganha o selo \"▲ acima da meta\".",
+        "Empréstimo de efetivo aparece dos dois lados: \"+2 Mecânico (de Fernando…)\" em quem recebeu e \"−2 Mecânico (para Francisco…)\" em quem cedeu. No cabeçalho, \"Atualizado HH:MM\" mostra a hora da última atualização.",
       ],
     },
     {

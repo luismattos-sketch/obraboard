@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-25",
+    texto: "Quadro mais legível na TV: de manhã abre no check-in, quem precisa de ajuda vem primeiro, causa externa e interna em cores diferentes e letra maior, observação, selo \"acima da meta\", empréstimo nos dois lados e hora da última atualização.",
+    href: "/ajuda/quadro-tv#visoes",
+  },
+  {
+    data: "2026-11-25",
     texto: "Análise (PPC) mais fiel: começa na semana em que a obra começou, mostra \"provisório\" no PPC do período enquanto há semana em andamento e separa as causas em externas, internas e outras.",
     href: "/ajuda/encerrar-semana#analise",
   },
