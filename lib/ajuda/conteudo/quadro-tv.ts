@@ -28,6 +28,32 @@ export const quadroTv: Capitulo = {
       ],
     },
     {
+      id: "ppc-mes",
+      titulo: "PPC do mês e farol",
+      texto: [
+        "No fim do quadro, \"PPC do mês\" tem uma barra por dia do mês do turno mostrado: a parte das atividades programadas que foi concluída naquele dia. Só contam turnos fechados; serviço extra e atividade adiantada não entram.",
+        "A cor é o farol: verde a partir de 80%, amarelo de 60% a 79% e vermelho abaixo de 60%. Ao lado do título, \"Aderência do mês\" soma o mês inteiro até agora, com o farol dela.",
+      ],
+      captura: {
+        alt: "Bloco PPC do mês com uma barra colorida por dia e a aderência do mês",
+        alvo: { papel: "region", nome: "PPC do mês" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "problemas",
+      titulo: "Problemas e oportunidades",
+      texto: [
+        "Na página do quadro do planejador, abaixo do quadro, abra \"Problemas e oportunidades\" e use \"+ Problema ou oportunidade\": descreva, diga a ação, quem cuida (o app sugere os responsáveis da obra, mas pode ser qualquer nome) e o prazo.",
+        "Os itens em aberto aparecem no quadro e na TV, com o prazo vencido em vermelho. Quando resolver, clique em \"Resolvido\": o item sai do quadro e fica riscado na lista, onde dá para \"Reabrir\".",
+      ],
+      captura: {
+        alt: "Lista de problemas e oportunidades em aberto no quadro, com ação, responsável e prazo",
+        alvo: { papel: "region", nome: "Problemas e oportunidades" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "trocar-link",
       titulo: "Troque o link do quadro",
       texto: [

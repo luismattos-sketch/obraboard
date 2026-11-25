@@ -5,6 +5,9 @@ import { formatarPercentual, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/form
 import type { FaixaQuadro, ModeloQuadro, ResumoEquipe, Visao } from "@/lib/dominio/quadro";
 import { CAUSAS, type StatusAtividade } from "@/lib/dominio/tipos";
 import { nomeDaEquipe } from "@/lib/dominio/efetivoHH";
+import type { PpcMes } from "@/lib/dominio/ppcMes";
+import type { Problema } from "@/lib/dominio/problemas";
+import { PpcDoMes, ProblemasDoQuadro } from "./BlocosQuadro";
 
 /** Quadro de check-in/check-out: só leitura, faixas horizontais por responsável (planejador, TV, gestor e foto). */
 
@@ -18,6 +21,11 @@ export type PropsQuadro = {
   seletor?: { checkin: string; checkout: string | null };
   aviso?: string | null;
   editarHref?: string | null;
+  /** Item 2.4; ausente na foto do check-in. */
+  ppcMes?: PpcMes;
+  /** Item 2.5: só os abertos. */
+  problemas?: Problema[];
+  hoje?: string;
 };
 
 const COR_BARRA: Record<StatusAtividade, string> = {
@@ -152,7 +160,7 @@ function Faixa({
   );
 }
 
-export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, editarHref }: PropsQuadro) {
+export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, editarHref, ppcMes, problemas, hoje }: PropsQuadro) {
   const { entrada: e, faixas } = modelo;
   const fechado = e.turno.status === "fechado";
   const mostrarExtra = e.atividades.some((a) => a.programada);
@@ -221,6 +229,9 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
           <Faixa key={f.responsavel?.id ?? "sem"} faixa={f} visao={visao} mostrarExtra={mostrarExtra} unidadeVazia="un" nome={nomeEquipe} />
         ))
       )}
+
+      {problemas && hoje && <ProblemasDoQuadro problemas={problemas} hoje={hoje} />}
+      {ppcMes && <PpcDoMes ppc={ppcMes} />}
     </div>
   );
 }
