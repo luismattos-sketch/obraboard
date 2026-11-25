@@ -28,6 +28,11 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     no mesmo PR; seção "Novidades" no topo. A detalhar no brainstorming: botão "?" em cada tela levando à seção
     certa; capturas de tela geradas pelo teste automático (não envelhecem); busca. [Luis]
 
+1.6 ✅ **No ar desde 2026-11-24** (merge b45f242) — **Atividade não concluída volta para a programação seguinte** (item 1.6 da
+    planilha). No rascunho, bloco "Não concluídas da semana anterior" com "Trazer" (meta = saldo; sequência = um item);
+    "Saldo da semana anterior mudou" + "Atualizar meta" (também na semana programada, enquanto a atividade não entrou
+    em turno). Spec/plano: docs/superpowers/{specs,plans}/2026-11-24-trazer-saldo-semana-anterior*. [Luis]
+
 ## Prioridade 1 — Confiança no dado
 
 1. ✅ **Feito em 2026-11-16** — **Conflito entre abas na execução** — uma aba esquecida desfaz em silêncio o número gravado pela outra
