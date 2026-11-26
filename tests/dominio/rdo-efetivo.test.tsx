@@ -35,7 +35,7 @@ function turno(ocorrencias: Ocorrencia[]): TurnoCompleto {
       { id: "e1", turno_id: "t", funcao: "Montador de andaime", quantidade: 6, responsavel_id: "rita" },
       { id: "e2", turno_id: "t", funcao: "Caldeireiro", quantidade: 5, responsavel_id: "ana" },
     ],
-    clima: [],
+    clima: [], clima_turno: null,
     ocorrencias,
     responsaveis: [{ id: "rita", nome: "Rita" }, { id: "ana", nome: "Ana" }],
   };

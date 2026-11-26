@@ -22,9 +22,13 @@ export type Obra = {
   created_at: string;
   /** WhatsApp do planejador (dígitos com DDI); ausente nas fotos do RDO. */
   whatsapp_planejador?: string | null;
+  /** Cidade escolhida para o clima automático (ausentes em dados antigos). */
+  local_nome?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
-const COLUNAS = "id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador";
+const COLUNAS = "id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador, local_nome, latitude, longitude";
 
 export async function listarObras(cliente: SupabaseClient): Promise<Obra[]> {
   const { data, error } = await cliente.from("obras").select(COLUNAS).order("nome");

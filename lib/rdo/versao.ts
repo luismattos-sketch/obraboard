@@ -1,6 +1,7 @@
 import { normalizarAtividade } from "@/lib/db/atividades";
 import type { Clima, Efetivo, TurnoCompleto } from "@/lib/db/turnos";
 import { lerOcorrencias, lerTerminados } from "@/lib/dominio/efetivoHH";
+import { lerClimaTurno } from "@/lib/db/clima";
 import type { Periodo } from "@/lib/dominio/tipos";
 import { dataHoraBrasilia } from "./formatar";
 
@@ -39,7 +40,9 @@ type FotoV1 = {
   };
   atividades: Record<string, unknown>[];
   efetivo: Omit<Efetivo, "turno_id">[];
-  clima: Omit<Clima, "turno_id">[];
+  clima?: Omit<Clima, "turno_id">[];
+  /** Desde o clima automático; ausente nas fotos antigas. */
+  clima_turno?: unknown;
   /** Desde o item 4 do backlog; ausentes nas fotos antigas. */
   ocorrencias?: unknown;
   /** Desde o item 6 do backlog; ausente nas fotos antigas. */
@@ -66,6 +69,7 @@ export function lerFoto(v: Pick<VersaoRdo, "formato" | "dados">): TurnoCompleto 
       .sort((a, b) => a.ordem - b.ordem),
     efetivo: (f.efetivo ?? []).map((e) => ({ ...e, turno_id: turnoId })),
     clima: (f.clima ?? []).map((c) => ({ ...c, turno_id: turnoId })),
+    clima_turno: lerClimaTurno(f.clima_turno),
     ocorrencias: lerOcorrencias(f.ocorrencias),
     terminados: lerTerminados(f.terminados),
     responsaveis: f.responsaveis ?? [],

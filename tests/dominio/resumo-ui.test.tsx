@@ -11,7 +11,7 @@ const turno = (ocorrencias: TurnoCompleto["ocorrencias"]): TurnoCompleto => ({
   obra: { id: "o", empresa_id: "e", nome: "Obra", cliente: null, endereco: null, created_at: "" },
   atividades: [],
   efetivo: [{ id: "e1", turno_id: "t", funcao: "Montador", quantidade: 2, responsavel_id: "rita" }],
-  clima: [],
+  clima: [], clima_turno: null,
   ocorrencias,
   responsaveis: [{ id: "rita", nome: "Rita" }, { id: "ana", nome: "Ana" }],
 });

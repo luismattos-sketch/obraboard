@@ -9,6 +9,8 @@ import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno, TipoAtividade }
 import { lerIniciados, lerOcorrencias, lerTerminados, type Iniciado, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
+import type { ClimaTurno } from "@/lib/clima/tipos";
+import { gravarClimaTurno, lerClimaTurno } from "./clima";
 import { ERRO_CAUSA_PENDENTE, ERRO_FECHADO_PLANEJADOR, ERRO_SO_PLANEJADO, erroBanco } from "./mensagens";
 import { trazerDaProgramacao } from "./programacao";
 import { falha, ok, type Resultado } from "./resultado";
@@ -55,6 +57,8 @@ export type TurnoCompleto = Turno & {
   atividades: Atividade[];
   efetivo: Efetivo[];
   clima: Clima[];
+  /** Clima automático gravado no enviar/fechar (null = ainda não ou indisponível). */
+  clima_turno: ClimaTurno | null;
   ocorrencias: Ocorrencia[];
   /** Equipes que tocaram "Terminei minha parte" (ausente nas fotos antigas = nenhuma). */
   terminados?: Terminado[];
@@ -160,7 +164,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima(turno_id, periodo, condicao, impediu, lancado_por_id, lancado_em), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador, local_nome, latitude, longitude), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima(turno_id, periodo, condicao, impediu, lancado_por_id, lancado_em), clima_turno(temp_media, temp_max, temp_min, chuva_mm, choveu, leituras), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -170,7 +174,8 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     throw new Error(`obterTurnoCompleto: ${error.message}`);
   }
   if (!data) return null;
-  const { efetivo_ocorrencias, turno_equipes_terminadas, turno_equipes_iniciadas, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis" | "terminados" | "iniciados"> & {
+  const { efetivo_ocorrencias, turno_equipes_terminadas, turno_equipes_iniciadas, clima_turno, ...t } = data as unknown as Omit<TurnoCompleto, "atividades" | "ocorrencias" | "responsaveis" | "terminados" | "iniciados" | "clima_turno"> & {
+    clima_turno: unknown;
     atividades: Record<string, unknown>[] | null;
     efetivo_ocorrencias: unknown;
     turno_equipes_terminadas: Terminado[] | null;
@@ -187,6 +192,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     atividades,
     efetivo: t.efetivo ?? [],
     clima: t.clima ?? [],
+    clima_turno: lerClimaTurno(clima_turno),
     ocorrencias: lerOcorrencias(efetivo_ocorrencias),
     terminados: lerTerminados(turno_equipes_terminadas),
     iniciados: lerIniciados(turno_equipes_iniciadas),
@@ -310,6 +316,7 @@ export async function aplicarAcao(
   if (!turno) return falha("Turno não encontrado");
   const t = transicaoTurno(turno.status, acao, { atividades: turno.atividades, horario: turno });
   if (!t.ok) return falha(t.erro);
+  if (acao === "enviar" || acao === "fechar") await gravarClimaTurno(c, turno);
 
   const mudancas: Record<string, unknown> = { status: t.novo };
   let token: string | undefined;
