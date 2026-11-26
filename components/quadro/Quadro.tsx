@@ -7,20 +7,20 @@ import { CAUSAS, GRUPO_CAUSA, type StatusAtividade } from "@/lib/dominio/tipos";
 import { nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 import { resumoDoTurno } from "@/lib/dominio/ritmo";
 import type { Problema } from "@/lib/dominio/problemas";
-import { ProblemasDoQuadro, ResumoDoTurno } from "./BlocosQuadro";
+import type { ClimaNaTela } from "@/lib/clima/tela";
+import { ProblemasDoQuadro, ResumoClima, ResumoDoTurno } from "./BlocosQuadro";
 
-/** Quadro de check-in/check-out: só leitura, faixas horizontais por responsável (planejador, TV, gestor e foto). */
+/** Quadro único de check-in/check-out (link público, sem login): só leitura, faixas horizontais por responsável. */
 
 export type PropsQuadro = {
   modelo: ModeloQuadro;
+  /** Fase do quadro (faseDoQuadro): check-in até alguma equipe iniciar. */
   visao: Visao;
-  publico: boolean;
-  /** Links já montados pela página (preservam ?turno=/?visao=). Ausente = sem navegação (foto). */
+  /** Links já montados pela página (preservam ?turno=). Ausente = sem navegação. */
   navegacao?: { anterior: string | null; seguinte: string | null; agora: string | null };
-  /** Links do seletor de visão; ausente = sem seletor. `checkout` null = não oferecido (turno planejado). */
-  seletor?: { checkin: string; checkout: string | null };
   aviso?: string | null;
-  editarHref?: string | null;
+  /** Resumo do clima (gravado, ao vivo ou previsão). Ausente/sem clima = cartão não aparece. */
+  clima?: ClimaNaTela | null;
   /** Resumo do turno: aderência da obra (turnos fechados desde o início) e hora atual do turno. Ausente na foto. */
   aderenciaObra?: { concluidas: number; total: number; ppc: number | null };
   agora?: string;
@@ -170,7 +170,7 @@ function Faixa({
   );
 }
 
-export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, editarHref, aderenciaObra, agora, problemas, hoje }: PropsQuadro) {
+export function Quadro({ modelo, visao, navegacao, aviso, clima, aderenciaObra, agora, problemas, hoje }: PropsQuadro) {
   const { entrada: e, faixas } = modelo;
   const fechado = e.turno.status === "fechado";
   const mostrarExtra = e.atividades.some((a) => a.programada);
@@ -196,32 +196,17 @@ export function Quadro({ modelo, visao, publico, navegacao, seletor, aviso, edit
         </div>
       </header>
 
-      {(navegacao || seletor || (!publico && editarHref)) && (
-        <nav className="flex flex-wrap items-center justify-between gap-2 text-primaria">
-          <div className="flex items-center gap-1">
-            {navegacao && (
-              <>
-                {navegacao.anterior ? <Link href={navegacao.anterior} className={link} aria-label="Turno anterior">←</Link> : <span className="px-2 text-texto-suave">←</span>}
-                {navegacao.agora && <Link href={navegacao.agora} className={link}>Agora</Link>}
-                {navegacao.seguinte ? <Link href={navegacao.seguinte} className={link} aria-label="Turno seguinte">→</Link> : <span className="px-2 text-texto-suave">→</span>}
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {seletor && (
-              <>
-                {visao === "checkin" ? <span className={`${link} bg-primaria-clara`}>Check-in</span> : <Link href={seletor.checkin} className={link}>Check-in</Link>}
-                {seletor.checkout !== null && (
-                  visao === "checkout" ? <span className={`${link} bg-primaria-clara`}>Check-out</span> : <Link href={seletor.checkout} className={link}>Check-out</Link>
-                )}
-              </>
-            )}
-            {!publico && editarHref && <Link href={editarHref} className={`${link} text-operacional`}>Editar</Link>}
-          </div>
+      {navegacao && (
+        <nav className="flex items-center gap-1 text-primaria">
+          {navegacao.anterior ? <Link href={navegacao.anterior} className={link} aria-label="Turno anterior">←</Link> : <span className="px-2 text-texto-suave">←</span>}
+          {navegacao.agora && <Link href={navegacao.agora} className={link}>Agora</Link>}
+          {navegacao.seguinte ? <Link href={navegacao.seguinte} className={link} aria-label="Turno seguinte">→</Link> : <span className="px-2 text-texto-suave">→</span>}
         </nav>
       )}
 
       {aviso && <p className="rounded-cartao bg-alerta-clara px-3 py-2 text-sm text-alerta-escura">{aviso}</p>}
+
+      {clima?.clima && <ResumoClima clima={clima.clima} previsao={clima.previsao} parcial={clima.parcial} />}
 
       {modelo.paradas.length > 0 && (
         <section role="alert" aria-label="Paradas em aberto" className="flex flex-col gap-1 rounded-cartao bg-perigo px-4 py-3 text-white">

@@ -72,22 +72,27 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
   await page.waitForURL(/\/turnos\/[0-9a-f-]{36}$/);
   const turnoUrl = page.url();
 
-  // Quadro do planejador: check-in com as duas faixas
-  await page.request.get(`${obraUrl}/quadro`);
+  // Sem link gerado, "Ver quadro" leva ao cartão que gera o link
   await page.getByRole("link", { name: "Ver quadro" }).click();
-  await page.waitForURL(/\/quadro\?turno=/);
+  await page.waitForURL(/#link-quadro$/);
+  await page.getByRole("button", { name: "Gerar link" }).click();
+  const urlQuadro = (await page.locator("#link-quadro p.break-all").textContent())!.trim();
+  expect(urlQuadro).toMatch(/\/q\/.+/);
+
+  // Quadro único (link público): check-in com as duas faixas, sem abas nem Editar
+  await page.goto(turnoUrl);
+  await page.getByRole("link", { name: "Ver quadro" }).click();
+  await page.waitForURL(/\/q\/.+\?turno=/);
   await expect(page.getByText("CHECK-IN", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Ana" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "João" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Check-out" })).toHaveCount(0);
 
-  // Liberar = check-in registrado
+  // Liberar para campo
   await page.goto(turnoUrl);
   await page.getByRole("button", { name: "Liberar para campo" }).click();
   await expect(page.getByRole("button", { name: "Copiar link" })).toBeVisible();
   const urlCampo = (await page.locator("p.break-all").textContent())!.trim();
-  await page.reload();
-  await page.getByText(/^Histórico \(/).click();
-  await expect(page.getByRole("link", { name: "Check-in registrado" })).toBeVisible();
 
   // Link de campo: escolher o nome e lançar só a própria atividade
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });
@@ -111,13 +116,9 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
     await ctx.close();
   }
 
-  // Link público do quadro, sem sessão: visão de check-out
+  // Link público do quadro, sem sessão: lançou ⇒ check-out
   await page.goto(obraUrl);
-  await page.getByRole("button", { name: "Gerar link" }).click();
-  const urlQuadro = (await page.locator("p.break-all").textContent())!.trim();
-  expect(urlQuadro).toMatch(/\/q\/.+/);
-  await page.reload();
-  await expect(page.locator("p.break-all")).toHaveText(urlQuadro);
+  await expect(page.locator("#link-quadro p.break-all")).toHaveText(urlQuadro);
   const tv = await browser.newContext();
   try {
     const p = await tv.newPage();

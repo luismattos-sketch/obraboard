@@ -224,15 +224,12 @@ export function vizinhos(turnos: TurnoRef[], id: string): { anterior: string | n
   return { anterior: ordenados[i - 1]?.id ?? null, seguinte: ordenados[i + 1]?.id ?? null };
 }
 
-export function visaoPadrao(status: StatusTurno): Visao {
-  return status === "planejado" ? "checkin" : "checkout";
-}
-
-/** `algoLancado` = alguma atividade já tem realizado; em campo sem lançamento abre no check-in (não mostra 0% vermelho). */
-export function visaoValida(pedida: unknown, status: StatusTurno, algoLancado = true): Visao {
-  if (status === "planejado") return "checkin";
-  if (pedida === "checkin" || pedida === "checkout") return pedida;
-  return status === "em_campo" && !algoLancado ? "checkin" : visaoPadrao(status);
+/** Fase do quadro: check-in até alguma equipe iniciar (ou algo ser lançado); enviado/fechado é sempre check-out. */
+export function faseDoQuadro(m: ModeloQuadro): Visao {
+  const e = m.entrada;
+  if (e.turno.status === "enviado" || e.turno.status === "fechado") return "checkout";
+  const iniciou = (e.iniciados ?? []).length > 0 || e.atividades.some((a) => a.qtd_realizada !== null);
+  return iniciou ? "checkout" : "checkin";
 }
 
 /** Faixas do check-out: quem precisa de ajuda primeiro (parada aberta, depois menor % concluído); "Sem responsável" por último. */

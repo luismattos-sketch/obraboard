@@ -143,7 +143,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await pl.waitForURL(/\/turnos\/[0-9a-f-]{36}$/);
   const turnoId = /\/turnos\/([0-9a-f-]{36})/.exec(pl.url())![1];
   const turnoUrl = `${obraUrl}/turnos/${turnoId}`;
-  await aquecer([turnoUrl, `${turnoUrl}/checkin`, `${obraUrl}/quadro?turno=${turnoId}`]);
+  await aquecer([turnoUrl, `${obraUrl}/quadro?turno=${turnoId}`]);
   const efetivo = [
     { funcao: "Encanador", quantidade: 3, responsavel_id: ids["Ana Souza"] },
     { funcao: "Pedreiro", quantidade: 2, responsavel_id: ids["Ana Souza"] },

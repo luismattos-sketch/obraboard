@@ -4,16 +4,16 @@ import { lerIniciados, lerOcorrencias, lerTerminados } from "@/lib/dominio/efeti
 import type { EntradaQuadro, ResponsavelRef, TurnoRef } from "@/lib/dominio/quadro";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { Causa, Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
+import type { climaParaTela } from "@/lib/clima/tela";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { equipeDaLinha } from "./atividades";
+import { lerClimaTurno } from "./clima";
 import { falha, ok, type Resultado } from "./resultado";
 
 /**
  * Leitura do quadro. Com o cliente da sessão (planejador, RLS) ou com o admin do link público —
  * nesse caso SEMPRE depois de resolver a obra pelo código (obraPorCodigo) e conferir que o turno é dela.
  */
-
-export type FotoCheckin = { emitido_em: string; dados: EntradaQuadro };
 
 const UUID_INVALIDO = "22P02";
 const CODIGO_FORMATO = /^[A-Za-z0-9_-]{43}$/;
@@ -99,6 +99,22 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
   };
 }
 
+/** Campos que o clima do quadro precisa (cidade da obra + janela do turno + clima gravado). */
+export async function turnoParaClima(c: SupabaseClient, turnoId: string) {
+  const { data, error } = await c
+    .from("turnos")
+    .select("status, data, hora_inicio_real, hora_fim_real, hora_inicio_prevista, hora_fim_prevista, clima_turno(temp_media, temp_max, temp_min, chuva_mm, choveu, leituras), obra:obras(latitude, longitude)")
+    .eq("id", turnoId)
+    .maybeSingle();
+  if (error) {
+    console.error("turnoParaClima:", error.message);
+    return null;
+  }
+  if (!data) return null;
+  const d = data as unknown as Omit<Parameters<typeof climaParaTela>[0], "clima_turno"> & { clima_turno: unknown };
+  return { ...d, clima_turno: lerClimaTurno(d.clima_turno) };
+}
+
 export async function turnosDaObra(c: SupabaseClient, obraId: string): Promise<TurnoRef[]> {
   const { data, error } = await c.from("turnos").select("id, data, periodo, status").eq("obra_id", obraId);
   if (error) {
@@ -107,25 +123,6 @@ export async function turnosDaObra(c: SupabaseClient, obraId: string): Promise<T
     throw new Error(`turnosDaObra: ${error.message}`);
   }
   return (data ?? []) as TurnoRef[];
-}
-
-export async function fotoCheckin(c: SupabaseClient, turnoId: string): Promise<FotoCheckin | null> {
-  const { data, error } = await c.from("checkin_fotos").select("emitido_em, dados").eq("turno_id", turnoId).maybeSingle();
-  if (error) {
-    if (error.code === UUID_INVALIDO) return null;
-    console.error("fotoCheckin:", error.message);
-    throw new Error(`fotoCheckin: ${error.message}`);
-  }
-  if (!data) return null;
-  const d = data as { emitido_em: string; dados: EntradaQuadro };
-  // Números do jsonb podem vir como string em versões futuras do formato: normaliza.
-  const dados: EntradaQuadro = {
-    ...d.dados,
-    atividades: d.dados.atividades.map((a) => ({ ...a, qtd_planejada: Number(a.qtd_planejada), qtd_realizada: numOuNull(a.qtd_realizada) })),
-    ocorrencias: lerOcorrencias(d.dados.ocorrencias),
-    terminados: lerTerminados(d.dados.terminados),
-  };
-  return { emitido_em: d.emitido_em, dados };
 }
 
 /** Gera (ou troca) o código do link do quadro; a busca pública usa o hash, o código fica para o planejador rever. */

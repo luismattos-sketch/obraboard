@@ -3,14 +3,14 @@ import type { Capitulo } from "../tipos";
 export const quadroTv: Capitulo = {
   slug: "quadro-tv",
   titulo: "Quadro na TV",
-  resumo: "Deixe o quadro do turno numa TV do canteiro, sem login, e troque o link quando precisar.",
+  resumo: "O quadro do turno abre só pelo link, sem login: na TV do canteiro, no celular do gestor ou no seu computador.",
   noIndice: false,
   passos: [
     {
       id: "link",
       titulo: "Abra o quadro na TV",
       texto: [
-        "Na página da obra, em \"Link do quadro (TV / gestor)\", use \"Copiar\" e abra o link no navegador da TV ou do computador ligado a ela. Não precisa de login.",
+        "Na página da obra, em \"Link do quadro (TV / gestor)\", use \"Copiar\" e abra o link no navegador da TV ou do computador ligado a ela. Não precisa de login. O botão \"Quadro\" da obra e o \"Ver quadro\" do turno abrem esse mesmo link: existe um quadro só.",
         "O quadro mostra sozinho o turno de hoje (diurno, ou noturno quando o diurno já fechou) e se atualiza a cada 30 segundos. As setas mostram o turno anterior e o seguinte; \"Agora\" volta para o turno atual.",
       ],
       captura: {
@@ -21,12 +21,21 @@ export const quadroTv: Capitulo = {
     },
     {
       id: "visoes",
-      titulo: "Check-in e check-out no quadro",
+      titulo: "Check-in e check-out no mesmo quadro",
       texto: [
-        "Antes de liberar o turno, o quadro mostra o check-in: o que cada equipe vai fazer, a quantidade planejada e o efetivo. Atividade fora da programação aparece com o selo \"EXTRA\".",
-        "Depois de liberar, o quadro continua no check-in até a primeira quantidade ser lançada; aí passa ao check-out: realizado sobre planejado, barra de cor, a causa e a observação quando há, e por equipe \"x de y programadas\", pessoas e HH. Use os links \"Check-in\" e \"Check-out\", abaixo do cabeçalho, para trocar de visão.",
+        "Os dois rituais acontecem no mesmo quadro. O selo na barra azul mostra a fase: \"CHECK-IN\" enquanto nenhuma equipe iniciou, \"CHECK-OUT\" a partir da primeira equipe que toca \"Iniciar turno\" (ou do primeiro lançamento). Não há botões para trocar de visão nem para editar.",
+        "No check-in, o quadro mostra o que cada equipe vai fazer, a quantidade planejada e o efetivo. Atividade fora da programação aparece com o selo \"EXTRA\".",
+        "No check-out: realizado sobre planejado, barra de cor, a causa e a observação quando há, e por equipe \"x de y programadas\", pessoas e HH.",
         "No check-out, as equipes que mais precisam de ajuda vêm primeiro: quem está com parada em aberto e, depois, quem tem o menor percentual concluído. A causa aparece em letra maior: \"Causa externa\" (fora do controle da equipe) em marrom e \"Causa interna\" em vermelho. Quem passou da meta ganha o selo \"▲ acima da meta\".",
         "Empréstimo de efetivo aparece dos dois lados: \"+2 Mecânico (de Fernando…)\" em quem recebeu e \"−2 Mecânico (para Francisco…)\" em quem cedeu. No cabeçalho, \"Atualizado HH:MM\" mostra a hora da última atualização.",
+      ],
+    },
+    {
+      id: "clima",
+      titulo: "Resumo do clima",
+      texto: [
+        "Logo abaixo do cabeçalho, o quadro mostra o clima pela cidade da obra: a condição (sol, nuvens, chuva), a máxima e a mínima e a chuva.",
+        "Antes do turno começar aparece a \"Previsão\" do horário do turno, útil para decidir o dia no check-in. Durante o turno, o \"Clima até agora\"; com o turno fechado, o clima registrado no RDO. Obra sem cidade cadastrada não mostra o clima.",
       ],
     },
     {

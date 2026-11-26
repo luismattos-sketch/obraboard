@@ -1,40 +1,17 @@
-import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { AtualizarPeriodicamente } from "@/components/quadro/AtualizarPeriodicamente";
-import { prepararQuadro } from "@/components/quadro/prepararQuadro";
-import { Quadro } from "@/components/quadro/Quadro";
-import { Cartao } from "@/components/ui/Cartao";
-import { obterObra } from "@/lib/db/obras";
+import { redirect } from "next/navigation";
+import { linkQuadro } from "@/lib/db/quadro";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
-export default async function QuadroPlanejador({
+/** O quadro é só o link público (/q/<código>): esta rota antiga leva até ele (mantendo ?turno=), ou ao cartão que gera o link. */
+export default async function QuadroAntigo({
   params,
   searchParams,
 }: {
   params: Promise<{ obraId: string }>;
-  searchParams: Promise<{ [k: string]: string | string[] | undefined }>;
+  searchParams: Promise<{ turno?: string | string[] }>;
 }) {
-  const [{ obraId }, busca] = await Promise.all([params, searchParams]);
-  const supabase = await criarClienteServidor();
-  const obra = await obterObra(supabase, obraId);
-  if (!obra) notFound();
-  const q = await prepararQuadro(supabase, obra.id, busca, `/obras/${obra.id}/quadro`);
-
-  return (
-    <div className="flex min-w-0 flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <Link href={`/obras/${obra.id}`} className="text-sm text-operacional underline">← {obra.nome}</Link>
-        <BotaoAjuda tela="quadro" />
-      </div>
-      {q ? (
-        <>
-          <Quadro {...q.props} publico={false} editarHref={`/obras/${obra.id}/turnos/${q.turnoId}`} />
-          <AtualizarPeriodicamente />
-        </>
-      ) : (
-        <Cartao><p className="text-texto-suave">Nenhum turno ainda</p></Cartao>
-      )}
-    </div>
-  );
+  const [{ obraId }, { turno }] = await Promise.all([params, searchParams]);
+  const { codigo } = await linkQuadro(await criarClienteServidor(), obraId);
+  if (!codigo) redirect(`/obras/${obraId}#link-quadro`);
+  redirect(typeof turno === "string" ? `/q/${codigo}?turno=${encodeURIComponent(turno)}` : `/q/${codigo}`);
 }

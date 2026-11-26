@@ -3,6 +3,11 @@ import type { Novidade } from "./tipos";
 
 export const NOVIDADES: Novidade[] = [
   {
+    data: "2026-11-26",
+    texto: "Quadro único: abre só pelo link, sem login, e o check-in e o check-out acontecem no mesmo quadro. O selo na barra azul troca sozinho para \"CHECK-OUT\" quando a primeira equipe inicia. E o quadro ganhou o resumo do clima, com a previsão antes do turno.",
+    href: "/ajuda/quadro-tv#visoes",
+  },
+  {
     data: "2026-11-25",
     texto: "Clima automático: o RDO registra sozinho o tempo durante o turno (leitura de 2 em 2 horas, média, máxima, mínima e chuva), pela cidade da obra. Ninguém precisa mais lançar o clima.",
     href: "/ajuda/fechar-turno#clima",

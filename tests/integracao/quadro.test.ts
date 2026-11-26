@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade, definirResponsavel } from "@/lib/db/atividades";
 import { criarObra } from "@/lib/db/obras";
-import { entradaDoTurno, fotoCheckin, gerarLinkQuadro, linkQuadro, obraPorCodigo, turnosDaObra } from "@/lib/db/quadro";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { entradaDoTurno, turnoParaClima, gerarLinkQuadro, linkQuadro, obraPorCodigo, turnosDaObra } from "@/lib/db/quadro";
 import { criarResponsavel } from "@/lib/db/responsaveis";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
@@ -20,7 +21,7 @@ describe.skipIf(!ligado)("quadro (leitura e link)", () => {
     return r.dados;
   };
 
-  it("entrada, turnos e foto do check-in", { timeout: 60_000 }, async () => {
+  it("entrada, turnos e sem foto do check-in ao liberar", { timeout: 60_000 }, async () => {
     const obra = exigir(await criarObra(u.cliente, { nome: "Obra Quadro Leitura" }));
     const ana = exigir(await criarResponsavel(u.cliente, obra.id, { nome: "Ana" }));
     const t = exigir(await criarTurno(u.cliente, {
@@ -34,12 +35,16 @@ describe.skipIf(!ligado)("quadro (leitura e link)", () => {
     expect(e.responsaveis).toEqual([{ id: ana.id, nome: "Ana", ativo: true }]);
     expect(e.atividades[0]).toMatchObject({ descricao: "Forma", qtd_planejada: 10, programada: false, responsavel_id: ana.id });
     expect(await turnosDaObra(u.cliente, obra.id)).toEqual([{ id: t.id, data: "2026-11-10", periodo: "diurno", status: "planejado" }]);
-    expect(await fotoCheckin(u.cliente, t.id)).toBeNull();
+    // Dados do clima do quadro: janela do turno, cidade da obra e clima gravado (ainda nenhum).
+    expect(await turnoParaClima(u.cliente, t.id)).toMatchObject({
+      status: "planejado", data: "2026-11-10", hora_inicio_prevista: "07:00:00", clima_turno: null, obra: { latitude: null, longitude: null },
+    });
 
+    // O quadro é único (sem foto oficial): liberar o turno não grava mais em checkin_fotos.
     exigir(await aplicarAcao(u.cliente, t.id, "liberar"));
-    const f = (await fotoCheckin(u.cliente, t.id))!;
-    expect(f.dados.atividades[0].responsavel_id).toBe(ana.id);
-    expect(typeof f.emitido_em).toBe("string");
+    const { data: fotos, error } = await criarClienteAdmin().from("checkin_fotos").select("turno_id").eq("turno_id", t.id);
+    expect(error).toBeNull();
+    expect(fotos).toEqual([]);
     expect(await entradaDoTurno(u.cliente, "00000000-0000-0000-0000-000000000000")).toBeNull();
   });
 

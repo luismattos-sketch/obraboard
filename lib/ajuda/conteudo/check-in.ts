@@ -53,8 +53,8 @@ export const checkIn: Capitulo = {
       id: "liberar",
       titulo: "Libere o turno ao campo",
       texto: [
-        "Com tudo conferido, clique em \"Liberar para campo\". Nesse momento o check-in fica registrado: é a foto oficial do que foi combinado, que aparece no histórico do turno (\"Check-in registrado\") e no quadro.",
-        "Use \"Ver quadro\" para ver o check-in como ele aparece na TV.",
+        "Com tudo conferido, clique em \"Liberar para campo\". O quadro continua em \"CHECK-IN\" até a primeira equipe iniciar.",
+        "Use \"Ver quadro\" para abrir o quadro do turno, o mesmo da TV.",
       ],
       captura: {
         alt: "Turno pronto para liberar, com o botão Liberar para campo",
