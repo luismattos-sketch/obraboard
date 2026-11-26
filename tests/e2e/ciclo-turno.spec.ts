@@ -154,7 +154,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await salvo("titulo-efetivo");
 
     // Clima: vem sozinho (Open-Meteo falso), ninguém lança
-    await expect(campo.getByText("Clima até agora")).toBeVisible();
+    await expect(campo.getByRole("heading", { name: "Clima até agora" })).toBeVisible();
 
     // Terminei de todos (só a Ana) envia o turno sozinho
     await campo.getByRole("button", { name: "✓ Terminei minha parte" }).click();
