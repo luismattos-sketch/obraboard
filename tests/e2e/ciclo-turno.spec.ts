@@ -26,6 +26,8 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
   // Obra
   await page.getByRole("main").getByRole("link", { name: "Nova obra" }).click();
   await page.getByLabel("Nome da obra").fill("Obra E2E");
+  await page.getByLabel("Cidade (para o clima)").fill("Maca");
+  await page.getByRole("button", { name: "Macaé, Rio de Janeiro" }).click();
   await page.getByRole("button", { name: "Criar obra" }).click();
   await expect(page.getByRole("heading", { name: "Obra E2E" })).toBeVisible();
 
@@ -151,9 +153,8 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await campo.getByLabel("Quantidade").fill("4");
     await salvo("titulo-efetivo");
 
-    // Clima: o responsável lança no celular
-    await campo.getByLabel("Manhã").selectOption({ label: "Bom" });
-    await salvo("titulo-clima");
+    // Clima: vem sozinho (Open-Meteo falso), ninguém lança
+    await expect(campo.getByRole("heading", { name: "Clima até agora" })).toBeVisible();
 
     // Terminei de todos (só a Ana) envia o turno sozinho
     await campo.getByRole("button", { name: "✓ Terminei minha parte" }).click();
@@ -162,13 +163,12 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // Planejador vê o resumo
     await page.goto(turnoUrl);
 
-    // Planejador corrige o horário (vale até o próximo toque no campo) e vê quem lançou o clima
+    // Planejador corrige o horário (vale até o próximo toque no campo)
     const salvoP = (secao: string) =>
       expect(page.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("16:00");
     await salvoP("titulo-horario");
-    await expect(page.getByText(/Última alteração do clima: Ana Souza · \d\d:\d\d/)).toBeVisible();
     await page.reload();
     const resumo = page.locator("section[aria-labelledby='titulo-resumo']");
     await expect(resumo.getByText("50%")).toBeVisible();
@@ -178,6 +178,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.getByRole("button", { name: "Fechar turno" }).click();
     await page.getByRole("button", { name: "Confirmar fechamento" }).click();
     await expect(page.getByRole("button", { name: "Reabrir turno" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Clima" })).toBeVisible();
 
     // RDO
     const [download] = await Promise.all([

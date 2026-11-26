@@ -1,5 +1,5 @@
 import { statusAtividade } from "./calculos";
-import type { Causa, CondicaoClima } from "./tipos";
+import type { Causa } from "./tipos";
 
 /**
  * "Assinaturas" do que cada bloco grava, no formato do banco. O mesmo valor sai do estado local
@@ -30,10 +30,4 @@ export function tuplaEfetivo(linhas: { funcao: string; quantidade: number }[]): 
 export const tuplaHorario = (inicio: string | null, fim: string | null): [string | null, string | null] => [
   inicio || null,
   fim || null,
-];
-
-/** Clima de um período (sem condição = sem registro). */
-export const tuplaClima = (condicao: CondicaoClima | "" | null, impediu: boolean): [CondicaoClima | null, boolean] => [
-  condicao || null,
-  condicao ? impediu === true : false,
 ];

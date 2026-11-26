@@ -18,7 +18,8 @@ export type ResumoTurno = {
   avisosEfetivo: string[];
   atividades: (Atividade & { status: StatusAtividade })[];
   restricoesPorCausa: { causa: Causa; rotulo: string; atividades: string[] }[];
-  climaImpediu: boolean;
+  /** Atividades do turno paradas por clima (causa "clima"). */
+  paradasClima: number;
   /** Fora do cumprimento do dia. */
   extras: number;
   adiantadas: number;
@@ -68,7 +69,7 @@ export function resumirTurno(t: TurnoCompleto): ResumoTurno {
     avisosEfetivo: hh.avisos,
     atividades,
     restricoesPorCausa,
-    climaImpediu: t.clima.some((c) => c.impediu),
+    paradasClima: t.atividades.filter((a) => a.causa === "clima").length,
     extras: t.atividades.filter((a) => a.tipo === "extra").length,
     adiantadas: t.atividades.filter((a) => a.tipo === "adiantada").length,
     concluidas: atividades.filter((a) => !a.tipo && a.status === "concluida").length,

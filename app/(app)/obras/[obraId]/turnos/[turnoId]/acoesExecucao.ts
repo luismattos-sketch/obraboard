@@ -2,8 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  removerClimaPlanejador,
-  salvarClimaPlanejador,
   salvarEfetivoPlanejador,
   salvarExecucaoPlanejador,
   salvarHorarioPlanejador,
@@ -16,9 +14,10 @@ import { lancarExtraPlanejador, puxarPlanejador, removerForaDoDiaPlanejador } fr
 import type { DadosExtra, ModoPuxar } from "@/lib/dominio/foraDoDia";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { lerIniciados, lerOcorrencias, lerTerminados, type Iniciado, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
-import type { DadosClima, DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
+import type { DadosExecucao, DadosHorario, DadosOcorrencia, LinhaEfetivo } from "@/lib/db/validacao";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
-import type { PeriodoClima } from "@/lib/dominio/tipos";
+import { gravarClimaTurno } from "@/lib/db/clima";
+import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 // Correções do planejador: sessão + RLS. A página é revalidada para o resumo refletir a correção.
@@ -42,12 +41,14 @@ export async function corrigirEfetivo(turnoId: string, responsavelId: string | n
   return comRevalidacao(turnoId, (c) => salvarEfetivoPlanejador(c, turnoId, responsavelId, linhas, esperado));
 }
 
-export async function corrigirClima(turnoId: string, dados: DadosClima) {
-  return comRevalidacao(turnoId, (c) => salvarClimaPlanejador(c, turnoId, dados));
-}
-
-export async function limparClimaPlanejador(turnoId: string, periodo: PeriodoClima) {
-  return comRevalidacao(turnoId, (c) => removerClimaPlanejador(c, turnoId, periodo));
+/** Tenta de novo buscar o clima de um turno enviado que ficou sem clima. */
+export async function buscarClimaDeNovo(turnoId: string): Promise<Resultado> {
+  return comRevalidacao(turnoId, async (c) => {
+    const turno = await obterTurnoCompleto(c, turnoId);
+    if (!turno) return falha("Turno não encontrado");
+    if (turno.status !== "enviado") return falha("Só dá para buscar o clima de um turno enviado.");
+    return (await gravarClimaTurno(c, turno)) ? ok(undefined) : falha("Não foi possível buscar o clima agora. Tente mais tarde.");
+  });
 }
 
 export async function corrigirHorario(turnoId: string, dados: DadosHorario) {

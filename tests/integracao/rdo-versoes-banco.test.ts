@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade, editarAtividade } from "@/lib/db/atividades";
-import { salvarClimaPlanejador, salvarEfetivoPlanejador, salvarExecucaoPlanejador } from "@/lib/db/execucao";
+import { salvarEfetivoPlanejador, salvarExecucaoPlanejador } from "@/lib/db/execucao";
 import { criarObra } from "@/lib/db/obras";
 import { aplicarAcao, criarTurno, obterTurnoCompleto, removerTurno } from "@/lib/db/turnos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -37,7 +37,6 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
       ? { qtd_realizada: 4, causa: "material", observacao: "faltou cimento" }
       : { qtd_realizada: 4, causa: null, observacao: null }, VAZIO));
     exigir(await salvarEfetivoPlanejador(u.cliente, t.id, null, [{ funcao: "Pedreiro", quantidade: 3 }], []));
-    exigir(await salvarClimaPlanejador(u.cliente, t.id, { periodo: "manha", condicao: "bom", impediu: false }));
     return { obraId: obra.id, turnoId: t.id, atividadeId: at.id };
   }
 
@@ -60,13 +59,14 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
     const d = v.dados as {
       obra: { nome: string }; turno: { data: string; periodo: string };
       atividades: { descricao: string; qtd_planejada: number }[];
-      efetivo: { funcao: string; quantidade: number }[]; clima: { periodo: string }[];
+      efetivo: { funcao: string; quantidade: number }[];
     };
     expect(d.obra.nome).toBe("Obra RDO");
     expect(d.turno).toMatchObject({ data: "2026-11-09", periodo: "diurno" });
     expect(d.atividades[0]).toMatchObject({ descricao: "Concretagem", qtd_planejada: 10 });
     expect(d.efetivo).toEqual([expect.objectContaining({ funcao: "Pedreiro", quantidade: 3 })]);
-    expect(d.clima).toEqual([{ periodo: "manha", condicao: "bom", impediu: false }]);
+    expect(d).not.toHaveProperty("clima");
+    expect(d).toHaveProperty("clima_turno");
     expect(JSON.stringify(v.dados)).not.toContain("token_hash");
   });
 

@@ -8,10 +8,8 @@ import {
   horaValida,
   validarEfetivoEsperado,
   validarHorariosPrevistos,
-  validarPeriodoClima,
 } from "@/lib/db/validacao";
-import { tuplaClima, tuplaEfetivo, tuplaExecucao, tuplaHorario } from "@/lib/dominio/assinatura";
-import { PERIODOS_CLIMA } from "@/lib/dominio/tipos";
+import { tuplaEfetivo, tuplaExecucao, tuplaHorario } from "@/lib/dominio/assinatura";
 
 describe("decidirRepeticao (auto-salvamento)", () => {
   it("nunca desiste e aumenta o intervalo até 30 s", () => {
@@ -81,11 +79,6 @@ describe("validação do planejador", () => {
     expect(validarEfetivoEsperado([{ funcao: "Pedreiro", quantidade: 1.5 }]).ok).toBe(false);
     expect(validarEfetivoEsperado("x" as never).ok).toBe(false);
   });
-  it("períodos do clima vêm de PERIODOS_CLIMA", () => {
-    expect(PERIODOS_CLIMA.map((p) => p.id)).toEqual(["manha", "tarde", "noite"]);
-    expect(validarPeriodoClima("tarde").ok).toBe(true);
-    expect(validarPeriodoClima("dia" as never).ok).toBe(false);
-  });
 });
 
 describe("assinaturas (local x servidor)", () => {
@@ -103,9 +96,7 @@ describe("assinaturas (local x servidor)", () => {
       tuplaEfetivo([{ funcao: "Pedreiro", quantidade: 3 }, { funcao: "Servente", quantidade: 2 }]),
     );
   });
-  it("horário e clima", () => {
+  it("horário", () => {
     expect(tuplaHorario("", "17:00")).toEqual([null, "17:00"]);
-    expect(tuplaClima("", true)).toEqual([null, false]);
-    expect(tuplaClima("bom", true)).toEqual(["bom", true]);
   });
 });

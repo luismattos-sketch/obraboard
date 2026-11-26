@@ -41,7 +41,7 @@ export default defineConfig({
     reuseExistingServer: true,
     // IA de mentira (lib/ia/falsa.ts): E2E e capturas não chamam a Claude nem gastam crédito.
     // Um next dev já aberto à mão é reaproveitado e NÃO tem isso: feche-o antes de rodar os testes.
-    env: { FRENTIA_IA_FALSA: "1" },
+    env: { FRENTIA_IA_FALSA: "1", FRENTIA_CLIMA_FALSO: "1" },
     timeout: 180_000,
   },
 });

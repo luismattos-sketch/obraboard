@@ -139,6 +139,10 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
 
 23. **Dependência entre equipes no quadro** — mostrar quando uma equipe espera outra (João esperando Carlos). A parada já guarda "aguardando responsável"; falta exibir no quadro e talvez ligar atividade a atividade. Saiu do item 14. [P1, 2026-11-25]
 
+24. **Clima automático no RDO** — Open-Meteo pela cidade da obra; leituras de 2 em 2h, média/máx/mín e chuva gravadas no enviar/fechar; clima manual removido. Spec/plano: docs/superpowers/{specs,plans}/2026-11-25-clima-automatico*. [Luis, 2026-11-25]
+
+25. **Contratar plano comercial do Open-Meteo quando houver clientes pagantes** — o gratuito é só para uso não comercial; trocar `OPEN_METEO_URL` (e chave) na Vercel. [P1, 2026-11-25]
+
 ---
 
 ### Pendências menores já anotadas antes (para não perder)

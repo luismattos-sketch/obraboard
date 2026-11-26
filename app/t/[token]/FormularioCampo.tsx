@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import type { Atividade } from "@/lib/db/atividades";
-import type { Clima, Efetivo } from "@/lib/db/turnos";
+import type { Efetivo } from "@/lib/db/turnos";
+import type { ClimaNaTela } from "@/lib/clima/tela";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
@@ -15,7 +16,7 @@ import { linkWhatsapp, mensagemTerminou } from "@/lib/dominio/whatsapp";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
 import { BotaoTerminei } from "@/components/execucao/BotaoTerminei";
 import { BotaoIniciar } from "@/components/execucao/BotaoIniciar";
-import { BlocoClima } from "@/components/execucao/BlocoClima";
+import { ClimaTurno } from "@/components/execucao/ClimaTurno";
 import { BlocoHorario } from "@/components/execucao/BlocoHorario";
 import { CausasPendentes } from "@/components/execucao/CausasPendentes";
 import { ERRO_CAUSA_TERMINEI } from "@/lib/db/mensagens";
@@ -26,9 +27,7 @@ import {
   criarOcorrencia,
   desfazerInicio,
   desfazerTerminou,
-  limparClima,
   marcarInicio,
-  salvarClima,
   salvarHorarioReal,
   encerrarParada,
   enviarFotoParada,
@@ -76,7 +75,8 @@ export type DadosTurnoCampo = {
   ocorrencias: Ocorrencia[];
   janela: Janela | null;
   intervalo: Janela | null;
-  clima: Clima[];
+  clima: ClimaNaTela;
+  paradasClima: number;
 };
 
 export function FormularioCampo({
@@ -352,12 +352,9 @@ export function FormularioCampo({
         remover={(a) => void removerLancamento(a.id)}
       />
       {erroRemover && <Aviso tom="perigo">{erroRemover}</Aviso>}
-      <BlocoClima
-        inicial={turno.clima}
-        somenteLeitura={leitura}
-        salvar={(d) => salvarClima(token, d, responsavelId)}
-        limpar={(p) => limparClima(token, p)}
-      />
+      <section className="rounded-cartao border border-borda bg-superficie p-4">
+        <ClimaTurno clima={turno.clima.clima} paradasClima={turno.paradasClima} aviso={turno.clima.aviso} parcial={turno.clima.parcial} />
+      </section>
       {!somenteLeitura && responsavelId !== null && (
         <ForaDoDia
           adiantar={opcoesPuxar.adiantar}

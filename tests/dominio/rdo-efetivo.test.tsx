@@ -35,7 +35,7 @@ function turno(ocorrencias: Ocorrencia[]): TurnoCompleto {
       { id: "e1", turno_id: "t", funcao: "Montador de andaime", quantidade: 6, responsavel_id: "rita" },
       { id: "e2", turno_id: "t", funcao: "Caldeireiro", quantidade: 5, responsavel_id: "ana" },
     ],
-    clima: [],
+    clima_turno: null,
     ocorrencias,
     responsaveis: [{ id: "rita", nome: "Rita" }, { id: "ana", nome: "Ana" }],
   };
@@ -95,5 +95,20 @@ describe("RDO: aviso de parada", () => {
   it("seção de fotos leva a legenda; sem foto carregada, nada", () => {
     expect(texto(FotosParadas({ turno: t, fotos: { "e/o/t/p1.jpg": new Uint8Array([1, 2]) } }))).toContain("Fotos das paradas");
     expect(FotosParadas({ turno: t, fotos: {} })).toBeNull();
+  });
+  it("clima automático no RDO: chuva, leituras e fonte; sem clima, aviso", () => {
+    const base = turno([]);
+    const ct = { temp_media: 26.4, temp_max: 31, temp_min: 22, chuva_mm: 4, choveu: true, leituras: [
+      { hora: "2026-11-16T07:00", temperatura: 22, chuva_mm: 0, codigo: 1 },
+      { hora: "2026-11-16T13:00", temperatura: 30, chuva_mm: 2, codigo: 61 },
+    ] };
+    const t = texto(EfetivoEClima({ turno: { ...base, clima_turno: ct }, resumo: resumirTurno(base) }));
+    expect(t).toContain("Choveu · 4 mm");
+    expect(t).toContain("13h Chuva fraca 30°");
+    expect(t).toContain("Open-Meteo");
+    expect(t).not.toContain("Manhã");
+    const sem = texto(EfetivoEClima({ turno: { ...base, obra: { ...base.obra, local_nome: "Macaé" } }, resumo: resumirTurno(base) }));
+    expect(sem).toContain("Clima não disponível");
+    expect(texto(EfetivoEClima({ turno: base, resumo: resumirTurno(base) }))).toContain("obra sem cidade");
   });
 });

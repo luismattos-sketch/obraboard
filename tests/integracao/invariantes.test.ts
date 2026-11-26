@@ -120,7 +120,7 @@ describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
       expect(del.error?.message).toBe("turno_fechado");
       const ef = await c.from("efetivo").insert({ turno_id: turnoId, funcao: "Pedreiro", quantidade: 1 });
       expect(ef.error?.message).toBe("turno_fechado");
-      const cl = await c.from("clima").insert({ turno_id: turnoId, periodo: "manha", condicao: "bom" });
+      const cl = await c.from("clima_turno").insert({ turno_id: turnoId, leituras: [] });
       expect(cl.error?.message).toBe("turno_fechado");
       const h = await c.from("turnos").update({ hora_inicio_real: "08:00" }).eq("id", turnoId);
       expect(h.error?.message).toBe("turno_fechado");

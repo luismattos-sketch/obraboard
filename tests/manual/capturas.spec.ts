@@ -57,6 +57,8 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await pl.getByLabel("Cliente (opcional)").fill(OBRA.cliente);
   await pl.getByLabel("Endereço (opcional)").fill(OBRA.endereco);
   await fotografar(pl, "primeiros-passos", "criar-obra");
+  await pl.getByLabel("Cidade (para o clima)").fill("Maca");
+  await pl.getByRole("button", { name: "Macaé, Rio de Janeiro" }).click();
   await pl.getByRole("button", { name: "Criar obra" }).click();
   await expect(pl.getByRole("heading", { name: OBRA.nome })).toBeVisible();
   const obraId = /\/obras\/([0-9a-f-]{36})/.exec(pl.url())![1];

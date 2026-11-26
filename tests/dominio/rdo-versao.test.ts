@@ -32,8 +32,12 @@ describe("lerFoto", () => {
     expect(t.atividades.map((a) => a.descricao)).toEqual(["A", "B"]);
     expect(t.atividades.every((a) => a.turno_id === "t")).toBe(true);
     expect(t.efetivo).toEqual([{ id: "e1", turno_id: "t", funcao: "Pedreiro", quantidade: 3 }]);
-    expect(t.clima).toEqual([{ turno_id: "t", periodo: "manha", condicao: "bom", impediu: false }]);
     expect(t.fechado_em).toBe("2026-11-09T21:40:00+00:00");
+  });
+  it("foto antiga só com clima manual ⇒ clima_turno null; foto nova traz o clima automático", () => {
+    expect(lerFoto(versao()).clima_turno).toBeNull();
+    const ct = { temp_media: 25.5, temp_max: 30, temp_min: 21, chuva_mm: 3, choveu: true, leituras: [{ hora: "2026-11-09T07:00", temperatura: 21, chuva_mm: 0, codigo: 1 }] };
+    expect(lerFoto(versao({ dados: { ...foto, clima_turno: ct } })).clima_turno).toEqual(ct);
   });
   it("foto v1 antiga sem ocorrencias mantém HH antigo (sem intervalo)", () => {
     const t = lerFoto(versao());

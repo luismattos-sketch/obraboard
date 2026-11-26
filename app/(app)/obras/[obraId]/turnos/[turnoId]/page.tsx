@@ -23,6 +23,7 @@ import { EdicaoExecucao } from "./EdicaoExecucao";
 import { ListaAtividades } from "./ListaAtividades";
 import { PainelLink } from "./PainelLink";
 import { Resumo } from "./Resumo";
+import { climaParaTela } from "@/lib/clima/tela";
 import { FaixaParadas } from "./FaixaParadas";
 import { RelatosCampo } from "./RelatosCampo";
 import { OQueFalta } from "./OQueFalta";
@@ -61,6 +62,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
     created_at: e.created_at,
     lancado_pelo_planejador: e.lancado_pelo_planejador,
   }));
+  const clima = turno.status === "planejado" ? null : await climaParaTela(turno);
   const fotos = await urlsFotos(turno.ocorrencias.map((o) => o.foto_path ?? ""));
   const opcoesPuxar =
     turno.status === "em_campo" || turno.status === "enviado" ? await opcoesPuxarPlanejador(supabase, turno.id).catch(() => SEM_OPCOES) : SEM_OPCOES;
@@ -128,7 +130,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
               terminados={(turno.terminados ?? []).map((t) => t.responsavel_id)}
             />
           )}
-          <Resumo turno={turno} />
+          {clima && <Resumo turno={turno} clima={clima} />}
           <BlocoRdo turnoId={turno.id} fechado={turno.status === "fechado"} versoes={versoes} />
           <RelatosCampo relatos={relatos} responsaveis={responsaveis} />
           {turno.status === "fechado" ? (
@@ -156,7 +158,6 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 hora_fim_real={turno.hora_fim_real}
                 atividades={turno.atividades}
                 efetivo={efetivo}
-                clima={turno.clima}
                 opcoesFuncao={opcoesFuncao}
                 obraId={obraId}
                 responsaveis={responsaveis}

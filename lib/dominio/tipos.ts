@@ -40,22 +40,6 @@ export const GRUPO_CAUSA: Record<Causa, GrupoCausa | null> = {
   outro: null,
 };
 
-export type PeriodoClima = "manha" | "tarde" | "noite";
-export type CondicaoClima = "bom" | "chuva_leve" | "chuva_forte";
-
-/** Períodos do clima na ordem de exibição (tela, formulário e RDO). */
-export const PERIODOS_CLIMA: readonly { id: PeriodoClima; rotulo: string }[] = [
-  { id: "manha", rotulo: "Manhã" },
-  { id: "tarde", rotulo: "Tarde" },
-  { id: "noite", rotulo: "Noite" },
-];
-
-export const CONDICOES: Record<CondicaoClima, string> = {
-  bom: "Bom",
-  chuva_leve: "Chuva leve",
-  chuva_forte: "Chuva forte",
-};
-
 export const ROTULO_STATUS_TURNO: Record<StatusTurno, string> = {
   planejado: "Planejado",
   em_campo: "Em campo",

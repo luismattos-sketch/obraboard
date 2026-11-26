@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { falha, ok, type Resultado } from "./resultado";
 import type { Janela } from "@/lib/dominio/efetivoHH";
 import { normalizarWhatsapp } from "@/lib/dominio/whatsapp";
-import { errosDeTamanho, falhaCampos, LIMITES, validarIntervalo } from "./validacao";
+import { errosDeTamanho, falhaCampos, LIMITES, validarCidade, validarIntervalo } from "./validacao";
+import type { Cidade } from "@/lib/clima/tipos";
 
 /** Limites de nome/cliente/endereço da obra, por campo. */
 export function errosObra(d: { nome?: string; cliente?: string; endereco?: string }): Record<string, string> {
@@ -22,9 +23,13 @@ export type Obra = {
   created_at: string;
   /** WhatsApp do planejador (dígitos com DDI); ausente nas fotos do RDO. */
   whatsapp_planejador?: string | null;
+  /** Cidade escolhida para o clima automático (ausentes em dados antigos). */
+  local_nome?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
-const COLUNAS = "id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador";
+const COLUNAS = "id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador, local_nome, latitude, longitude";
 
 export async function listarObras(cliente: SupabaseClient): Promise<Obra[]> {
   const { data, error } = await cliente.from("obras").select(COLUNAS).order("nome");
@@ -44,7 +49,7 @@ export async function obterObra(cliente: SupabaseClient, id: string): Promise<Ob
 
 export async function criarObra(
   cliente: SupabaseClient,
-  dados: { nome: string; cliente?: string; endereco?: string },
+  dados: { nome: string; cliente?: string; endereco?: string; cidade?: Cidade },
 ): Promise<Resultado<Obra>> {
   const nome = dados.nome.trim();
   if (!nome) return falha("Informe o nome da obra");
@@ -73,6 +78,7 @@ export async function criarObra(
       nome,
       cliente: dados.cliente?.trim() || null,
       endereco: dados.endereco?.trim() || null,
+      ...(dados.cidade ? { local_nome: dados.cidade.nome, latitude: dados.cidade.latitude, longitude: dados.cidade.longitude } : {}),
     })
     .select(COLUNAS)
     .single();
@@ -125,6 +131,23 @@ export async function editarIntervalosObra(c: SupabaseClient, obraId: string, d:
     .select("id");
   if (error && error.code !== "22P02") {
     console.error("editarIntervalosObra:", error.message);
+    return falha("Não foi possível salvar. Tente novamente.");
+  }
+  if (!data || data.length === 0) return falha("Obra não encontrada");
+  return ok(undefined);
+}
+
+/** Cidade da obra, usada para o clima automático de cada turno. */
+export async function editarCidadeObra(c: SupabaseClient, obraId: string, cidade: Cidade): Promise<Resultado> {
+  const v = validarCidade(cidade);
+  if (!v.ok) return v;
+  const { data, error } = await c
+    .from("obras")
+    .update({ local_nome: v.dados.nome, latitude: v.dados.latitude, longitude: v.dados.longitude })
+    .eq("id", obraId)
+    .select("id");
+  if (error && error.code !== "22P02") {
+    console.error("editarCidadeObra:", error.message);
     return falha("Não foi possível salvar. Tente novamente.");
   }
   if (!data || data.length === 0) return falha("Obra não encontrada");

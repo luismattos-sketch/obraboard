@@ -22,14 +22,3 @@ export function ultimaAlteracaoEfetivo(
   const ult = linhas.reduce((m, l) => (l.created_at > m.created_at ? l : m));
   return `${ult.lancado_pelo_planejador ? "você" : nomeEquipe} · ${hora(ult.created_at)}`;
 }
-
-/** Clima: vale o período alterado por último (registro sem hora = antigo, ignorado). */
-export function ultimaAlteracaoClima(
-  registros: { lancado_por_id?: string | null; lancado_em?: string | null }[],
-  nome: (id: string) => string,
-): string | null {
-  const comHora = registros.filter((r): r is { lancado_por_id?: string | null; lancado_em: string } => !!r.lancado_em);
-  if (comHora.length === 0) return null;
-  const ult = comHora.reduce((m, r) => (r.lancado_em > m.lancado_em ? r : m));
-  return ultimaAlteracao({ lancado_por_id: ult.lancado_por_id ?? null, lancado_em: ult.lancado_em }, nome);
-}

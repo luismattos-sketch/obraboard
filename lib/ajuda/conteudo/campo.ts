@@ -72,10 +72,10 @@ export const campo: Capitulo = {
     },
     {
       id: "clima",
-      titulo: "Informe o clima",
+      titulo: "Veja o clima",
       texto: [
-        "No fim da tela, em \"Clima\", escolha como estava a manhã, a tarde e a noite e marque se o clima impediu o trabalho. Salva sozinho.",
-        "O clima vale para o turno todo: se outro responsável mudar, fica o último. O planejador vê quem alterou.",
+        "Ninguém precisa lançar o clima: ele vem sozinho, pela cidade da obra. No fim da tela, \"Clima até agora\" mostra a temperatura média, se choveu e as leituras de 2 em 2 horas desde o início do turno.",
+        "A chuva parou o serviço? Informe isso na atividade, com a causa \"Clima\".",
       ],
     },
     {
