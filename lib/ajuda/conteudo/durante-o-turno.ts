@@ -10,12 +10,12 @@ export const duranteOTurno: Capitulo = {
       id: "quadro",
       titulo: "Acompanhe pelo quadro",
       texto: [
-        "Enquanto o campo lança, abra \"Quadro\" na página da obra (ou \"Ver quadro\" no turno). Cada responsável tem uma faixa com o efetivo e as atividades, com barra verde (concluída), amarela (parcial) ou vermelha (não iniciada).",
+        "Enquanto o campo lança, abra \"Quadro\" na página da obra (ou \"Ver quadro\" no turno): é o mesmo quadro da TV, pelo link, sem login. Cada responsável tem uma faixa com o efetivo e as atividades, com barra verde (concluída), amarela (parcial) ou vermelha (não iniciada).",
         "O quadro se atualiza sozinho a cada 30 segundos.",
       ],
       captura: {
         alt: "Quadro do turno com uma faixa por responsável e o andamento das atividades",
-        alvo: { papel: "link", nome: "Editar" },
+        alvo: { papel: "link", nome: "Agora" },
         dispositivo: "computador",
       },
     },
