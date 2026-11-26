@@ -15,12 +15,17 @@ function turno(over: Partial<TurnoCompleto> = {}): TurnoCompleto {
     obra: { id: "o", empresa_id: "e", nome: "Obra", cliente: null, endereco: null, created_at: "" },
     atividades: [at("1", 10, 10), at("2", 10, 4, "material"), at("3", 5, null, "material"), at("4", 2, 0, "clima")],
     efetivo: [{ id: "e1", turno_id: "t", funcao: "Pedreiro", quantidade: 4 }, { id: "e2", turno_id: "t", funcao: "Servente", quantidade: 2 }],
-    clima: [{ turno_id: "t", periodo: "tarde", condicao: "chuva_forte", impediu: true }],
+    clima_turno: null,
     ...over,
   } as unknown as TurnoCompleto;
 }
 
 describe("resumirTurno", () => {
+  it("paradasClima conta toda atividade com causa clima (parcial e extra)", () => {
+    const extra = { ...at("9", 3, null, "clima"), tipo: "extra" };
+    const r = resumirTurno(turno({ atividades: [at("1", 10, 4, "clima"), extra, at("2", 5, 5)] as never }));
+    expect(r.paradasClima).toBe(2);
+  });
   it("calcula cumprimento, HH, efetivo, restrições e clima", () => {
     const r = resumirTurno(turno());
     expect(r.cumprimento).toBe(0.25);
@@ -29,7 +34,7 @@ describe("resumirTurno", () => {
     expect(r.restricoesPorCausa[0].causa).toBe("material");
     expect(r.restricoesPorCausa[0].atividades).toHaveLength(2);
     expect(r.restricoesPorCausa[1].causa).toBe("clima");
-    expect(r.climaImpediu).toBe(true);
+    expect(r.paradasClima).toBe(1);
     expect(r.atividades.map((a) => a.status)).toEqual(["concluida", "parcial", "nao_iniciada", "nao_iniciada"]);
   });
   it("efetivo com empréstimo e parado: conta cada pessoa uma vez e separa HH parado", () => {
@@ -54,8 +59,8 @@ describe("resumirTurno", () => {
     expect(r.hhEquipes.find((e) => e.responsavel_id === "ana")?.hhProdutivo).toBe(53);
   });
   it("turno vazio", () => {
-    const r = resumirTurno(turno({ atividades: [], efetivo: [], clima: [] }));
-    expect(r).toMatchObject({ cumprimento: null, hh: null, efetivoTotal: 0, restricoesPorCausa: [], climaImpediu: false });
+    const r = resumirTurno(turno({ atividades: [], efetivo: [] }));
+    expect(r).toMatchObject({ cumprimento: null, hh: null, efetivoTotal: 0, restricoesPorCausa: [], paradasClima: 0 });
   });
   it("ignora causa em atividade concluída", () => {
     const r = resumirTurno(turno({ atividades: [at("1", 10, 10, "material")] }));

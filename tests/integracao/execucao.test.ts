@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { adicionarAtividade } from "@/lib/db/atividades";
 import {
-  removerClimaPlanejador,
-  salvarClimaPlanejador,
   salvarEfetivoPlanejador,
   salvarExecucaoPlanejador,
   salvarHorarioPlanejador,
@@ -40,7 +38,7 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     return { turnoId: t.dados.id, atividadeId: a.dados.id };
   }
 
-  it("corrige execução, efetivo, clima e horário; concluída limpa causa", { timeout: 60_000 }, async () => {
+  it("corrige execução, efetivo e horário; concluída limpa causa", { timeout: 60_000 }, async () => {
     const { turnoId, atividadeId } = await turnoEmCampo("2027-01-10");
     const r1 = await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 4, causa: "material", observacao: " x " }, VAZIO);
     expect(r1).toEqual({ ok: true, dados: { qtd_realizada: 4, causa: "material", observacao: "x" } });
@@ -72,10 +70,6 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, [{ funcao: "", quantidade: 2 }], servente)).toMatchObject({ ok: false });
     expect((await obterTurnoCompleto(u.cliente, turnoId))?.efetivo.map((e) => e.funcao)).toEqual(["Servente"]);
 
-    expect((await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "chuva_leve", impediu: true })).ok).toBe(true);
-    expect((await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "tarde", condicao: "bom", impediu: false })).ok).toBe(true);
-    expect((await removerClimaPlanejador(u.cliente, turnoId, "manha")).ok).toBe(true);
-    expect((await obterTurnoCompleto(u.cliente, turnoId))?.clima.map((c) => c.periodo)).toEqual(["tarde"]);
 
     expect((await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: "07:00", hora_fim_real: "16:00" })).ok).toBe(true);
     expect(await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: "7h", hora_fim_real: null })).toMatchObject({ ok: false });
@@ -101,8 +95,6 @@ describe.skipIf(!ligado)("correções do planejador (sessão + RLS)", () => {
     const e = { ok: false, erro: FECHADO };
     expect(await salvarExecucaoPlanejador(u.cliente, turnoId, atividadeId, { qtd_realizada: 1, causa: null, observacao: null }, { qtd_realizada: 10, causa: null, observacao: null })).toEqual(e);
     expect(await salvarEfetivoPlanejador(u.cliente, turnoId, null, [], [])).toEqual(e);
-    expect(await salvarClimaPlanejador(u.cliente, turnoId, { periodo: "manha", condicao: "bom", impediu: false })).toEqual(e);
-    expect(await removerClimaPlanejador(u.cliente, turnoId, "manha")).toEqual(e);
     expect(await salvarHorarioPlanejador(u.cliente, turnoId, { hora_inicio_real: null, hora_fim_real: null })).toEqual(e);
     expect((await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" })).ok).toBe(true);
     expect((await salvarEfetivoPlanejador(u.cliente, turnoId, null, [], [])).ok).toBe(true);

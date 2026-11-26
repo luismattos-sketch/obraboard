@@ -27,7 +27,7 @@ function turno(n: number, status: TurnoCompleto["status"] = "em_campo"): TurnoCo
     obra: { id: "o", empresa_id: "e", nome: "Edifício Aurora", cliente: "Construtora Ágil", endereco: "Av. São João, 100 — São Paulo/SP", created_at: "" },
     atividades,
     efetivo: [{ id: "e1", turno_id: "t", funcao: "Pedreiro", quantidade: 4 }, { id: "e2", turno_id: "t", funcao: "Servente", quantidade: 2 }],
-    clima: [{ turno_id: "t", periodo: "manha", condicao: "bom", impediu: false }, { turno_id: "t", periodo: "tarde", condicao: "chuva_forte", impediu: true }],
+    clima_turno: null,
     ocorrencias: [], responsaveis: [],
   } as unknown as TurnoCompleto;
 }
@@ -103,7 +103,7 @@ describe("DocumentoRdo", () => {
   }, 30000);
 
   it("renderiza turno vazio fechado", async () => {
-    const t = { ...turno(0, "fechado"), efetivo: [], clima: [] } as TurnoCompleto;
+    const t = { ...turno(0, "fechado"), efetivo: [] } as TurnoCompleto;
     const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} />);
     expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
   }, 30000);

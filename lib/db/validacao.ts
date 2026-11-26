@@ -1,11 +1,4 @@
-import {
-  CAUSAS,
-  CONDICOES,
-  PERIODOS_CLIMA,
-  type CondicaoClima,
-  type DadosExecucao,
-  type PeriodoClima,
-} from "@/lib/dominio/tipos";
+import { CAUSAS, type DadosExecucao } from "@/lib/dominio/tipos";
 import { horasEntre, minutos } from "@/lib/dominio/calculos";
 import type { Janela, Ocorrencia, TipoOcorrencia } from "@/lib/dominio/efetivoHH";
 import type { Causa, Periodo } from "@/lib/dominio/tipos";
@@ -63,7 +56,6 @@ export function validarHorariosPrevistos(dados: {
   return ok(undefined);
 }
 export type LinhaEfetivo = { funcao: string; quantidade: number };
-export type DadosClima = { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean };
 export type DadosHorario = { hora_inicio_real: string | null; hora_fim_real: string | null };
 
 export function validarExecucao(dados: DadosExecucao): Resultado {
@@ -120,19 +112,6 @@ export function validarEfetivoEsperado(linhas: LinhaEfetivo[]): Resultado<LinhaE
     limpas.push({ funcao: l.funcao, quantidade: l.quantidade });
   }
   return ok(limpas);
-}
-
-export function validarPeriodoClima(periodo: PeriodoClima): Resultado {
-  return PERIODOS_CLIMA.some((p) => p.id === periodo) ? ok(undefined) : falha("Período do clima inválido");
-}
-
-export function validarClima(dados: DadosClima): Resultado {
-  const p = validarPeriodoClima(dados.periodo);
-  if (!p.ok) return p;
-  if (typeof dados.condicao !== "string" || !Object.hasOwn(CONDICOES, dados.condicao)) {
-    return falha("Condição do clima inválida");
-  }
-  return ok(undefined);
 }
 
 export function validarHorario(dados: DadosHorario): Resultado {
@@ -248,4 +227,16 @@ export function validarIntervalo(j: { inicio: string; fim: string } | null, peri
   const b = minutos(fim)!;
   if (a === b || (periodo === "diurno" && b < a)) return falha("O fim do intervalo deve ser depois do início");
   return ok({ inicio, fim });
+}
+
+export const ERRO_CIDADE = "Escolha a cidade na lista";
+
+/** Cidade escolhida na busca (nome + coordenadas válidas). */
+export function validarCidade(c: unknown): Resultado<{ nome: string; latitude: number; longitude: number }> {
+  const v = c as { nome?: unknown; latitude?: unknown; longitude?: unknown } | null;
+  const nome = typeof v?.nome === "string" ? v.nome.trim() : "";
+  const lat = Number(v?.latitude), lon = Number(v?.longitude);
+  if (!nome || nome.length > 120 || typeof v?.latitude !== "number" || typeof v?.longitude !== "number") return falha(ERRO_CIDADE);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return falha(ERRO_CIDADE);
+  return ok({ nome, latitude: lat, longitude: lon });
 }

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { criarObra, listarObras, obterObra } from "@/lib/db/obras";
+import { criarObra, editarCidadeObra, listarObras, obterObra } from "@/lib/db/obras";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("obras", () => {
@@ -31,5 +31,15 @@ describe.skipIf(!ligado)("obras", () => {
 
   it("obterObra de id inexistente devolve null", async () => {
     expect(await obterObra(u.cliente, crypto.randomUUID())).toBeNull();
+  });
+  it("cidade da obra: grava na criação e na edição", { timeout: 30_000 }, async () => {
+    const macae = { nome: "Macaé, Rio de Janeiro", latitude: -22.37, longitude: -41.79 };
+    const r = await criarObra(u.cliente, { nome: "Obra Cidade", cidade: macae });
+    if (!r.ok) throw new Error(r.erro);
+    expect(r.dados).toMatchObject({ local_nome: macae.nome, latitude: macae.latitude, longitude: macae.longitude });
+    const sp = { nome: "São Paulo, São Paulo", latitude: -23.55, longitude: -46.64 };
+    expect((await editarCidadeObra(u.cliente, r.dados.id, sp)).ok).toBe(true);
+    expect(await obterObra(u.cliente, r.dados.id)).toMatchObject({ local_nome: sp.nome, latitude: sp.latitude });
+    expect(await editarCidadeObra(u.cliente, crypto.randomUUID(), sp)).toEqual({ ok: false, erro: "Obra não encontrada" });
   });
 });

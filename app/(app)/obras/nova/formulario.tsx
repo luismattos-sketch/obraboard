@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao, classesBotao } from "@/components/ui/Botao";
 import { Campo } from "@/components/ui/Campo";
+import { EscolherCidade } from "@/components/obra/EscolherCidade";
 import type { Resultado } from "@/lib/db/resultado";
 import { novaObra } from "../acoes";
 
@@ -17,6 +18,7 @@ export function FormNovaObra() {
       <Campo rotulo="Nome da obra" name="nome" required maxLength={120} erro={erro?.campos?.nome} />
       <Campo rotulo="Cliente (opcional)" name="cliente" maxLength={120} erro={erro?.campos?.cliente} />
       <Campo rotulo="Endereço (opcional)" name="endereco" autoComplete="street-address" maxLength={200} erro={erro?.campos?.endereco} />
+      <EscolherCidade nomeCampo="cidade" erro={erro?.campos?.cidade} />
       <Botao type="submit" carregando={pendente}>Criar obra</Botao>
       <Link href="/obras" className={classesBotao("secundario")}>Cancelar</Link>
     </form>

@@ -1,11 +1,14 @@
 import { Aviso } from "@/components/ui/Aviso";
+import { ClimaTurno } from "@/components/execucao/ClimaTurno";
+import type { ClimaNaTela } from "@/lib/clima/tela";
+import { BuscarClima } from "./BuscarClima";
 import { qtdComUnidade } from "@/lib/dominio/plural";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { formatarPercentual, horaCurta, numeroBR } from "@/lib/dominio/formato";
 import { resumirTurno, textoForaDoDia } from "@/lib/dominio/resumo";
-import { CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE, type StatusAtividade, type Tom } from "@/lib/dominio/tipos";
+import { ROTULO_STATUS_ATIVIDADE, type StatusAtividade, type Tom } from "@/lib/dominio/tipos";
 
 const TOM: Record<StatusAtividade, Tom> = { concluida: "sucesso", parcial: "alerta", nao_iniciada: "neutro" };
 
@@ -23,7 +26,7 @@ function Metrica({ rotulo, valor, detalhe, explicacao }: { rotulo: string; valor
   );
 }
 
-export function Resumo({ turno }: { turno: TurnoCompleto }) {
+export function Resumo({ turno, clima }: { turno: TurnoCompleto; clima: ClimaNaTela }) {
   const r = resumirTurno(turno);
   const real = turno.hora_inicio_real && turno.hora_fim_real;
 
@@ -109,19 +112,17 @@ export function Resumo({ turno }: { turno: TurnoCompleto }) {
         </Cartao>
 
         <Cartao>
-          <h3 className="mb-2 font-semibold text-texto">Clima</h3>
-          <ul className="flex flex-col gap-1 text-sm">
-            {PERIODOS_CLIMA.map((p) => {
-              const c = turno.clima.find((x) => x.periodo === p.id);
-              return (
-                <li key={p.id} className="flex justify-between gap-3">
-                  <span className="text-texto-suave">{p.rotulo}</span>
-                  <span className="text-texto">{c ? `${CONDICOES[c.condicao]}${c.impediu ? " · impediu o trabalho" : ""}` : "—"}</span>
-                </li>
-              );
-            })}
-          </ul>
-          {r.climaImpediu && <p className="mt-2 text-sm font-medium text-alerta-escura">O clima impediu o trabalho neste turno.</p>}
+          <ClimaTurno
+            clima={clima.clima}
+            paradasClima={r.paradasClima}
+            aviso={clima.aviso}
+            parcial={clima.parcial}
+            linkObra={`/obras/${turno.obra_id}#cidade`}
+          />
+          {!turno.clima_turno && clima.aviso === "indisponivel" && turno.status === "enviado" && <BuscarClima turnoId={turno.id} />}
+          {!turno.clima_turno && clima.aviso === "indisponivel" && turno.status === "fechado" && (
+            <p className="mt-1 text-sm text-texto-suave">Clima não registrado — reabra e feche o turno para buscar de novo.</p>
+          )}
           <h3 className="mb-2 mt-4 font-semibold text-texto">Efetivo</h3>
           {turno.efetivo.length === 0 ? (
             <p className="text-sm text-texto-suave">Nenhum efetivo informado.</p>

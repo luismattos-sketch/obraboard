@@ -5,7 +5,7 @@ import { aderencia } from "@/lib/dominio/ritmo";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { compararTurnos, transicaoTurno, type AcaoTurno } from "@/lib/dominio/regras";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
-import type { CondicaoClima, Periodo, PeriodoClima, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
+import type { Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
 import { lerIniciados, lerOcorrencias, lerTerminados, type Iniciado, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import { normalizarAtividade, type Atividade } from "./atividades";
 import type { Obra } from "./obras";
@@ -43,20 +43,10 @@ export type Efetivo = {
   created_at?: string;
   lancado_pelo_planejador?: boolean;
 };
-export type Clima = {
-  turno_id: string;
-  periodo: PeriodoClima;
-  condicao: CondicaoClima;
-  impediu: boolean;
-  /** Quem alterou por último (null com lancado_em = planejador). Ausentes em registros antigos. */
-  lancado_por_id?: string | null;
-  lancado_em?: string | null;
-};
 export type TurnoCompleto = Turno & {
   obra: Obra;
   atividades: Atividade[];
   efetivo: Efetivo[];
-  clima: Clima[];
   /** Clima automático gravado no enviar/fechar (null = ainda não ou indisponível). */
   clima_turno: ClimaTurno | null;
   ocorrencias: Ocorrencia[];
@@ -164,7 +154,7 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
   const { data, error } = await c
     .from("turnos")
     .select(
-      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador, local_nome, latitude, longitude), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima(turno_id, periodo, condicao, impediu, lancado_por_id, lancado_em), clima_turno(temp_media, temp_max, temp_min, chuva_mm, choveu, leituras), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)`,
+      `${COLUNAS_TURNO}, obra:obras(id, empresa_id, nome, cliente, endereco, created_at, whatsapp_planejador, local_nome, latitude, longitude), atividades(*, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))), efetivo(id, turno_id, funcao, quantidade, responsavel_id, created_at, lancado_pelo_planejador), clima_turno(temp_media, temp_max, temp_min, chuva_mm, choveu, leituras), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)`,
     )
     .eq("id", turnoId)
     .maybeSingle();
@@ -191,7 +181,6 @@ export async function obterTurnoCompleto(c: SupabaseClient, turnoId: string): Pr
     ...t,
     atividades,
     efetivo: t.efetivo ?? [],
-    clima: t.clima ?? [],
     clima_turno: lerClimaTurno(clima_turno),
     ocorrencias: lerOcorrencias(efetivo_ocorrencias),
     terminados: lerTerminados(turno_equipes_terminadas),

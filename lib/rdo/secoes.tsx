@@ -4,7 +4,8 @@ import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { linhaOcorrencia, nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 import { textoForaDoDia, type ResumoTurno } from "@/lib/dominio/resumo";
-import { CAUSAS, CONDICOES, PERIODOS_CLIMA, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
+import { CAUSAS, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
+import { rotuloTempo } from "@/lib/clima/montar";
 import { estilos as s } from "./estilos";
 import { descricaoComTipo, qtdRealizada } from "./formatar";
 
@@ -165,10 +166,19 @@ export function EfetivoEClima({ turno, resumo, comFotos = false }: { turno: Turn
       )}
 
       <Text style={s.secao}>Clima</Text>
-      {PERIODOS_CLIMA.map((p) => {
-        const c = turno.clima.find((x) => x.periodo === p.id);
-        return <Par key={p.id} a={p.rotulo} b={c ? `${CONDICOES[c.condicao]}${c.impediu ? " · impediu o trabalho" : ""}` : "—"} />;
-      })}
+      {turno.clima_turno ? (
+        <>
+          <Par a="Temperatura média" b={`${Math.round(turno.clima_turno.temp_media)}° (máx ${Math.round(turno.clima_turno.temp_max)}° · mín ${Math.round(turno.clima_turno.temp_min)}°)`} />
+          <Par a="Chuva" b={turno.clima_turno.choveu ? `Choveu · ${numeroBR(turno.clima_turno.chuva_mm)} mm` : "Não choveu"} />
+          <Text style={s.suave}>
+            {turno.clima_turno.leituras.map((l) => `${l.hora.slice(11, 13)}h ${rotuloTempo(l.codigo)} ${Math.round(l.temperatura)}° ${numeroBR(l.chuva_mm)} mm`).join("  ·  ")}
+          </Text>
+          <Text style={s.suave}>Dados: Open-Meteo</Text>
+        </>
+      ) : (
+        <Text style={s.suave}>{turno.obra.local_nome ? "Clima não disponível no momento do fechamento" : "Clima não registrado (obra sem cidade)"}</Text>
+      )}
+      {resumo.paradasClima > 0 && <Par a="Atividades paradas por clima" b={String(resumo.paradasClima)} />}
     </View>
   );
 }

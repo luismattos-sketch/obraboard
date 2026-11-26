@@ -32,7 +32,6 @@ describe("lerFoto", () => {
     expect(t.atividades.map((a) => a.descricao)).toEqual(["A", "B"]);
     expect(t.atividades.every((a) => a.turno_id === "t")).toBe(true);
     expect(t.efetivo).toEqual([{ id: "e1", turno_id: "t", funcao: "Pedreiro", quantidade: 3 }]);
-    expect(t.clima).toEqual([{ turno_id: "t", periodo: "manha", condicao: "bom", impediu: false }]);
     expect(t.fechado_em).toBe("2026-11-09T21:40:00+00:00");
   });
   it("foto antiga só com clima manual ⇒ clima_turno null; foto nova traz o clima automático", () => {

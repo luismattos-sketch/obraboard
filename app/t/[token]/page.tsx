@@ -10,6 +10,7 @@ import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { FormularioCampo } from "./FormularioCampo";
 import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
 import { urlsFotos } from "@/lib/db/fotosParada";
+import { climaParaTela } from "@/lib/clima/tela";
 import { relatoPendente } from "@/lib/db/relatos";
 import { iaLigada } from "@/lib/ia/cliente";
 
@@ -112,7 +113,8 @@ export default async function PaginaCampo({
               ocorrencias: turno.ocorrencias,
               janela: janelaDoTurno(turno),
               intervalo: intervaloDoTurno(turno),
-              clima: turno.clima,
+              clima: await climaParaTela(turno),
+              paradasClima: turno.atividades.filter((a) => a.causa === "clima").length,
             }}
           />
         </>

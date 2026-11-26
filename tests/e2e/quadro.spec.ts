@@ -31,6 +31,8 @@ test("quadro: responsáveis, check-in, link de campo por nome e quadro público"
 
   await page.getByRole("main").getByRole("link", { name: "Nova obra" }).click();
   await page.getByLabel("Nome da obra").fill("Obra Quadro E2E");
+  await page.getByLabel("Cidade (para o clima)").fill("Maca");
+  await page.getByRole("button", { name: "Macaé, Rio de Janeiro" }).click();
   await page.getByRole("button", { name: "Criar obra" }).click();
   await expect(page.getByRole("heading", { name: "Obra Quadro E2E" })).toBeVisible();
   const obraUrl = page.url();

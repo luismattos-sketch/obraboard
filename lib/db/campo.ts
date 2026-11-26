@@ -1,7 +1,7 @@
 import "server-only";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import { hashToken } from "@/lib/dominio/token";
-import type { CondicaoClima, DadosExecucao, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { DadosExecucao, StatusTurno } from "@/lib/dominio/tipos";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
@@ -22,12 +22,10 @@ import { opcoesFuncaoDoTurno, semanaDoTurno } from "./programacao";
 import { aplicarAcao, obterTurnoCompleto, type TurnoCompleto } from "./turnos";
 import {
   camposExecucao,
-  validarClima,
   validarEfetivo,
   validarEfetivoEsperado,
   validarExecucao,
   validarHorario,
-  validarPeriodoClima,
   type LinhaEfetivo,
 } from "./validacao";
 
@@ -245,50 +243,6 @@ export async function salvarEfetivo(
     if (erroBanco(error) === "efetivo_conflito") return falhaConflito(ERRO_EFETIVO_CONFLITO);
     if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivo:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
-/** Clima vale para o turno todo: qualquer responsável do link salva; fica o último (com autor). */
-export async function salvarClima(
-  token: string,
-  dados: { periodo: PeriodoClima; condicao: CondicaoClima; impediu: boolean },
-  responsavelId: string | null,
-): Promise<Resultado> {
-  const v = validarClima(dados);
-  if (!v.ok) return v;
-  const t = await turnoAberto(token);
-  if (!t.ok) return t;
-  const { error } = await criarClienteAdmin()
-    .from("clima")
-    .upsert(
-      {
-        turno_id: t.dados.id,
-        periodo: dados.periodo,
-        condicao: dados.condicao,
-        impediu: dados.impediu === true,
-        lancado_por_id: responsavelId,
-        lancado_em: new Date().toISOString(),
-      },
-      { onConflict: "turno_id,periodo" },
-    );
-  if (error) {
-    if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
-    console.error("salvarClima:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
-export async function removerClima(token: string, periodo: PeriodoClima): Promise<Resultado> {
-  const v = validarPeriodoClima(periodo);
-  if (!v.ok) return v;
-  const t = await turnoAberto(token);
-  if (!t.ok) return t;
-  const { error } = await criarClienteAdmin().from("clima").delete().eq("turno_id", t.dados.id).eq("periodo", periodo);
-  if (error) {
-    console.error("removerClima:", error.message);
     return erroGravacao(error);
   }
   return ok(undefined);

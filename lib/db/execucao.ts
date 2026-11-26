@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statusAtividade } from "@/lib/dominio/calculos";
 import type { Janela } from "@/lib/dominio/efetivoHH";
-import type { Periodo, PeriodoClima, StatusTurno } from "@/lib/dominio/tipos";
+import type { Periodo, StatusTurno } from "@/lib/dominio/tipos";
 import type { ValoresExecucao } from "@/lib/dominio/conflito";
 import {
   ERRO_EFETIVO_CONFLITO,
@@ -15,14 +15,11 @@ import { reajustarCopiasFuturas } from "./foraDoDia";
 import { falha, falhaConflito, ok, type Resultado } from "./resultado";
 import {
   camposExecucao,
-  validarClima,
   validarEfetivo,
   validarEfetivoEsperado,
   validarExecucao,
   validarHorario,
   validarIntervalo,
-  validarPeriodoClima,
-  type DadosClima,
   type DadosExecucao,
   type DadosHorario,
   type LinhaEfetivo,
@@ -166,44 +163,6 @@ export async function salvarEfetivoPlanejador(
     if (erroBanco(error) === "efetivo_conflito") return falhaConflito(ERRO_EFETIVO_CONFLITO);
     if (erroBanco(error) === "responsavel_invalido" || error.code === "22P02") return falha(ERRO_RESPONSAVEL_INVALIDO);
     console.error("salvarEfetivoPlanejador:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
-export async function salvarClimaPlanejador(c: SupabaseClient, turnoId: string, dados: DadosClima): Promise<Resultado> {
-  const v = validarClima(dados);
-  if (!v.ok) return v;
-  const t = await turnoAbertoParaCorrecao(c, turnoId);
-  if (!t.ok) return t;
-  const { error } = await c
-    .from("clima")
-    .upsert(
-      {
-        turno_id: turnoId,
-        periodo: dados.periodo,
-        condicao: dados.condicao,
-        impediu: dados.impediu === true,
-        lancado_por_id: null,
-        lancado_em: new Date().toISOString(),
-      },
-      { onConflict: "turno_id,periodo" },
-    );
-  if (error) {
-    console.error("salvarClimaPlanejador:", error.message);
-    return erroGravacao(error);
-  }
-  return ok(undefined);
-}
-
-export async function removerClimaPlanejador(c: SupabaseClient, turnoId: string, periodo: PeriodoClima): Promise<Resultado> {
-  const v = validarPeriodoClima(periodo);
-  if (!v.ok) return v;
-  const t = await turnoAbertoParaCorrecao(c, turnoId);
-  if (!t.ok) return t;
-  const { error } = await c.from("clima").delete().eq("turno_id", turnoId).eq("periodo", periodo);
-  if (error) {
-    console.error("removerClimaPlanejador:", error.message);
     return erroGravacao(error);
   }
   return ok(undefined);
