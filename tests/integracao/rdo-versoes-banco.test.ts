@@ -122,11 +122,11 @@ describe.skipIf(!ligado)("rdo_versoes no banco", () => {
     expect(negado.error).not.toBeNull();
   });
 
-  it("removerTurno recusa turno reaberto com versão", { timeout: 60_000 }, async () => {
+  it("removerTurno apaga turno fechado com suas versões", { timeout: 60_000 }, async () => {
     const { turnoId } = await turnoPronto();
     exigir(await aplicarAcao(u.cliente, turnoId, "fechar"));
-    exigir(await aplicarAcao(u.cliente, turnoId, "reabrir", { motivo: "Correção de teste" }));
-    expect((await removerTurno(u.cliente, turnoId)).ok).toBe(false);
     expect(await versoes(turnoId)).toHaveLength(1);
+    expect((await removerTurno(u.cliente, turnoId)).ok).toBe(true);
+    expect(await versoes(turnoId)).toHaveLength(0);
   });
 });

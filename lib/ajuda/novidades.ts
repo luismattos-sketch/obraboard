@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-26",
+    texto: "Excluir turno direto da lista: a lixeira ao lado de cada turno apaga o turno em qualquer status, com tudo o que é dele.",
+    href: "/ajuda/check-in#novo-turno",
+  },
+  {
+    data: "2026-11-26",
     texto: "Quadro único: abre só pelo link, sem login, e o check-in e o check-out acontecem no mesmo quadro. O selo na barra azul troca sozinho para \"CHECK-OUT\" quando a primeira equipe inicia. E o quadro ganhou o resumo do clima, com a previsão antes do turno.",
     href: "/ajuda/quadro-tv#visoes",
   },
