@@ -8,8 +8,7 @@ import {
   resolverEscolhaCampo,
   resumoEquipe,
   textoSemResponsavel,
-  visaoPadrao,
-  visaoValida,
+  faseDoQuadro,
   vizinhos,
   type EntradaQuadro,
   type TurnoRef,
@@ -155,23 +154,19 @@ describe("vizinhos", () => {
   });
 });
 
-describe("visão", () => {
-  it("padrão pela situação", () => {
-    expect(visaoPadrao("planejado")).toBe("checkin");
-    expect(visaoPadrao("em_campo")).toBe("checkout");
-    expect(visaoPadrao("enviado")).toBe("checkout");
-    expect(visaoPadrao("fechado")).toBe("checkout");
+describe("faseDoQuadro", () => {
+  const ini = [{ responsavel_id: "j", iniciou_em: "2026-11-11T07:10:00" }];
+  it("check-in até alguma equipe iniciar", () => {
+    expect(faseDoQuadro(montarQuadro(entrada({ turno: { ...TURNO, status: "planejado" }, atividades: [at("j", 1, null)] })))).toBe("checkin");
+    expect(faseDoQuadro(montarQuadro(entrada({ atividades: [at("j", 1, null)] })))).toBe("checkin");
   });
-  it("valida a pedida", () => {
-    expect(visaoValida("checkout", "planejado")).toBe("checkin");
-    expect(visaoValida("xyz", "fechado")).toBe("checkout");
-    expect(visaoValida("checkin", "fechado")).toBe("checkin");
+  it("check-out quando uma equipe iniciou ou já há lançamento", () => {
+    expect(faseDoQuadro(montarQuadro(entrada({ atividades: [at("j", 1, null)], iniciados: ini })))).toBe("checkout");
+    expect(faseDoQuadro(montarQuadro(entrada({ atividades: [at("j", 2, 1)] })))).toBe("checkout");
   });
-  it("em campo sem nada lançado abre no check-in (de manhã não mostra 0% vermelho)", () => {
-    expect(visaoValida(undefined, "em_campo", false)).toBe("checkin");
-    expect(visaoValida(undefined, "em_campo", true)).toBe("checkout");
-    expect(visaoValida(undefined, "enviado", false)).toBe("checkout");
-    expect(visaoValida("checkout", "em_campo", false)).toBe("checkout");
+  it("turno enviado ou fechado é sempre check-out", () => {
+    expect(faseDoQuadro(montarQuadro(entrada({ turno: { ...TURNO, status: "fechado" }, atividades: [at("j", 1, null)] })))).toBe("checkout");
+    expect(faseDoQuadro(montarQuadro(entrada({ turno: { ...TURNO, status: "enviado" } })))).toBe("checkout");
   });
 });
 
