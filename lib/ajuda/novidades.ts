@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-25",
+    texto: "Clima automático: o RDO registra sozinho o tempo durante o turno (leitura de 2 em 2 horas, média, máxima, mínima e chuva), pela cidade da obra. Ninguém precisa mais lançar o clima.",
+    href: "/ajuda/fechar-turno#clima",
+  },
+  {
+    data: "2026-11-25",
     texto: "Quadro mais legível na TV: de manhã abre no check-in, quem precisa de ajuda vem primeiro, causa externa e interna em cores diferentes e letra maior, observação, selo \"acima da meta\", empréstimo nos dois lados e hora da última atualização.",
     href: "/ajuda/quadro-tv#visoes",
   },
