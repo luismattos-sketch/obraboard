@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Resumo } from "@/app/(app)/obras/[obraId]/turnos/[turnoId]/Resumo";
 import type { TurnoCompleto } from "@/lib/db/turnos";
-const SEM_CLIMA = { clima: null, aviso: "indisponivel" as const, parcial: false };
+const SEM_CLIMA = { clima: null, aviso: "indisponivel" as const, parcial: false, previsao: false };
 
 const turno = (ocorrencias: TurnoCompleto["ocorrencias"]): TurnoCompleto => ({
   id: "t", obra_id: "o", data: "2026-11-16", periodo: "diurno",

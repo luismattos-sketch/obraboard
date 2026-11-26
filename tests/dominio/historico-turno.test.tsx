@@ -48,11 +48,8 @@ describe("HistoricoTurno", () => {
     expect(renderToStaticMarkup(<HistoricoTurno eventos={null} versoes={[]} />)).toContain("Não foi possível carregar o histórico");
   });
 
-  it("liberado vira \"Check-in registrado\" com link para a foto", () => {
-    const html = renderToStaticMarkup(
-      <HistoricoTurno eventos={[ev({}), ev({ id: "5", tipo: "liberado" })]} versoes={[]} checkinHref="/obras/o/turnos/t/checkin" />,
-    );
-    expect(html).toMatch(/Check-in registrado/);
-    expect(html).toContain(`href="/obras/o/turnos/t/checkin"`);
+  it("liberado não tem mais link para foto do check-in", () => {
+    const html = renderToStaticMarkup(<HistoricoTurno eventos={[ev({}), ev({ id: "5", tipo: "liberado" })]} versoes={[]} />);
+    expect(html).not.toContain("/checkin");
   });
 });

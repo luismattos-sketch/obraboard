@@ -1,4 +1,7 @@
-import { formatarPercentual } from "@/lib/dominio/formato";
+import { textoChuva } from "@/components/execucao/ClimaTurno";
+import { rotuloTempo } from "@/lib/clima/montar";
+import type { ClimaTurno } from "@/lib/clima/tipos";
+import { formatarPercentual, numeroBR } from "@/lib/dominio/formato";
 import { farol, type Farol } from "@/lib/dominio/ppcMes";
 import type { ResumoTurno } from "@/lib/dominio/ritmo";
 import { ROTULO_TIPO_PROBLEMA, vencido, type Problema } from "@/lib/dominio/problemas";
@@ -116,6 +119,34 @@ export function ResumoDoTurno({
         )}
         {linhaAderencia}
       </div>
+    </section>
+  );
+}
+
+const ICONE_TEMPO: [RegExp, string][] = [[/Tempestade/, "⛈"], [/Chuva|Garoa/, "🌧"], [/Neve/, "❄"], [/Neblina/, "🌫"], [/Nublado/, "☁"], [/Poucas nuvens/, "⛅"], [/Céu limpo/, "☀"]];
+const graus = (n: number) => `${Math.round(n)}°`;
+
+/** Resumo do clima no quadro: condição predominante, máx/mín e chuva. Previsão no turno planejado. */
+export function ResumoClima({ clima, previsao, parcial }: { clima: ClimaTurno; previsao: boolean; parcial: boolean }) {
+  const contagem = new Map<string, number>();
+  for (const l of clima.leituras) {
+    const r = rotuloTempo(l.codigo);
+    contagem.set(r, (contagem.get(r) ?? 0) + 1);
+  }
+  // Com chuva, a condição de chuva prevalece; senão a mais frequente.
+  const rotulos = [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([r]) => r);
+  const rotulo = rotulos.find((r) => /Chuva|Garoa|Tempestade/.test(r)) ?? rotulos[0] ?? "—";
+  const icone = ICONE_TEMPO.find(([re]) => re.test(rotulo))?.[1] ?? "🌡";
+  const titulo = previsao ? "Previsão" : parcial ? "Clima até agora" : "Clima";
+  const chuva = previsao
+    ? (clima.choveu ? `Chuva prevista · ${numeroBR(clima.chuva_mm)} mm` : "Sem chuva prevista")
+    : textoChuva(clima);
+  return (
+    <section aria-label="Clima" className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-cartao bg-superficie px-3 py-2 text-texto xl:text-lg">
+      <span className="font-semibold text-primaria">{titulo}</span>
+      <span><span aria-hidden="true" className="mr-1">{icone}</span>{rotulo}</span>
+      <span>{`máx ${graus(clima.temp_max)} · mín ${graus(clima.temp_min)}`}</span>
+      <span>{chuva}</span>
     </section>
   );
 }

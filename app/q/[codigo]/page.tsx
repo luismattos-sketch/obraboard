@@ -40,7 +40,7 @@ export default async function QuadroPublico({
     <main className="mx-auto flex min-h-dvh max-w-[1600px] flex-col gap-3 px-4 py-4">
       {q ? (
         <>
-          <Quadro {...q.props} publico editarHref={null} />
+          <Quadro {...q.props} />
           <AtualizarPeriodicamente />
         </>
       ) : (

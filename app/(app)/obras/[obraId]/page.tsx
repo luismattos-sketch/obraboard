@@ -42,7 +42,11 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
         </div>
         {/* Programação, RDOs e Análise ficam no menu lateral; aqui só a ação do dia a dia. */}
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-          <Link href={`/obras/${obra.id}/quadro`} className={classesBotao("secundario")}>Quadro</Link>
+          {quadro.codigo ? (
+            <a href={`/q/${quadro.codigo}`} target="_blank" rel="noopener" className={classesBotao("secundario")}>Quadro</a>
+          ) : (
+            <a href="#link-quadro" className={classesBotao("secundario")}>Quadro</a>
+          )}
           {turnos.length === 0 ? (
             <Link href={`/obras/${obra.id}/programacao`} className={classesBotao()}>Programar semana</Link>
           ) : (

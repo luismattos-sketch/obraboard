@@ -19,10 +19,8 @@ const base = (status: EntradaQuadro["turno"]["status"]): EntradaQuadro => ({
   efetivo: [{ funcao: "Eletricista", quantidade: 3, responsavel_id: "m" }],
 });
 
-const html = (status: EntradaQuadro["turno"]["status"], visao: "checkin" | "checkout", publico = false) =>
-  renderToStaticMarkup(
-    <Quadro modelo={montarQuadro(base(status))} visao={visao} publico={publico} editarHref={publico ? null : "/obras/o/turnos/t"} />,
-  );
+const html = (status: EntradaQuadro["turno"]["status"], visao: "checkin" | "checkout") =>
+  renderToStaticMarkup(<Quadro modelo={montarQuadro(base(status))} visao={visao} />);
 
 describe("Quadro: empréstimo e parados", () => {
   const entrada = (): EntradaQuadro => ({
@@ -38,12 +36,12 @@ describe("Quadro: empréstimo e parados", () => {
     ],
   });
   it("check-out mostra HH parado e o recebido na equipe destino", () => {
-    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkout" publico />);
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkout" />);
     expect(h).toContain("6 pessoas · 46,0 HH · 4,0 HH parados");
     expect(h).toContain("+2 Montadores (de Marcos, 13:00–17:00)");
   });
   it("check-in também mostra o recebido", () => {
-    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkin" publico />);
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(entrada())} visao="checkin" />);
     expect(h).toContain("+2 Montadores (de Marcos, 13:00–17:00)");
   });
   it("sem parados não mostra HH parados", () => {
@@ -60,7 +58,7 @@ describe("Quadro", () => {
     expect(h).toContain("EXTRA");
     expect(h).toContain("3 Eletricista");
     expect(h.indexOf("Marcos")).toBeLessThan(h.indexOf("Sem responsável"));
-    expect(h).toContain("Editar");
+    expect(h).not.toContain("Editar");
   });
 
   it("check-out: resumo da equipe, extras à parte, causa e HH", () => {
@@ -73,8 +71,12 @@ describe("Quadro", () => {
     expect(h).toContain("26,4 HH");
   });
 
-  it("público: sem Editar", () => {
-    expect(html("em_campo", "checkout", true)).not.toContain("Editar");
+  it("quadro único: sem seletor Check-in/Check-out nem Editar", () => {
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(base("em_campo"))} visao="checkout" navegacao={{ anterior: "/q/x?turno=a", seguinte: null, agora: "/q/x" }} />);
+    expect(h).not.toContain(">Check-in<");
+    expect(h).not.toContain(">Check-out<");
+    expect(h).not.toContain("Editar");
+    expect(h).toContain("Agora");
   });
 
   it("turno fechado", () => {
@@ -92,7 +94,7 @@ describe("Quadro: paradas abertas e terminou", () => {
     terminados: [{ responsavel_id: "m", terminou_em: "15:20:00" }],
   });
   it("faixa vermelha com duração e equipe aguardada", () => {
-    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e(), "13:15")} visao="checkout" publico />);
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e(), "13:15")} visao="checkout" />);
     expect(h).toContain('role="alert"');
     expect(h).toContain("2 Eletricista parados desde 10:40 · Aguardando outra equipe (Marcos)");
     expect(h).toContain("(2h35)");
@@ -107,7 +109,7 @@ describe("Quadro: equipe prevista", () => {
   it("mostra a equipe prevista da atividade; sem equipe, nada", () => {
     const e = base("em_campo");
     e.atividades[0] = { ...e.atividades[0], equipe: [{ funcao: "Eletricista", quantidade: 2 }, { funcao: "Ajudante", quantidade: 1 }] };
-    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e)} visao="checkin" publico={false} editarHref={null} />);
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(e)} visao="checkin" />);
     expect(h).toContain("Equipe prevista: 2 Eletricistas + 1 Ajudante");
     expect(html("em_campo", "checkin")).not.toContain("Equipe prevista:");
   });
@@ -116,7 +118,7 @@ describe("Quadro: equipe prevista", () => {
 describe("Quadro: resumo do turno", () => {
   const ad: { concluidas: number; total: number; ppc: number | null } = { concluidas: 39, total: 50, ppc: 0.78 };
   const r = (status: EntradaQuadro["turno"]["status"], visao: "checkin" | "checkout", agora?: string, aderenciaObra = ad) =>
-    renderToStaticMarkup(<Quadro modelo={montarQuadro(base(status))} visao={visao} publico agora={agora} aderenciaObra={aderenciaObra} />);
+    renderToStaticMarkup(<Quadro modelo={montarQuadro(base(status))} visao={visao} agora={agora} aderenciaObra={aderenciaObra} />);
   it("check-out em campo: anel, tempo, ritmo e aderência", () => {
     const h = r("em_campo", "checkout", "13:00");
     expect(h).toContain('aria-label="Resumo do turno"');
@@ -139,5 +141,33 @@ describe("Quadro: resumo do turno", () => {
   });
   it("obra sem turno fechado", () => {
     expect(r("em_campo", "checkout", "13:00", { concluidas: 0, total: 0, ppc: null })).toContain("Aderência da obra: sem turno fechado");
+  });
+});
+
+describe("Quadro: resumo do clima", () => {
+  const clima = {
+    temp_media: 25, temp_max: 30.4, temp_min: 20.6, chuva_mm: 3.2, choveu: true,
+    leituras: [
+      { hora: "2026-11-11T07:00", temperatura: 21, chuva_mm: 0, codigo: 0 },
+      { hora: "2026-11-11T09:00", temperatura: 26, chuva_mm: 3.2, codigo: 63 },
+    ],
+  };
+  const comClima = (c: { previsao: boolean; parcial: boolean }) =>
+    renderToStaticMarkup(<Quadro modelo={montarQuadro(base("planejado"))} visao="checkin" clima={{ clima, aviso: null, ...c }} />);
+  it("previsão no check-in: título, condição, máx/mín e chuva", () => {
+    const h = comClima({ previsao: true, parcial: false });
+    expect(h).toContain('aria-label="Clima"');
+    expect(h).toContain("Previsão");
+    expect(h).toContain("Chuva");
+    expect(h).toContain("máx 30° · mín 21°");
+    expect(h).toContain("Chuva prevista · 3,2 mm");
+  });
+  it("ao vivo e gravado", () => {
+    expect(comClima({ previsao: false, parcial: true })).toContain("Clima até agora");
+    expect(comClima({ previsao: false, parcial: false })).toContain("Choveu · 3,2 mm");
+  });
+  it("sem clima: nenhum cartão", () => {
+    const h = renderToStaticMarkup(<Quadro modelo={montarQuadro(base("planejado"))} visao="checkin" clima={{ clima: null, aviso: "sem_cidade", parcial: false, previsao: false }} />);
+    expect(h).not.toContain('aria-label="Clima"');
   });
 });

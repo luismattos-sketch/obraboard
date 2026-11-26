@@ -4,6 +4,7 @@ import { lerIniciados, lerOcorrencias, lerTerminados } from "@/lib/dominio/efeti
 import type { EntradaQuadro, ResponsavelRef, TurnoRef } from "@/lib/dominio/quadro";
 import { gerarToken, hashToken } from "@/lib/dominio/token";
 import type { Causa, Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/tipos";
+import type { climaParaTela } from "@/lib/clima/tela";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { equipeDaLinha } from "./atividades";
 import { falha, ok, type Resultado } from "./resultado";
@@ -97,6 +98,20 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
     terminados: lerTerminados(t.turno_equipes_terminadas),
     iniciados: lerIniciados(t.turno_equipes_iniciadas),
   };
+}
+
+/** Campos que o clima do quadro precisa (cidade da obra + janela do turno + clima gravado). */
+export async function turnoParaClima(c: SupabaseClient, turnoId: string) {
+  const { data, error } = await c
+    .from("turnos")
+    .select("status, data, hora_inicio_real, hora_fim_real, hora_inicio_prevista, hora_fim_prevista, clima_turno, obra:obras(latitude, longitude)")
+    .eq("id", turnoId)
+    .maybeSingle();
+  if (error) {
+    console.error("turnoParaClima:", error.message);
+    return null;
+  }
+  return data as unknown as Parameters<typeof climaParaTela>[0] | null;
 }
 
 export async function turnosDaObra(c: SupabaseClient, obraId: string): Promise<TurnoRef[]> {

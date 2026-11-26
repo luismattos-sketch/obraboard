@@ -45,7 +45,7 @@ export function LinkQuadro({ obraId, existe, codigoAtual }: { obraId: string; ex
   }
 
   return (
-    <Cartao className="flex flex-col gap-3">
+    <Cartao id="link-quadro" className="flex scroll-mt-4 flex-col gap-3">
       <h2 className="text-lg font-semibold text-primaria">Link do quadro (TV / gestor)</h2>
       <p className="text-sm text-texto-suave">Só leitura, sem login. Mostra sempre o turno de agora e se atualiza sozinho.</p>
       {url ? (
