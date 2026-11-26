@@ -14,8 +14,6 @@ import { falha, ok, type Resultado } from "./resultado";
  * nesse caso SEMPRE depois de resolver a obra pelo código (obraPorCodigo) e conferir que o turno é dela.
  */
 
-export type FotoCheckin = { emitido_em: string; dados: EntradaQuadro };
-
 const UUID_INVALIDO = "22P02";
 const CODIGO_FORMATO = /^[A-Za-z0-9_-]{43}$/;
 const numOuNull = (v: unknown) => (v === null || v === undefined ? null : Number(v));
@@ -122,25 +120,6 @@ export async function turnosDaObra(c: SupabaseClient, obraId: string): Promise<T
     throw new Error(`turnosDaObra: ${error.message}`);
   }
   return (data ?? []) as TurnoRef[];
-}
-
-export async function fotoCheckin(c: SupabaseClient, turnoId: string): Promise<FotoCheckin | null> {
-  const { data, error } = await c.from("checkin_fotos").select("emitido_em, dados").eq("turno_id", turnoId).maybeSingle();
-  if (error) {
-    if (error.code === UUID_INVALIDO) return null;
-    console.error("fotoCheckin:", error.message);
-    throw new Error(`fotoCheckin: ${error.message}`);
-  }
-  if (!data) return null;
-  const d = data as { emitido_em: string; dados: EntradaQuadro };
-  // Números do jsonb podem vir como string em versões futuras do formato: normaliza.
-  const dados: EntradaQuadro = {
-    ...d.dados,
-    atividades: d.dados.atividades.map((a) => ({ ...a, qtd_planejada: Number(a.qtd_planejada), qtd_realizada: numOuNull(a.qtd_realizada) })),
-    ocorrencias: lerOcorrencias(d.dados.ocorrencias),
-    terminados: lerTerminados(d.dados.terminados),
-  };
-  return { emitido_em: d.emitido_em, dados };
 }
 
 /** Gera (ou troca) o código do link do quadro; a busca pública usa o hash, o código fica para o planejador rever. */

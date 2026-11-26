@@ -98,32 +98,6 @@ describe.skipIf(!ligado)("quadro no banco", () => {
     expect(data).toEqual([{ quantidade: 3 }]);
   });
 
-  it("foto do check-in ao liberar", async () => {
-    const o = await obra();
-    const a = await responsavel(o.id, "Ana");
-    const t = await turno(o.id);
-    const at = exigir(await adicionarAtividade(u.cliente, t.id, { descricao: "Forma", unidade: "m²", qtd_planejada: 10 }));
-    await u.cliente.from("atividades").update({ responsavel_id: a }).eq("id", at.id);
-    await substituir(t.id, a, [], [{ funcao: "Carpinteiro", quantidade: 2 }]);
-    exigir(await aplicarAcao(u.cliente, t.id, "liberar"));
-
-    const ler = () => u.cliente.from("checkin_fotos").select("dados").eq("turno_id", t.id);
-    const { data } = await ler();
-    expect(data).toHaveLength(1);
-    const dados = data![0].dados;
-    expect(dados.atividades[0].responsavel_id).toBe(a);
-    expect(dados.atividades[0].programada).toBe(false);
-    expect(dados.responsaveis[0]).toMatchObject({ id: a, nome: "Ana", ativo: true });
-    expect(dados.efetivo[0]).toMatchObject({ funcao: "Carpinteiro", quantidade: 2, responsavel_id: a });
-    expect(dados.turno.status).toBe("em_campo");
-
-    exigir(await salvarExecucaoPlanejador(u.cliente, t.id, at.id, { qtd_realizada: 10, causa: null, observacao: null }, VAZIO));
-    exigir(await aplicarAcao(u.cliente, t.id, "fechar"));
-    exigir(await aplicarAcao(u.cliente, t.id, "reabrir", { motivo: "Ajuste de quantidade" }));
-    exigir(await aplicarAcao(u.cliente, t.id, "fechar"));
-    expect((await ler()).data).toHaveLength(1);
-  }, 30_000);
-
   it("outra empresa não vê responsáveis nem fotos", async () => {
     const o = await obra();
     await responsavel(o.id, "Ana");
