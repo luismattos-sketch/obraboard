@@ -7,6 +7,7 @@ import type { Causa, Periodo, StatusTurno, TipoAtividade } from "@/lib/dominio/t
 import type { climaParaTela } from "@/lib/clima/tela";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { equipeDaLinha } from "./atividades";
+import { lerClimaTurno } from "./clima";
 import { falha, ok, type Resultado } from "./resultado";
 
 /**
@@ -102,14 +103,16 @@ export async function entradaDoTurno(c: SupabaseClient, turnoId: string): Promis
 export async function turnoParaClima(c: SupabaseClient, turnoId: string) {
   const { data, error } = await c
     .from("turnos")
-    .select("status, data, hora_inicio_real, hora_fim_real, hora_inicio_prevista, hora_fim_prevista, clima_turno, obra:obras(latitude, longitude)")
+    .select("status, data, hora_inicio_real, hora_fim_real, hora_inicio_prevista, hora_fim_prevista, clima_turno(temp_media, temp_max, temp_min, chuva_mm, choveu, leituras), obra:obras(latitude, longitude)")
     .eq("id", turnoId)
     .maybeSingle();
   if (error) {
     console.error("turnoParaClima:", error.message);
     return null;
   }
-  return data as unknown as Parameters<typeof climaParaTela>[0] | null;
+  if (!data) return null;
+  const d = data as unknown as Omit<Parameters<typeof climaParaTela>[0], "clima_turno"> & { clima_turno: unknown };
+  return { ...d, clima_turno: lerClimaTurno(d.clima_turno) };
 }
 
 export async function turnosDaObra(c: SupabaseClient, obraId: string): Promise<TurnoRef[]> {
