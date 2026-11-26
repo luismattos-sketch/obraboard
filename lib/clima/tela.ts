@@ -22,5 +22,10 @@ export async function climaParaTela(turno: TurnoClima, opcoes: { previsao?: bool
   }
   if (turno.status !== "em_campo") return { clima: null, aviso: "indisponivel", parcial: false, previsao: false };
   const clima = await obterClimaTurno(turno.obra, turno, { revalidar: 1800 }).catch(() => null);
+  if (!clima && opcoes.previsao) {
+    // Liberado antes do horário (sem leituras ainda): no quadro, mostra a previsão.
+    const prev = await obterClimaTurno(turno.obra, turno, { revalidar: 1800, previsao: true }).catch(() => null);
+    if (prev) return { clima: prev, aviso: null, parcial: false, previsao: true };
+  }
   return { clima, aviso: clima ? null : "indisponivel", parcial: true, previsao: false };
 }

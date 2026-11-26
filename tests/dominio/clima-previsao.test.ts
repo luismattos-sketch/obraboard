@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/clima/openmeteo", () => ({
-  buscarHoras: vi.fn(async () => ({
+  buscarHoras: vi.fn(async (_la: number, _lo: number, dia: string) => ({
     utcOffsetSeconds: -10800,
-    horas: Array.from({ length: 24 }, (_, h) => ({ hora: `2030-01-10T${String(h).padStart(2, "0")}:00`, temperatura: 20 + (h % 5), chuva_mm: 0, codigo: 0 })),
+    horas: Array.from({ length: 24 }, (_, h) => ({ hora: `${dia}T${String(h).padStart(2, "0")}:00`, temperatura: 20 + (h % 5), chuva_mm: 0, codigo: 0 })),
   })),
 }));
 
@@ -30,5 +30,10 @@ describe("climaParaTela — previsão", () => {
   it("sem a opção, planejado continua indisponível", async () => {
     const r = await climaParaTela(turno as never);
     expect(r).toMatchObject({ clima: null, aviso: "indisponivel", previsao: false });
+  });
+  it("em campo antes do início (sem leituras ainda) cai na previsão", async () => {
+    const r = await climaParaTela({ ...turno, status: "em_campo", data: "2099-01-10" } as never, { previsao: true });
+    expect(r.previsao).toBe(true);
+    expect(r.clima).not.toBeNull();
   });
 });
