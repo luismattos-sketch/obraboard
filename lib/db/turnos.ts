@@ -270,14 +270,19 @@ export async function editarTurno(c: SupabaseClient, turnoId: string, dados: Dad
   return ok(data[0] as Turno);
 }
 
-/** Exclui o turno em qualquer status, com tudo o que pende dele (atividades, RDOs, check-in…) em cascata. */
+/** Exclui o turno e suas atividades (cascata). Só enquanto planejado. */
 export async function removerTurno(c: SupabaseClient, turnoId: string): Promise<Resultado> {
-  const { data, error } = await c.from("turnos").delete().eq("id", turnoId).select("id");
+  const s = await lerStatus(c, turnoId, "removerTurno");
+  if (!s.ok) return s;
+  if (s.dados === null) return falha("Turno não encontrado");
+  if (s.dados !== "planejado") return falha(ERRO_SO_PLANEJADO);
+
+  const { data, error } = await c.from("turnos").delete().eq("id", turnoId).eq("status", "planejado").select("id");
   if (error) {
     console.error("removerTurno:", error.message);
     return falha("Não foi possível excluir o turno.");
   }
-  if (!data || data.length === 0) return falha("Turno não encontrado");
+  if (!data || data.length === 0) return falha(ERRO_SO_PLANEJADO);
   return ok(undefined);
 }
 

@@ -79,11 +79,11 @@ describe.skipIf(!ligado)("invariantes do banco e edição de turno", () => {
     });
   });
 
-  it("editarTurno recusa turno em campo; removerTurno apaga em campo e planejado", { timeout: 60_000 }, async () => {
+  it("editarTurno/removerTurno recusam turno em campo; removerTurno apaga planejado", { timeout: 60_000 }, async () => {
     const { turnoId } = await emCampo("2027-03-10");
     expect(await editarTurno(u.cliente, turnoId, { data: "2027-03-11", periodo: "diurno" })).toEqual({ ok: false, erro: SO_PLANEJADO });
-    expect(await removerTurno(u.cliente, turnoId)).toEqual({ ok: true, dados: undefined });
-    expect(await obterTurnoCompleto(u.cliente, turnoId)).toBeNull();
+    expect(await removerTurno(u.cliente, turnoId)).toEqual({ ok: false, erro: SO_PLANEJADO });
+    expect(await obterTurnoCompleto(u.cliente, turnoId)).not.toBeNull();
 
     const p = await turno("2027-03-12");
     await atividade(p.id);

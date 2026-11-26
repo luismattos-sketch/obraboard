@@ -12,7 +12,6 @@ export const checkIn: Capitulo = {
       texto: [
         "Na etapa \"Turnos\" da obra, clique em \"Novo turno\". Escolha a \"Data\" e o \"Período\" (Diurno ou Noturno) e clique em \"Criar turno\".",
         "Se a semana estiver programada, o turno já vem com as atividades marcadas para aquele dia e período, com a quantidade sugerida e o selo \"Programada\".",
-        "Criou um turno por engano? Na lista de turnos, clique na lixeira ao lado dele. Vale para qualquer turno, até o fechado, mas apaga junto as atividades, o efetivo, o check-in e os RDOs daquele turno, sem volta.",
       ],
       captura: {
         alt: "Formulário de novo turno com data e período",

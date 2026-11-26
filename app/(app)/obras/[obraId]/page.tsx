@@ -17,7 +17,6 @@ import { Responsaveis } from "./Responsaveis";
 import { IntervaloObra } from "./IntervaloObra";
 import { WhatsappObra } from "./WhatsappObra";
 import { CidadeObra } from "./CidadeObra";
-import { ExcluirTurno } from "./ExcluirTurno";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
@@ -69,10 +68,10 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           {turnos.map((t) => {
             const pct = t.status === "planejado" ? null : percentualCumprimento(t.atividades);
             return (
-              <li key={t.id} className="flex items-center gap-1">
+              <li key={t.id}>
                 <Link
                   href={`/obras/${obra.id}/turnos/${t.id}`}
-                  className="block min-w-0 flex-1 rounded-cartao focus-visible:outline-2 focus-visible:outline-operacional"
+                  className="block rounded-cartao focus-visible:outline-2 focus-visible:outline-operacional"
                 >
                   <Cartao className="flex items-center justify-between gap-3 transition-colors hover:bg-primaria-clara">
                     <div>
@@ -87,11 +86,6 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
                     </div>
                   </Cartao>
                 </Link>
-                <ExcluirTurno
-                  turnoId={t.id}
-                  rotulo={`${formatarData(t.data)} ${ROTULO_PERIODO[t.periodo].toLowerCase()}`}
-                  planejado={t.status === "planejado"}
-                />
               </li>
             );
           })}
