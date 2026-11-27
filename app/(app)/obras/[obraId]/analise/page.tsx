@@ -5,7 +5,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Cartao } from "@/components/ui/Cartao";
 import { obterObra } from "@/lib/db/obras";
 import { listarProgramadasParaAnalise } from "@/lib/db/programacao";
-import { inicioDaObra, listarTurnosFechadosParaAnalise } from "@/lib/db/turnos";
+import { inicioDaObra, listarTurnosFechadosParaAnalise, listarTurnosParaHHPerdido } from "@/lib/db/turnos";
 import { GRUPO_CAUSA } from "@/lib/dominio/tipos";
 import {
   analisarObra,
@@ -23,6 +23,9 @@ import { Barra } from "./Barra";
 import { Expansivel } from "@/components/ui/Expansivel";
 import { PpcDiaADia } from "@/components/analise/PpcDiaADia";
 import { ppcPorDia, type DiaPpc } from "@/lib/dominio/ppcMes";
+import { listarResponsaveis } from "@/lib/db/responsaveis";
+import { hhPerdidoDaObra, type HHPerdido } from "@/lib/dominio/hhPerdido";
+import { numeroBR } from "@/lib/dominio/formato";
 
 const OPCOES = [4, 8, 12] as const;
 
@@ -46,6 +49,13 @@ export default async function AnalisePage({
   const semanas = semanasDaAnalise(hojeSaoPaulo(), n, inicio);
   let turnos: TurnoAnalise[] | null = null;
   let programadas: SemanaProgramadaAnalise[] = [];
+  // HH perdido carrega à parte: se falhar, o resto da análise aparece.
+  const hhPromessa = Promise.all([
+    listarTurnosParaHHPerdido(supabase, obraId, semanas[0]),
+    listarResponsaveis(supabase, obraId),
+  ])
+    .then(([t, r]) => hhPerdidoDaObra(t, r))
+    .catch(() => null);
   try {
     [turnos, programadas] = await Promise.all([
       listarTurnosFechadosParaAnalise(supabase, obraId, semanas[0]),
@@ -54,6 +64,7 @@ export default async function AnalisePage({
   } catch {
     turnos = null;
   }
+  const hh = await hhPromessa;
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -84,7 +95,10 @@ export default async function AnalisePage({
       {turnos === null ? (
         <Aviso tom="perigo">Não foi possível carregar a análise. Tente novamente.</Aviso>
       ) : (
-        <Conteudo analise={analisarObra(turnos, semanas, programadas)} obraId={obra.id} dias={ppcPorDia(turnos, semanas[0], hojeSaoPaulo()).dias} />
+        <>
+          <Conteudo analise={analisarObra(turnos, semanas, programadas)} obraId={obra.id} dias={ppcPorDia(turnos, semanas[0], hojeSaoPaulo()).dias} />
+          {turnos.length > 0 && <SecaoHHPerdido hh={hh} />}
+        </>
       )}
     </div>
   );
@@ -95,6 +109,68 @@ const GRUPOS = [
   { id: "interna", rotulo: "Internas" },
   { id: "outra", rotulo: "Outras" },
 ] as const;
+
+/** "12,5 HH" com uma casa. */
+const horasHH = (h: number) => `${numeroBR(Math.round(h * 10) / 10)} HH`;
+
+function SecaoHHPerdido({ hh }: { hh: HHPerdido | null }) {
+  return (
+    <section aria-labelledby="titulo-hh-perdido" className="flex min-w-0 flex-col gap-2">
+      <Cartao className="flex min-w-0 flex-col gap-3">
+        <h2 id="titulo-hh-perdido" className="text-lg font-semibold text-primaria">HH perdido em paradas</h2>
+        {hh === null ? (
+          <Aviso tom="perigo">Não foi possível calcular o HH perdido. Tente novamente.</Aviso>
+        ) : hh.total === 0 ? (
+          <p className="text-sm text-texto-suave">Nenhuma parada registrada nos turnos fechados do período.</p>
+        ) : (
+          <>
+            <div>
+              <p className="text-3xl font-semibold text-primaria">{horasHH(hh.total)}</p>
+              <p className="text-xs text-texto-suave">
+                em {hh.turnos} {hh.turnos === 1 ? "turno fechado" : "turnos fechados"} · ⓘ pessoas paradas × horas paradas, sem o intervalo
+              </p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold text-texto">Por grupo de causa</h3>
+              {hh.grupos.map((g) => (
+                <Barra
+                  key={g.grupo}
+                  rotulo={GRUPOS.find((x) => x.id === g.grupo)!.rotulo}
+                  fracao={g.fracao}
+                  texto={`${horasHH(g.hh)} (${formatarPercentual(g.fracao)})`}
+                />
+              ))}
+            </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold text-texto">Por causa</h3>
+              {hh.causas.map((c) => (
+                <Barra key={c.causa} rotulo={c.rotulo} fracao={c.fracao} texto={`${horasHH(c.hh)} (${formatarPercentual(c.fracao)})`} />
+              ))}
+            </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold text-texto">Por responsável</h3>
+              {hh.equipes.map((e) => (
+                <Expansivel
+                  key={e.responsavelId ?? "sem"}
+                  resumo={<Barra rotulo={e.nome} fracao={e.fracao} texto={`${horasHH(e.hh)} (${formatarPercentual(e.fracao)})`} />}
+                >
+                  <ul className="mt-1 mb-2 flex flex-col gap-1 pl-4">
+                    {e.causas.map((c) => (
+                      <li key={c.causa} className="flex justify-between gap-3 text-sm text-texto">
+                        <span>{c.rotulo}</span>
+                        <span>{horasHH(c.hh)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Expansivel>
+              ))}
+            </div>
+          </>
+        )}
+      </Cartao>
+    </section>
+  );
+}
 
 function Conteudo({ analise, obraId, dias }: { analise: Analise; obraId: string; dias: DiaPpc[] }) {
   if (analise.periodo.total === 0) {

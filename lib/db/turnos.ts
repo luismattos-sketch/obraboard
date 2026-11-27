@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TurnoAnalise } from "@/lib/dominio/analise";
+import type { TurnoHH } from "@/lib/dominio/hhPerdido";
 import { ERRO_MOTIVO, ERRO_MOTIVO_REPETIDO, validarMotivo } from "@/lib/dominio/eventos";
 import { aderencia } from "@/lib/dominio/ritmo";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
@@ -147,6 +148,35 @@ export async function listarTurnosFechadosParaAnalise(
         causa: (a.causa as TurnoAnalise["atividades"][number]["causa"]) ?? null,
         observacao: (a.observacao as string | null) ?? null,
       })),
+  }));
+}
+
+/** Item 3.5: turnos fechados com data >= `desde`, com efetivo, paradas e Iniciar/Terminei, para o HH perdido. */
+export async function listarTurnosParaHHPerdido(c: SupabaseClient, obraId: string, desde: string): Promise<TurnoHH[]> {
+  const { data, error } = await c
+    .from("turnos")
+    .select(
+      "id, data, periodo, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, efetivo(funcao, quantidade, responsavel_id), efetivo_ocorrencias(*), turno_equipes_terminadas(responsavel_id, terminou_em), turno_equipes_iniciadas(responsavel_id, iniciou_em)",
+    )
+    .eq("obra_id", obraId)
+    .eq("status", "fechado")
+    .gte("data", desde);
+  if (error) {
+    console.error("listarTurnosParaHHPerdido:", error.message);
+    throw new Error(`listarTurnosParaHHPerdido: ${error.message}`);
+  }
+  type Linha = Omit<TurnoHH, "efetivo" | "ocorrencias" | "iniciados" | "terminados"> & {
+    efetivo: { funcao: string; quantidade: number; responsavel_id: string | null }[] | null;
+    efetivo_ocorrencias: unknown;
+    turno_equipes_terminadas: unknown;
+    turno_equipes_iniciadas: unknown;
+  };
+  return ((data ?? []) as unknown as Linha[]).map(({ efetivo, efetivo_ocorrencias, turno_equipes_terminadas, turno_equipes_iniciadas, ...t }) => ({
+    ...t,
+    efetivo: (efetivo ?? []).map((e) => ({ funcao: e.funcao, quantidade: Number(e.quantidade), responsavel_id: e.responsavel_id ?? null })),
+    ocorrencias: lerOcorrencias(efetivo_ocorrencias),
+    terminados: lerTerminados(turno_equipes_terminadas),
+    iniciados: lerIniciados(turno_equipes_iniciadas),
   }));
 }
 

@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Análise ganhou \"HH perdido em paradas\": quantas horas de gente parada o período teve, separadas em causas externas × internas, por causa e por responsável.",
+    href: "/ajuda/encerrar-semana#analise",
+  },
+  {
+    data: "2026-11-27",
     texto: "O RDO agora traz o nome da sua empresa no cabeçalho de todas as páginas. Para corrigir o nome, use \"Minha empresa\" no menu lateral.",
     href: "/ajuda/primeiros-passos#minha-empresa",
   },
