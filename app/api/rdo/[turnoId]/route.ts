@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { obterNomeEmpresa } from "@/lib/db/empresas";
 import { versoesDoTurno } from "@/lib/db/rdo-versoes";
 import { obterTurnoCompleto } from "@/lib/db/turnos";
 import { caminhoSeguro } from "@/lib/dominio/caminho";
@@ -36,5 +37,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ turnoId
     turno,
     { tipo: "rascunho", geradoEm: new Date() },
     nomeArquivoRdo(turno.obra.nome, turno.data, turno.periodo, "rascunho"),
+    await obterNomeEmpresa(supabase),
   );
 }

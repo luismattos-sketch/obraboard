@@ -6,6 +6,7 @@ import { formatarData, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import type { ResumoTurno } from "@/lib/dominio/resumo";
 import { ROTULO_STATUS_TURNO } from "@/lib/dominio/tipos";
 import { estilos as s } from "./estilos";
+import { nomeCabecalho } from "./formatar";
 import { sanitizarProfundo } from "./texto";
 import { linhasEmissao, type Emissao } from "./versao";
 import { Atividades, EfetivoEClima, FotosParadas, Identificacao, Restricoes, ResumoBloco } from "./secoes";
@@ -31,13 +32,14 @@ export function marcaDagua(emissao: Emissao): string | null {
 }
 
 /** `fotos` (caminho → bytes): fotos das paradas no fim do PDF; ausente = lote, sem imagens. */
-export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; emissao: Emissao; fotos?: Record<string, Uint8Array> }) {
+export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno; emissao: Emissao; fotos?: Record<string, Uint8Array>; empresaNome?: string | null }) {
   // Todo texto vindo do usuário passa pelo filtro WinAnsi (Helvetica não tem emoji etc.).
   const turno = sanitizarProfundo(props.turno);
   const resumo = sanitizarProfundo(props.resumo);
   const marca = marcaDagua(props.emissao);
   const { destaque, rodape } = linhasEmissao(props.emissao);
   const img = logoFrentia();
+  const empresa = nomeCabecalho(sanitizarProfundo(props.empresaNome ?? null));
   const titulo = `RDO — ${turno.obra.nome} — ${formatarData(turno.data)} (${ROTULO_PERIODO[turno.periodo]})`;
   return (
     <Document title={titulo} author="Frentia" creator="Frentia">
@@ -49,6 +51,7 @@ export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno;
         <View style={s.cabecalhoFixo} fixed>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt */}
           {img ? <Image src={{ data: img, format: "png" }} style={s.logo} /> : <Text style={s.tituloFixo}>Frentia</Text>}
+          {empresa && <Text style={s.empresaFixo}>{empresa}</Text>}
           <Text style={s.tituloFixo}>{`RDO · ${turno.obra.nome} · ${formatarData(turno.data)}`}</Text>
         </View>
 

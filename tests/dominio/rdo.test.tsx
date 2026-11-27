@@ -5,6 +5,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { DocumentoRdo, marcaDagua } from "@/lib/rdo/documento";
 import type { Emissao } from "@/lib/rdo/versao";
 import { nomeArquivoRdo } from "@/lib/rdo/nome-arquivo";
+import { nomeCabecalho } from "@/lib/rdo/formatar";
 import { sanitizarProfundo, textoWinAnsi } from "@/lib/rdo/texto";
 import { resumirTurno } from "@/lib/dominio/resumo";
 import type { Causa } from "@/lib/dominio/tipos";
@@ -50,6 +51,17 @@ describe("nomeArquivoRdo", () => {
   });
 });
 
+describe("nomeCabecalho", () => {
+  it("apara, some quando vazio e corta nome longo com reticências", () => {
+    expect(nomeCabecalho("  Acme ")).toBe("Acme");
+    expect(nomeCabecalho("")).toBeNull();
+    expect(nomeCabecalho(null)).toBeNull();
+    const longo = nomeCabecalho("a".repeat(120))!;
+    expect(longo).toHaveLength(48);
+    expect(longo.endsWith("…")).toBe(true);
+  });
+});
+
 describe("DocumentoRdo", () => {
   const geradoEm = new Date("2026-11-08T21:30:00Z");
   const rascunho: Emissao = { tipo: "rascunho", geradoEm };
@@ -75,9 +87,22 @@ describe("DocumentoRdo", () => {
       mkdirSync(dir, { recursive: true });
       writeFileSync(path.join(dir, "rdo-exemplo.pdf"), buf);
       const f = turno(12, "fechado");
-      writeFileSync(path.join(dir, "rdo-exemplo-fechado.pdf"), await renderToBuffer(<DocumentoRdo turno={f} resumo={resumirTurno(f)} emissao={oficial} />));
+      writeFileSync(path.join(dir, "rdo-exemplo-fechado.pdf"), await renderToBuffer(<DocumentoRdo turno={f} resumo={resumirTurno(f)} emissao={oficial} empresaNome="Construtora Exemplo de Nome Bem Comprido Engenharia e Montagens Industriais Ltda" />));
     }
   }, 60000);
+
+  it("renderiza com o nome da empresa (acentos e emoji)", async () => {
+    const t = turno(2);
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} empresaNome="Construtora Ação 🚧" />);
+    expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
+  }, 30000);
+
+  it("nome da empresa e obra no limite (120) cabem no cabeçalho de uma página", async () => {
+    const base = turno(1);
+    const t = { ...base, obra: { ...base.obra, nome: "O".repeat(120) } } as TurnoCompleto;
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} empresaNome={"E".repeat(120)} />);
+    expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
+  }, 30000);
 
   it("remove caracteres fora do WinAnsi (emoji) e renderiza", async () => {
     const limpo = textoWinAnsi("👍 ok");

@@ -2,6 +2,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PDFDocument } from "pdf-lib";
+import { obterNomeEmpresa } from "@/lib/db/empresas";
 import { listarVersoes, obterVersoes } from "@/lib/db/rdo-versoes";
 import { normalizarMes, rotuloMes } from "@/lib/dominio/historico-rdo";
 import { LIMITE_LOTE, paginasIniciais, selecionarLote, type ItemLote } from "@/lib/dominio/lote-rdo";
@@ -43,7 +44,7 @@ export async function montarLote(lote: ItemLote[], versoes: VersaoRdo[], cabecal
     const v = porId.get(item.atual.id);
     if (!v) throw new Error(`montarLote: versão ${item.atual.id} não encontrada`);
     // Em sequência, para não segurar dezenas de renderizações na memória ao mesmo tempo.
-    const buf = await renderizarRdo(lerFoto(v), emissaoDaVersao(v, item.anterior));
+    const buf = await renderizarRdo(lerFoto(v), emissaoDaVersao(v, item.anterior), cabecalho.empresaNome);
     rdos.push(await PDFDocument.load(buf));
   }
 
@@ -83,7 +84,7 @@ export async function respostaLote(c: SupabaseClient, mesBruto: string | null, o
       ? lote.reduce((a, b) => (b.atual.emitidoEm > a.atual.emitidoEm ? b : a)).atual.obraNome
       : null;
     const pdf = await montarLote(lote, await obterVersoes(c, lote.map((l) => l.atual.id)), {
-      mes, obraNome, geradoEm: new Date(),
+      mes, obraNome, empresaNome: await obterNomeEmpresa(c), geradoEm: new Date(),
     });
     return new Response(new Uint8Array(pdf), {
       headers: {
