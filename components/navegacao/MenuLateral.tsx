@@ -32,7 +32,8 @@ const ICONE_MENU = "M4 6h16M4 12h16M4 18h16";
 const ICONE_FECHAR = "M6 6l12 12M18 6L6 18";
 const ICONE_MAIS = "M12 5v14M5 12h14";
 const ICONE_RDO = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6";
-const ICONE_AJUDA = "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01";
+const ICONE_EMPRESA = "M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M3 21h18M8 7h4M8 11h4M8 15h4";
+const ICONE_AJUDA ="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01";
 const ICONE_OBRA = "M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6";
 const ICONE_SETA = "M6 9l6 6 6-6";
 const ICONE_LISTA = "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01";
@@ -57,6 +58,7 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
   const etapaAtiva = etapaDoCaminho(caminho);
   const naRdos = caminho === "/rdos";
   const emAjuda = naAjuda(caminho);
+  const naEmpresa = caminho === "/empresa";
 
   useEffect(() => {
     if (!aberto) return;
@@ -153,6 +155,13 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
               ${recolhido ? "md:h-10 md:w-10 md:justify-center md:px-0" : ""}`}>
             <Icone d={ICONE_RDO} />
             <span className={rotulo}>RDOs de todas as obras</span>
+          </Link>
+          <Link href="/empresa" onClick={fechar} title={recolhido ? "Minha empresa" : undefined} aria-current={naEmpresa ? "page" : undefined}
+            className={`flex min-h-11 items-center gap-2 rounded-botao px-3 text-sm ${foco}
+              ${naEmpresa ? "bg-primaria-clara font-semibold text-primaria" : "text-texto hover:bg-fundo"}
+              ${recolhido ? "md:h-10 md:w-10 md:justify-center md:px-0" : ""}`}>
+            <Icone d={ICONE_EMPRESA} />
+            <span className={rotulo}>Minha empresa</span>
           </Link>
           <Link href="/ajuda" onClick={fechar} title={recolhido ? "Ajuda" : undefined} aria-current={emAjuda ? "page" : undefined}
             className={`flex min-h-11 items-center gap-2 rounded-botao px-3 text-sm ${foco}

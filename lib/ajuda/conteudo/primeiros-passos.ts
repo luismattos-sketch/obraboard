@@ -16,6 +16,19 @@ export const primeirosPassos: Capitulo = {
       dica: "Quem tem login é o planejador. Os responsáveis de campo não precisam de conta: eles usam o link do turno.",
     },
     {
+      id: "minha-empresa",
+      titulo: "Confira o nome da empresa",
+      texto: [
+        "No menu lateral, \"Minha empresa\" mostra o nome que aparece no cabeçalho de todas as páginas do RDO. Para corrigir, digite o nome novo em \"Nome da empresa (aparece no RDO)\": salva sozinho.",
+        "RDOs já emitidos também saem com o nome novo quando você baixar de novo.",
+      ],
+      captura: {
+        alt: "Página Minha empresa com o campo do nome da empresa",
+        alvo: { papel: "textbox", nome: "Nome da empresa (aparece no RDO)" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "criar-obra",
       titulo: "Crie a obra",
       texto: [

@@ -52,6 +52,10 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   };
 
   // ---------- Primeiros passos ----------
+  await pl.goto("/empresa");
+  await pl.getByLabel("Nome da empresa (aparece no RDO)").fill("Montagens Exemplo Ltda");
+  await expect(pl.getByText("Salvo ✓")).toBeVisible();
+  await fotografar(pl, "primeiros-passos", "minha-empresa");
   await pl.goto("/obras/nova");
   await pl.getByLabel("Nome da obra").fill(OBRA.nome);
   await pl.getByLabel("Cliente (opcional)").fill(OBRA.cliente);

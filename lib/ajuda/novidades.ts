@@ -3,6 +3,11 @@ import type { Novidade } from "./tipos";
 
 export const NOVIDADES: Novidade[] = [
   {
+    data: "2026-11-27",
+    texto: "O RDO agora traz o nome da sua empresa no cabeçalho de todas as páginas. Para corrigir o nome, use \"Minha empresa\" no menu lateral.",
+    href: "/ajuda/primeiros-passos#minha-empresa",
+  },
+  {
     data: "2026-11-26",
     texto: "Quadro mostra quem espera quem: equipe parada \"Aguardando outra equipe\" ganha \"⏳ Aguardando …\" no cartão, a equipe aguardada vê quem a espera e sobe para o alto do quadro.",
     href: "/ajuda/quadro-tv#visoes",
