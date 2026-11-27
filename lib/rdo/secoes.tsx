@@ -2,6 +2,7 @@ import { Image, Text, View } from "@react-pdf/renderer";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
+import { textoHHExtra, textoMateriais } from "@/lib/dominio/extraApontamento";
 import { linhaOcorrencia, nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 import { textoForaDoDia, type ResumoTurno } from "@/lib/dominio/resumo";
 import { CAUSAS, ROTULO_STATUS_ATIVIDADE, ROTULO_TIPO } from "@/lib/dominio/tipos";
@@ -77,7 +78,7 @@ function LinhaAtividade({ a, zebra }: { a: ResumoTurno["atividades"][number]; ze
           <Text style={[s.celula, s.direita, { width: COL.real }]}>{qtdRealizada(a.qtd_realizada, a.unidade)}</Text>
           <Text style={[s.celula, { width: COL.status }]}>{ROTULO_STATUS_ATIVIDADE[a.status]}</Text>
           <Text style={[s.celula, { width: COL.obs }]}>
-            {[a.causa ? CAUSAS[a.causa] : null, a.solicitado_por ? `Pedido por: ${a.solicitado_por}` : null, a.observacao].filter(Boolean).join(" — ") || "—"}
+            {[a.causa ? CAUSAS[a.causa] : null, a.solicitado_por ? `Pedido por: ${a.solicitado_por}` : null, textoHHExtra(a), textoMateriais(a.materiais) ? `Material: ${textoMateriais(a.materiais)}` : null, a.observacao].filter(Boolean).join(" — ") || "—"}
           </Text>
         </View>
   );
@@ -120,6 +121,13 @@ export function ResumoBloco({ resumo, turno }: { resumo: ResumoTurno; turno: Tur
                 .map(([c, h]) => `${CAUSAS[c]} ${numeroBR(h)}`)
                 .join(" · ")}
             </Text>
+          </View>
+        )}
+        {resumo.hhExtra !== null && (
+          <View style={s.metrica}>
+            <Text style={s.rotulo}>HH em serviço extra</Text>
+            <Text style={s.metricaValor}>{numeroBR(resumo.hhExtra)}</Text>
+            <Text style={s.suave}>fora do escopo programado</Text>
           </View>
         )}
       </View>

@@ -50,7 +50,7 @@ describe("montarExtra", () => {
   it("vírgula decimal e mesmo id", () => {
     expect(montarExtra({ ...f, qtd: "12,5" }, ID)).toEqual({
       ok: true,
-      dados: { id: ID, descricao: "Troca de iluminação", unidade: "un", qtd: 12.5, observacao: null, responsavel_id: null, equipe: [], solicitado_por: null },
+      dados: { id: ID, descricao: "Troca de iluminação", unidade: "un", qtd: 12.5, observacao: null, responsavel_id: null, equipe: [], solicitado_por: null, extra_pessoas: null, extra_horas: null, materiais: [] },
     });
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { textoEquipe } from "@/lib/dominio/equipePrevista";
+import { textoHHExtra, textoMateriais } from "@/lib/dominio/extraApontamento";
 import { qtdComUnidade } from "@/lib/dominio/plural";
 import { Fragment, useCallback, useContext, useRef, useState } from "react";
 import { Selo } from "@/components/ui/Selo";
@@ -247,6 +248,8 @@ function ItemExecucao({
           )}
           {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}
           {extra && a.solicitado_por && <p className="text-sm text-texto-suave">Pedido por: {a.solicitado_por}</p>}
+          {extra && textoHHExtra(a) && <p className="text-sm text-texto-suave">{textoHHExtra(a)}</p>}
+          {extra && textoMateriais(a.materiais) && <p className="text-sm text-texto-suave">Material: {textoMateriais(a.materiais)}</p>}
         </div>
         {/* Cor só depois de o banco confirmar: antes disso, cinza. */}
         <div className="flex flex-col items-end gap-1">

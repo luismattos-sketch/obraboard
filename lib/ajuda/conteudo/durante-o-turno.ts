@@ -51,7 +51,7 @@ export const duranteOTurno: Capitulo = {
       id: "servico-extra",
       titulo: "Lance um serviço extra",
       texto: [
-        "Serviço feito fora da programação? Abra \"Corrigir execução\" e clique em \"+ Serviço extra (fora da programação)\", preencha \"Descrição\", \"Quantidade feita\", \"Unidade\" e \"Responsável\" e clique em \"Lançar serviço extra\". Em \"Quem do cliente pediu\", anote o nome e a função de quem solicitou: fica no card da atividade e no RDO, como registro para a medição.",
+        "Serviço feito fora da programação? Abra \"Corrigir execução\" e clique em \"+ Serviço extra (fora da programação)\", preencha \"Descrição\", \"Quantidade feita\", \"Unidade\" e \"Responsável\" e clique em \"Lançar serviço extra\". Em \"Quem do cliente pediu\", anote o nome e a função de quem solicitou: fica no card da atividade e no RDO, como registro para a medição. Aponte também o \"HH no serviço extra\" (pessoas × horas) e o \"Material usado\" (item, quantidade e unidade): o RDO mostra o \"HH em serviço extra\" separado do HH do turno, e cada extra traz o seu HH e o material na coluna de observação.",
         "O extra entra no RDO com o selo \"EXTRA\", não tem meta e não pede causa.",
       ],
       captura: {

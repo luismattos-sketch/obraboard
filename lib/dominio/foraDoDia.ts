@@ -1,6 +1,7 @@
 import { LIMITES, QTD_PLANEJADA_MAX } from "@/lib/db/validacao";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
 import { validarEquipe } from "./equipePrevista";
+import { validarHHExtra, validarMateriais, type ApontamentoExtra } from "./extraApontamento";
 import type { EquipePrevista } from "./programacao";
 import {
   diaDaSemana,
@@ -124,7 +125,7 @@ export type DadosExtra = {
   equipe: EquipePrevista[];
   /** Item 4.1: quem do cliente pediu (nome e função, texto livre). */
   solicitado_por: string | null;
-};
+} & ApontamentoExtra;
 
 export const SOLICITADO_POR_MAX = 100;
 
@@ -152,7 +153,11 @@ export function validarExtra(d: unknown): Resultado<DadosExtra> {
     const m = `Máximo de ${SOLICITADO_POR_MAX} caracteres`;
     return falha(m, { solicitado_por: m });
   }
-  return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp, equipe, solicitado_por: sol });
+  const hh = validarHHExtra(x.extra_pessoas, x.extra_horas);
+  if ("erro" in hh) return falha(hh.erro, { [hh.campo]: hh.erro });
+  const mat = validarMateriais(x.materiais);
+  if ("erro" in mat) return falha(mat.erro, { [mat.campo]: mat.erro });
+  return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp, equipe, solicitado_por: sol, ...hh, materiais: mat.materiais });
 }
 
 /** "lançado por você" (quem está no link) ou "lançado pelo campo — Nome"; null = criada pelo planejador. */

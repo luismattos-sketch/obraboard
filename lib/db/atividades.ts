@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { saldoPendente, statusAtividade } from "@/lib/dominio/calculos";
 import { compararTurnos } from "@/lib/dominio/regras";
 import { equipePrevista, validarEquipe } from "@/lib/dominio/equipePrevista";
+import { lerMateriais, type Material } from "@/lib/dominio/extraApontamento";
 import type { EquipePrevista } from "@/lib/dominio/programacao";
 import type { AtividadeExec, Causa, TipoAtividade } from "@/lib/dominio/tipos";
 import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from "./mensagens";
@@ -30,6 +31,10 @@ export type Atividade = AtividadeExec & {
   foto_path: string | null;
   /** Serviço extra: quem do cliente pediu (item 4.1). */
   solicitado_por?: string | null;
+  /** Serviço extra: HH = pessoas × horas e material (item 4.2). */
+  extra_pessoas?: number | null;
+  extra_horas?: number | null;
+  materiais?: Material[];
   /** Trazida da semana por "Adiantar"/"Continuar atrasada": o planejador pode remover até fechar. */
   puxada: boolean;
   /** Atividade em sequência (item 19): "inclui 4 m do turno do dia (Luis)"; null = meta própria. */
@@ -54,7 +59,7 @@ export function equipeDaLinha(r: Record<string, unknown>): EquipePrevista[] {
 }
 
 const COLUNAS =
-  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, solicitado_por, puxada, meta_origem, equipe, equipe_confirmada, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
+  "id, turno_id, ordem, descricao, local, unidade, qtd_planejada, qtd_realizada, causa, observacao, origem_id, programacao_atividade_id, responsavel_id, lancado_por_id, lancado_em, tipo, criada_por_id, foto_path, solicitado_por, extra_pessoas, extra_horas, materiais, puxada, meta_origem, equipe, equipe_confirmada, programacao_atividades(programacao_efetivo(funcao, quantidade, created_at))";
 const ERRO_FECHADO = ERRO_FECHADO_PLANEJADOR;
 const UNICIDADE = "23505";
 export const ERRO_SEM_RESPONSAVEL = "Escolha o responsável";
@@ -99,6 +104,9 @@ export function normalizarAtividade(r: Record<string, unknown>): Atividade {
     criada_por_id: (r.criada_por_id as string | null) ?? null,
     foto_path: (r.foto_path as string | null) ?? null,
     solicitado_por: (r.solicitado_por as string | null) ?? null,
+    extra_pessoas: r.extra_pessoas === null || r.extra_pessoas === undefined ? null : Number(r.extra_pessoas),
+    extra_horas: r.extra_horas === null || r.extra_horas === undefined ? null : Number(r.extra_horas),
+    materiais: lerMateriais(r.materiais),
     puxada: r.puxada === true,
     meta_origem: (r.meta_origem as string | null) ?? null,
     equipe: equipeDaLinha(r),
