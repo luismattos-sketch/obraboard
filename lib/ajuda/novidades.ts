@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-26",
+    texto: "HH mais justo: cada equipe conta homens-hora do seu \"Iniciar turno\" até o seu \"Terminei minha parte\", e não mais da primeira equipe que começou até a última que terminou.",
+    href: "/ajuda/check-in#efetivo",
+  },
+  {
+    data: "2026-11-26",
     texto: "RDO mais organizado: atividades e efetivo separados por responsável, serviço extra marcado em negrito e coluna de observação mais larga.",
     href: "/ajuda/fechar-turno#rdo",
   },

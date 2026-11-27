@@ -208,6 +208,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
         ocorrencias={turno.ocorrencias}
         janela={janelaDoTurno(turno)}
         intervalo={intervaloDoTurno(turno)}
+        iniciados={turno.iniciados ?? []}
+        terminados={turno.terminados ?? []}
         contexto={{ obra: turno.obra.nome, data: turno.data, periodo: turno.periodo, whatsapp: turno.obra.whatsapp_planejador ?? null }}
         fotos={fotos}
         opcoesPuxar={opcoesPuxar}

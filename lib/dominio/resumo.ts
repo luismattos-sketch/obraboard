@@ -56,6 +56,8 @@ export function resumirTurno(t: TurnoCompleto): ResumoTurno {
     ocorrencias: t.ocorrencias ?? [],
     janela: janelaDoTurno(t),
     intervalo: intervaloDoTurno(t),
+    iniciados: t.iniciados,
+    terminados: t.terminados,
   });
 
   return {

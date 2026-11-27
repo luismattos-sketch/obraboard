@@ -307,6 +307,8 @@ export function FormularioCampo({
           efetivoTodo: turno.efetivoTodo,
           janela: turno.janela,
           intervalo: turno.intervalo,
+          iniciados: turno.iniciados,
+          terminados: turno.terminados,
           criar: (id, d) => criarOcorrencia(token, d, id),
           remover: (id) => removerOcorrencia(token, id, responsavelId),
           atualizar: () => router.refresh(),

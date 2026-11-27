@@ -42,6 +42,7 @@ export const checkIn: Capitulo = {
         "Precisa mudar a equipe de uma atividade? Clique em \"Editar\": além da descrição e da quantidade, dá para ajustar a \"Equipe\" (função e quantidade de pessoas) e clicar em \"Salvar\".",
         "Com tudo certo, clique em \"Confirmar\", ao lado de \"Remover\". A atividade ganha o selo \"Confirmada\" e a equipe dela entra no efetivo do responsável: duas atividades do mesmo responsável somam as pessoas. Se editar uma atividade já confirmada, confirme de novo.",
         "O efetivo conta o horário do turno descontando o \"Intervalo de refeição\" para calcular os homens-hora (HH).",
+        "Cada equipe conta HH do seu \"Iniciar turno\" até o seu \"Terminei minha parte\". Equipe que não tocou um deles usa o início ou o fim do turno. Gente emprestada conta pelo horário da equipe que recebeu.",
       ],
       captura: {
         alt: "Turno planejado com atividades agrupadas por responsável, o selo Confirmada e o botão Confirmar",

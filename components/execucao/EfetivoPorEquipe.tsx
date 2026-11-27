@@ -5,7 +5,7 @@ import { MenuResponsavel } from "@/components/responsaveis/MenuResponsavel";
 import type { Resultado } from "@/lib/db/resultado";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { Aviso } from "@/components/ui/Aviso";
-import { calcularHH, type Janela, type Ocorrencia } from "@/lib/dominio/efetivoHH";
+import { calcularHH, type Iniciado, type Janela, type Ocorrencia, type Terminado } from "@/lib/dominio/efetivoHH";
 import { BlocoEfetivo, chaveBloco } from "./BlocoEfetivo";
 import { OcorrenciasEfetivo } from "./OcorrenciasEfetivo";
 import { useOcorrencias, type AcoesOcorrencias } from "./useOcorrencias";
@@ -38,6 +38,9 @@ type Props = {
     intervalo: Janela | null;
     /** Estado das ocorrências criado pelo pai (compartilhado com o painel de paradas). */
     estado?: ReturnType<typeof useOcorrencias>;
+    /** Item 21: Iniciar/Terminei de cada equipe (HH pela janela da equipe). */
+    iniciados?: Iniciado[];
+    terminados?: Terminado[];
     /** "HH:MM" para a conta ao vivo das paradas abertas. */
     agora?: string;
   };
@@ -73,6 +76,8 @@ export function EfetivoPorEquipe({
         janela: movimentacoes.janela,
         intervalo: movimentacoes.intervalo,
         agora: movimentacoes.agora,
+        iniciados: movimentacoes.iniciados,
+        terminados: movimentacoes.terminados,
       })
     : null;
   // Com movimentações, as funções da equipe vêm do servidor: atualiza depois de gravar o efetivo.

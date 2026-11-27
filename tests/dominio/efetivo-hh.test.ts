@@ -184,6 +184,35 @@ describe("calcularHH", () => {
     expect(equipe(r, "b").hhProdutivo).toBe(8);
   });
 
+  it("item 21: cada equipe conta do seu Iniciar ao seu Terminei", () => {
+    const r = calcularHH({
+      efetivo: [
+        { funcao: "Soldador", quantidade: 2, responsavel_id: "a" },
+        { funcao: "Pintor", quantidade: 3, responsavel_id: "b" },
+      ],
+      ocorrencias: [],
+      janela: { inicio: "07:00", fim: "17:00" },
+      intervalo: { inicio: "12:00", fim: "13:00" },
+      iniciados: [{ responsavel_id: "a", iniciou_em: "07:00:00" }, { responsavel_id: "b", iniciou_em: "09:00:00" }],
+      terminados: [{ responsavel_id: "a", terminou_em: "15:00:00" }],
+    });
+    expect(equipe(r, "a").hhProdutivo).toBe(14); // 2 × (8 h − 1 h almoço)
+    expect(equipe(r, "b").hhProdutivo).toBe(21); // 3 × (09–17 = 8 h − 1 h); sem Terminei = fim do turno
+    expect(r.hh).toBe(35);
+  });
+
+  it("item 21: emprestado conta pela janela da equipe onde está", () => {
+    const r = calcularHH({
+      efetivo: [{ funcao: "Soldador", quantidade: 1, responsavel_id: "a" }],
+      ocorrencias: [oc({ responsavel_id: "a", funcao: "Soldador", tipo: "emprestimo", quantidade: 1, hora_inicio: "13:00", destino_responsavel_id: "b" })],
+      janela: { inicio: "07:00", fim: "17:00" },
+      intervalo: null,
+      terminados: [{ responsavel_id: "a", terminou_em: "13:00:00" }, { responsavel_id: "b", terminou_em: "16:00:00" }],
+    });
+    expect(equipe(r, "a").hhProdutivo).toBe(6);
+    expect(equipe(r, "b").hhProdutivo).toBe(3);
+  });
+
   it("função casa sem acento e caixa", () => {
     const r = calcularHH(entrada({ ocorrencias: [oc({ funcao: "montador DE andaime ", tipo: "saida", quantidade: 6, hora_inicio: "12:00" })] }));
     expect(r.hh).toBe(30);

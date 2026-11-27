@@ -1,5 +1,5 @@
 import { fracaoFeita } from "./calculos";
-import { calcularHH, intervaloDoTurno, janelaDoTurno, type Ocorrencia } from "./efetivoHH";
+import { calcularHH, intervaloDoTurno, janelaDoTurno, type Iniciado, type Ocorrencia, type Terminado } from "./efetivoHH";
 import { pessoas } from "./plural";
 import { formatarData } from "./formato";
 import { compararTurnos } from "./regras";
@@ -68,6 +68,8 @@ export type TurnoDaSemana = {
   intervalo_inicio?: string | null;
   intervalo_fim?: string | null;
   ocorrencias?: Ocorrencia[];
+  iniciados?: Iniciado[];
+  terminados?: Terminado[];
   extras: { id: string; descricao: string; unidade: string | null; qtd_planejada: number; qtd_realizada: number | null }[];
 };
 
@@ -310,6 +312,8 @@ export function efetivoPrevistoReal(d: DadosSemana): BlocoPrevistoReal[] {
             ocorrencias: t.ocorrencias ?? [],
             janela,
             intervalo,
+            iniciados: t.iniciados,
+            terminados: t.terminados,
           }).hh
         : null,
     };

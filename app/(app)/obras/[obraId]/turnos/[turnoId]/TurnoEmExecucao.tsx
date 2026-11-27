@@ -26,7 +26,7 @@ import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import type { Periodo } from "@/lib/dominio/tipos";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
+import type { Iniciado, Janela, Ocorrencia, Terminado } from "@/lib/dominio/efetivoHH";
 import { ForaDoDia, TEXTO_SEM_ADIANTAR_PLANEJADOR } from "@/components/execucao/ForaDoDia";
 import { autorDoLancamento, podeRemoverPlanejador, SEM_OPCOES, type OpcoesPuxar } from "@/lib/dominio/foraDoDia";
 import {
@@ -56,6 +56,8 @@ type Props = {
   ocorrencias: Ocorrencia[];
   janela: Janela | null;
   intervalo: Janela | null;
+  iniciados?: Iniciado[];
+  terminados?: Terminado[];
   /** Para a mensagem do WhatsApp e o "agora" das paradas abertas. */
   contexto: { obra: string; data: string; periodo: Periodo; whatsapp: string | null };
   /** Caminho da foto da parada → URL assinada. */
@@ -86,6 +88,8 @@ export function TurnoEmExecucao({
   ocorrencias,
   janela,
   intervalo,
+  iniciados,
+  terminados,
   contexto,
   fotos,
   opcoesPuxar = SEM_OPCOES,
@@ -259,6 +263,8 @@ export function TurnoEmExecucao({
             ocorrencias,
             janela,
             intervalo,
+            iniciados,
+            terminados,
             criar: (id, d) => criarOcorrenciaAcao(turnoId, id, d),
             remover: (id) => removerOcorrenciaAcao(turnoId, id),
             estado: mov,

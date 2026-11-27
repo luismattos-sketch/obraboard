@@ -36,6 +36,12 @@ export type EntradaHH = {
   intervalo: Janela | null;
   /** "HH:MM": parada aberta conta até agora (telas ao vivo). Ausente = até o fim do turno (RDO, fechamento). */
   agora?: string;
+  /**
+   * Item 21: "Iniciar turno" e "Terminei" de cada equipe. A equipe conta HH do seu início ao seu fim; sem toque,
+   * vale a ponta da janela do turno. Pessoa emprestada conta pela janela da equipe onde está no minuto.
+   */
+  iniciados?: Iniciado[];
+  terminados?: Terminado[];
 };
 export type Recebido = { emprestimo_id: string; de: string | null; funcao: string; quantidade: number; inicio: string; fim: string };
 export type HHEquipe = {
@@ -246,6 +252,25 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
       const causa = o.causa ? CAUSAS_LISTA.indexOf(o.causa) : CAUSAS_LISTA.indexOf("outro");
       for (const p of escolhidas) {
         for (let m = h1; m < h2; m++) if (p.dono[m] === onde && p.parado[m] === NENHUM) p.parado[m] = causa;
+      }
+    }
+  }
+
+  // Janela de cada equipe (item 21): minuto fora do Iniciar → Terminei da equipe dona não conta.
+  const limites = equipes.map((id) => {
+    const ini = id === null ? undefined : e.iniciados?.find((x) => x.responsavel_id === id);
+    const fim = id === null ? undefined : e.terminados?.find((x) => x.responsavel_id === id);
+    const a = ini ? (rel(ini.iniciou_em) ?? 0) : 0;
+    const b = fim ? (rel(fim.terminou_em) ?? D) : D;
+    return { a, b: Math.max(a, b) };
+  });
+  if (limites.some((l) => l.a > 0 || l.b < D)) {
+    for (const lista of linhas.values()) {
+      for (const p of lista) {
+        for (let m = 0; m < D; m++) {
+          const d = p.dono[m];
+          if (d !== NENHUM && (m < limites[d].a || m >= limites[d].b)) p.dono[m] = NENHUM;
+        }
       }
     }
   }

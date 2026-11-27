@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { inicioDaSemana, type SemanaProgramadaAnalise } from "@/lib/dominio/analise";
 import { validarEquipe } from "@/lib/dominio/equipePrevista";
-import { lerOcorrencias } from "@/lib/dominio/efetivoHH";
+import { lerIniciados, lerOcorrencias, lerTerminados } from "@/lib/dominio/efetivoHH";
 import { validarMotivo } from "@/lib/dominio/eventos";
 import {
   dataDoDia,
@@ -138,7 +138,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
     c
       .from("turnos")
       .select(
-        "id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), atividades(id, descricao, unidade, qtd_planejada, qtd_realizada, causa, ordem, created_at, programacao_atividade_id, tipo)",
+        "id, data, periodo, status, hora_inicio_prevista, hora_fim_prevista, hora_inicio_real, hora_fim_real, intervalo_inicio, intervalo_fim, efetivo(id, funcao, quantidade, responsavel_id, created_at), efetivo_ocorrencias(*), turno_equipes_iniciadas(responsavel_id, iniciou_em), turno_equipes_terminadas(responsavel_id, terminou_em), atividades(id, descricao, unidade, qtd_planejada, qtd_realizada, causa, ordem, created_at, programacao_atividade_id, tipo)",
       )
       .eq("obra_id", semana.obra_id)
       .gte("data", semana.inicio)
@@ -192,6 +192,8 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
         responsavel_id: (e.responsavel_id as string | null) ?? null,
       })),
       ocorrencias: lerOcorrencias(t.efetivo_ocorrencias),
+      iniciados: lerIniciados(t.turno_equipes_iniciadas),
+      terminados: lerTerminados(t.turno_equipes_terminadas),
       extras: ats
         .filter((a) => !a.programacao_atividade_id)
         .map((a) => ({
@@ -216,6 +218,8 @@ function dadosDaFoto(f: DadosSemana): DadosSemana {
       ...t,
       efetivo: t.efetivo.map((e) => ({ funcao: e.funcao, quantidade: num(e.quantidade), responsavel_id: e.responsavel_id ?? null })),
       ocorrencias: lerOcorrencias(t.ocorrencias),
+      iniciados: lerIniciados(t.iniciados),
+      terminados: lerTerminados(t.terminados),
       extras: t.extras.map((x) => ({ ...x, qtd_planejada: num(x.qtd_planejada), qtd_realizada: numOuNull(x.qtd_realizada) })),
     })),
   };

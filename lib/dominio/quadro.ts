@@ -155,6 +155,8 @@ export function montarQuadro(e: EntradaQuadro, agora?: string): ModeloQuadro {
     janela: janelaDoTurno(e.turno),
     intervalo: intervaloDoTurno(e.turno),
     agora,
+    iniciados: e.iniciados,
+    terminados: e.terminados,
   });
   const chaves = new Set<string | null>([
     ...e.atividades.map((a) => a.responsavel_id),
