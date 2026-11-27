@@ -185,7 +185,8 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
                 sugestoesFuncao={opcoesFuncao}
               />
             </Recolhivel>
-            <Recolhivel titulo="Link de campo" abertoInicial={!link.existe}>
+            {/* Aberto até a primeira equipe iniciar: é quando o planejador copia e envia o link. */}
+            <Recolhivel titulo="Link de campo" abertoInicial={!link.existe || (turno.iniciados ?? []).length === 0}>
               {painelLink}
             </Recolhivel>
             <Recolhivel titulo="RDO">

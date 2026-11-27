@@ -166,6 +166,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     // Planejador corrige o horário (vale até o próximo toque no campo)
     const salvoP = (secao: string) =>
       expect(page.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
+    await page.getByText("Corrigir execução", { exact: true }).click();
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
     await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("16:00");
     await salvoP("titulo-horario");
@@ -179,6 +180,8 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.getByRole("button", { name: "Confirmar fechamento" }).click();
     await expect(page.getByRole("button", { name: "Reabrir turno" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Clima" })).toBeVisible();
+    // Turno fechado: RDO aberto sem tocar; nada de "Fechar turno".
+    await expect(page.getByRole("button", { name: "Fechar turno" })).toHaveCount(0);
 
     // RDO
     const [download] = await Promise.all([
@@ -220,6 +223,7 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.getByRole("button", { name: "Reabrir turno" }).click();
     await page.getByLabel("Motivo da reabertura").fill("Corrigir quantidade");
     await page.getByRole("button", { name: "Confirmar reabertura" }).click();
+    await page.getByText("RDO", { exact: true }).click();
     await expect(page.getByRole("link", { name: "Baixar prévia (rascunho)" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Baixar v1 oficial" })).toBeVisible();
     await page.getByRole("button", { name: "Fechar turno" }).click();
