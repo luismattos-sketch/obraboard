@@ -122,7 +122,11 @@ export type DadosExtra = {
   observacao: string | null;
   responsavel_id: string | null;
   equipe: EquipePrevista[];
+  /** Item 4.1: quem do cliente pediu (nome e função, texto livre). */
+  solicitado_por: string | null;
 };
+
+export const SOLICITADO_POR_MAX = 100;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -143,7 +147,12 @@ export function validarExtra(d: unknown): Resultado<DadosExtra> {
   const resp = typeof x.responsavel_id === "string" && x.responsavel_id ? x.responsavel_id : null;
   const { equipe, erro: erroEquipe } = validarEquipe(x.equipe);
   if (erroEquipe) return falha(erroEquipe, { equipe: erroEquipe });
-  return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp, equipe });
+  const sol = typeof x.solicitado_por === "string" && x.solicitado_por.trim() ? x.solicitado_por.trim() : null;
+  if (sol !== null && sol.length > SOLICITADO_POR_MAX) {
+    const m = `Máximo de ${SOLICITADO_POR_MAX} caracteres`;
+    return falha(m, { solicitado_por: m });
+  }
+  return ok({ id: x.id, descricao, unidade, qtd, observacao: obs, responsavel_id: resp, equipe, solicitado_por: sol });
 }
 
 /** "lançado por você" (quem está no link) ou "lançado pelo campo — Nome"; null = criada pelo planejador. */

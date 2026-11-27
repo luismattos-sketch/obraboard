@@ -110,6 +110,7 @@ const mesmoExtra = (d: DadosExtra, turnoId: string, r: Record<string, unknown>) 
   r.unidade === d.unidade &&
   Number(r.qtd_realizada) === d.qtd &&
   ((r.observacao as string | null) ?? null) === d.observacao &&
+  ((r.solicitado_por as string | null) ?? null) === d.solicitado_por &&
   ((r.responsavel_id as string | null) ?? null) === d.responsavel_id;
 
 /** Serviço extra com id do cliente: reenviar o mesmo registro não duplica. */
@@ -146,6 +147,7 @@ export async function lancarExtra(
     criada_por_id: criadaPorId,
     tipo: "extra",
     equipe: d.equipe,
+    solicitado_por: d.solicitado_por,
   });
   if (!error) return ok({ id: d.id });
   if (error.code === UNICIDADE) return (await jaGravado()) ?? falha(ERRO_ID_REUSADO);

@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Serviço extra agora guarda \"Quem do cliente pediu\" (nome e função). Aparece no card da atividade e no RDO.",
+    href: "/ajuda/durante-o-turno#servico-extra",
+  },
+  {
+    data: "2026-11-27",
     texto: "Análise ganhou \"HH perdido em paradas\": quantas horas de gente parada o período teve, separadas em causas externas × internas, por causa e por responsável.",
     href: "/ajuda/encerrar-semana#analise",
   },

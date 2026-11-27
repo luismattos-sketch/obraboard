@@ -95,7 +95,7 @@ export const campo: Capitulo = {
       id: "extra",
       titulo: "Serviço extra e adiantar",
       texto: [
-        "Fez algo que não estava programado? Toque em \"+ Serviço extra (fora da programação)\", descreva, informe a \"Quantidade feita\" e a \"Unidade\" e toque em \"Lançar serviço extra\".",
+        "Fez algo que não estava programado? Toque em \"+ Serviço extra (fora da programação)\", descreva, informe a \"Quantidade feita\" e a \"Unidade\" e toque em \"Lançar serviço extra\". Se alguém do cliente pediu o serviço, escreva o nome e a função em \"Quem do cliente pediu\" (ex.: Marcos, fiscal): isso aparece no RDO.",
         "Vai começar uma atividade prevista para outro dia da semana? Toque em \"+ Adiantar atividade da semana\" e escolha a atividade. Para uma atividade de dia anterior que ficou pela metade, use \"Continuar atividade atrasada\".",
       ],
       captura: {
