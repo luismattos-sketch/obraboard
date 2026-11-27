@@ -1,5 +1,6 @@
 "use client";
 
+import { abrirSecaoDe } from "@/components/ui/Recolhivel";
 import { classesBotao } from "@/components/ui/Botao";
 import type { GrupoFaltas } from "@/lib/dominio/faltas";
 import { urlCampo } from "@/lib/dominio/link";
@@ -21,8 +22,11 @@ type Props = {
 function irPara(id: string) {
   const el = document.getElementById(`qtd-${id}`);
   if (!el) return;
-  el.scrollIntoView({ block: "center" });
-  el.focus();
+  // O campo fica em "Corrigir execução", que começa recolhido.
+  abrirSecaoDe(el, () => {
+    el.scrollIntoView({ block: "center" });
+    el.focus();
+  });
 }
 
 function situacao(g: GrupoFaltas, p: Props): string {

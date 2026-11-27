@@ -42,6 +42,10 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   await pl.getByRole("button", { name: "Entrar" }).click();
   await pl.waitForURL("**/obras");
   await pl.goto(`/obras/${obra.id}/turnos/${turno.id}`);
+  // "ir" do "O que falta" abre "Corrigir execução" (recolhido) e leva ao campo da quantidade.
+  await pl.getByRole("button", { name: "Ir para: Montagem de tubulação" }).click();
+  await expect(pl.locator("[id^='qtd-']").first()).toBeFocused();
+  await expect(pl.locator("[id^='qtd-']").first()).toBeInViewport();
 
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });
   const cel = await ctx.newPage();

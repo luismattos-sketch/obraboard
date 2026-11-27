@@ -32,3 +32,11 @@ export function Recolhivel({ titulo, id, abertoInicial, aberto, aoMudar, childre
     </details>
   );
 }
+
+/** Abre a seção recolhida que contém `el` (se houver) e chama `depois` quando o conteúdo já está visível. */
+export function abrirSecaoDe(el: HTMLElement, depois: () => void) {
+  const secao = el.closest("details");
+  if (!secao || secao.open) return depois();
+  secao.open = true; // dispara onToggle → o estado controlado acompanha
+  requestAnimationFrame(() => requestAnimationFrame(depois));
+}
