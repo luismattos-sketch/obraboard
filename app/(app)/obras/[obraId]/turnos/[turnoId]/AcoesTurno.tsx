@@ -10,18 +10,6 @@ import { fecharTurnoAcao, reabrirTurnoAcao, type EstadoFechamento } from "./acoe
 export const TEXTO_CONFIRMACAO = "Depois de fechado, o RDO fica definitivo e o link para de aceitar lançamentos.";
 export const TEXTO_REABERTURA = "O motivo fica registrado no histórico e no próximo RDO oficial.";
 
-type Props = {
-  turnoId: string;
-  fechado: boolean;
-  salvando?: boolean;
-  /** Paradas sem fim: o fechamento pede o horário de cada uma (sugestão: fim do turno). */
-  abertas?: Ocorrencia[];
-  janela?: Janela | null;
-  nome?: (id: string | null) => string;
-  /** Chamado ao tocar "Fechar turno": true = falta algo (ex.: causa), não abre a confirmação. */
-  aoBloquear?: () => boolean;
-};
-
 export function ParadasNoFechamento({
   abertas,
   janela,
@@ -50,50 +38,58 @@ export function ParadasNoFechamento({
   );
 }
 
-export function AcoesTurno({ turnoId, fechado, salvando, abertas = [], janela = null, nome = () => "", aoBloquear }: Props) {
-  const [confirmando, setConfirmando] = useState(false);
+/** Confirmação do fechamento: paradas sem fim + aviso + Confirmar/Cancelar. */
+export function ConfirmarFechamento({
+  turnoId,
+  salvando,
+  abertas,
+  janela,
+  nome,
+  aoCancelar,
+}: {
+  turnoId: string;
+  salvando?: boolean;
+  abertas: Ocorrencia[];
+  janela: Janela | null;
+  nome: (id: string | null) => string;
+  aoCancelar: () => void;
+}) {
+  const [estado, fechar, fechando] = useActionState<EstadoFechamento, FormData>(fecharTurnoAcao, null);
+  return (
+    <Cartao className="flex flex-col gap-3">
+      <form action={fechar} className="flex flex-col gap-3">
+        <input type="hidden" name="turno_id" value={turnoId} />
+        <ParadasNoFechamento abertas={abertas} janela={janela} nome={nome} />
+        <Aviso tom="alerta">{TEXTO_CONFIRMACAO}</Aviso>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Botao type="submit" carregando={fechando} disabled={salvando}>
+            Confirmar fechamento
+          </Botao>
+          <Botao type="button" variante="secundario" onClick={aoCancelar}>
+            Cancelar
+          </Botao>
+        </div>
+      </form>
+      {estado && !estado.ok && <Aviso tom="perigo">{estado.erro}</Aviso>}
+    </Cartao>
+  );
+}
+
+/** Turno fechado: reabrir com motivo. */
+export function AcoesTurno({ turnoId }: { turnoId: string; fechado: true }) {
   const [pedindoMotivo, setPedindoMotivo] = useState(false);
-  const [estadoFechar, fechar, fechando] = useActionState<EstadoFechamento, FormData>(fecharTurnoAcao, null);
-  const [estadoReabrir, reabrir, reabrindo] = useActionState<EstadoFechamento, FormData>(reabrirTurnoAcao, null);
-  const erro = [estadoFechar, estadoReabrir].find((e) => e && !e.ok);
+  const [estado, reabrir, reabrindo] = useActionState<EstadoFechamento, FormData>(reabrirTurnoAcao, null);
 
   return (
     <Cartao className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        {fechado ? (
-          !pedindoMotivo && (
-            <Botao type="button" variante="secundario" onClick={() => setPedindoMotivo(true)}>
-              Reabrir turno
-            </Botao>
-          )
-        ) : (
-          !confirmando && (
-            <Botao type="button" disabled={salvando} onClick={() => {
-              if (aoBloquear?.()) return;
-              setConfirmando(true);
-            }}>
-              {salvando ? "Salvando…" : "Fechar turno"}
-            </Botao>
-          )
-        )}
-      </div>
-
-      {!fechado && confirmando && (
-        <form action={fechar} className="flex flex-col gap-3">
-          <input type="hidden" name="turno_id" value={turnoId} />
-          <ParadasNoFechamento abertas={abertas} janela={janela} nome={nome} />
-          <Aviso tom="alerta">{TEXTO_CONFIRMACAO}</Aviso>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Botao type="submit" carregando={fechando} disabled={salvando}>
-              Confirmar fechamento
-            </Botao>
-            <Botao type="button" variante="secundario" onClick={() => setConfirmando(false)}>
-              Cancelar
-            </Botao>
-          </div>
-        </form>
+      {!pedindoMotivo && (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Botao type="button" variante="secundario" onClick={() => setPedindoMotivo(true)}>
+            Reabrir turno
+          </Botao>
+        </div>
       )}
-      {fechado && pedindoMotivo && (
+      {pedindoMotivo && (
         <form action={reabrir} className="flex flex-col gap-3">
           <input type="hidden" name="turno_id" value={turnoId} />
           <label htmlFor="motivo-reabertura" className="text-sm font-medium text-texto">
@@ -119,7 +115,7 @@ export function AcoesTurno({ turnoId, fechado, salvando, abertas = [], janela = 
           </div>
         </form>
       )}
-      {erro && !erro.ok && <Aviso tom="perigo">{erro.erro}</Aviso>}
+      {estado && !estado.ok && <Aviso tom="perigo">{estado.erro}</Aviso>}
     </Cartao>
   );
 }

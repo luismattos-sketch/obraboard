@@ -15,14 +15,16 @@ import type { Efetivo } from "@/lib/db/turnos";
 import { errosDeCausa } from "@/lib/dominio/regras";
 import { horaCurta } from "@/lib/dominio/formato";
 import { ultimaAlteracao, ultimaAlteracaoEfetivo } from "@/lib/dominio/ultimaAlteracao";
-import { AcoesTurno } from "./AcoesTurno";
+import { ConfirmarFechamento } from "./AcoesTurno";
+import { Botao } from "@/components/ui/Botao";
+import { Recolhivel } from "@/components/ui/Recolhivel";
 import { CausasPendentes } from "@/components/execucao/CausasPendentes";
 import { PainelParadas } from "@/components/execucao/PainelParadas";
 import { useOcorrencias } from "@/components/execucao/useOcorrencias";
 import { agoraDoTurno, paradasAbertas } from "@/lib/dominio/efetivoHH";
 import { hojeSaoPaulo, horaAgoraSaoPaulo } from "@/lib/dominio/entrada";
 import type { Periodo } from "@/lib/dominio/tipos";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { Janela, Ocorrencia } from "@/lib/dominio/efetivoHH";
 import { ForaDoDia, TEXTO_SEM_ADIANTAR_PLANEJADOR } from "@/components/execucao/ForaDoDia";
@@ -60,10 +62,19 @@ type Props = {
   fotos: Record<string, string>;
   /** Adiantar / atrasada (todas as equipes). */
   opcoesPuxar?: OpcoesPuxar;
+  /** Título, selo, Ver quadro, "?": o botão "Fechar turno" entra ao lado. */
+  cabecalho: ReactNode;
+  /** Abertos: paradas, O que falta, Resumo. */
+  acompanhamento: ReactNode;
+  /** Seções recolhidas depois de "Corrigir execução". */
+  recolhidos: ReactNode;
 };
 
-/** Correções do planejador: os mesmos blocos do encarregado, ligados às actions do planejador. */
-export function EdicaoExecucao({
+/**
+ * Turno em campo/enviado na visão do planejador. Dono do estado da execução para que o "Fechar turno"
+ * do cabeçalho, as pendências no topo e "Corrigir execução" (recolhido) enxerguem a mesma lista.
+ */
+export function TurnoEmExecucao({
   turnoId,
   hora_inicio_real,
   hora_fim_real,
@@ -78,6 +89,9 @@ export function EdicaoExecucao({
   contexto,
   fotos,
   opcoesPuxar = SEM_OPCOES,
+  cabecalho,
+  acompanhamento,
+  recolhidos,
 }: Props) {
   const agrupar = atividades.some((a) => a.responsavel_id !== null);
   const ordenadas = agrupar ? ordenarPorResponsavel(atividades, responsaveis) : atividades;
@@ -89,6 +103,8 @@ export function EdicaoExecucao({
   const pendentes = lista.filter((a) => erros[a.id]);
   // Cards só mostram o aviso de causa depois de tentar fechar.
   const [cobrado, setCobrado] = useState(false);
+  const [fechando, setFechando] = useState(false);
+  const [corrigirAberto, setCorrigirAberto] = useState(false);
   const router = useRouter();
   const mov = useOcorrencias(
     ocorrencias,
@@ -125,12 +141,53 @@ export function EdicaoExecucao({
 
   return (
     <ProvedorSalvamento registrar={registrar}>
-      <section aria-labelledby="titulo-correcao" className="flex min-w-0 flex-col gap-6">
-        <AvisoPendentes falhas={falhas} tentar={tentarTodos} />
-        <div>
-          <h2 id="titulo-correcao" className="text-lg font-semibold text-primaria">Corrigir execução</h2>
-          <p className="text-sm text-texto-suave">As alterações são salvas automaticamente e atualizam o resumo.</p>
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {cabecalho}
+          {!fechando && (
+            <Botao
+              type="button"
+              className="min-h-10 px-3 text-sm"
+              disabled={ocupado}
+              onClick={() => {
+                if (pendentes.length > 0) setCobrado(true);
+                setFechando(true);
+              }}
+            >
+              {ocupado ? "Salvando…" : "Fechar turno"}
+            </Botao>
+          )}
         </div>
+        <AvisoPendentes falhas={falhas} tentar={tentarTodos} />
+        {fechando &&
+          (pendentes.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <CausasPendentes
+                titulo="Antes de fechar, informe a causa em:"
+                pendentes={pendentes}
+                aoIr={() => {
+                  setCobrado(true);
+                  setCorrigirAberto(true);
+                }}
+              />
+              <Botao type="button" variante="secundario" className="self-start" onClick={() => setFechando(false)}>
+                Cancelar
+              </Botao>
+            </div>
+          ) : (
+            <ConfirmarFechamento
+              turnoId={turnoId}
+              salvando={ocupado}
+              abertas={paradasAbertas(mov.lista)}
+              janela={janela}
+              nome={nomeEquipe}
+              aoCancelar={() => setFechando(false)}
+            />
+          ))}
+        {acompanhamento}
+        <Recolhivel titulo="Corrigir execução" aberto={corrigirAberto} aoMudar={setCorrigirAberto}>
+          <p className="text-sm text-texto-suave">As alterações são salvas automaticamente e atualizam o resumo.</p>
+          <section aria-label="Corrigir execução" className="flex min-w-0 flex-col gap-6">
         <BlocoHorario
           inicio={horaCurta(hora_inicio_real)}
           fim={horaCurta(hora_fim_real)}
@@ -208,15 +265,10 @@ export function EdicaoExecucao({
             agora,
           }}
         />
-        <CausasPendentes titulo="Antes de fechar, informe a causa em:" pendentes={pendentes} aoIr={() => setCobrado(true)} />
-        <AcoesTurno turnoId={turnoId} fechado={false} salvando={ocupado} abertas={paradasAbertas(mov.lista)} janela={janela} nome={nomeEquipe}
-          aoBloquear={() => {
-            if (pendentes.length === 0) return false;
-            setCobrado(true);
-            return true;
-          }}
-        />
-      </section>
+          </section>
+        </Recolhivel>
+        {recolhidos}
+      </div>
     </ProvedorSalvamento>
   );
 }
