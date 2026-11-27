@@ -41,3 +41,10 @@ export function porResponsavel<A extends { responsavel_id?: string | null }, E e
 /** Descrição no RDO com a marca do tipo: "Extra · Troca de iluminação". */
 export const descricaoComTipo = (a: { descricao: string; tipo?: TipoAtividade | null }) =>
   a.tipo ? `${ROTULO_TIPO[a.tipo]} · ${a.descricao}` : a.descricao;
+
+/** Nome da empresa no cabeçalho fixo: uma linha; vazio some; longo é cortado com "…". */
+export function nomeCabecalho(nome: string | null | undefined, max = 48): string | null {
+  const t = (nome ?? "").trim();
+  if (!t) return null;
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+}

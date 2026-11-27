@@ -4,10 +4,10 @@ import { rotuloMes } from "@/lib/dominio/historico-rdo";
 import type { ItemLote } from "@/lib/dominio/lote-rdo";
 import { logoFrentia } from "./documento";
 import { estilos as s } from "./estilos";
-import { dataHoraBrasilia } from "./formatar";
+import { dataHoraBrasilia, nomeCabecalho } from "./formatar";
 import { sanitizarProfundo } from "./texto";
 
-export type CabecalhoLote = { mes: string; obraNome: string | null; geradoEm: Date };
+export type CabecalhoLote = { mes: string; obraNome: string | null; empresaNome: string | null; geradoEm: Date };
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? `1 ${um}` : `${n} ${varios}`);
 
@@ -18,6 +18,7 @@ export function CapaLote(props: { cabecalho: CabecalhoLote; lote: ItemLote[]; pa
   const comObra = cab.obraNome === null;
   const reabertos = lote.filter((l) => l.reaberto).length;
   const img = logoFrentia();
+  const empresa = nomeCabecalho(cab.empresaNome);
   const col = comObra
     ? { obra: "30%", data: "16%", periodo: "14%", versao: "12%", pct: "16%", pag: "12%" }
     : { obra: "0%", data: "24%", periodo: "20%", versao: "16%", pct: "24%", pag: "16%" };
@@ -27,6 +28,7 @@ export function CapaLote(props: { cabecalho: CabecalhoLote; lote: ItemLote[]; pa
         <View style={s.cabecalhoFixo} fixed>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- Image do react-pdf não tem alt */}
           {img ? <Image src={{ data: img, format: "png" }} style={s.logo} /> : <Text style={s.tituloFixo}>Frentia</Text>}
+          {empresa && <Text style={s.empresaFixo}>{empresa}</Text>}
           <Text style={s.tituloFixo}>{`RDOs · ${rotuloMes(cab.mes)}`}</Text>
         </View>
 
