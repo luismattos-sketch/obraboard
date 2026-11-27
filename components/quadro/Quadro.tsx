@@ -84,6 +84,16 @@ function Faixa({
     >
       <div className="flex flex-col gap-1">
         <h3 className="text-base font-bold text-primaria xl:text-xl">{nome}</h3>
+        {(faixa.aguarda ?? []).length > 0 && (
+          <p className="rounded-cartao bg-perigo px-2 py-1 text-sm font-semibold text-white xl:text-base">
+            {`⏳ Aguardando ${(faixa.aguarda ?? []).map(nomeDe).join(", ")}`}
+          </p>
+        )}
+        {(faixa.aguardadaPor ?? []).length > 0 && (
+          <p className="rounded-cartao bg-alerta-clara px-2 py-1 text-sm font-semibold text-alerta-escura xl:text-base">
+            {`${(faixa.aguardadaPor ?? []).map(nomeDe).join(", ")} ${(faixa.aguardadaPor ?? []).length === 1 ? "aguarda" : "aguardam"} esta equipe`}
+          </p>
+        )}
         {visao === "checkin" ? (
           <>
             {faixa.efetivo.length === 0 && r.recebidos.length === 0 && r.cedidos.length === 0 ? (

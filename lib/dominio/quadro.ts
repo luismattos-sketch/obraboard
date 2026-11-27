@@ -92,6 +92,9 @@ export type FaixaQuadro = {
   atividades: (EntradaQuadro["atividades"][number] & { situacao: StatusAtividade })[];
   efetivo: { funcao: string; quantidade: number }[];
   resumo: ResumoEquipe;
+  /** Item 23: parada aberta "Aguardando outra equipe" — equipes que esta aguarda e que aguardam esta (ids, sem repetir). */
+  aguarda?: string[];
+  aguardadaPor?: (string | null)[];
 };
 /** Parada em aberto (faixa vermelha do topo). `duracaoMin` só quando há "agora". */
 export type ParadaQuadro = { equipe: string; texto: string; desde: string; duracaoMin: number | null };
@@ -185,10 +188,13 @@ export function montarQuadro(e: EntradaQuadro, agora?: string): ModeloQuadro {
     );
     const t = (e.terminados ?? []).find((x) => x.responsavel_id === id);
     const i = (e.iniciados ?? []).find((x) => x.responsavel_id === id);
+    const esperas = paradasAbertas(e.ocorrencias ?? []).filter((o) => o.aguardando_responsavel_id);
     return {
       responsavel,
       atividades,
       efetivo,
+      aguarda: [...new Set(esperas.filter((o) => o.responsavel_id === id).map((o) => o.aguardando_responsavel_id!))],
+      aguardadaPor: id === null ? [] : [...new Set(esperas.filter((o) => o.aguardando_responsavel_id === id).map((o) => o.responsavel_id))],
       resumo: { ...resumo, cedidos, terminouEm: t ? horaCurta(t.terminou_em) : null, iniciouEm: i ? horaCurta(i.iniciou_em) : null },
     };
   });
@@ -236,7 +242,8 @@ export function faseDoQuadro(m: ModeloQuadro): Visao {
 
 /** Faixas do check-out: quem precisa de ajuda primeiro (parada aberta, depois menor % concluído); "Sem responsável" por último. */
 export function ordenarPorAjuda(m: ModeloQuadro): FaixaQuadro[] {
-  const parada = new Set(paradasAbertas(m.entrada.ocorrencias ?? []).map((o) => o.responsavel_id));
+  // Parada aberta ou aguardada por outra equipe (item 23: quem trava os outros também sobe).
+  const parada = new Set(paradasAbertas(m.entrada.ocorrencias ?? []).flatMap((o) => [o.responsavel_id, ...(o.aguardando_responsavel_id ? [o.aguardando_responsavel_id] : [])]));
   const peso = (f: FaixaQuadro) => [
     f.responsavel === null ? 1 : 0,
     parada.has(f.responsavel?.id ?? null) ? 0 : 1,

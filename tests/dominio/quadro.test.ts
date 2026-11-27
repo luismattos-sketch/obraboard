@@ -254,6 +254,29 @@ describe("ordenarPorAjuda (check-out)", () => {
     const m = montarQuadro(e);
     expect(ordenarPorAjuda(m).map((f) => f.responsavel?.nome ?? null)).toEqual(["Ana", "João", "Carlos", null]);
   });
+
+  it("item 23: João aguardando Carlos — os dois cartões mostram e Carlos sobe", () => {
+    const e = entrada({
+      responsaveis: [
+        { id: "j", nome: "João", ativo: true },
+        { id: "a", nome: "Ana", ativo: true },
+        { id: "c", nome: "Carlos", ativo: true },
+      ],
+      atividades: [at("a", 2, 0), at("j", 1, 0), at("c", 1, 1)],
+      ocorrencias: [
+        { id: "p1", responsavel_id: "j", funcao: "Soldador", tipo: "parado", quantidade: 2, hora_inicio: "10:00", hora_fim: null,
+          destino_responsavel_id: null, emprestimo_id: null, causa: "atividade_predecessora", aguardando_responsavel_id: "c", created_at: "1" },
+        { id: "p2", responsavel_id: "j", funcao: "Soldador", tipo: "parado", quantidade: 1, hora_inicio: "08:00", hora_fim: "09:00",
+          destino_responsavel_id: null, emprestimo_id: null, causa: "atividade_predecessora", aguardando_responsavel_id: "a", created_at: "0" },
+      ],
+    });
+    const m = montarQuadro(e);
+    const f = (n: string) => m.faixas.find((x) => x.responsavel?.nome === n)!;
+    expect(f("João").aguarda).toEqual(["c"]); // a parada já encerrada (aguardando Ana) não conta
+    expect(f("Carlos").aguardadaPor).toEqual(["j"]);
+    expect(f("Ana").aguardadaPor).toEqual([]);
+    expect(ordenarPorAjuda(m).map((x) => x.responsavel?.nome)).toEqual(["João", "Carlos", "Ana"]);
+  });
 });
 
 describe("quadro: duração com relógio adiantado", () => {

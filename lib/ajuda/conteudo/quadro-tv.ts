@@ -28,6 +28,7 @@ export const quadroTv: Capitulo = {
         "No check-out: realizado sobre planejado, barra de cor, a causa e a observação quando há, e por equipe \"x de y programadas\", pessoas e HH.",
         "No check-out, as equipes que mais precisam de ajuda vêm primeiro: quem está com parada em aberto e, depois, quem tem o menor percentual concluído. A causa aparece em letra maior: \"Causa externa\" (fora do controle da equipe) em marrom e \"Causa interna\" em vermelho. Quem passou da meta ganha o selo \"▲ acima da meta\".",
         "Empréstimo de efetivo aparece dos dois lados: \"+2 Mecânico (de Fernando…)\" em quem recebeu e \"−2 Mecânico (para Francisco…)\" em quem cedeu. No cabeçalho, \"Atualizado HH:MM\" mostra a hora da última atualização.",
+        "Quando uma equipe para \"Aguardando outra equipe\", o cartão dela mostra \"⏳ Aguardando Carlos\" (em vermelho) e o cartão do Carlos mostra \"João aguarda esta equipe\". A equipe aguardada sobe para o alto do quadro, junto com quem está parado.",
       ],
     },
     {

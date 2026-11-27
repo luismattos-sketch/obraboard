@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-26",
+    texto: "Quadro mostra quem espera quem: equipe parada \"Aguardando outra equipe\" ganha \"⏳ Aguardando …\" no cartão, a equipe aguardada vê quem a espera e sobe para o alto do quadro.",
+    href: "/ajuda/quadro-tv#visoes",
+  },
+  {
+    data: "2026-11-26",
     texto: "HH mais justo: cada equipe conta homens-hora do seu \"Iniciar turno\" até o seu \"Terminei minha parte\", e não mais da primeira equipe que começou até a última que terminou.",
     href: "/ajuda/check-in#efetivo",
   },
