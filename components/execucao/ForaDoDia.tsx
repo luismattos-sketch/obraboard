@@ -6,6 +6,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import type { Resultado } from "@/lib/db/resultado";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { linhasParaEquipe } from "@/lib/dominio/equipePrevista";
+import { MATERIAIS_MAX } from "@/lib/dominio/extraApontamento";
 import { SOLICITADO_POR_MAX, validarExtra, type DadosExtra, type ModoPuxar, type OpcaoPuxar } from "@/lib/dominio/foraDoDia";
 import { resumoDias } from "@/lib/dominio/programacao";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
@@ -24,7 +25,22 @@ const campo =
 const botao =
   "min-h-12 rounded-botao border border-operacional bg-superficie px-3 text-left font-semibold text-primaria hover:bg-primaria-clara";
 
-export type FormExtra = { descricao: string; qtd: string; unidade: string; observacao: string; responsavel: string; equipe?: LinhaEquipe[]; solicitado_por?: string };
+export type LinhaMaterial = { item: string; quantidade: string; unidade: string };
+export type FormExtra = {
+  descricao: string;
+  qtd: string;
+  unidade: string;
+  observacao: string;
+  responsavel: string;
+  equipe?: LinhaEquipe[];
+  solicitado_por?: string;
+  pessoas?: string;
+  horas?: string;
+  materiais?: LinhaMaterial[];
+};
+const MATERIAL_VAZIO: LinhaMaterial = { item: "", quantidade: "", unidade: "" };
+/** "1,5" → 1.5; texto inválido segue como está para a validação recusar; vazio = vazio. */
+const numeroOuTexto = (s: string | undefined) => (s?.trim() ? (parseNumero(s) ?? s) : "");
 
 export const rotuloOpcao = (o: OpcaoPuxar) =>
   `${o.descricao} — ${resumoDias(o.dias)} — saldo ${qtdComUnidade(o.saldo, o.unidade)}`;
@@ -34,11 +50,14 @@ export function montarExtra(f: FormExtra, id: string): Resultado<DadosExtra> {
   if (!f.qtd.trim()) return { ok: false, erro: "Informe a quantidade", campos: { qtd: "Informe a quantidade" } };
   const qtd = parseNumero(f.qtd);
   if (qtd === null) return { ok: false, erro: "Digite um número válido", campos: { qtd: "Digite um número válido" } };
-  return validarExtra({ id, descricao: f.descricao, unidade: f.unidade, qtd, observacao: f.observacao, responsavel_id: f.responsavel || null, equipe: linhasParaEquipe(f.equipe ?? []), solicitado_por: f.solicitado_por ?? "" });
+  return validarExtra({ id, descricao: f.descricao, unidade: f.unidade, qtd, observacao: f.observacao, responsavel_id: f.responsavel || null, equipe: linhasParaEquipe(f.equipe ?? []), solicitado_por: f.solicitado_por ?? "",
+    extra_pessoas: numeroOuTexto(f.pessoas), extra_horas: numeroOuTexto(f.horas),
+    materiais: (f.materiais ?? []).map((m) => ({ item: m.item, quantidade: numeroOuTexto(m.quantidade), unidade: m.unidade })),
+  });
 }
 
 const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
-const VAZIO: FormExtra = { descricao: "", qtd: "", unidade: "", observacao: "", responsavel: "", equipe: [LINHA_VAZIA] };
+const VAZIO: FormExtra = { descricao: "", qtd: "", unidade: "", observacao: "", responsavel: "", equipe: [LINHA_VAZIA], pessoas: "", horas: "", materiais: [MATERIAL_VAZIO] };
 
 type Props = {
   adiantar: OpcaoPuxar[];
@@ -240,6 +259,68 @@ export function ForaDoDia({
             />
           </label>
           {errosCampo.solicitado_por && <p className="text-sm text-perigo">{errosCampo.solicitado_por}</p>}
+          <fieldset className="flex flex-col gap-1">
+            <legend className="text-sm font-medium">HH no serviço extra (opcional)</legend>
+            <div className="flex items-end gap-2">
+              <label className="flex w-24 flex-col text-sm">
+                Pessoas
+                <input className={campo} inputMode="numeric" autoComplete="off" value={f.pessoas ?? ""} onChange={(e) => setF({ ...f, pessoas: e.target.value })} />
+              </label>
+              <span className="pb-3">×</span>
+              <label className="flex w-24 flex-col text-sm">
+                Horas
+                <input className={campo} inputMode="decimal" autoComplete="off" value={f.horas ?? ""} onChange={(e) => setF({ ...f, horas: e.target.value })} />
+              </label>
+              {(() => {
+                const p = parseNumero(f.pessoas ?? "");
+                const h = parseNumero(f.horas ?? "");
+                return p && h ? <span className="pb-3 text-sm text-texto-suave">= {Math.round(p * h * 100) / 100} HH</span> : null;
+              })()}
+            </div>
+            {errosCampo.hh && <p className="text-sm text-perigo">{errosCampo.hh}</p>}
+          </fieldset>
+          <fieldset className="flex flex-col gap-1">
+            <legend className="text-sm font-medium">Material usado (opcional)</legend>
+            {(f.materiais ?? [MATERIAL_VAZIO]).map((m, i, lista) => {
+              const mudar = (p: Partial<LinhaMaterial>) => setF({ ...f, materiais: lista.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+              return (
+                <div key={i} className="flex items-end gap-2">
+                  <label className="flex flex-1 flex-col text-sm">
+                    Item
+                    <input className={campo} maxLength={100} placeholder="ex.: cabo 2,5 mm" value={m.item} onChange={(e) => mudar({ item: e.target.value })} />
+                  </label>
+                  <label className="flex w-20 flex-col text-sm">
+                    Qtd.
+                    <input className={campo} inputMode="decimal" autoComplete="off" value={m.quantidade} onChange={(e) => mudar({ quantidade: e.target.value })} />
+                  </label>
+                  <label className="flex w-20 flex-col text-sm">
+                    Unid.
+                    <input className={campo} maxLength={20} placeholder="m, un" value={m.unidade} onChange={(e) => mudar({ unidade: e.target.value })} />
+                  </label>
+                  {lista.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label={`Remover material ${i + 1}`}
+                      className="min-h-12 px-2 text-texto-suave hover:text-perigo"
+                      onClick={() => setF({ ...f, materiais: lista.filter((_, j) => j !== i) })}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {(f.materiais ?? []).length < MATERIAIS_MAX && (
+              <button
+                type="button"
+                className="self-start text-sm font-semibold text-operacional hover:underline"
+                onClick={() => setF({ ...f, materiais: [...(f.materiais ?? [MATERIAL_VAZIO]), MATERIAL_VAZIO] })}
+              >
+                + Adicionar material
+              </button>
+            )}
+            {errosCampo.materiais && <p className="text-sm text-perigo">{errosCampo.materiais}</p>}
+          </fieldset>
           <label className="flex flex-col text-sm font-medium">
             Observação (opcional)
             <textarea className={`${campo} py-2`} rows={2} maxLength={500} value={f.observacao} onChange={(e) => setF({ ...f, observacao: e.target.value })} />

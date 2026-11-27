@@ -2,6 +2,7 @@ import type { Atividade } from "@/lib/db/atividades";
 import type { TurnoCompleto } from "@/lib/db/turnos";
 import { avancoFisico, percentualCumprimento, statusAtividade } from "./calculos";
 import { calcularHH, intervaloDoTurno, janelaDoTurno, type HHEquipe } from "./efetivoHH";
+import { hhDoExtra } from "./extraApontamento";
 import { CAUSAS, type Causa, type StatusAtividade } from "./tipos";
 
 export type ResumoTurno = {
@@ -22,6 +23,8 @@ export type ResumoTurno = {
   paradasClima: number;
   /** Fora do cumprimento do dia. */
   extras: number;
+  /** Item 4.2: soma de pessoas × horas apontadas nos extras (null = nenhum apontado). */
+  hhExtra: number | null;
   adiantadas: number;
   /** Atividades do dia (sem extra/adiantada): concluídas e total. */
   concluidas: number;
@@ -36,6 +39,11 @@ export function textoForaDoDia(r: Pick<ResumoTurno, "extras" | "adiantadas">): s
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+export function somaHHExtra(atividades: Pick<Atividade, "tipo" | "extra_pessoas" | "extra_horas">[]): number | null {
+  const hs = atividades.filter((a) => a.tipo === "extra").map(hhDoExtra).filter((h): h is number => h !== null);
+  return hs.length ? Math.round(hs.reduce((s, h) => s + h, 0) * 100) / 100 : null;
 }
 
 /** Resumo puro do turno (consumido pela tela do planejador e pelo RDO em PDF). */
@@ -73,6 +81,7 @@ export function resumirTurno(t: TurnoCompleto): ResumoTurno {
     restricoesPorCausa,
     paradasClima: t.atividades.filter((a) => a.causa === "clima").length,
     extras: t.atividades.filter((a) => a.tipo === "extra").length,
+    hhExtra: somaHHExtra(t.atividades),
     adiantadas: t.atividades.filter((a) => a.tipo === "adiantada").length,
     concluidas: atividades.filter((a) => !a.tipo && a.status === "concluida").length,
     total: atividades.filter((a) => !a.tipo).length,

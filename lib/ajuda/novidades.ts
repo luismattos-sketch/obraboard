@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Serviço extra com HH e material: informe pessoas × horas e os materiais usados. O RDO mostra o \"HH em serviço extra\" separado do escopo programado.",
+    href: "/ajuda/durante-o-turno#servico-extra",
+  },
+  {
+    data: "2026-11-27",
     texto: "Serviço extra agora guarda \"Quem do cliente pediu\" (nome e função). Aparece no card da atividade e no RDO.",
     href: "/ajuda/durante-o-turno#servico-extra",
   },

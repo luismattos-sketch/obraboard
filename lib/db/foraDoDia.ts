@@ -14,6 +14,7 @@ import { ERRO_FECHADO_PLANEJADOR, ERRO_RESPONSAVEL_INVALIDO, erroBanco } from ".
 import { removerFoto } from "./fotosParada";
 import { nomesResponsaveis, obterDadosSemana, semanaDoTurno } from "./programacao";
 import { textoOrigemMeta } from "@/lib/dominio/sequencia";
+import { lerMateriais } from "@/lib/dominio/extraApontamento";
 import { falha, ok, type Resultado } from "./resultado";
 
 /**
@@ -111,6 +112,9 @@ const mesmoExtra = (d: DadosExtra, turnoId: string, r: Record<string, unknown>) 
   Number(r.qtd_realizada) === d.qtd &&
   ((r.observacao as string | null) ?? null) === d.observacao &&
   ((r.solicitado_por as string | null) ?? null) === d.solicitado_por &&
+  (r.extra_pessoas === null || r.extra_pessoas === undefined ? null : Number(r.extra_pessoas)) === d.extra_pessoas &&
+  (r.extra_horas === null || r.extra_horas === undefined ? null : Number(r.extra_horas)) === d.extra_horas &&
+  JSON.stringify(lerMateriais(r.materiais)) === JSON.stringify(d.materiais) &&
   ((r.responsavel_id as string | null) ?? null) === d.responsavel_id;
 
 /** Serviço extra com id do cliente: reenviar o mesmo registro não duplica. */
@@ -148,6 +152,9 @@ export async function lancarExtra(
     tipo: "extra",
     equipe: d.equipe,
     solicitado_por: d.solicitado_por,
+    extra_pessoas: d.extra_pessoas,
+    extra_horas: d.extra_horas,
+    materiais: d.materiais,
   });
   if (!error) return ok({ id: d.id });
   if (error.code === UNICIDADE) return (await jaGravado()) ?? falha(ERRO_ID_REUSADO);

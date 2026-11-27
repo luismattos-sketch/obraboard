@@ -81,12 +81,13 @@ describe.skipIf(!ligado)("fora do dia (extra, adiantar, atrasada)", () => {
 
   it("lancarExtraCampo cria com criada_por_id; reenvio não duplica; id reusado com outros dados recusa", { timeout: 90_000 }, async () => {
     const c = await cenario();
-    const d = extra({ solicitado_por: "Marcos, fiscal" });
+    const d = extra({ solicitado_por: "Marcos, fiscal", extra_pessoas: 3, extra_horas: 1.5, materiais: [{ item: "cabo", quantidade: 10, unidade: "m" }] });
     expect(await lancarExtraCampo(c.token, d, c.carlos)).toEqual({ ok: true, dados: { id: d.id } });
     expect(await lancarExtraCampo(c.token, d, c.carlos)).toEqual({ ok: true, dados: { id: d.id } });
     const ats = (await atividadesDo(c.turnoId)).filter((a) => a.tipo === "extra");
     expect(ats).toHaveLength(1);
-    expect(ats[0]).toMatchObject({ id: d.id, criada_por_id: c.carlos, responsavel_id: c.carlos, solicitado_por: "Marcos, fiscal" });
+    expect(ats[0]).toMatchObject({ id: d.id, criada_por_id: c.carlos, responsavel_id: c.carlos, solicitado_por: "Marcos, fiscal", extra_pessoas: 3, materiais: [{ item: "cabo", quantidade: 10, unidade: "m" }] });
+    expect(Number(ats[0].extra_horas)).toBe(1.5);
     expect(Number(ats[0].qtd_realizada)).toBe(12);
     expect((await lancarExtraCampo(c.token, { ...d, qtd: 5 }, c.carlos)).ok).toBe(false);
   });

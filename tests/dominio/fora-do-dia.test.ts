@@ -114,7 +114,7 @@ describe("validarExtra", () => {
   });
   const ok = { id: "6f1c2a52-9a0b-4c55-8a39-1f2b3c4d5e6f", descricao: "  Troca de iluminação ", unidade: " un ", qtd: 12, observacao: " ", responsavel_id: null };
   it("aceita e apara", () => {
-    expect(validarExtra(ok)).toEqual({ ok: true, dados: { ...ok, descricao: "Troca de iluminação", unidade: "un", observacao: null, equipe: [], solicitado_por: null } });
+    expect(validarExtra(ok)).toEqual({ ok: true, dados: { ...ok, descricao: "Troca de iluminação", unidade: "un", observacao: null, equipe: [], solicitado_por: null, extra_pessoas: null, extra_horas: null, materiais: [] } });
   });
   it("quem do cliente pediu: apara, vazio vira null, limite de 100", () => {
     expect(validarExtra({ ...ok, solicitado_por: "  Marcos, fiscal " })).toMatchObject({ ok: true, dados: { solicitado_por: "Marcos, fiscal" } });

@@ -53,6 +53,7 @@ export function Resumo({ turno, clima }: { turno: TurnoCompleto; clima: ClimaNaT
           detalhe={[
             real ? `Horário real ${horaCurta(turno.hora_inicio_real)} às ${horaCurta(turno.hora_fim_real)}` : "Horário previsto",
             r.hhParado ? `${numeroBR(r.hhParado)} HH parados` : null,
+            r.hhExtra ? `${numeroBR(r.hhExtra)} HH em serviço extra` : null,
           ]
             .filter(Boolean)
             .join(" · ")}
