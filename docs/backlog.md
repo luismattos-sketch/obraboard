@@ -109,7 +109,7 @@ com limite de gasto, e vira recurso do plano pago quando a cobrança existir.
     especialidade; ícone ☀ parece asterisco. [P1]
 16. ✅ **No ar desde 2026-11-26** — **Página do turno** — "Fechar turno" no cabeçalho com as pendências no topo; abre com paradas, O que falta e resumo; Corrigir execução, RDO, link (depois que a 1ª equipe inicia) e histórico recolhidos; "Remover" discreto. Spec/plano: docs/superpowers/{specs,plans}/2026-11-26-pagina-do-turno*. Era: ~5.500–6.250 px, "Fechar turno" no fim; "Confirmar fechamento" clicável com pendências
     (deveria levar direto a cada pendência); botão vermelho "Remover" em cada atividade. [P1, P2]
-17. **RDO** — separar trabalho e efetivo por responsável; marcar o serviço extra; alargar a coluna de observações. [P2]
+17. ✅ **No ar desde 2026-11-26** — **RDO** — separar trabalho e efetivo por responsável; marcar o serviço extra; alargar a coluna de observações. [P2]
 18. ✅ **No ar desde 2026-11-25** — **Análise** — começa 7 semanas antes da obra existir (começar na 1ª semana da obra); selo "provisório" também no
     cartão principal; causas sem separar externas/internas. [P2]
 

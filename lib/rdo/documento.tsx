@@ -54,7 +54,7 @@ export function DocumentoRdo(props: { turno: TurnoCompleto; resumo: ResumoTurno;
 
         <Text style={s.emissao}>{destaque}</Text>
         <Identificacao turno={turno} />
-        <Atividades resumo={resumo} />
+        <Atividades resumo={resumo} turno={turno} />
         <ResumoBloco resumo={resumo} turno={turno} />
         <Restricoes resumo={resumo} />
         <EfetivoEClima turno={turno} resumo={resumo} comFotos={props.fotos !== undefined} />

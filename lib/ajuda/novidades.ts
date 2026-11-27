@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-26",
+    texto: "RDO mais organizado: atividades e efetivo separados por responsável, serviço extra marcado em negrito e coluna de observação mais larga.",
+    href: "/ajuda/fechar-turno#rdo",
+  },
+  {
+    data: "2026-11-26",
     texto: "Página do turno mais curta: \"Fechar turno\" fica no alto, ao lado de \"Ver quadro\", e a lista do que falta para fechar aparece ali mesmo. A página abre com o que serve para acompanhar (paradas, o que falta e resumo); \"Corrigir execução\", RDO, link de campo e histórico ficam recolhidos, a um toque. O \"Remover\" da atividade ficou discreto.",
     href: "/ajuda/fechar-turno#fechar",
   },

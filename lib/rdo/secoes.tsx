@@ -4,10 +4,10 @@ import { somarEfetivoPorFuncao } from "@/lib/dominio/calculos";
 import { formatarData, formatarPercentual, horaCurta, numeroBR, ROTULO_PERIODO } from "@/lib/dominio/formato";
 import { linhaOcorrencia, nomeDaEquipe } from "@/lib/dominio/efetivoHH";
 import { textoForaDoDia, type ResumoTurno } from "@/lib/dominio/resumo";
-import { CAUSAS, ROTULO_STATUS_ATIVIDADE } from "@/lib/dominio/tipos";
+import { CAUSAS, ROTULO_STATUS_ATIVIDADE, ROTULO_TIPO } from "@/lib/dominio/tipos";
 import { rotuloTempo } from "@/lib/clima/montar";
 import { estilos as s } from "./estilos";
-import { descricaoComTipo, qtdRealizada } from "./formatar";
+import { porResponsavel, qtdRealizada } from "./formatar";
 
 const faixa = (a: string | null, b: string | null) => (a && b ? `${horaCurta(a)} às ${horaCurta(b)}` : "—");
 
@@ -37,9 +37,12 @@ export function Identificacao({ turno }: { turno: TurnoCompleto }) {
   );
 }
 
-const COL = { desc: "34%", local: "16%", plan: "12%", real: "12%", status: "12%", obs: "14%" };
+const COL = { desc: "29%", local: "13%", plan: "10%", real: "10%", status: "11%", obs: "27%" };
 
-export function Atividades({ resumo }: { resumo: ResumoTurno }) {
+/** Item 17: atividades separadas por responsável; extra/adiantada com a marca em negrito. */
+export function Atividades({ resumo, turno }: { resumo: ResumoTurno; turno: TurnoCompleto }) {
+  const nome = nomeDaEquipe(turno.responsaveis);
+  const grupos = porResponsavel(resumo.atividades, []);
   return (
     <View>
       <Text style={s.secao}>Atividades</Text>
@@ -49,12 +52,26 @@ export function Atividades({ resumo }: { resumo: ResumoTurno }) {
         <Text style={[s.celula, s.direita, { width: COL.plan }]}>Planejado</Text>
         <Text style={[s.celula, s.direita, { width: COL.real }]}>Realizado</Text>
         <Text style={[s.celula, { width: COL.status }]}>Status</Text>
-        <Text style={[s.celula, { width: COL.obs }]}>Causa / obs.</Text>
+        <Text style={[s.celula, { width: COL.obs }]}>Causa / observação</Text>
       </View>
       {resumo.atividades.length === 0 && <Text style={[s.celula, s.suave]}>Nenhuma atividade planejada.</Text>}
-      {resumo.atividades.map((a, i) => (
-        <View key={a.id} style={[s.linha, i % 2 ? s.linhaZebra : {}]} wrap={false}>
-          <Text style={[s.celula, { width: COL.desc }]}>{descricaoComTipo(a)}</Text>
+      {grupos.map((g) => (
+        <View key={g.id ?? "sem"}>
+          {(g.id !== null || grupos.length > 1) && <Text style={[s.negrito, { marginTop: 6 }]} minPresenceAhead={20}>{nome(g.id)}</Text>}
+          {g.atividades.map((a, i) => <LinhaAtividade key={a.id} a={a} zebra={i % 2 === 1} />)}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function LinhaAtividade({ a, zebra }: { a: ResumoTurno["atividades"][number]; zebra: boolean }) {
+  return (
+        <View style={[s.linha, zebra ? s.linhaZebra : {}]} wrap={false}>
+          <Text style={[s.celula, { width: COL.desc }]}>
+            {a.tipo ? <Text style={s.negrito}>{`${ROTULO_TIPO[a.tipo].toUpperCase()} · `}</Text> : null}
+            {a.descricao}
+          </Text>
           <Text style={[s.celula, { width: COL.local }]}>{a.local || "—"}</Text>
           <Text style={[s.celula, s.direita, { width: COL.plan }]}>{numeroBR(a.qtd_planejada)} {a.unidade}</Text>
           <Text style={[s.celula, s.direita, { width: COL.real }]}>{qtdRealizada(a.qtd_realizada, a.unidade)}</Text>
@@ -63,8 +80,6 @@ export function Atividades({ resumo }: { resumo: ResumoTurno }) {
             {[a.causa ? CAUSAS[a.causa] : null, a.observacao].filter(Boolean).join(" — ") || "—"}
           </Text>
         </View>
-      ))}
-    </View>
   );
 }
 
@@ -145,7 +160,12 @@ export function EfetivoEClima({ turno, resumo, comFotos = false }: { turno: Turn
     <View wrap={false}>
       <Text style={s.secao}>Efetivo</Text>
       {turno.efetivo.length === 0 && <Text style={s.suave}>Nenhum efetivo informado.</Text>}
-      {somarEfetivoPorFuncao(turno.efetivo).map((e) => <Par key={e.funcao} a={e.funcao} b={String(e.quantidade)} />)}
+      {porResponsavel([], turno.efetivo).map((g, _, todos) => (
+        <View key={g.id ?? "sem"}>
+          {(g.id !== null || todos.length > 1) && <Text style={[s.negrito, { marginTop: 4 }]}>{nome(g.id)}</Text>}
+          {somarEfetivoPorFuncao(g.efetivo).map((e) => <Par key={e.funcao} a={`   ${e.funcao}`} b={String(e.quantidade)} />)}
+        </View>
+      ))}
       <Par a="Total" b={String(resumo.efetivoTotal)} forte />
       {turno.ocorrencias.length > 0 && (
         <View style={s.item}>

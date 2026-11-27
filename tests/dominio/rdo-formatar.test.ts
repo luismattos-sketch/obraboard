@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { descricaoComTipo } from "@/lib/rdo/formatar";
+import { descricaoComTipo, porResponsavel } from "@/lib/rdo/formatar";
 import { percentualDaFoto } from "@/lib/db/rdo-versoes";
 
 describe("descricaoComTipo", () => {
@@ -7,6 +7,19 @@ describe("descricaoComTipo", () => {
     expect(descricaoComTipo({ descricao: "Troca de iluminação", tipo: "extra" })).toBe("Extra · Troca de iluminação");
     expect(descricaoComTipo({ descricao: "Pintura", tipo: "adiantada" })).toBe("Adiantada · Pintura");
     expect(descricaoComTipo({ descricao: "Andaime", tipo: null })).toBe("Andaime");
+  });
+});
+
+describe("porResponsavel", () => {
+  it("agrupa atividades e efetivo por responsável, sem responsável por último", () => {
+    const g = porResponsavel(
+      [{ d: 1, responsavel_id: null }, { d: 2, responsavel_id: "ana" }, { d: 3, responsavel_id: "rita" }, { d: 4, responsavel_id: "ana" }],
+      [{ f: "Pedreiro", responsavel_id: "rita" }, { f: "Servente" }],
+    );
+    expect(g.map((x) => x.id)).toEqual(["ana", "rita", null]);
+    expect(g[0].atividades.map((a) => a.d)).toEqual([2, 4]);
+    expect(g[1].efetivo.map((e) => e.f)).toEqual(["Pedreiro"]);
+    expect(g[2].efetivo.map((e) => e.f)).toEqual(["Servente"]);
   });
 });
 

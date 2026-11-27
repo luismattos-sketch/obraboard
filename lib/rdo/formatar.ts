@@ -20,6 +20,24 @@ export function dataHoraCurta(d: Date): string {
 /** Quantidade realizada: nula (não apontada) aparece como "—", nunca "0". */
 export const qtdRealizada = (q: number | null, unidade: string) => (q === null ? "—" : `${numeroBR(q)} ${unidade}`);
 
+/**
+ * Item 17: agrupa atividades e efetivo por responsável, na ordem em que aparecem; "Sem responsável" por último.
+ * Fotos antigas sem `responsavel_id` caem em "Sem responsável".
+ */
+export function porResponsavel<A extends { responsavel_id?: string | null }, E extends { responsavel_id?: string | null }>(
+  atividades: A[],
+  efetivo: E[],
+): { id: string | null; atividades: A[]; efetivo: E[] }[] {
+  const grupos = new Map<string | null, { id: string | null; atividades: A[]; efetivo: E[] }>();
+  const grupo = (id: string | null) => {
+    if (!grupos.has(id)) grupos.set(id, { id, atividades: [], efetivo: [] });
+    return grupos.get(id)!;
+  };
+  for (const a of atividades) grupo(a.responsavel_id ?? null).atividades.push(a);
+  for (const e of efetivo) grupo(e.responsavel_id ?? null).efetivo.push(e);
+  return [...grupos.values()].sort((x, y) => Number(x.id === null) - Number(y.id === null));
+}
+
 /** Descrição no RDO com a marca do tipo: "Extra · Troca de iluminação". */
 export const descricaoComTipo = (a: { descricao: string; tipo?: TipoAtividade | null }) =>
   a.tipo ? `${ROTULO_TIPO[a.tipo]} · ${a.descricao}` : a.descricao;

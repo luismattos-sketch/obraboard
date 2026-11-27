@@ -60,6 +60,7 @@ export const fecharTurno: Capitulo = {
       titulo: "Baixe o RDO",
       texto: [
         "Ao fechar, o RDO (Relatório Diário de Obra) é gerado em PDF. Clique em \"Baixar RDO (v1)\" no turno (o número muda a cada versão). Antes de fechar, abra a seção \"RDO\": \"Baixar prévia (rascunho)\" mostra como ele vai ficar.",
+        "No RDO, as atividades e o efetivo aparecem separados por responsável. Serviço extra e atividade adiantada vêm marcados em negrito (EXTRA, ADIANTADA), e a coluna de causa e observação é larga para o texto caber.",
         "Na etapa \"RDOs\" ficam todos os RDOs da obra; em \"RDOs de todas as obras\", no menu lateral, dá para filtrar e baixar vários de uma vez.",
       ],
       captura: {
