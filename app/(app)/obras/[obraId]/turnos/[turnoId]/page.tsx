@@ -18,7 +18,8 @@ import { BlocoRdo } from "./BlocoRdo";
 import { DadosTurno } from "./DadosTurno";
 import { intervaloDoTurno, janelaDoTurno } from "@/lib/dominio/efetivoHH";
 import { HistoricoTurno } from "./HistoricoTurno";
-import { EdicaoExecucao } from "./EdicaoExecucao";
+import { TurnoEmExecucao } from "./TurnoEmExecucao";
+import { Recolhivel } from "@/components/ui/Recolhivel";
 import { ListaAtividades } from "./ListaAtividades";
 import { PainelLink } from "./PainelLink";
 import { Resumo } from "./Resumo";
@@ -65,59 +66,99 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
   const opcoesPuxar =
     turno.status === "em_campo" || turno.status === "enviado" ? await opcoesPuxarPlanejador(supabase, turno.id).catch(() => SEM_OPCOES) : SEM_OPCOES;
 
+  const titulo = (
+    <>
+      <h1 className="text-titulo font-semibold text-primaria">
+        Turno {ROTULO_PERIODO[turno.periodo].toLowerCase()} de {formatarData(turno.data)}
+      </h1>
+      <Selo tom={TOM_STATUS_TURNO[turno.status]}>{ROTULO_STATUS_TURNO[turno.status]}</Selo>
+      <Link href={`/obras/${obraId}/quadro?turno=${turno.id}`} className={`${classesBotao("secundario")} ml-auto min-h-10 px-3 text-sm`}>
+        Ver quadro
+      </Link>
+      <BotaoAjuda tela={telaDoTurno(turno.status)} />
+    </>
+  );
+  const previsto = turno.hora_inicio_prevista && turno.hora_fim_prevista && (
+    <p className="text-sm text-texto-suave">
+      Previsto: {horaCurta(turno.hora_inicio_prevista)} às {horaCurta(turno.hora_fim_prevista)}
+    </p>
+  );
+  const painelLink = (
+    <PainelLink
+      turnoId={turno.id}
+      obraNome={turno.obra.nome}
+      data={turno.data}
+      periodo={ROTULO_PERIODO[turno.periodo].toLowerCase()}
+      status={turno.status}
+      tokenAtual={link.token}
+      linkAntigo={link.existe && link.token === null}
+    />
+  );
+  const problemasBloco = (
+    <GerenciarProblemas
+      obraId={obraId}
+      problemas={problemas}
+      sugestoes={listaResponsaveis.filter((r) => r.ativo).map((r) => r.nome)}
+      hoje={hojeSaoPaulo()}
+    />
+  );
+  const historico = <HistoricoTurno eventos={eventos} versoes={versoes} />;
+  const voltar = <Link href={`/obras/${obraId}`} className="text-sm text-operacional underline">← {turno.obra.nome}</Link>;
+
+  if (turno.status === "planejado") {
+    return (
+      <div className="flex flex-col gap-4">
+        {voltar}
+        <div className="flex flex-wrap items-center gap-3">{titulo}</div>
+        {previsto}
+        {painelLink}
+        <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} sugestoesFuncao={opcoesFuncao} planejado />
+        <DadosTurno
+          turnoId={turno.id}
+          data={turno.data}
+          periodo={turno.periodo}
+          hora_inicio_prevista={turno.hora_inicio_prevista}
+          hora_fim_prevista={turno.hora_fim_prevista}
+        />
+        {problemasBloco}
+        {historico}
+      </div>
+    );
+  }
+
+  if (turno.status === "fechado") {
+    return (
+      <div className="flex flex-col gap-4">
+        {voltar}
+        <div className="flex flex-wrap items-center gap-3">{titulo}</div>
+        {previsto}
+        <AcoesTurno turnoId={turno.id} fechado />
+        {clima && <Resumo turno={turno} clima={clima} />}
+        <Recolhivel titulo="RDO" abertoInicial>
+          <BlocoRdo turnoId={turno.id} fechado versoes={versoes} />
+        </Recolhivel>
+        <RelatosCampo relatos={relatos} responsaveis={responsaveis} />
+        {problemasBloco}
+        {historico}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <Link href={`/obras/${obraId}`} className="text-sm text-operacional underline">← {turno.obra.nome}</Link>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-titulo font-semibold text-primaria">
-          Turno {ROTULO_PERIODO[turno.periodo].toLowerCase()} de {formatarData(turno.data)}
-        </h1>
-        <Selo tom={TOM_STATUS_TURNO[turno.status]}>{ROTULO_STATUS_TURNO[turno.status]}</Selo>
-        <Link href={`/obras/${obraId}/quadro?turno=${turno.id}`} className={`${classesBotao("secundario")} ml-auto min-h-10 px-3 text-sm`}>
-          Ver quadro
-        </Link>
-        <BotaoAjuda tela={telaDoTurno(turno.status)} />
-      </div>
-      {turno.hora_inicio_prevista && turno.hora_fim_prevista && (
-        <p className="text-sm text-texto-suave">
-          Previsto: {horaCurta(turno.hora_inicio_prevista)} às {horaCurta(turno.hora_fim_prevista)}
-        </p>
-      )}
-
-      {turno.status !== "planejado" && turno.status !== "fechado" && (
-        <FaixaParadas
-          turnoId={turno.id}
-          abertas={paradasAbertas(turno.ocorrencias)}
-          terminados={turno.terminados ?? []}
-          iniciados={turno.iniciados ?? []}
-          responsaveis={responsaveis}
-        />
-      )}
-
-      <PainelLink
-        turnoId={turno.id}
-        obraNome={turno.obra.nome}
-        data={turno.data}
-        periodo={ROTULO_PERIODO[turno.periodo].toLowerCase()}
-        status={turno.status}
-        tokenAtual={link.token}
-        linkAntigo={link.existe && link.token === null}
-      />
-
-      {turno.status === "planejado" ? (
-        <>
-          <ListaAtividades turnoId={turno.id} obraId={obraId} responsaveis={responsaveis} atividades={turno.atividades} semanaStatus={semanaStatus} sugestoesFuncao={opcoesFuncao} planejado />
-          <DadosTurno
-            turnoId={turno.id}
-            data={turno.data}
-            periodo={turno.periodo}
-            hora_inicio_prevista={turno.hora_inicio_prevista}
-            hora_fim_prevista={turno.hora_fim_prevista}
-          />
-        </>
-      ) : (
-        <>
-          {turno.status !== "fechado" && (
+      {voltar}
+      <TurnoEmExecucao
+        cabecalho={titulo}
+        acompanhamento={
+          <>
+            {previsto}
+            <FaixaParadas
+              turnoId={turno.id}
+              abertas={paradasAbertas(turno.ocorrencias)}
+              terminados={turno.terminados ?? []}
+              iniciados={turno.iniciados ?? []}
+              responsaveis={responsaveis}
+            />
             <OQueFalta
               grupos={faltasDoTurno({ turno, atividades: turno.atividades, relatos, terminados: turno.terminados ?? [], agora: new Date() })}
               responsaveis={listaResponsaveis.map(({ id, nome, telefone }) => ({ id, nome, telefone }))}
@@ -127,56 +168,50 @@ export default async function TurnoPage({ params }: { params: Promise<{ obraId: 
               enviado={turno.status === "enviado"}
               terminados={(turno.terminados ?? []).map((t) => t.responsavel_id)}
             />
-          )}
-          {clima && <Resumo turno={turno} clima={clima} />}
-          <BlocoRdo turnoId={turno.id} fechado={turno.status === "fechado"} versoes={versoes} />
-          <RelatosCampo relatos={relatos} responsaveis={responsaveis} />
-          {turno.status === "fechado" ? (
-            <AcoesTurno turnoId={turno.id} fechado />
-          ) : (
-            <>
-              <details className="rounded-cartao border border-borda bg-superficie p-4">
-                <summary className="cursor-pointer text-lg font-semibold text-texto">Editar planejamento</summary>
-                <div className="mt-3 flex flex-col gap-3">
-                  <Aviso tom="info">Quem estiver com o link de campo precisa recarregar a página para ver as mudanças.</Aviso>
-                  <ListaAtividades
-                    turnoId={turno.id}
-                    obraId={obraId}
-                    responsaveis={responsaveis}
-                    atividades={turno.atividades}
-                    trazerPendentes={false}
-                    semanaStatus={semanaStatus}
-                    sugestoesFuncao={opcoesFuncao}
-                  />
-                </div>
-              </details>
-              <EdicaoExecucao
+            {clima && <Resumo turno={turno} clima={clima} />}
+          </>
+        }
+        recolhidos={
+          <>
+            <Recolhivel titulo="Editar planejamento">
+              <Aviso tom="info">Quem estiver com o link de campo precisa recarregar a página para ver as mudanças.</Aviso>
+              <ListaAtividades
                 turnoId={turno.id}
-                hora_inicio_real={turno.hora_inicio_real}
-                hora_fim_real={turno.hora_fim_real}
-                atividades={turno.atividades}
-                efetivo={efetivo}
-                opcoesFuncao={opcoesFuncao}
                 obraId={obraId}
                 responsaveis={responsaveis}
-                ocorrencias={turno.ocorrencias}
-                janela={janelaDoTurno(turno)}
-                intervalo={intervaloDoTurno(turno)}
-                contexto={{ obra: turno.obra.nome, data: turno.data, periodo: turno.periodo, whatsapp: turno.obra.whatsapp_planejador ?? null }}
-                fotos={fotos}
-                opcoesPuxar={opcoesPuxar}
+                atividades={turno.atividades}
+                trazerPendentes={false}
+                semanaStatus={semanaStatus}
+                sugestoesFuncao={opcoesFuncao}
               />
-            </>
-          )}
-        </>
-      )}
-      <GerenciarProblemas
+            </Recolhivel>
+            {/* Aberto até a primeira equipe iniciar: é quando o planejador copia e envia o link. */}
+            <Recolhivel titulo="Link de campo" abertoInicial={!link.existe || (turno.iniciados ?? []).length === 0}>
+              {painelLink}
+            </Recolhivel>
+            <Recolhivel titulo="RDO">
+              <BlocoRdo turnoId={turno.id} fechado={false} versoes={versoes} />
+            </Recolhivel>
+            <RelatosCampo relatos={relatos} responsaveis={responsaveis} />
+            {problemasBloco}
+            {historico}
+          </>
+        }
+        turnoId={turno.id}
+        hora_inicio_real={turno.hora_inicio_real}
+        hora_fim_real={turno.hora_fim_real}
+        atividades={turno.atividades}
+        efetivo={efetivo}
+        opcoesFuncao={opcoesFuncao}
         obraId={obraId}
-        problemas={problemas}
-        sugestoes={listaResponsaveis.filter((r) => r.ativo).map((r) => r.nome)}
-        hoje={hojeSaoPaulo()}
+        responsaveis={responsaveis}
+        ocorrencias={turno.ocorrencias}
+        janela={janelaDoTurno(turno)}
+        intervalo={intervaloDoTurno(turno)}
+        contexto={{ obra: turno.obra.nome, data: turno.data, periodo: turno.periodo, whatsapp: turno.obra.whatsapp_planejador ?? null }}
+        fotos={fotos}
+        opcoesPuxar={opcoesPuxar}
       />
-      <HistoricoTurno eventos={eventos} versoes={versoes} />
     </div>
   );
 }

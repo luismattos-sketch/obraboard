@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-26",
+    texto: "Página do turno mais curta: \"Fechar turno\" fica no alto, ao lado de \"Ver quadro\", e a lista do que falta para fechar aparece ali mesmo. A página abre com o que serve para acompanhar (paradas, o que falta e resumo); \"Corrigir execução\", RDO, link de campo e histórico ficam recolhidos, a um toque. O \"Remover\" da atividade ficou discreto.",
+    href: "/ajuda/fechar-turno#fechar",
+  },
+  {
+    data: "2026-11-26",
     texto: "Quadro único: abre só pelo link, sem login, e o check-in e o check-out acontecem no mesmo quadro. O selo na barra azul troca sozinho para \"CHECK-OUT\" quando a primeira equipe inicia. E o quadro ganhou o resumo do clima, com a previsão antes do turno.",
     href: "/ajuda/quadro-tv#visoes",
   },

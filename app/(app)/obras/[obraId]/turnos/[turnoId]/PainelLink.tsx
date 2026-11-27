@@ -78,7 +78,6 @@ export function PainelLink({ turnoId, obraNome, data, periodo, status, tokenAtua
 
   return (
     <Cartao className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold text-primaria">Link de campo</h2>
       {url ? (
         <>
           <p className="break-all rounded-botao bg-primaria-clara px-3 py-2 text-sm text-texto">{url}</p>

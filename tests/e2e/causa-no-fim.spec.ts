@@ -42,6 +42,10 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   await pl.getByRole("button", { name: "Entrar" }).click();
   await pl.waitForURL("**/obras");
   await pl.goto(`/obras/${obra.id}/turnos/${turno.id}`);
+  // "ir" do "O que falta" abre "Corrigir execução" (recolhido) e leva ao campo da quantidade.
+  await pl.getByRole("button", { name: "Ir para: Montagem de tubulação" }).click();
+  await expect(pl.locator("[id^='qtd-']").first()).toBeFocused();
+  await expect(pl.locator("[id^='qtd-']").first()).toBeInViewport();
 
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });
   const cel = await ctx.newPage();
@@ -62,17 +66,22 @@ test("causa só na hora certa: sem aviso durante o dia, cobrada no Terminei e no
   await cel.getByRole("button", { name: "Ir para a causa: Montagem de tubulação" }).click();
   await expect(cel.getByLabel("Causa do não cumprimento")).toBeFocused();
 
-  // Planejador, ainda sem causa: o "ir" da caixa abre o campo mesmo antes de tentar fechar.
+  // Planejador: a lista só aparece ao tocar "Fechar turno" (no alto); Confirmar não aparece.
   await pl.reload();
+  await expect(pl.getByText("Antes de fechar, informe a causa em:")).toHaveCount(0);
+  await pl.getByRole("button", { name: "Fechar turno" }).click();
   await expect(pl.getByText("Antes de fechar, informe a causa em:")).toBeVisible();
-  await expect(pl.getByLabel("Causa do não cumprimento")).toHaveCount(0);
+  await expect(pl.getByRole("button", { name: "Confirmar fechamento" })).toHaveCount(0);
+  // O "ir" abre "Corrigir execução" (recolhido) e leva até o campo.
+  await expect(pl.getByText("Corrigir execução", { exact: true })).toBeVisible();
   await pl.getByRole("button", { name: "Ir para a causa: Montagem de tubulação" }).click();
   await expect(pl.getByLabel("Causa do não cumprimento")).toBeFocused();
-  await pl.reload();
-  // Fechar turno cobra em vez de abrir a confirmação.
+  await expect(pl.getByLabel("Causa do não cumprimento")).toBeInViewport();
+  // Cancelar e tocar de novo volta a mostrar a lista.
+  await pl.getByRole("button", { name: "Cancelar" }).click();
+  await expect(pl.getByText("Antes de fechar, informe a causa em:")).toHaveCount(0);
   await pl.getByRole("button", { name: "Fechar turno" }).click();
-  await expect(pl.getByRole("button", { name: "Confirmar fechamento" })).toHaveCount(0);
-  await expect(pl.getByLabel("Causa do não cumprimento")).toBeVisible();
+  await expect(pl.getByText("Antes de fechar, informe a causa em:")).toBeVisible();
 
   // Ana informa a causa e termina.
   await cel.getByLabel("Causa do não cumprimento").selectOption({ label: "Falta material" });

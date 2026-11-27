@@ -208,6 +208,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await pl.goto(turnoUrl);
   await fotografar(pl, "durante-o-turno", "paradas");
   await fotografar(pl, "durante-o-turno", "o-que-falta");
+  await pl.getByText("Corrigir execução", { exact: true }).click();
   await fotografar(pl, "durante-o-turno", "servico-extra");
   await pl.goto(`${obraUrl}/quadro?turno=${turnoId}`);
   await fotografar(pl, "durante-o-turno", "quadro");
@@ -234,6 +235,7 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
 
   // ---------- Fechar o turno ----------
   await pl.goto(turnoUrl);
+  await pl.getByText("Corrigir execução", { exact: true }).click();
   await fotografar(pl, "fechar-turno", "check-out");
   // Causa fica atrás do link no cartão: abrir todos antes de escolher.
   const abrir = pl.getByRole("button", { name: "Não vai dar para concluir? Informar causa" });
