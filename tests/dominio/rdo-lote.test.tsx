@@ -35,7 +35,7 @@ const itemLote = (id: string, data: string, over: Partial<ItemVersao> = {}): Ite
   reaberto: false,
 });
 
-const cab: CabecalhoLote = { mes: "2026-11", obraNome: "Obra", geradoEm: new Date("2026-11-10T17:32:00Z") };
+const cab: CabecalhoLote = { mes: "2026-11", obraNome: "Obra", empresaNome: "Construtora Ação", geradoEm: new Date("2026-11-10T17:32:00Z") };
 const paginas = async (b: Uint8Array) => (await PDFDocument.load(b)).getPageCount();
 
 describe("montarLote", () => {
@@ -44,7 +44,7 @@ describe("montarLote", () => {
     const lote = [itemLote("v1", "2026-11-02"), itemLote("v2", "2026-11-03")];
     const pdf = await montarLote(lote, vs, cab);
     expect(Buffer.from(pdf).subarray(0, 4).toString("latin1")).toBe("%PDF");
-    const individuais = await Promise.all(vs.map(async (v) => paginas(await renderizarRdo(lerFoto(v), emissaoDaVersao(v)))));
+    const individuais = await Promise.all(vs.map(async (v) => paginas(await renderizarRdo(lerFoto(v), emissaoDaVersao(v), cab.empresaNome))));
     const capa = await renderizarCapa(cab, lote, individuais);
     expect(await paginas(pdf)).toBe((await paginas(capa.buffer)) + individuais.reduce((a, b) => a + b, 0));
     expect((await PDFDocument.load(pdf)).getTitle()).toBe("RDOs — Obra — novembro de 2026");
