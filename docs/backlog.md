@@ -153,7 +153,7 @@ Do item 20 (manual): a explicação do LPS ficou de fora "por hora" — retomar 
 
 ## Cobrança — marca da empresa no RDO
 
-7.5. **Nome da empresa no RDO + "Minha empresa"** (plano gratuito) — nome centralizado no cabeçalho do PDF, entre o logo do Frentia e "RDO · obra · data"; página "Minha empresa" para corrigir o nome. Spec: docs/superpowers/specs/2026-11-26-nome-empresa-rdo-design.md. [Luis, 2026-11-26]
+7.5. **Nome da empresa no RDO + "Minha empresa"** (plano gratuito) — nome centralizado no cabeçalho do PDF, entre o logo do Frentia e "RDO · obra · data"; página "Minha empresa" para corrigir o nome. Spec: docs/superpowers/specs/2026-11-26-nome-empresa-rdo-design.md. [Luis, 2026-11-26] **NO AR 2026-11-27** (merge 3278830, sem migration).
 7.6. **Logo da empresa no lugar do Frentia** (plano pago mais barato, depende da cobrança) — envio do logo em "Minha empresa", limite de tamanho e redução automática (teto de 4,5 MB do PDF do mês). [Luis, 2026-11-26]
 
 ## Futuro — IA embutida (plano pago)
