@@ -1,5 +1,8 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { validarNomeEmpresa } from "@/lib/dominio/empresa";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { falha, ok, type Resultado } from "./resultado";
 
 export type EtapaFalha = "consulta" | "criacao";
 
@@ -45,4 +48,37 @@ export async function criarEmpresaDoDono(
     return falhar("Não foi possível vincular o usuário à empresa.", "criacao");
   }
   return { ok: true, dados: { empresaId: emp.id, criada: true } };
+}
+
+/** Nome atual da empresa do usuário (a RLS só devolve a dele). Falha = null: o RDO sai sem o nome. */
+export async function obterNomeEmpresa(c: SupabaseClient): Promise<string | null> {
+  const { data, error } = await c.from("empresas").select("nome").limit(1);
+  if (error) {
+    console.error("obterNomeEmpresa:", error.message);
+    return null;
+  }
+  return (data?.[0]?.nome as string | undefined) ?? null;
+}
+
+/**
+ * O usuário só lê empresas (sem grant de update): o vínculo de dono é conferido com o cliente
+ * dele (RLS de membros = só as próprias linhas) e a gravação usa o admin filtrando por esse id.
+ */
+export async function editarNomeEmpresa(c: SupabaseClient, bruto: string): Promise<Resultado<{ nome: string }>> {
+  const v = validarNomeEmpresa(bruto);
+  if (!v.ok) return falha(v.erro);
+  const { data: auth } = await c.auth.getUser();
+  if (!auth.user) return falha("Sessão expirada. Entre de novo.");
+  const { data: vinculo, error: ev } = await c
+    .from("membros")
+    .select("empresa_id")
+    .eq("user_id", auth.user.id)
+    .eq("papel", "dono")
+    .limit(1);
+  if (ev) throw new Error(ev.message);
+  const empresaId = vinculo?.[0]?.empresa_id as string | undefined;
+  if (!empresaId) return falha("Só o dono da empresa pode mudar o nome.");
+  const { error } = await criarClienteAdmin().from("empresas").update({ nome: v.nome }).eq("id", empresaId);
+  if (error) return falha("Não foi possível salvar o nome.");
+  return ok({ nome: v.nome });
 }
