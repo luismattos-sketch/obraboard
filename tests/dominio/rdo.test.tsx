@@ -97,6 +97,13 @@ describe("DocumentoRdo", () => {
     expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
   }, 30000);
 
+  it("nome da empresa e obra no limite (120) cabem no cabeçalho de uma página", async () => {
+    const base = turno(1);
+    const t = { ...base, obra: { ...base.obra, nome: "O".repeat(120) } } as TurnoCompleto;
+    const buf = await renderToBuffer(<DocumentoRdo turno={t} resumo={resumirTurno(t)} emissao={rascunho} empresaNome={"E".repeat(120)} />);
+    expect(buf.subarray(0, 4).toString("latin1")).toBe("%PDF");
+  }, 30000);
+
   it("remove caracteres fora do WinAnsi (emoji) e renderiza", async () => {
     const limpo = textoWinAnsi("👍 ok");
     expect(limpo).toBe(" ok");

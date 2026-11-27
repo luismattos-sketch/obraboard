@@ -18,7 +18,7 @@ export const estilos = StyleSheet.create({
   },
   logo: { height: 22, objectFit: "contain" },
   tituloFixo: { fontSize: 9, fontFamily: "Helvetica-Bold", color: COR.primaria },
-  empresaFixo: { flex: 1, marginHorizontal: 8, textAlign: "center", fontSize: 9, fontFamily: "Helvetica-Bold", color: COR.primaria },
+  empresaFixo: { width: "40%", marginHorizontal: 8, textAlign: "center", textOverflow: "ellipsis", maxLines: 1, fontSize: 9, fontFamily: "Helvetica-Bold", color: COR.primaria },
   rodape: {
     position: "absolute", bottom: 20, left: 36, right: 36,
     flexDirection: "row", justifyContent: "space-between",
