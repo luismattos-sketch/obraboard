@@ -46,7 +46,7 @@ test("João avisa parada pelo link → quadro e turno mostram → encerra → RD
   const { codigo } = exigir(await gerarLinkQuadro(u.cliente, obra.id));
 
   // next dev compila cada rota no 1º acesso: aquece antes de usar.
-  await Promise.all([request.get("/login"), request.get(`/q/${codigo}?visao=checkout`)]);
+  await Promise.all([request.get("/login"), request.get(`/q/${codigo}`)]);
   // Planejador abre o turno antes: next dev recarrega as páginas abertas ao compilar uma rota nova.
   const pl = await browser.newPage();
   await pl.goto("/login");
@@ -81,8 +81,8 @@ test("João avisa parada pelo link → quadro e turno mostram → encerra → RD
 
   // TV (quadro público): faixa vermelha com a parada.
   const tv = await browser.newPage();
-  await request.get(`/q/${codigo}?visao=checkout`);
-  await tv.goto(`/q/${codigo}?visao=checkout`);
+  await request.get(`/q/${codigo}`);
+  await tv.goto(`/q/${codigo}`);
   await expect(tv.getByRole("alert", { name: "Paradas em aberto" })).toContainText("João · 2 Mecânico parados desde 10:40");
 
   // Planejador: faixa no topo do turno.
@@ -98,6 +98,9 @@ test("João avisa parada pelo link → quadro e turno mostram → encerra → RD
 
   // Ana termina a parte dela.
   await cel.goto(`/t/${token}?r=${ana}`);
+  // Ana inicia o turno: o quadro passa sozinho para o check-out (não há mais ?visao=).
+  await cel.getByRole("region", { name: "Início do turno" }).getByRole("button", { name: "▶ Iniciar turno" }).click();
+  await expect(cel.getByRole("button", { name: /Iniciar turno/ })).toHaveCount(0);
   // Caldeiraria não concluída: o Terminei cobra a causa antes.
   await cel.getByRole("button", { name: "✓ Terminei minha parte" }).click();
   await expect(cel.getByText("Antes de terminar, informe a causa em:")).toBeVisible();

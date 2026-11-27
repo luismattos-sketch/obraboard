@@ -1,5 +1,6 @@
 import { devices, expect, test } from "@playwright/test";
 import { criarObra } from "@/lib/db/obras";
+import { gerarLinkQuadro } from "@/lib/db/quadro";
 import { criarRascunho, obterDadosSemana, programarSemana, salvarAtividadeProgramada } from "@/lib/db/programacao";
 import { aplicarAcao, criarTurno } from "@/lib/db/turnos";
 import { inicioDaSemana } from "@/lib/dominio/analise";
@@ -49,7 +50,9 @@ test("Carlos lança serviço extra e Rita adianta a pintura pelo link → quadro
   const { token } = exigir(await aplicarAcao(u.cliente, turno.id, "liberar")) as { token: string };
 
   const turnoUrl = `/obras/${obra.id}/turnos/${turno.id}`;
-  const quadroUrl = `/obras/${obra.id}/quadro?turno=${turno.id}`;
+  // O quadro é só o link público (quadro único).
+  const { codigo } = exigir(await gerarLinkQuadro(u.cliente, obra.id));
+  const quadroUrl = `/q/${codigo}?turno=${turno.id}`;
   await Promise.all([request.get("/login"), request.get(`/t/${token}?r=${carlos}`)]);
   // Planejador abre o turno antes: next dev recarrega as páginas abertas ao compilar uma rota nova.
   const pl = await browser.newPage();

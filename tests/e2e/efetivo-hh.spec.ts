@@ -69,12 +69,16 @@ test("Rita empresta 2 para Ana pelo link → quadro e RDO com 11 pessoas", async
   await cel.goto(`/t/${token}?r=${ana}`);
   await expect(cel.getByText("+2 Montador de andaime (de Rita, 13:00–17:00)")).toBeVisible();
   await expect(cel.getByText("5 pessoas · 53,0 HH")).toBeVisible();
+  // Ana lança o que fez: o quadro passa sozinho para o check-out (não há mais ?visao=).
+  const cardAna = cel.locator("section[aria-labelledby='titulo-atividades'] > div").nth(0);
+  await cardAna.getByLabel(/Total feito hoje/).fill("4");
+  await expect(cardAna.getByText("Salvo ✓")).toBeVisible({ timeout: 15_000 });
   await ctx.close();
 
   // Quadro público (TV): check-out com o recebido na faixa da Ana.
   const tv = await browser.newPage();
-  await request.get(`/q/${codigo}?visao=checkout`);
-  await tv.goto(`/q/${codigo}?visao=checkout`);
+  await request.get(`/q/${codigo}`);
+  await tv.goto(`/q/${codigo}`);
   await expect(tv.getByText("+2 Montador de andaime (de Rita, 13:00–17:00)")).toBeVisible();
   await expect(tv.getByText("6 pessoas · 46,0 HH")).toBeVisible();
   await tv.close();
