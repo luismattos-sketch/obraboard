@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variante?: "primario" | "destaque" | "secundario" | "perigo";
+  variante?: "primario" | "destaque" | "secundario" | "perigo" | "discreto";
   carregando?: boolean;
 };
 
@@ -11,6 +11,8 @@ const estilos = {
   destaque: "bg-destaque text-white hover:bg-destaque-escura",
   secundario: "bg-superficie text-primaria border border-operacional hover:bg-primaria-clara",
   perigo: "bg-perigo text-white hover:opacity-90",
+  // Ação destrutiva rara (ex.: Remover atividade): não chama atenção.
+  discreto: "bg-transparent text-texto-suave underline hover:text-perigo",
 };
 
 export const classesBotao = (variante: keyof typeof estilos = "primario") =>

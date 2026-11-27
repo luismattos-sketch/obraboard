@@ -37,7 +37,7 @@ function BotaoAcao({
   direcao?: "cima" | "baixo";
   rotulo: string;
   children: React.ReactNode;
-  variante?: "primario" | "secundario" | "perigo";
+  variante?: "primario" | "secundario" | "perigo" | "discreto";
   desabilitado?: boolean;
   confirmar?: string;
   aoErro: (mensagem: string) => void;
@@ -156,7 +156,7 @@ export function ItemAtividade({
           }}>
           Editar
         </Botao>
-        <BotaoAcao acao={removerAtividadeAcao} atividadeId={a.id} rotulo="Remover" variante="perigo" confirmar="Remover esta atividade?" aoErro={setErroAcao}>
+        <BotaoAcao acao={removerAtividadeAcao} atividadeId={a.id} rotulo="Remover" variante="discreto" confirmar="Remover esta atividade?" aoErro={setErroAcao}>
           Remover
         </BotaoAcao>
         {planejado && !a.equipe_confirmada && (
