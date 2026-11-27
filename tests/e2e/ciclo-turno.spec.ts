@@ -223,7 +223,9 @@ test("ciclo completo do turno: planejar, liberar, lançar no campo, fechar e bai
     await page.getByRole("button", { name: "Reabrir turno" }).click();
     await page.getByLabel("Motivo da reabertura").fill("Corrigir quantidade");
     await page.getByRole("button", { name: "Confirmar reabertura" }).click();
-    await page.getByText("RDO", { exact: true }).click();
+    // Espera a página voltar a "em campo" antes de abrir a seção RDO (recolhida).
+    await expect(page.getByRole("button", { name: "Fechar turno" })).toBeVisible();
+    await page.locator("summary", { hasText: /^RDO$/ }).click();
     await expect(page.getByRole("link", { name: "Baixar prévia (rascunho)" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Baixar v1 oficial" })).toBeVisible();
     await page.getByRole("button", { name: "Fechar turno" }).click();

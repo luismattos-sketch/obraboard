@@ -51,7 +51,7 @@ export const duranteOTurno: Capitulo = {
       id: "servico-extra",
       titulo: "Lance um serviço extra",
       texto: [
-        "Serviço feito fora da programação? Clique em \"+ Serviço extra (fora da programação)\", preencha \"Descrição\", \"Quantidade feita\", \"Unidade\" e \"Responsável\" e clique em \"Lançar serviço extra\".",
+        "Serviço feito fora da programação? Abra \"Corrigir execução\" e clique em \"+ Serviço extra (fora da programação)\", preencha \"Descrição\", \"Quantidade feita\", \"Unidade\" e \"Responsável\" e clique em \"Lançar serviço extra\".",
         "O extra entra no RDO com o selo \"EXTRA\", não tem meta e não pede causa.",
       ],
       captura: {

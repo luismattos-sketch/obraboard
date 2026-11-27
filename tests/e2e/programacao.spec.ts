@@ -103,6 +103,7 @@ test("programação semanal: programar, executar no turno, encerrar e ver o PPC"
   // Horário: quem preenche é o planejador
   const salvoP = (secao: string) =>
     expect(page.locator(`section[aria-labelledby="${secao}"]`).getByText("Salvo ✓").first()).toBeVisible({ timeout: 15_000 });
+  await page.getByText("Corrigir execução", { exact: true }).click();
   await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Início").fill("07:00");
   await page.locator("section[aria-labelledby='titulo-horario']").getByLabel("Fim").fill("17:00");
   await salvoP("titulo-horario");

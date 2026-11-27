@@ -98,6 +98,7 @@ test("Carlos lança serviço extra e Rita adianta a pintura pelo link → quadro
 
   // Turno: autor do lançamento e fechamento sem pedir causa.
   await pl.goto(turnoUrl);
+  await pl.getByText("Corrigir execução", { exact: true }).click();
   await expect(pl.getByText("lançado pelo campo — Carlos Pereira")).toBeVisible();
   await expect(pl.getByText("lançado pelo campo — Rita Alves")).toBeVisible();
   await pl.getByRole("button", { name: "Fechar turno" }).click();

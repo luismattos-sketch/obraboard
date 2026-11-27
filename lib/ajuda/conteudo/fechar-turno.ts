@@ -10,13 +10,13 @@ export const fecharTurno: Capitulo = {
       id: "check-out",
       titulo: "Confira a execução (check-out)",
       texto: [
-        "Quando o campo termina (os responsáveis avisam por \"✓ Terminei minha parte\" ou o turno chega como enviado), abra o turno. Em \"Corrigir execução\" estão o executado de cada atividade, agrupado por responsável, e o efetivo de cada equipe.",
+        "Quando o campo termina (os responsáveis avisam por \"✓ Terminei minha parte\" ou o turno chega como enviado), abra o turno. No alto ficam as paradas, \"O que falta\" e o resumo. Toque em \"Corrigir execução\" para abrir a seção com o executado de cada atividade, agrupado por responsável, e o efetivo de cada equipe.",
         "Corrija o que precisar: o número salva sozinho (\"Salvando…\" e depois \"Salvo ✓\"). Cada atividade e cada equipe mostra quem alterou por último (\"Última alteração: Ana · 09:12\").",
         "O horário real sai sozinho do campo: o início é o do primeiro responsável que tocou em \"Iniciar turno\", e o fim, o do último que tocou em \"Terminei minha parte\". Se precisar, corrija aqui. O início corrigido só muda se um responsável tocar em \"Iniciar turno\" (ou desfizer); o fim, quando todos terminarem ou alguém desfizer o \"Terminei\".",
       ],
       captura: {
         alt: "Tela do turno em andamento com a correção da execução por responsável",
-        alvo: { papel: "heading", nome: "Corrigir execução" },
+        alvo: { papel: "region", nome: "Corrigir execução" },
         dispositivo: "computador",
       },
     },
@@ -34,7 +34,7 @@ export const fecharTurno: Capitulo = {
       titulo: "Informe as causas",
       texto: [
         "Toda atividade programada que não chegou à quantidade planejada precisa de uma \"Causa do não cumprimento\" (falta material, clima, aguardando outra equipe…). Toque em \"Não vai dar para concluir? Informar causa\" no cartão da atividade para abrir o campo. Com \"Outro\", escreva a observação.",
-        "Serviço extra e atividade adiantada não pedem causa. Se faltar alguma causa, o app lista as atividades em \"Antes de fechar, informe a causa em:\"; toque em \"ir\" para chegar ao campo.",
+        "Serviço extra e atividade adiantada não pedem causa. Se faltar alguma causa, ao tocar em \"Fechar turno\" o app lista as atividades no alto da página, em \"Antes de fechar, informe a causa em:\"; toque em \"ir\" para abrir \"Corrigir execução\" direto no campo.",
       ],
       captura: {
         alt: "Atividade parcial com o campo Causa do não cumprimento",
@@ -46,7 +46,7 @@ export const fecharTurno: Capitulo = {
       id: "fechar",
       titulo: "Feche o turno",
       texto: [
-        "Clique em \"Fechar turno\" e depois em \"Confirmar fechamento\". Se houver parada sem horário de fim, o app pergunta até que horas o pessoal ficou parado.",
+        "O botão \"Fechar turno\" fica no alto da página, ao lado de \"Ver quadro\". Clique nele e depois em \"Confirmar fechamento\". Se houver parada sem horário de fim, o app pergunta até que horas o pessoal ficou parado.",
         "Fechado, o turno não aceita mais lançamentos pelo link, e o campo vê \"Turno fechado pelo planejador\".",
       ],
       captura: {
@@ -59,7 +59,7 @@ export const fecharTurno: Capitulo = {
       id: "rdo",
       titulo: "Baixe o RDO",
       texto: [
-        "Ao fechar, o RDO (Relatório Diário de Obra) é gerado em PDF. Clique em \"Baixar RDO (v1)\" no turno (o número muda a cada versão). Antes de fechar, \"Baixar prévia (rascunho)\" mostra como ele vai ficar.",
+        "Ao fechar, o RDO (Relatório Diário de Obra) é gerado em PDF. Clique em \"Baixar RDO (v1)\" no turno (o número muda a cada versão). Antes de fechar, abra a seção \"RDO\": \"Baixar prévia (rascunho)\" mostra como ele vai ficar.",
         "Na etapa \"RDOs\" ficam todos os RDOs da obra; em \"RDOs de todas as obras\", no menu lateral, dá para filtrar e baixar vários de uma vez.",
       ],
       captura: {
