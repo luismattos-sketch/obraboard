@@ -77,7 +77,7 @@ function LinhaAtividade({ a, zebra }: { a: ResumoTurno["atividades"][number]; ze
           <Text style={[s.celula, s.direita, { width: COL.real }]}>{qtdRealizada(a.qtd_realizada, a.unidade)}</Text>
           <Text style={[s.celula, { width: COL.status }]}>{ROTULO_STATUS_ATIVIDADE[a.status]}</Text>
           <Text style={[s.celula, { width: COL.obs }]}>
-            {[a.causa ? CAUSAS[a.causa] : null, a.observacao].filter(Boolean).join(" — ") || "—"}
+            {[a.causa ? CAUSAS[a.causa] : null, a.solicitado_por ? `Pedido por: ${a.solicitado_por}` : null, a.observacao].filter(Boolean).join(" — ") || "—"}
           </Text>
         </View>
   );

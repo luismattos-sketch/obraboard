@@ -246,6 +246,7 @@ function ItemExecucao({
             </p>
           )}
           {textoEquipe(a.equipe) && <p className="text-sm text-texto-suave">{textoEquipe(a.equipe)}</p>}
+          {extra && a.solicitado_por && <p className="text-sm text-texto-suave">Pedido por: {a.solicitado_por}</p>}
         </div>
         {/* Cor só depois de o banco confirmar: antes disso, cinza. */}
         <div className="flex flex-col items-end gap-1">

@@ -114,7 +114,12 @@ describe("validarExtra", () => {
   });
   const ok = { id: "6f1c2a52-9a0b-4c55-8a39-1f2b3c4d5e6f", descricao: "  Troca de iluminação ", unidade: " un ", qtd: 12, observacao: " ", responsavel_id: null };
   it("aceita e apara", () => {
-    expect(validarExtra(ok)).toEqual({ ok: true, dados: { ...ok, descricao: "Troca de iluminação", unidade: "un", observacao: null, equipe: [] } });
+    expect(validarExtra(ok)).toEqual({ ok: true, dados: { ...ok, descricao: "Troca de iluminação", unidade: "un", observacao: null, equipe: [], solicitado_por: null } });
+  });
+  it("quem do cliente pediu: apara, vazio vira null, limite de 100", () => {
+    expect(validarExtra({ ...ok, solicitado_por: "  Marcos, fiscal " })).toMatchObject({ ok: true, dados: { solicitado_por: "Marcos, fiscal" } });
+    expect(validarExtra({ ...ok, solicitado_por: "   " })).toMatchObject({ ok: true, dados: { solicitado_por: null } });
+    expect(validarExtra({ ...ok, solicitado_por: "a".repeat(101) })).toMatchObject({ ok: false, campos: { solicitado_por: "Máximo de 100 caracteres" } });
   });
   it("recusa quantidade zero, descrição vazia e id inválido", () => {
     expect(validarExtra({ ...ok, qtd: 0 }).ok).toBe(false);

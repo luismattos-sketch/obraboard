@@ -6,7 +6,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import type { Resultado } from "@/lib/db/resultado";
 import { parseNumero } from "@/lib/dominio/entrada";
 import { linhasParaEquipe } from "@/lib/dominio/equipePrevista";
-import { validarExtra, type DadosExtra, type ModoPuxar, type OpcaoPuxar } from "@/lib/dominio/foraDoDia";
+import { SOLICITADO_POR_MAX, validarExtra, type DadosExtra, type ModoPuxar, type OpcaoPuxar } from "@/lib/dominio/foraDoDia";
 import { resumoDias } from "@/lib/dominio/programacao";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { EditorEquipe, LINHA_VAZIA, type LinhaEquipe } from "./EditorEquipe";
@@ -24,7 +24,7 @@ const campo =
 const botao =
   "min-h-12 rounded-botao border border-operacional bg-superficie px-3 text-left font-semibold text-primaria hover:bg-primaria-clara";
 
-export type FormExtra = { descricao: string; qtd: string; unidade: string; observacao: string; responsavel: string; equipe?: LinhaEquipe[] };
+export type FormExtra = { descricao: string; qtd: string; unidade: string; observacao: string; responsavel: string; equipe?: LinhaEquipe[]; solicitado_por?: string };
 
 export const rotuloOpcao = (o: OpcaoPuxar) =>
   `${o.descricao} — ${resumoDias(o.dias)} — saldo ${qtdComUnidade(o.saldo, o.unidade)}`;
@@ -34,7 +34,7 @@ export function montarExtra(f: FormExtra, id: string): Resultado<DadosExtra> {
   if (!f.qtd.trim()) return { ok: false, erro: "Informe a quantidade", campos: { qtd: "Informe a quantidade" } };
   const qtd = parseNumero(f.qtd);
   if (qtd === null) return { ok: false, erro: "Digite um número válido", campos: { qtd: "Digite um número válido" } };
-  return validarExtra({ id, descricao: f.descricao, unidade: f.unidade, qtd, observacao: f.observacao, responsavel_id: f.responsavel || null, equipe: linhasParaEquipe(f.equipe ?? []) });
+  return validarExtra({ id, descricao: f.descricao, unidade: f.unidade, qtd, observacao: f.observacao, responsavel_id: f.responsavel || null, equipe: linhasParaEquipe(f.equipe ?? []), solicitado_por: f.solicitado_por ?? "" });
 }
 
 const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
@@ -229,6 +229,17 @@ export function ForaDoDia({
             </label>
           )}
           <EditorEquipe linhas={f.equipe ?? [LINHA_VAZIA]} aoMudar={(equipe) => setF({ ...f, equipe })} sugestoes={funcoes} erro={errosCampo.equipe} legenda="Equipe (opcional)" />
+          <label className="flex flex-col text-sm font-medium">
+            Quem do cliente pediu (opcional)
+            <input
+              className={campo}
+              maxLength={SOLICITADO_POR_MAX}
+              placeholder="Nome e função, ex.: Marcos, fiscal"
+              value={f.solicitado_por ?? ""}
+              onChange={(e) => setF({ ...f, solicitado_por: e.target.value })}
+            />
+          </label>
+          {errosCampo.solicitado_por && <p className="text-sm text-perigo">{errosCampo.solicitado_por}</p>}
           <label className="flex flex-col text-sm font-medium">
             Observação (opcional)
             <textarea className={`${campo} py-2`} rows={2} maxLength={500} value={f.observacao} onChange={(e) => setF({ ...f, observacao: e.target.value })} />
