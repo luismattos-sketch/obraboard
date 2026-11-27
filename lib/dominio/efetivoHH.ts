@@ -257,11 +257,19 @@ export function calcularHH(e: EntradaHH): ResultadoHH {
   }
 
   // Janela de cada equipe (item 21): minuto fora do Iniciar → Terminei da equipe dona não conta.
+  // Toque fora do horário do turno (ex.: planejador corrigiu o horário depois) é ignorado: vale a ponta do turno.
+  const dentro = (h: string | undefined): number | null => {
+    if (!temJanela || !h) return null;
+    const m = minutos(h);
+    if (m === null) return null;
+    const r = (m - inicio + 1440) % 1440;
+    return r <= D ? r : null;
+  };
   const limites = equipes.map((id) => {
     const ini = id === null ? undefined : e.iniciados?.find((x) => x.responsavel_id === id);
     const fim = id === null ? undefined : e.terminados?.find((x) => x.responsavel_id === id);
-    const a = ini ? (rel(ini.iniciou_em) ?? 0) : 0;
-    const b = fim ? (rel(fim.terminou_em) ?? D) : D;
+    const a = dentro(ini?.iniciou_em) ?? 0;
+    const b = dentro(fim?.terminou_em) ?? D;
     return { a, b: Math.max(a, b) };
   });
   if (limites.some((l) => l.a > 0 || l.b < D)) {

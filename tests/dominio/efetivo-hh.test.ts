@@ -201,6 +201,18 @@ describe("calcularHH", () => {
     expect(r.hh).toBe(35);
   });
 
+  it("item 21: toque fora do horário do turno (planejador corrigiu) é ignorado", () => {
+    const r = calcularHH({
+      efetivo: [{ funcao: "Pedreiro", quantidade: 4, responsavel_id: "a" }],
+      ocorrencias: [],
+      janela: { inicio: "07:00", fim: "16:00" },
+      intervalo: { inicio: "12:00", fim: "13:00" },
+      iniciados: [{ responsavel_id: "a", iniciou_em: "22:50:00" }],
+      terminados: [{ responsavel_id: "a", terminou_em: "22:51:00" }],
+    });
+    expect(r.hh).toBe(32);
+  });
+
   it("item 21: emprestado conta pela janela da equipe onde está", () => {
     const r = calcularHH({
       efetivo: [{ funcao: "Soldador", quantidade: 1, responsavel_id: "a" }],
