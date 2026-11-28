@@ -90,6 +90,13 @@ test("lookahead: importar CSV, reimportar, item manual e levar para a semana", a
   await tubo.getByRole("button", { name: "Removida" }).click();
   await expect(tubo.getByText(/vencida/)).toHaveCount(0);
   await expect(tubo.getByText("Removidas (1)")).toBeVisible();
+  // Uma restrição aberta (sem prazo) para o 5.3.
+  await tubo.getByRole("button", { name: "Adicionar restrição" }).click();
+  await tubo.getByLabel("Tipo").selectOption({ label: "Equipamento (falta ou quebra)" });
+  await tubo.getByLabel("Descrição").fill("Guindaste em manutenção");
+  await tubo.getByLabel("Responsável").fill("Carlos");
+  await tubo.getByRole("button", { name: "Salvar" }).click();
+  await expect(tubo.getByText("1 restrição aberta")).toBeVisible();
 
   // Levar para a semana
   const item = page.getByRole("listitem").filter({ hasText: "Montar tubulação linha 3 (rev.)" }).first();
@@ -98,7 +105,10 @@ test("lookahead: importar CSV, reimportar, item manual e levar para a semana", a
   await expect(page.getByRole("heading", { name: "Do lookahead" })).toBeVisible();
   await expect(page.getByLabel("Descrição")).toHaveValue("Montar tubulação linha 3 (rev.)");
   await expect(page.getByLabel("Meta da semana")).toHaveValue("120");
+  await expect(page.getByText("Guindaste em manutenção (Carlos)")).toBeVisible();
+  await page.getByLabel("Por que entra mesmo assim?").fill("Guindaste volta na segunda");
   await page.getByRole("button", { name: "Adicionar atividade" }).click();
+  await expect(page.getByText("Entrou com restrição")).toBeVisible();
   await expect(page.getByText("Cronograma: 1.1")).toBeVisible();
 
   await page.goto(page.url().replace(/\/programacao\/.*/, "/lookahead"));

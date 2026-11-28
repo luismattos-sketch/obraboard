@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import {
   atualizarMetaTrazida,
   encerrarSemana,
-  programarSemana,
+  programarSemanaComMotivo,
+  type PendenteMotivo,
   reabrirSemana,
   removerAtividadeProgramada,
   salvarAtividadeProgramada,
@@ -17,7 +18,7 @@ import type { DiaSemana, Semana } from "@/lib/dominio/programacao";
 import type { Causa, Periodo } from "@/lib/dominio/tipos";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
-export type EstadoSemana = (Resultado<undefined> & { envio?: number }) | null;
+export type EstadoSemana = (Resultado<undefined> & { envio?: number; pendentes?: PendenteMotivo[] }) | null;
 
 const texto = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -46,6 +47,7 @@ export async function salvarAtividadeProgramadaAcao(_: EstadoSemana, form: FormD
       trazida_de: id ? null : texto(form, "trazida_de") || null,
       saldo_trazido: id || !texto(form, "trazida_de") ? null : (parseNumero(texto(form, "saldo_trazido")) ?? null),
       cronograma_item_id: id ? null : texto(form, "cronograma_item_id") || null,
+      justificativa_restricao: id ? null : texto(form, "justificativa_restricao") || null,
     },
     id,
   );
@@ -69,8 +71,13 @@ export async function atualizarMetaTrazidaAcao(_: EstadoSemana, form: FormData):
 }
 
 export async function programarSemanaAcao(_: EstadoSemana, form: FormData): Promise<EstadoSemana> {
-  const r = await programarSemana(await criarClienteServidor(), texto(form, "semana_id"));
-  if (!r.ok) return falha(r.erro);
+  const c = await criarClienteServidor();
+  const { data: semana } = await c.from("semanas").select("id, obra_id, inicio, status, programada_em, encerrada_em, motivo_reabertura")
+    .eq("id", texto(form, "semana_id")).maybeSingle();
+  if (!semana) return falha("Semana não encontrada.");
+  // Item 5.3: atividades com restrição aberta pedem um motivo antes de programar.
+  const r = await programarSemanaComMotivo(c, semana as Semana, texto(form, "motivo_restricao") || null);
+  if (!r.ok) return "pendentes" in r ? { ...falha(r.erro), pendentes: r.pendentes } : falha(r.erro);
   atualizar();
   return ok(undefined);
 }

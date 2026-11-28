@@ -13,6 +13,7 @@ import {
 } from "@/lib/dominio/programacao";
 import type { ResponsavelRef } from "@/lib/dominio/quadro";
 import { CAUSAS, type Periodo } from "@/lib/dominio/tipos";
+import { SeloRestricao } from "./SeloRestricao";
 
 const COR_BARRA: Record<Situacao, string> = {
   cumprida: "bg-sucesso",
@@ -53,6 +54,7 @@ export function GradeSemana({ atividades, encerrada, responsaveis }: { atividade
             <li key={a.id} className="flex flex-col gap-1 py-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="font-semibold text-texto">{a.descricao}</p>
+                {a.justificativa_restricao && <SeloRestricao motivo={a.justificativa_restricao} />}
                 <Selo tom={TOM_SITUACAO[a.situacao]}>{ROTULO_SITUACAO[a.situacao]}</Selo>
               </div>
               <p className="text-sm text-texto">

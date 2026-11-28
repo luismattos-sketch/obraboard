@@ -24,7 +24,7 @@ import {
 } from "@/lib/dominio/programacao";
 import { metaNoTurno, textoOrigemMeta, type MetaNoTurno } from "@/lib/dominio/sequencia";
 import { saldoDaOrigem } from "@/lib/dominio/trazerSaldo";
-import { pendentesDeMotivo, validarMotivoRestricao } from "@/lib/dominio/travaRestricao";
+import { pendentesDeMotivo, resumoComRestricao, validarMotivoRestricao } from "@/lib/dominio/travaRestricao";
 import { listarRestricoesDaObra } from "./restricoes";
 import { FUNCOES_SUGERIDAS, type Causa, type Periodo, type TipoAtividade } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
@@ -559,6 +559,7 @@ export async function listarProgramadasParaAnalise(
         naoCumpridas: r.atividades
           .filter((a) => a.situacao !== "cumprida")
           .map((a) => ({ descricao: a.descricao, causa: encerrada ? a.causa : (a.causa ?? a.causaSugerida) })),
+        comRestricao: resumoComRestricao(r.atividades),
       };
     }),
   );
