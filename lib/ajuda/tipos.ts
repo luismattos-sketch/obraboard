@@ -2,6 +2,7 @@
 
 export type SlugCapitulo =
   | "primeiros-passos"
+  | "metodo-lps"
   | "programar-semana"
   | "check-in"
   | "durante-o-turno"

@@ -1,6 +1,7 @@
 // Lista ordenada dos capítulos do manual e navegação entre eles (regras puras, testáveis).
 import type { Capitulo, SlugCapitulo } from "./tipos";
 import { primeirosPassos } from "./conteudo/primeiros-passos";
+import { metodoLps } from "./conteudo/metodo-lps";
 import { programarSemana } from "./conteudo/programar-semana";
 import { checkIn } from "./conteudo/check-in";
 import { duranteOTurno } from "./conteudo/durante-o-turno";
@@ -12,6 +13,7 @@ import { campo } from "./conteudo/campo";
 
 export const CAPITULOS: Capitulo[] = [
   primeirosPassos,
+  metodoLps,
   programarSemana,
   checkIn,
   duranteOTurno,

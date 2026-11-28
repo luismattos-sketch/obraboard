@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Roteiro da semana: a página da obra mostra em que ponto do ciclo do LPS você está (encerrar, Lookahead, programar, turno de hoje). E a nova \"Pauta da reunião\" junta PPC, causas, restrições por responsável e o Lookahead numa página para projetar ou imprimir.",
+    href: "/ajuda/metodo-lps#reuniao",
+  },
+  {
+    data: "2026-11-27",
     texto: "Atividade com restrição aberta só entra na semana com um motivo: o Frentia avisa ao levar do Lookahead e ao programar, marca \"Entrou com restrição\" e a Análise mostra quantas dessas foram cumpridas.",
     href: "/ajuda/programar-semana#levar-lookahead",
   },
