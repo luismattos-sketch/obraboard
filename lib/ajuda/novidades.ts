@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Atividade com restrição aberta só entra na semana com um motivo: o Frentia avisa ao levar do Lookahead e ao programar, marca \"Entrou com restrição\" e a Análise mostra quantas dessas foram cumpridas.",
+    href: "/ajuda/programar-semana#levar-lookahead",
+  },
+  {
+    data: "2026-11-27",
     texto: "Restrições no Lookahead: em cada item, registre o que impede a execução (tipo, responsável e prazo) e marque como \"Removida\" quando destravar. Vencidas ficam em vermelho.",
     href: "/ajuda/programar-semana#restricoes",
   },

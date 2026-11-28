@@ -41,6 +41,7 @@ export const programarSemana: Capitulo = {
       texto: [
         "Em \"Levar para esta semana\", o Frentia abre a programação daquela semana (cria o rascunho se ainda não existe) com o formulário preenchido: descrição, local, unidade, dias do período e meta igual à quantidade do item. Ajuste a meta, o responsável e a equipe para o que cabe na semana.",
         "Para quebrar um item grande em partes, leve-o de novo e mude a descrição e a meta. No Lookahead, o item passa a mostrar \"Na semana de dd/mm\"; se o cronograma mudar depois, aparece \"Mudou desde que foi levado\" (a atividade da semana não muda sozinha).",
+        "Se o item tem restrição aberta, o formulário mostra quais são e pede \"Por que entra mesmo assim?\". A atividade entra com o selo \"Entrou com restrição\" e o motivo, e a Análise mostra depois quantas dessas foram cumpridas.",
         "Semana já programada não recebe itens do lookahead.",
       ],
       captura: {
@@ -112,6 +113,7 @@ export const programarSemana: Capitulo = {
       id: "programar",
       titulo: "Programe a semana",
       texto: [
+        "Se alguma atividade veio do lookahead e o item ganhou restrição depois, \"Programar semana\" lista essas atividades e pede um motivo antes de travar a lista.",
         "Confira a lista em \"Atividades da semana\" (\"Editar\" ou \"Apagar\" em cada uma) e clique em \"Programar semana\". O app pede confirmação, porque depois disso a lista, as metas e a equipe ficam travadas.",
         "A partir daí a semana fica Programada: cada turno novo daquela semana já vem com as atividades do dia e a quantidade sugerida.",
       ],
