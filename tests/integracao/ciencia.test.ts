@@ -3,6 +3,7 @@ import { extrasDoLink, gerarLinkCiencia, linkPorCodigo, registrarCiencia, semana
 import { ERRO_COM_CIENCIA, lancarExtraPlanejador, removerForaDoDiaPlanejador } from "@/lib/db/foraDoDia";
 import { criarObra } from "@/lib/db/obras";
 import { criarTurno } from "@/lib/db/turnos";
+import { turnosDoRelatorio } from "@/lib/db/relatorioObra";
 import { criarUsuarioTeste, ligado, removerUsuarioTeste, type UsuarioTeste } from "./ajuda";
 
 describe.skipIf(!ligado)("ciência do cliente nos extras (4.3)", () => {
@@ -62,5 +63,8 @@ describe.skipIf(!ligado)("ciência do cliente nos extras (4.3)", () => {
     expect(await linkPorCodigo(codigo)).toBeNull();
     expect((await registrarCiencia(codigo, [b.id], "X")).ok).toBe(false);
     expect(await linkPorCodigo(novo)).not.toBeNull();
+
+    // 4.4: a consulta do relatório roda (turnos abertos ficam de fora).
+    expect(await turnosDoRelatorio(u.cliente, obra.id, "2026-11-16", "2026-11-30")).toEqual([]);
   });
 });

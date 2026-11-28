@@ -57,6 +57,7 @@ export const FLUXOGRAMA: FaseFluxo[] = [
       [
         { rotulo: "Encerrar a semana", detalhe: "causas do que não cumpriu", ator: "planejador", href: "/ajuda/encerrar-semana#encerrar" },
         { rotulo: "Ciência do cliente", detalhe: "link dos extras ao fiscal", ator: "planejador", href: "/ajuda/encerrar-semana#ciencia-extras" },
+        { rotulo: "Relatório da Obra", detalhe: "PDF da semana, mês ou obra", ator: "planejador", href: "/ajuda/fechar-turno#relatorio-obra" },
         { rotulo: "Análise (PPC)", detalhe: "% cumprido e causas", ator: "planejador", href: "/ajuda/encerrar-semana#analise" },
       ],
     ],

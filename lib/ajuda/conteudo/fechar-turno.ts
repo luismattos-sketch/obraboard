@@ -70,6 +70,19 @@ export const fecharTurno: Capitulo = {
       },
     },
     {
+      id: "relatorio-obra",
+      titulo: "Gere o Relatório da Obra",
+      texto: [
+        "Na etapa \"RDOs\", o bloco \"Relatório da Obra (PDF)\" junta num só documento o que aconteceu num período: escolha \"Semana\" (qualquer dia dela), \"Mês\" ou \"Obra inteira\" e clique em \"Baixar relatório\".",
+        "O relatório traz o resumo do período (cumprimento, HH total, HH parado e serviços extras), a linha do tempo turno a turno, as paradas com a causa e o grupo (externa, fora do controle da equipe, × interna), os serviços extras para medição (quem pediu, HH, material e a ciência do cliente) e as fotos. Só entram turnos fechados.",
+      ],
+      captura: {
+        alt: "Bloco do Relatório da Obra com a escolha do período",
+        alvo: { papel: "heading", nome: "Relatório da Obra (PDF)" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "reabrir",
       titulo: "Reabra um turno fechado",
       texto: [

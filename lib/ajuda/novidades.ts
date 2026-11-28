@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Relatório da Obra em PDF: na etapa \"RDOs\", escolha semana, mês ou obra inteira e baixe um documento com a linha do tempo, HH, paradas (externas × internas), serviços extras com a ciência do cliente e fotos.",
+    href: "/ajuda/fechar-turno#relatorio-obra",
+  },
+  {
+    data: "2026-11-27",
     texto: "Ciência do cliente nos serviços extras: gere na página da obra um link por semana e mande ao fiscal pelo WhatsApp. Ele confere os extras com foto, HH e material e registra \"Ciente\" com o nome, sem precisar de login.",
     href: "/ajuda/encerrar-semana#ciencia-extras",
   },

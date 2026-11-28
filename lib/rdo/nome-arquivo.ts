@@ -19,6 +19,11 @@ export function nomeArquivoRdo(obra: string, data: string, periodo: Periodo, suf
   return `RDO-${slug(obra)}-${data}-${periodo}${fim}.pdf`;
 }
 
+/** Item 4.4: `Relatorio-da-obra-<obra>-<de>-a-<ate>.pdf`. */
+export function nomeArquivoRelatorio(obra: string, de: string, ate: string): string {
+  return `Relatorio-da-obra-${slug(obra)}-${de}-a-${ate}.pdf`;
+}
+
 /** PDF único do mês: `RDOs-<obra>-AAAA-MM.pdf` ou `RDOs-todas-as-obras-AAAA-MM.pdf`. */
 export function nomeArquivoLote(obraNome: string | null, mes: string): string {
   return `RDOs-${obraNome === null ? "todas-as-obras" : slug(obraNome)}-${mes}.pdf`;
