@@ -16,6 +16,8 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { AbrirSemana } from "../AbrirSemana";
 import { Acompanhamento } from "./Acompanhamento";
 import { ListaRascunho } from "./ListaRascunho";
+import { listarItensCronograma } from "@/lib/db/cronograma";
+import { diasDoItemNaSemana } from "@/lib/dominio/cronograma";
 
 const diaMes = (iso: string) => formatarData(iso).slice(0, 5);
 
@@ -26,8 +28,15 @@ function dataValida(iso: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
 }
 
-export default async function SemanaPage({ params }: { params: Promise<{ obraId: string; inicio: string }> }) {
+export default async function SemanaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ obraId: string; inicio: string }>;
+  searchParams: Promise<{ item?: string }>;
+}) {
   const { obraId, inicio } = await params;
+  const { item: itemId } = await searchParams;
   if (!dataValida(inicio)) notFound();
   const segunda = inicioDaSemana(inicio);
   if (segunda !== inicio) redirect(`/obras/${obraId}/programacao/${segunda}`);
@@ -70,14 +79,30 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
     );
   }
 
-  const [dados, sugestoesFuncao, responsaveis, anterior] = await Promise.all([
+  const rascunho = semana.status === "rascunho";
+  const [dados, sugestoesFuncao, responsaveis, anterior, itensCronograma] = await Promise.all([
     dadosOficiais(supabase, semana),
     semana.status === "rascunho"
       ? sugestoesFuncaoDaObra(supabase, obra.id).catch(() => [...FUNCOES_SUGERIDAS])
       : Promise.resolve([]),
     listarResponsaveis(supabase, obra.id),
     semana.status === "encerrada" ? Promise.resolve(null) : resumoSemanaAnterior(supabase, semana),
+    rascunho ? listarItensCronograma(supabase, obra.id, { incluirRemovidos: true }) : Promise.resolve([]),
   ]);
+  // Item 5.1: "Levar para esta semana" do lookahead chega com ?item= (só no rascunho).
+  const codigosCronograma = Object.fromEntries(itensCronograma.map((i) => [i.id, i.codigo]));
+  const itemLevado = rascunho && itemId ? itensCronograma.find((i) => i.id === itemId) : undefined;
+  const doCronograma = itemLevado
+    ? {
+        item: { id: itemLevado.id, codigo: itemLevado.codigo },
+        modelo: {
+          id: "", ordem: 0, descricao: itemLevado.descricao.slice(0, 200), local: itemLevado.local?.slice(0, 100) ?? null,
+          unidade: itemLevado.unidade?.slice(0, 20) ?? null, meta: itemLevado.quantidade ?? 0,
+          dias: diasDoItemNaSemana(itemLevado, semana.inicio), periodo: "diurno" as const, causa: null,
+          responsavel_id: null, equipe: [],
+        },
+      }
+    : undefined;
   // Item 1.6: o que ficou da semana anterior e o saldo atual da origem de cada atividade já trazida.
   const pendentes = anterior && semana.status === "rascunho" ? pendentesDaSemanaAnterior(anterior) : [];
   const saldosAtuais: Record<string, number> = {};
@@ -100,6 +125,8 @@ export default async function SemanaPage({ params }: { params: Promise<{ obraId:
           sugestoesFuncao={sugestoesFuncao}
           pendentes={pendentes}
           saldosAtuais={saldosAtuais}
+          doCronograma={doCronograma}
+          codigosCronograma={codigosCronograma}
         />
       ) : (
         <Acompanhamento semana={semana} resumo={resumirSemana(dados)} hoje={hoje} responsaveis={responsaveis} saldosAtuais={saldosAtuais} />

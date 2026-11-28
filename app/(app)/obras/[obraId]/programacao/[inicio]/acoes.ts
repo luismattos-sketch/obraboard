@@ -45,6 +45,7 @@ export async function salvarAtividadeProgramadaAcao(_: EstadoSemana, form: FormD
       continua_de: id ? null : texto(form, "continua_de") || null,
       trazida_de: id ? null : texto(form, "trazida_de") || null,
       saldo_trazido: id || !texto(form, "trazida_de") ? null : (parseNumero(texto(form, "saldo_trazido")) ?? null),
+      cronograma_item_id: id ? null : texto(form, "cronograma_item_id") || null,
     },
     id,
   );

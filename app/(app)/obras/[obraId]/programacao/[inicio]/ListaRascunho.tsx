@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
@@ -22,8 +22,15 @@ function ItemRascunho({
   aoDuplicar,
   aoContinuar,
   saldoAtual,
+  origemCronograma,
   ...comum
-}: Comum & { atividade: AtividadeProgramada; aoDuplicar: () => void; aoContinuar: (() => void) | null; saldoAtual?: number }) {
+}: Comum & {
+  atividade: AtividadeProgramada;
+  aoDuplicar: () => void;
+  aoContinuar: (() => void) | null;
+  saldoAtual?: number;
+  origemCronograma: string | null;
+}) {
   const { responsaveis } = comum;
   const nome = a.responsavel_id ? responsaveis.find((r) => r.id === a.responsavel_id)?.nome : null;
   const [editando, setEditando] = useState(false);
@@ -45,6 +52,7 @@ function ItemRascunho({
         </p>
         <p className="text-sm text-texto-suave">{resumoEquipe(a.equipe)}</p>
         <p className="text-sm text-texto-suave">Responsável: {nome ?? "sem responsável"}</p>
+        {origemCronograma && <p className="text-xs text-texto-suave">{origemCronograma}</p>}
       </div>
       {saldoAtual !== undefined && <AvisoSaldoMudou atividade={a} saldoAtual={saldoAtual} />}
       <div className="flex flex-wrap gap-2">
@@ -90,8 +98,18 @@ export function ListaRascunho({
   atividades,
   pendentes,
   saldosAtuais,
+  doCronograma,
+  codigosCronograma,
   ...comum
-}: Comum & { atividades: AtividadeProgramada[]; pendentes: PendenteAnterior[]; saldosAtuais: Record<string, number> }) {
+}: Comum & {
+  atividades: AtividadeProgramada[];
+  pendentes: PendenteAnterior[];
+  saldosAtuais: Record<string, number>;
+  /** Item 5.1: abre o formulário preenchido com o item do lookahead (?item=). */
+  doCronograma?: { item: { id: string; codigo: string | null }; modelo: AtividadeProgramada };
+  /** Item 5.1: código do cronograma de cada item ligado (null = item manual). */
+  codigosCronograma: Record<string, string | null>;
+}) {
   const { semanaId } = comum;
   const semResponsavel = textoSemResponsavel(contarSemResponsavel(atividades));
   const [estado, action, pendente] = useActionState<EstadoSemana, FormData>(programarSemanaAcao, null);
@@ -103,8 +121,14 @@ export function ListaRascunho({
     n: number;
     continuaDe: AtividadeProgramada | null;
     trazidaDe: Trazida | null;
-  } | null>(null);
+    cronogramaItem?: { id: string; codigo: string | null };
+  } | null>(() =>
+    doCronograma ? { atividade: doCronograma.modelo, n: 0, continuaDe: null, trazidaDe: null, cronogramaItem: doCronograma.item } : null,
+  );
   const novaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (doCronograma) novaRef.current?.scrollIntoView({ block: "start" });
+  }, [doCronograma]);
   const duplicar = (a: AtividadeProgramada, continuaDe: AtividadeProgramada | null = null, trazidaDe: Trazida | null = null) => {
     setCopia((c) => ({ atividade: a, n: (c?.n ?? 0) + 1, continuaDe, trazidaDe }));
     novaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -123,6 +147,7 @@ export function ListaRascunho({
       aoDuplicar={() => duplicar(a)}
       aoContinuar={continuar(a)}
       saldoAtual={saldosAtuais[a.id]}
+      origemCronograma={!a.cronograma_item_id ? null : codigosCronograma[a.cronograma_item_id] ? `Cronograma: ${codigosCronograma[a.cronograma_item_id]}` : "Do lookahead"}
     />
   );
   return (
@@ -151,7 +176,9 @@ export function ListaRascunho({
       <div ref={novaRef} className="scroll-mt-4">
         <Cartao>
           <h2 className="mb-3 text-lg font-semibold text-primaria">
-            {copia?.trazidaDe
+            {copia?.cronogramaItem
+              ? "Do lookahead"
+              : copia?.trazidaDe
               ? "Trazida da semana anterior"
               : copia?.continuaDe
                 ? "Próximo turno da sequência"
@@ -165,6 +192,7 @@ export function ListaRascunho({
             modelo={copia?.atividade}
             continuaDe={copia?.continuaDe ?? undefined}
             trazidaDe={copia?.trazidaDe ?? undefined}
+            cronogramaItem={copia?.cronogramaItem}
             aoConcluir={copia ? () => setCopia(null) : undefined}
           />
         </Cartao>
