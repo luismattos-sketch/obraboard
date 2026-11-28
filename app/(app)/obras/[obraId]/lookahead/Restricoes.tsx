@@ -52,8 +52,9 @@ function FormRestricao({ itemId, restricao, sugestoes, aoFechar }: {
 
 function LinhaRestricao({ itemId, r, hoje, sugestoes }: { itemId: string; r: Restricao; hoje: string; sugestoes: string[] }) {
   const [editando, setEditando] = useState(false);
-  const [, acaoMarcar, marcando] = useActionState<EstadoLookahead, FormData>(marcarRemovidaAcao, null);
-  const [, acaoApagar, apagando] = useActionState<EstadoLookahead, FormData>(apagarRestricaoAcao, null);
+  const [marcar, acaoMarcar, marcando] = useActionState<EstadoLookahead, FormData>(marcarRemovidaAcao, null);
+  const [apagar, acaoApagar, apagando] = useActionState<EstadoLookahead, FormData>(apagarRestricaoAcao, null);
+  const erro = (marcar && !marcar.ok && marcar.erro) || (apagar && !apagar.ok && apagar.erro);
   if (editando) return <FormRestricao itemId={itemId} restricao={r} sugestoes={sugestoes} aoFechar={() => setEditando(false)} />;
   const vencida = restricaoVencida(r, hoje);
   return (
@@ -63,6 +64,7 @@ function LinhaRestricao({ itemId, r, hoje, sugestoes }: { itemId: string; r: Res
         {CAUSAS[r.tipo]} · {r.responsavel}
         {r.prazo && <span className={vencida ? "font-semibold text-perigo" : ""}> · prazo {diaMes(r.prazo)}{vencida ? " (vencida)" : ""}</span>}
       </p>
+      {erro && <Aviso tom="perigo">{erro}</Aviso>}
       <div className="flex flex-wrap gap-2">
         <form action={acaoMarcar}>
           <input type="hidden" name="restricao_id" value={r.id} />

@@ -59,7 +59,9 @@ export function ItemLookahead({
             ))}
             {mudou && <Selo tom="alerta">Mudou desde que foi levado</Selo>}
             {vencidas > 0 ? (
-              <Selo tom="perigo">{vencidas} {vencidas === 1 ? "vencida" : "vencidas"}</Selo>
+              <Selo tom="perigo">
+                {abertas} {abertas === 1 ? "restrição aberta" : "restrições abertas"} · {vencidas} {vencidas === 1 ? "vencida" : "vencidas"}
+              </Selo>
             ) : abertas > 0 ? (
               <Selo tom="alerta">{abertas} {abertas === 1 ? "restrição aberta" : "restrições abertas"}</Selo>
             ) : null}

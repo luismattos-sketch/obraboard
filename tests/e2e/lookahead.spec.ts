@@ -86,9 +86,9 @@ test("lookahead: importar CSV, reimportar, item manual e levar para a semana", a
   await tubo.getByLabel("Responsável").fill("Marcos (fiscal do cliente)");
   await tubo.getByLabel("Prazo (opcional)").fill("2026-01-05");
   await tubo.getByRole("button", { name: "Salvar" }).click();
-  await expect(tubo.getByText("1 vencida")).toBeVisible();
+  await expect(tubo.getByText("1 restrição aberta · 1 vencida")).toBeVisible();
   await tubo.getByRole("button", { name: "Removida" }).click();
-  await expect(tubo.getByText("1 vencida")).toHaveCount(0);
+  await expect(tubo.getByText(/vencida/)).toHaveCount(0);
   await expect(tubo.getByText("Removidas (1)")).toBeVisible();
 
   // Levar para a semana
