@@ -1,5 +1,7 @@
 "use client";
 
+import { Campo } from "@/components/ui/Campo";
+import { SeloRestricao } from "./SeloRestricao";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
@@ -53,6 +55,7 @@ function ItemRascunho({
         <p className="text-sm text-texto-suave">{resumoEquipe(a.equipe)}</p>
         <p className="text-sm text-texto-suave">Responsável: {nome ?? "sem responsável"}</p>
         {origemCronograma && <p className="text-xs text-texto-suave">{origemCronograma}</p>}
+        {a.justificativa_restricao && <SeloRestricao motivo={a.justificativa_restricao} />}
       </div>
       {saldoAtual !== undefined && <AvisoSaldoMudou atividade={a} saldoAtual={saldoAtual} />}
       <div className="flex flex-wrap gap-2">
@@ -106,7 +109,7 @@ export function ListaRascunho({
   pendentes: PendenteAnterior[];
   saldosAtuais: Record<string, number>;
   /** Item 5.1: abre o formulário preenchido com o item do lookahead (?item=). */
-  doCronograma?: { item: { id: string; codigo: string | null }; modelo: AtividadeProgramada };
+  doCronograma?: { item: { id: string; codigo: string | null; restricoesAbertas?: { descricao: string; responsavel: string }[] }; modelo: AtividadeProgramada };
   /** Item 5.1: código do cronograma de cada item ligado (null = item manual). */
   codigosCronograma: Record<string, string | null>;
 }) {
@@ -121,7 +124,7 @@ export function ListaRascunho({
     n: number;
     continuaDe: AtividadeProgramada | null;
     trazidaDe: Trazida | null;
-    cronogramaItem?: { id: string; codigo: string | null };
+    cronogramaItem?: { id: string; codigo: string | null; restricoesAbertas?: { descricao: string; responsavel: string }[] };
   } | null>(() =>
     doCronograma ? { atividade: doCronograma.modelo, n: 0, continuaDe: null, trazidaDe: null, cronogramaItem: doCronograma.item } : null,
   );
@@ -218,6 +221,16 @@ export function ListaRascunho({
           Ao programar, a lista, as metas e a equipe ficam travadas e o app guarda a foto oficial do compromisso.
         </p>
         {estado && !estado.ok && <Aviso tom="alerta">{estado.erro}</Aviso>}
+        {estado && !estado.ok && estado.pendentes?.length ? (
+          <div className="flex flex-col gap-2 rounded-botao border border-alerta bg-alerta-clara p-3">
+            <ul className="list-disc pl-5 text-sm">
+              {estado.pendentes.map((p) => <li key={p.id}><strong>{p.descricao}</strong>: {p.restricoes.join("; ")}</li>)}
+            </ul>
+            <Campo rotulo="Por que entram mesmo assim?" name="motivo_restricao" maxLength={300} required
+              placeholder="Ex.: cliente confirmou as liberações para segunda" />
+            <Botao type="submit" variante="destaque" carregando={pendente}>Programar com o motivo</Botao>
+          </div>
+        ) : null}
       </form>
     </div>
   );

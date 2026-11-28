@@ -24,6 +24,8 @@ import {
 } from "@/lib/dominio/programacao";
 import { metaNoTurno, textoOrigemMeta, type MetaNoTurno } from "@/lib/dominio/sequencia";
 import { saldoDaOrigem } from "@/lib/dominio/trazerSaldo";
+import { pendentesDeMotivo, resumoComRestricao, validarMotivoRestricao } from "@/lib/dominio/travaRestricao";
+import { listarRestricoesDaObra } from "./restricoes";
 import { FUNCOES_SUGERIDAS, type Causa, type Periodo, type TipoAtividade } from "@/lib/dominio/tipos";
 import { turnoEditavel } from "./atividades";
 import { erroBanco, ERRO_TRAZIDA_REPETIDA, MENSAGENS_PROGRAMACAO, mensagemProgramacao } from "./mensagens";
@@ -46,7 +48,11 @@ export type EntradaAtividadeProgramada = {
   saldo_trazido?: number | null;
   /** Só na inclusão (item 5.1, "Levar para esta semana" do lookahead). */
   cronograma_item_id?: string | null;
+  /** Item 5.3: motivo para entrar com restrição aberta (só na inclusão). */
+  justificativa_restricao?: string | null;
 };
+
+export const ERRO_MOTIVO_RESTRICAO = "Informe por que a atividade entra mesmo com restrição aberta.";
 
 export const ERRO_DIAS_COM_EXECUCAO =
   "Esta atividade já foi executada em turnos fora desses dias ou período. Mantenha os dias e o período desses turnos.";
@@ -126,6 +132,7 @@ function atividadeDe(r: Record<string, unknown>, equipe: EquipePrevista[]): Ativ
     trazida_de: (r.trazida_de as string | null) ?? null,
     saldo_trazido: numOuNull(r.saldo_trazido),
     cronograma_item_id: (r.cronograma_item_id as string | null) ?? null,
+    justificativa_restricao: (r.justificativa_restricao as string | null) ?? null,
     equipe,
   };
 }
@@ -136,7 +143,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
   const [pa, tu] = await Promise.all([
     c
       .from("programacao_atividades")
-      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, trazida_de, saldo_trazido, cronograma_item_id, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
+      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, trazida_de, saldo_trazido, cronograma_item_id, justificativa_restricao, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
       .eq("semana_id", semana.id),
     c
       .from("turnos")
@@ -302,6 +309,7 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
     trazida_de: typeof d.trazida_de === "string" && d.trazida_de ? d.trazida_de : null,
     saldo_trazido: typeof d.trazida_de === "string" && d.trazida_de && typeof d.saldo_trazido === "number" ? d.saldo_trazido : null,
     cronograma_item_id: typeof d.cronograma_item_id === "string" && d.cronograma_item_id ? d.cronograma_item_id : null,
+    justificativa_restricao: validarMotivoRestricao(d.justificativa_restricao),
   });
 }
 
@@ -313,6 +321,19 @@ export async function salvarAtividadeProgramada(
 ): Promise<Resultado<{ id: string }>> {
   const v = validarEntrada(dados);
   if (!v.ok) return v;
+  // Item 5.3: item do lookahead com restrição aberta só entra com motivo; sem restrição aberta, o motivo não vale.
+  if (id || !v.dados.cronograma_item_id) {
+    v.dados.justificativa_restricao = null;
+  } else {
+    const { data: abertas } = await c
+      .from("restricoes")
+      .select("id")
+      .eq("cronograma_item_id", v.dados.cronograma_item_id)
+      .is("removida_em", null)
+      .limit(1);
+    if (!abertas?.length) v.dados.justificativa_restricao = null;
+    else if (!v.dados.justificativa_restricao) return falha(ERRO_MOTIVO_RESTRICAO, { justificativa_restricao: ERRO_MOTIVO_RESTRICAO });
+  }
   const { data, error } = await c.rpc("salvar_programacao_atividade", {
     p_semana_id: semanaId,
     p_id: id ?? null,
@@ -348,6 +369,33 @@ async function mudarStatus(c: SupabaseClient, semanaId: string, campos: Record<s
 
 export async function programarSemana(c: SupabaseClient, semanaId: string): Promise<Resultado> {
   return mudarStatus(c, semanaId, { status: "programada" }, "Não foi possível programar a semana.");
+}
+
+export type PendenteMotivo = { id: string; descricao: string; restricoes: string[] };
+export const ERRO_PROGRAMAR_COM_RESTRICAO = "Há atividades com restrição aberta. Informe o motivo para programar mesmo assim.";
+
+/** Item 5.3: antes de programar, atividades de item com restrição aberta e sem motivo recebem `motivo`. */
+export async function programarSemanaComMotivo(
+  c: SupabaseClient,
+  semana: Semana,
+  motivo: string | null,
+): Promise<Resultado | { ok: false; erro: string; pendentes: PendenteMotivo[] }> {
+  const [dados, restricoes] = await Promise.all([obterDadosSemana(c, semana), listarRestricoesDaObra(c, semana.obra_id)]);
+  const pendentes = pendentesDeMotivo(dados.atividades, restricoes);
+  if (pendentes.length) {
+    const m = validarMotivoRestricao(motivo);
+    if (!m) return { ok: false, erro: ERRO_PROGRAMAR_COM_RESTRICAO, pendentes };
+    const { error } = await c
+      .from("programacao_atividades")
+      .update({ justificativa_restricao: m })
+      .in("id", pendentes.map((p) => p.id))
+      .eq("semana_id", semana.id);
+    if (error) {
+      console.error("programarSemanaComMotivo:", error.message);
+      return falha("Não foi possível programar a semana.");
+    }
+  }
+  return programarSemana(c, semana.id);
 }
 
 export async function encerrarSemana(c: SupabaseClient, semana: Semana, causas: Record<string, Causa>): Promise<Resultado> {
@@ -514,6 +562,7 @@ export async function listarProgramadasParaAnalise(
         naoCumpridas: r.atividades
           .filter((a) => a.situacao !== "cumprida")
           .map((a) => ({ descricao: a.descricao, causa: encerrada ? a.causa : (a.causa ?? a.causaSugerida) })),
+        comRestricao: resumoComRestricao(r.atividades),
       };
     }),
   );

@@ -97,10 +97,34 @@ export default async function AnalisePage({
       ) : (
         <>
           <Conteudo analise={analisarObra(turnos, semanas, programadas)} obraId={obra.id} dias={ppcPorDia(turnos, semanas[0], hojeSaoPaulo()).dias} />
+          <SecaoComRestricao programadas={programadas} />
           {turnos.length > 0 && <SecaoHHPerdido hh={hh} />}
         </>
       )}
     </div>
+  );
+}
+
+/** Item 5.3: atividades que entraram na semana com restrição aberta e quantas foram cumpridas. */
+function SecaoComRestricao({ programadas }: { programadas: SemanaProgramadaAnalise[] }) {
+  const com = programadas.reduce(
+    (t, p) => ({ total: t.total + (p.comRestricao?.total ?? 0), cumpridas: t.cumpridas + (p.comRestricao?.cumpridas ?? 0) }),
+    { total: 0, cumpridas: 0 },
+  );
+  if (com.total === 0) return null;
+  const geral = programadas.reduce((t, p) => ({ total: t.total + p.total, cumpridas: t.cumpridas + p.cumpridas }), { total: 0, cumpridas: 0 });
+  const pct = (c: number, t: number) => (t ? `${Math.round((c / t) * 100)}%` : "—");
+  return (
+    <Cartao className="flex flex-col gap-2">
+      <h2 className="text-lg font-semibold text-primaria">Entraram com restrição</h2>
+      <p className="text-texto">
+        {com.total} {com.total === 1 ? "atividade entrou" : "atividades entraram"} na semana com restrição aberta;{" "}
+        {com.cumpridas} {com.cumpridas === 1 ? "foi cumprida" : "foram cumpridas"} ({pct(com.cumpridas, com.total)}).
+      </p>
+      <p className="text-sm text-texto-suave">
+        Cumprimento de todas as atividades programadas no período: {pct(geral.cumpridas, geral.total)}.
+      </p>
+    </Cartao>
   );
 }
 

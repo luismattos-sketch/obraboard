@@ -18,6 +18,8 @@ import { Acompanhamento } from "./Acompanhamento";
 import { ListaRascunho } from "./ListaRascunho";
 import { listarItensCronograma } from "@/lib/db/cronograma";
 import { diasDoItemNaSemana } from "@/lib/dominio/cronograma";
+import { listarRestricoesDaObra } from "@/lib/db/restricoes";
+import { restricoesAbertasDoItem } from "@/lib/dominio/travaRestricao";
 
 const diaMes = (iso: string) => formatarData(iso).slice(0, 5);
 
@@ -80,7 +82,7 @@ export default async function SemanaPage({
   }
 
   const rascunho = semana.status === "rascunho";
-  const [dados, sugestoesFuncao, responsaveis, anterior, itensCronograma] = await Promise.all([
+  const [dados, sugestoesFuncao, responsaveis, anterior, itensCronograma, restricoes] = await Promise.all([
     dadosOficiais(supabase, semana),
     semana.status === "rascunho"
       ? sugestoesFuncaoDaObra(supabase, obra.id).catch(() => [...FUNCOES_SUGERIDAS])
@@ -88,13 +90,14 @@ export default async function SemanaPage({
     listarResponsaveis(supabase, obra.id),
     semana.status === "encerrada" ? Promise.resolve(null) : resumoSemanaAnterior(supabase, semana),
     rascunho ? listarItensCronograma(supabase, obra.id, { incluirRemovidos: true }) : Promise.resolve([]),
+    rascunho && itemId ? listarRestricoesDaObra(supabase, obra.id) : Promise.resolve(new Map()),
   ]);
   // Item 5.1: "Levar para esta semana" do lookahead chega com ?item= (só no rascunho).
   const codigosCronograma = Object.fromEntries(itensCronograma.map((i) => [i.id, i.codigo]));
   const itemLevado = rascunho && itemId ? itensCronograma.find((i) => i.id === itemId) : undefined;
   const doCronograma = itemLevado
     ? {
-        item: { id: itemLevado.id, codigo: itemLevado.codigo },
+        item: { id: itemLevado.id, codigo: itemLevado.codigo, restricoesAbertas: restricoesAbertasDoItem(itemLevado.id, restricoes) },
         modelo: {
           id: "", ordem: 0, descricao: itemLevado.descricao.slice(0, 200), local: itemLevado.local?.slice(0, 100) ?? null,
           unidade: itemLevado.unidade?.slice(0, 20) ?? null, meta: itemLevado.quantidade ?? 0,

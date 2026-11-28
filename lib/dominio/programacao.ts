@@ -40,6 +40,8 @@ export type AtividadeProgramada = {
   saldo_trazido?: number | null;
   /** Item 5.1: veio deste item do cronograma/lookahead. Ausente em fotos antigas. */
   cronograma_item_id?: string | null;
+  /** Item 5.3: motivo de ter entrado com restrição aberta. */
+  justificativa_restricao?: string | null;
 };
 
 export type ExecucaoLigada = {

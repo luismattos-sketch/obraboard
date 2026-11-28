@@ -194,6 +194,7 @@ describe.skipIf(!ligado)("camada de dados da programação", () => {
       {
         inicio: "2026-11-09", encerrada: false, cumpridas: 0, total: 2,
         naoCumpridas: [{ descricao: "Montar tubulação", causa: "material" }, { descricao: "Pintar", causa: null }],
+        comRestricao: { total: 0, cumpridas: 0 },
       },
     ]);
     expect(await listarProgramadasParaAnalise(u.cliente, obraId, "2026-11-10")).toEqual([]);

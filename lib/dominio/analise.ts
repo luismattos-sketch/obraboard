@@ -41,6 +41,8 @@ export type SemanaProgramadaAnalise = {
   total: number;
   /** causa: confirmada (encerrada) ou sugerida (provisória). */
   naoCumpridas: { descricao: string; causa: Causa | null }[];
+  /** Item 5.3: atividades que entraram com restrição aberta e quantas foram cumpridas. */
+  comRestricao?: { total: number; cumpridas: number };
 };
 
 export type ItemCausa =
