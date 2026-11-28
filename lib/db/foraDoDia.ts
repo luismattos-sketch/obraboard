@@ -15,6 +15,7 @@ import { removerFoto } from "./fotosParada";
 import { nomesResponsaveis, obterDadosSemana, semanaDoTurno } from "./programacao";
 import { textoOrigemMeta } from "@/lib/dominio/sequencia";
 import { lerMateriais } from "@/lib/dominio/extraApontamento";
+import { temCiencia } from "./ciencia";
 import { falha, ok, type Resultado } from "./resultado";
 
 /**
@@ -26,6 +27,7 @@ import { falha, ok, type Resultado } from "./resultado";
 export const ERRO_INDISPONIVEL = "Esta atividade não está disponível. Recarregue a página.";
 export const ERRO_ID_REUSADO = "Este registro já existe com outros dados. Recarregue a página.";
 export const ERRO_NAO_SUA = "Só quem lançou pode remover. Fale com o planejador.";
+export const ERRO_COM_CIENCIA = "O cliente já deu ciência neste serviço extra: ele não pode ser removido.";
 const ERRO_GENERICO = "Não foi possível salvar. Tente novamente.";
 const UNICIDADE = "23505";
 
@@ -178,6 +180,7 @@ export async function removerForaDoDia(
   if (ea && ea.code !== "22P02") return traduzir(ea, erroFechado);
   if (!at) return ok(undefined);
   if (criadaPorId !== null ? at.criada_por_id !== criadaPorId : !podeRemoverPlanejador(at)) return falha(ERRO_NAO_SUA);
+  if (at.tipo === "extra" && (await temCiencia(c, atividadeId))) return falha(ERRO_COM_CIENCIA);
   const { error } = await c.from("atividades").delete().eq("id", atividadeId).eq("turno_id", turnoId);
   if (error) return traduzir(error, erroFechado);
   if (at.foto_path) await removerFoto(at.foto_path as string);

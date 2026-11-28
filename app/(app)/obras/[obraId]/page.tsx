@@ -17,17 +17,22 @@ import { Responsaveis } from "./Responsaveis";
 import { IntervaloObra } from "./IntervaloObra";
 import { WhatsappObra } from "./WhatsappObra";
 import { CidadeObra } from "./CidadeObra";
+import { CienciaExtras } from "./CienciaExtras";
+import { semanasDeCiencia } from "@/lib/db/ciencia";
+import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
   const supabase = await criarClienteServidor();
   const obra = await obterObra(supabase, obraId);
   if (!obra) notFound();
-  const [turnos, responsaveis, quadro, intervalos] = await Promise.all([
+  const [turnos, responsaveis, quadro, intervalos, ciencia] = await Promise.all([
     listarTurnosComAtividades(supabase, obraId),
     listarResponsaveis(supabase, obraId),
     linkQuadro(supabase, obraId),
     obterIntervalosObra(supabase, obraId),
+    // Se a ciência falhar, a página da obra abre do mesmo jeito (sem o cartão).
+    semanasDeCiencia(supabase, obraId, hojeSaoPaulo()).catch(() => null),
   ]);
 
   return (
@@ -94,6 +99,7 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
 
       <Responsaveis obraId={obra.id} responsaveis={responsaveis} />
       <LinkQuadro obraId={obra.id} existe={quadro.existe} codigoAtual={quadro.codigo} />
+      {ciencia && <CienciaExtras obraId={obra.id} obraNome={obra.nome} semanas={ciencia} />}
       {intervalos && <IntervaloObra obraId={obra.id} intervalos={intervalos} />}
       <CidadeObra
         obraId={obra.id}

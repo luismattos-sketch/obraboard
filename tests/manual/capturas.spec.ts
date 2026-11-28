@@ -264,6 +264,19 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(pl, "encerrar-semana", "analise");
   await fotografar(pl, "encerrar-semana", "ppc-dia-a-dia");
 
+  // ---------- Ciência do cliente nos extras (4.3) ----------
+  await pl.goto(obraUrl);
+  const cartaoCiencia = pl.locator("#ciencia-extras");
+  await cartaoCiencia.getByRole("button", { name: "Gerar link" }).first().click();
+  await expect(cartaoCiencia.getByRole("link", { name: "Enviar no WhatsApp" }).first()).toBeVisible({ timeout: 20_000 });
+  await fotografar(pl, "encerrar-semana", "ciencia-extras");
+  const urlFiscal = (await cartaoCiencia.locator("p.break-all").first().textContent())!.trim();
+  const fiscal = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: "pt-BR", timezoneId: "America/Sao_Paulo" });
+  await fiscal.goto(new URL(urlFiscal).pathname);
+  await fiscal.getByLabel("Seu nome e função").fill("Marcos Lima, fiscal");
+  await fotografar(fiscal, "encerrar-semana", "ciencia-fiscal");
+  await fiscal.close();
+
   // ---------- Problemas e oportunidades (planejador) ----------
   await pl.goto(`${obraUrl}/turnos/${turnoId}`);
   await pl.getByText(/^Problemas e oportunidades \(/).click();
