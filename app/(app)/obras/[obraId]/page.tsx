@@ -20,6 +20,13 @@ import { CidadeObra } from "./CidadeObra";
 import { CienciaExtras } from "./CienciaExtras";
 import { semanasDeCiencia } from "@/lib/db/ciencia";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
+import { RoteiroSemana } from "@/components/obra/RoteiroSemana";
+import { obterSemana, resumoSemanaAnterior } from "@/lib/db/programacao";
+import { listarRestricoesDaObra } from "@/lib/db/restricoes";
+import { inicioDaSemana } from "@/lib/dominio/analise";
+import { somarDias } from "@/lib/dominio/programacao";
+import { resumoRestricoes } from "@/lib/dominio/restricoes";
+import { passosDoRoteiro } from "@/lib/dominio/roteiro";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
@@ -34,6 +41,25 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
     // Se a ciência falhar, a página da obra abre do mesmo jeito (sem o cartão).
     semanasDeCiencia(supabase, obraId, hojeSaoPaulo()).catch(() => null),
   ]);
+
+  // Item 5.4: roteiro da semana (o que falta no ciclo do LPS).
+  const hoje = hojeSaoPaulo();
+  const atual = inicioDaSemana(hoje);
+  const proximaInicio = somarDias(atual, 7);
+  const [anterior, resumoAnterior, proxima, restricoes] = await Promise.all([
+    obterSemana(supabase, obraId, somarDias(atual, -7)),
+    resumoSemanaAnterior(supabase, { obra_id: obraId, inicio: atual }).catch(() => null),
+    obterSemana(supabase, obraId, proximaInicio),
+    listarRestricoesDaObra(supabase, obraId),
+  ]);
+  const passos = passosDoRoteiro({
+    obraId, hoje, proximaInicio,
+    anterior: anterior ? { inicio: anterior.inicio, status: anterior.status, ppc: resumoAnterior?.ppc.ppc ?? null } : null,
+    proxima: proxima ? { inicio: proxima.inicio, status: proxima.status } : null,
+    restricoes: resumoRestricoes([...restricoes.values()].flat(), hoje),
+    turnosHoje: turnos.filter((t) => t.data === hoje).map((t) => ({ id: t.id, status: t.status, periodo: t.periodo })),
+  });
+  const tituloSemana = `${formatarData(atual).slice(0, 5)} a ${formatarData(somarDias(atual, 6)).slice(0, 5)}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,6 +85,8 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           )}
         </div>
       </div>
+
+      <RoteiroSemana obraId={obra.id} titulo={tituloSemana} passos={passos} />
 
       {turnos.length === 0 ? (
         <Cartao>

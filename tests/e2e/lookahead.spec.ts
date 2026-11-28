@@ -113,4 +113,15 @@ test("lookahead: importar CSV, reimportar, item manual e levar para a semana", a
 
   await page.goto(page.url().replace(/\/programacao\/.*/, "/lookahead"));
   await expect(page.getByText(/Na semana de/).first()).toBeVisible();
+
+  // Roteiro da semana e pauta da reunião (5.4).
+  await page.goto(page.url().replace(/\/lookahead.*/, ""));
+  const roteiro = page.getByRole("heading", { name: /Roteiro da semana/ }).locator("xpath=ancestor::*[contains(@class,'flex-col')][1]");
+  await expect(page.getByRole("heading", { name: /Roteiro da semana/ })).toBeVisible();
+  await expect(roteiro.getByText("Olhar o Lookahead")).toBeVisible();
+  await expect(roteiro.getByText("1 restrição aberta")).toBeVisible();
+  await page.getByRole("link", { name: "Abrir pauta da reunião" }).click();
+  await expect(page.getByRole("heading", { name: "Pauta da reunião" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Carlos" })).toBeVisible();
+  await expect(page.getByText("Guindaste em manutenção")).toBeVisible();
 });
