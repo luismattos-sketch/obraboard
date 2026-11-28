@@ -18,7 +18,8 @@ export async function listarRestricoesDaObra(c: SupabaseClient, obraId: string):
     return mapa;
   }
   for (const r of data ?? []) {
-    const { cronograma_itens: _, ...linha } = r as Record<string, unknown>;
+    const linha = { ...(r as Record<string, unknown>) };
+    delete linha.cronograma_itens;
     const restricao = linha as unknown as Restricao;
     const lista = mapa.get(restricao.cronograma_item_id) ?? [];
     lista.push(restricao);

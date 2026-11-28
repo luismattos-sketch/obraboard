@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { apagarRestricao, marcarRemovida, salvarRestricao } from "@/lib/db/restricoes";
 import { apagarItemManual, importarCronograma, obterItemCronograma, salvarItemManual } from "@/lib/db/cronograma";
 import { criarRascunho } from "@/lib/db/programacao";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
@@ -61,4 +62,31 @@ export async function levarParaSemanaAcao(_: EstadoLookahead, form: FormData): P
   if (!r.ok) return { ...falha(r.erro), envio: Date.now() };
   if (r.dados.status !== "rascunho") return { ...falha("Semana já programada."), envio: Date.now() };
   redirect(`/obras/${item.obra_id}/programacao/${r.dados.inicio}?item=${item.id}`);
+}
+
+// Item 5.2: restrições dos itens do lookahead.
+export async function salvarRestricaoAcao(_: EstadoLookahead, form: FormData): Promise<EstadoLookahead> {
+  const r = await salvarRestricao(
+    await criarClienteServidor(),
+    texto(form, "item_id"),
+    { tipo: texto(form, "tipo"), descricao: texto(form, "descricao"), responsavel: texto(form, "responsavel"), prazo: texto(form, "prazo") || null },
+    texto(form, "restricao_id") || undefined,
+  );
+  if (!r.ok) return { ...falha(r.erro, r.campos), envio: Date.now() };
+  atualizar();
+  return { ...ok(undefined), envio: Date.now() };
+}
+
+export async function marcarRemovidaAcao(_: EstadoLookahead, form: FormData): Promise<EstadoLookahead> {
+  const r = await marcarRemovida(await criarClienteServidor(), texto(form, "restricao_id"), texto(form, "removida") === "1");
+  if (!r.ok) return { ...falha(r.erro), envio: Date.now() };
+  atualizar();
+  return { ...ok(undefined), envio: Date.now() };
+}
+
+export async function apagarRestricaoAcao(_: EstadoLookahead, form: FormData): Promise<EstadoLookahead> {
+  const r = await apagarRestricao(await criarClienteServidor(), texto(form, "restricao_id"));
+  if (!r.ok) return { ...falha(r.erro), envio: Date.now() };
+  atualizar();
+  return { ...ok(undefined), envio: Date.now() };
 }
