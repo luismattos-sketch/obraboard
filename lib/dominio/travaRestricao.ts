@@ -23,7 +23,7 @@ export function pendentesDeMotivo(
   });
 }
 
-export function validarMotivo(t: string | null | undefined): string | null {
+export function validarMotivoRestricao(t: string | null | undefined): string | null {
   const s = (t ?? "").trim();
   return s && s.length <= 300 ? s : null;
 }

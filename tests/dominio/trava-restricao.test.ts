@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pendentesDeMotivo, restricoesAbertasDoItem, resumoComRestricao, validarMotivo } from "@/lib/dominio/travaRestricao";
+import { pendentesDeMotivo, restricoesAbertasDoItem, resumoComRestricao, validarMotivoRestricao } from "@/lib/dominio/travaRestricao";
 
 const r = (descricao: string, removida_em: string | null = null) => ({ descricao, responsavel: "Marcos", prazo: null, removida_em });
 const porItem = new Map([
@@ -27,11 +27,11 @@ describe("pendentesDeMotivo", () => {
   });
 });
 
-describe("validarMotivo", () => {
+describe("validarMotivoRestricao", () => {
   it("limpa e limita a 300", () => {
-    expect(validarMotivo("  Cliente libera segunda ")).toBe("Cliente libera segunda");
-    expect(validarMotivo("   ")).toBeNull();
-    expect(validarMotivo("x".repeat(301))).toBeNull();
+    expect(validarMotivoRestricao("  Cliente libera segunda ")).toBe("Cliente libera segunda");
+    expect(validarMotivoRestricao("   ")).toBeNull();
+    expect(validarMotivoRestricao("x".repeat(301))).toBeNull();
   });
 });
 
