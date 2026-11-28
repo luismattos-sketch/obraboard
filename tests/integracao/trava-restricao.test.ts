@@ -30,7 +30,9 @@ describe.skipIf(!ligado)("trava com motivo (5.3)", () => {
     const sem = await salvarAtividadeProgramada(c, semana.id, { ...ativ, descricao: "Tubulação", cronograma_item_id: item.id });
     expect(sem).toMatchObject({ ok: false, erro: ERRO_MOTIVO_RESTRICAO });
     const a = exigir(await salvarAtividadeProgramada(c, semana.id, { ...ativ, descricao: "Tubulação", cronograma_item_id: item.id, justificativa_restricao: "Cliente libera segunda" }));
-    const b = exigir(await salvarAtividadeProgramada(c, semana.id, { ...ativ, descricao: "Pintura", cronograma_item_id: livre.id }));
+    const b = exigir(await salvarAtividadeProgramada(c, semana.id, { ...ativ, descricao: "Pintura", cronograma_item_id: livre.id, justificativa_restricao: "motivo à toa" }));
+    // item sem restrição aberta: o motivo não é gravado (sem selo falso)
+    expect((await obterDadosSemana(c, semana)).atividades.find((x) => x.id === b.id)?.justificativa_restricao).toBeNull();
     // edição não apaga o motivo
     exigir(await salvarAtividadeProgramada(c, semana.id, { ...ativ, descricao: "Tubulação L3" }, a.id));
 

@@ -102,14 +102,18 @@ export function FormAtividadeProgramada({
             Do lookahead{cronogramaItem.codigo ? ` (código ${cronogramaItem.codigo})` : ""}. Ajuste a meta, os dias, o responsável e a
             equipe para o que cabe nesta semana. Para quebrar em partes, leve o item de novo.
           </Aviso>
-          {cronogramaItem.restricoesAbertas?.length ? (
+          {cronogramaItem.restricoesAbertas?.length || campos?.justificativa_restricao ? (
             <div className="flex flex-col gap-2 rounded-botao border border-alerta bg-alerta-clara p-3">
               <p className="font-semibold text-alerta-escura">
-                {cronogramaItem.restricoesAbertas.length === 1 ? "1 restrição aberta" : `${cronogramaItem.restricoesAbertas.length} restrições abertas`} neste item:
+                {(cronogramaItem.restricoesAbertas?.length ?? 0) === 0
+                  ? "Este item ganhou restrição aberta:"
+                  : cronogramaItem.restricoesAbertas!.length === 1 ? "1 restrição aberta neste item:" : `${cronogramaItem.restricoesAbertas!.length} restrições abertas neste item:`}
               </p>
-              <ul className="list-disc pl-5 text-sm">
-                {cronogramaItem.restricoesAbertas.map((r, i) => <li key={i}>{r.descricao} ({r.responsavel})</li>)}
-              </ul>
+              {cronogramaItem.restricoesAbertas?.length ? (
+                <ul className="list-disc pl-5 text-sm">
+                  {cronogramaItem.restricoesAbertas.map((r, i) => <li key={i}>{r.descricao} ({r.responsavel})</li>)}
+                </ul>
+              ) : null}
               <Campo rotulo="Por que entra mesmo assim?" name="justificativa_restricao" maxLength={300} required
                 placeholder="Ex.: cliente confirmou a PT para segunda cedo" erro={campos?.justificativa_restricao} />
             </div>

@@ -1,6 +1,6 @@
 -- Item 5.3: atividade com restricao aberta entra na semana so com motivo.
 alter table public.programacao_atividades
-  add column justificativa_restricao text check (justificativa_restricao is null or char_length(justificativa_restricao) between 1 and 300);
+  add column justificativa_restricao text check (justificativa_restricao is null or char_length(btrim(justificativa_restricao)) between 1 and 300);
 
 -- salvar_programacao_atividade: grava o motivo na inclusao (a edicao nao mexe nele).
 create or replace function public.salvar_programacao_atividade(p_semana_id uuid, p_id uuid, p_dados jsonb)

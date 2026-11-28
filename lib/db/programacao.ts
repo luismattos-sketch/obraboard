@@ -321,15 +321,18 @@ export async function salvarAtividadeProgramada(
 ): Promise<Resultado<{ id: string }>> {
   const v = validarEntrada(dados);
   if (!v.ok) return v;
-  // Item 5.3: item do lookahead com restrição aberta só entra com motivo.
-  if (!id && v.dados.cronograma_item_id && !v.dados.justificativa_restricao) {
+  // Item 5.3: item do lookahead com restrição aberta só entra com motivo; sem restrição aberta, o motivo não vale.
+  if (id || !v.dados.cronograma_item_id) {
+    v.dados.justificativa_restricao = null;
+  } else {
     const { data: abertas } = await c
       .from("restricoes")
       .select("id")
       .eq("cronograma_item_id", v.dados.cronograma_item_id)
       .is("removida_em", null)
       .limit(1);
-    if (abertas?.length) return falha(ERRO_MOTIVO_RESTRICAO, { justificativa_restricao: ERRO_MOTIVO_RESTRICAO });
+    if (!abertas?.length) v.dados.justificativa_restricao = null;
+    else if (!v.dados.justificativa_restricao) return falha(ERRO_MOTIVO_RESTRICAO, { justificativa_restricao: ERRO_MOTIVO_RESTRICAO });
   }
   const { data, error } = await c.rpc("salvar_programacao_atividade", {
     p_semana_id: semanaId,
