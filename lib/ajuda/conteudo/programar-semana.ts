@@ -22,6 +22,20 @@ export const programarSemana: Capitulo = {
       },
     },
     {
+      id: "restricoes",
+      titulo: "Marque as restrições de cada item",
+      texto: [
+        "No cartão do item, toque em \"Restrições\" e em \"Adicionar restrição\": escolha o tipo (material, área não liberada, segurança, falta de projeto…), descreva o que impede, informe o responsável por destravar (alguém da equipe ou do cliente) e, se quiser, o prazo.",
+        "O item mostra quantas restrições estão abertas; se alguma passou do prazo, o selo fica vermelho com \"vencida\". Quando a trava for resolvida, toque em \"Removida\" — ela vai para \"Removidas\" e pode ser reaberta.",
+        "Use a lista na reunião semanal: o objetivo é chegar à semana com o item sem restrição aberta.",
+      ],
+      captura: {
+        alt: "Restrições de um item do lookahead com tipo, responsável e prazo",
+        alvo: { papel: "heading", nome: "Restrições" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "levar-lookahead",
       titulo: "Leve o item para a semana",
       texto: [
