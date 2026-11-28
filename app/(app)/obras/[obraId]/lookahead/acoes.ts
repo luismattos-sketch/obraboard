@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { apagarItemManual, importarCronograma, obterItemCronograma, salvarItemManual } from "@/lib/db/cronograma";
 import { criarRascunho } from "@/lib/db/programacao";
 import { falha, ok, type Resultado } from "@/lib/db/resultado";
-import type { ItemLido, Mapeamento } from "@/lib/dominio/cronograma";
+import { lerQuantidade, type ItemLido, type Mapeamento } from "@/lib/dominio/cronograma";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 
 export type EstadoLookahead = (Resultado<string | undefined> & { envio?: number }) | null;
@@ -27,7 +27,6 @@ export async function importarCronogramaAcao(
 }
 
 export async function salvarItemManualAcao(_: EstadoLookahead, form: FormData): Promise<EstadoLookahead> {
-  const qtd = texto(form, "quantidade").replace(/\./g, "").replace(",", ".");
   const r = await salvarItemManual(
     await criarClienteServidor(),
     texto(form, "obra_id"),
@@ -37,7 +36,7 @@ export async function salvarItemManualAcao(_: EstadoLookahead, form: FormData): 
       fim: texto(form, "fim"),
       local: texto(form, "local") || null,
       unidade: texto(form, "unidade") || null,
-      quantidade: qtd ? Number(qtd) : null,
+      quantidade: texto(form, "quantidade") ? (lerQuantidade(texto(form, "quantidade")) ?? NaN) : null,
     },
     texto(form, "item_id") || undefined,
   );

@@ -126,9 +126,11 @@ export function ListaRascunho({
     doCronograma ? { atividade: doCronograma.modelo, n: 0, continuaDe: null, trazidaDe: null, cronogramaItem: doCronograma.item } : null,
   );
   const novaRef = useRef<HTMLDivElement>(null);
+  // Só ao chegar do lookahead (o objeto muda a cada render do servidor; o id não).
+  const itemLevadoId = doCronograma?.item.id;
   useEffect(() => {
-    if (doCronograma) novaRef.current?.scrollIntoView({ block: "start" });
-  }, [doCronograma]);
+    if (itemLevadoId) novaRef.current?.scrollIntoView({ block: "start" });
+  }, [itemLevadoId]);
   const duplicar = (a: AtividadeProgramada, continuaDe: AtividadeProgramada | null = null, trazidaDe: Trazida | null = null) => {
     setCopia((c) => ({ atividade: a, n: (c?.n ?? 0) + 1, continuaDe, trazidaDe }));
     novaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

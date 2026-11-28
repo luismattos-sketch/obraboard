@@ -69,7 +69,8 @@ const iso = (a: number, m: number, d: number): string | null => {
 
 /** Data em ISO (yyyy-mm-dd) a partir do que o Excel/Project/Primavera exporta; null se inválida. */
 export function lerData(v: unknown): string | null {
-  if (v instanceof Date) return isNaN(v.getTime()) ? null : iso(v.getFullYear(), v.getMonth() + 1, v.getDate());
+  // read-excel-file monta o Date a partir de UTC: ler em UTC para não voltar um dia no Brasil.
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : iso(v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate());
   if (typeof v === "number") {
     if (!Number.isFinite(v) || v < 1) return null;
     return somarDias("1899-12-30", Math.floor(v));
@@ -83,7 +84,7 @@ export function lerData(v: unknown): string | null {
 }
 
 /** Número em pt-BR ("1.234,5") ou en ("1234.5"); null se vazio ou não for número > 0. */
-function lerQuantidade(v: unknown): number | null {
+export function lerQuantidade(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) && v > 0 ? v : null;
   let s = String(v ?? "").trim().replace(/\s/g, "");
   if (!s) return null;

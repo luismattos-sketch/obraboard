@@ -5,6 +5,7 @@ import {
   itensDaSemana,
   lerData,
   lerLinhas,
+  lerQuantidade,
   mudouDesdeLevado,
   planoReimportacao,
   semanasDoLookahead,
@@ -34,6 +35,9 @@ describe("lerData", () => {
     expect(lerData("02/12/2026")).toBe("2026-12-02");
   });
   it("recusa data impossível", () => expect(lerData("32/01/2026")).toBeNull());
+  it("lê Date do read-excel-file pelo dia em UTC (célula só com data)", () => {
+    expect(lerData(new Date(Date.UTC(2026, 11, 1)))).toBe("2026-12-01");
+  });
 });
 
 describe("lerLinhas", () => {
@@ -57,6 +61,16 @@ describe("lerLinhas", () => {
       { linha: 5, motivo: "data inválida" },
       { linha: 6, motivo: "fim antes do início" },
     ]);
+  });
+});
+
+describe("lerQuantidade", () => {
+  it("aceita ponto decimal do teclado do celular e milhar com vírgula decimal", () => {
+    expect(lerQuantidade("1.5")).toBe(1.5);
+    expect(lerQuantidade("1,5")).toBe(1.5);
+    expect(lerQuantidade("1.234,5")).toBe(1234.5);
+    expect(lerQuantidade("")).toBeNull();
+    expect(lerQuantidade("0")).toBeNull();
   });
 });
 
