@@ -26,7 +26,8 @@ import { listarRestricoesDaObra } from "@/lib/db/restricoes";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { somarDias } from "@/lib/dominio/programacao";
 import { resumoRestricoes } from "@/lib/dominio/restricoes";
-import { passosDoRoteiro } from "@/lib/dominio/roteiro";
+import { passosDoRoteiro, restricoesDeItensAtivos } from "@/lib/dominio/roteiro";
+import { listarItensCronograma } from "@/lib/db/cronograma";
 
 export default async function ObraPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
@@ -46,17 +47,19 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
   const hoje = hojeSaoPaulo();
   const atual = inicioDaSemana(hoje);
   const proximaInicio = somarDias(atual, 7);
-  const [anterior, resumoAnterior, proxima, restricoes] = await Promise.all([
-    obterSemana(supabase, obraId, somarDias(atual, -7)),
+  // Falhas aqui não derrubam a página da obra: o passo correspondente só fica sem o dado.
+  const [anterior, resumoAnterior, proxima, restricoes, itensAtivos] = await Promise.all([
+    obterSemana(supabase, obraId, somarDias(atual, -7)).catch(() => null),
     resumoSemanaAnterior(supabase, { obra_id: obraId, inicio: atual }).catch(() => null),
-    obterSemana(supabase, obraId, proximaInicio),
-    listarRestricoesDaObra(supabase, obraId),
+    obterSemana(supabase, obraId, proximaInicio).catch(() => null),
+    listarRestricoesDaObra(supabase, obraId).catch(() => new Map()),
+    listarItensCronograma(supabase, obraId).catch(() => []),
   ]);
   const passos = passosDoRoteiro({
     obraId, hoje, proximaInicio,
     anterior: anterior ? { inicio: anterior.inicio, status: anterior.status, ppc: resumoAnterior?.ppc.ppc ?? null } : null,
     proxima: proxima ? { inicio: proxima.inicio, status: proxima.status } : null,
-    restricoes: resumoRestricoes([...restricoes.values()].flat(), hoje),
+    restricoes: resumoRestricoes(restricoesDeItensAtivos(restricoes, new Set(itensAtivos.map((i) => i.id))), hoje),
     turnosHoje: turnos.filter((t) => t.data === hoje).map((t) => ({ id: t.id, status: t.status, periodo: t.periodo })),
   });
   const tituloSemana = `${formatarData(atual).slice(0, 5)} a ${formatarData(somarDias(atual, 6)).slice(0, 5)}`;

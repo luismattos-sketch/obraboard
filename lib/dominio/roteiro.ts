@@ -120,3 +120,8 @@ export function restricoesPorResponsavel<T extends { responsavel: string; prazo:
     .map(([responsavel, itens]) => ({ responsavel, itens: itens.sort(ordemItem) }))
     .sort((a, b) => Number(b.itens.some((i) => i.vencida)) - Number(a.itens.some((i) => i.vencida)) || a.responsavel.localeCompare(b.responsavel, "pt-BR"));
 }
+
+/** Restrições só dos itens que ainda estão no cronograma (as dos removidos não podem ser resolvidas no Lookahead). */
+export function restricoesDeItensAtivos<T>(porItem: Map<string, T[]>, ativos: Set<string>): T[] {
+  return [...porItem.entries()].filter(([id]) => ativos.has(id)).flatMap(([, l]) => l);
+}

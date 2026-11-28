@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparCausas, passosDoRoteiro, restricoesPorResponsavel } from "@/lib/dominio/roteiro";
+import { agruparCausas, passosDoRoteiro, restricoesDeItensAtivos, restricoesPorResponsavel } from "@/lib/dominio/roteiro";
 
 const base = {
   obraId: "o1", hoje: "2026-12-02", proximaInicio: "2026-12-07",
@@ -64,5 +64,12 @@ describe("restricoesPorResponsavel", () => {
     expect(g.map((x) => x.responsavel)).toEqual(["Bruno", "Ana"]);
     expect(g[0].itens.map((i) => [i.prazo, i.vencida])).toEqual([["2026-12-01", true], ["2026-12-20", false]]);
     expect(g[1].itens.map((i) => i.prazo)).toEqual(["2026-12-10", null]);
+  });
+});
+
+describe("restricoesDeItensAtivos", () => {
+  it("ignora restrições de itens que saíram do cronograma", () => {
+    const m = new Map([["A", [{ id: "1" }]], ["B", [{ id: "2" }, { id: "3" }]]]);
+    expect(restricoesDeItensAtivos(m, new Set(["B"])).map((r) => r.id)).toEqual(["2", "3"]);
   });
 });

@@ -81,7 +81,7 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
   return (
     <div className="min-h-screen md:flex">
       {/* Barra superior: só no celular */}
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-borda bg-superficie px-2 py-2 md:hidden">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-borda bg-superficie px-2 py-2 md:hidden print:hidden">
         <button type="button" className={botaoIcone} aria-label="Abrir menu" aria-expanded={aberto}
           aria-controls="menu-lateral" onClick={() => setAberto(true)}>
           <Icone d={ICONE_MENU} />
@@ -101,7 +101,7 @@ export function MenuLateral({ obras, nome, recolhidoInicial, children }: Props) 
         aria-label="Menu"
         className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-borda bg-superficie transition-[transform,width] duration-200
           ${aberto ? "translate-x-0" : "-translate-x-full max-md:invisible"}
-          md:visible md:sticky md:top-0 md:h-screen md:translate-x-0 ${recolhido ? "md:w-16" : "md:w-64"}`}
+          md:visible md:sticky md:top-0 md:h-screen md:translate-x-0 ${recolhido ? "md:w-16" : "md:w-64"} print:hidden`}
       >
         <div className={`flex items-center gap-2 px-3 pt-3 pb-2 ${recolhido ? "md:justify-center md:px-0" : ""}`}>
           <button type="button" className={`${botaoIcone} max-md:hidden`}

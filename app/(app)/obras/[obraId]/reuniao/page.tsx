@@ -30,16 +30,20 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ obraId
   const atual = inicioDaSemana(hoje);
   const anteriorInicio = somarDias(atual, -7);
   const proximaInicio = somarDias(atual, 7);
-  const [resumo, proxima, restricoes, itens] = await Promise.all([
+  const [anterior, resumo, proxima, restricoes, itens] = await Promise.all([
+    obterSemana(c, obraId, anteriorInicio).catch(() => null),
     resumoSemanaAnterior(c, { obra_id: obraId, inicio: atual }).catch(() => null),
-    obterSemana(c, obraId, proximaInicio),
+    obterSemana(c, obraId, proximaInicio).catch(() => null),
     listarRestricoesDaObra(c, obraId),
     listarItensCronograma(c, obraId),
   ]);
   const nomeItem = new Map(itens.map((i) => [i.id, i.descricao]));
-  const todas = [...restricoes.entries()].flatMap(([itemId, l]) => l.map((r) => ({ ...r, item: nomeItem.get(itemId) ?? "Item fora do cronograma" })));
+  const todas = [...restricoes.entries()]
+    .filter(([itemId]) => nomeItem.has(itemId))
+    .flatMap(([itemId, l]) => l.map((r) => ({ ...r, item: nomeItem.get(itemId)! })));
+  const encerrada = anterior?.status === "encerrada";
   const grupos = restricoesPorResponsavel(todas, hoje);
-  const causas = resumo ? agruparCausas(resumo.atividades.filter((a) => a.situacao !== "cumprida").map((a) => ({ causa: a.causa ?? a.causaSugerida }))) : [];
+  const causas = resumo ? agruparCausas(resumo.atividades.filter((a) => a.situacao !== "cumprida").map((a) => ({ causa: encerrada ? a.causa : (a.causa ?? a.causaSugerida) }))) : [];
   const statusProxima = proxima ? statusExibido(proxima.status, proxima.inicio, hoje) : null;
 
   return (
@@ -59,7 +63,11 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ obraId
           <p className="text-texto-suave">Nada programado na semana passada.</p>
         ) : (
           <>
-            <p>PPC <strong>{formatarPercentual(resumo.ppc.ppc)}</strong> · {resumo.ppc.cumpridas} de {resumo.ppc.total} atividades cumpridas</p>
+            {!encerrada && <p className="text-sm font-semibold text-alerta-escura">Aguardando encerramento: PPC e causas ainda provisórios.</p>}
+            <p>
+              PPC <strong>{formatarPercentual(resumo.ppc.ppc)}</strong> · {resumo.ppc.cumpridas} de {resumo.ppc.total}{" "}
+              {resumo.ppc.total === 1 ? "atividade cumprida" : "atividades cumpridas"}
+            </p>
             {causas.length === 0 ? (
               <p className="text-texto-suave">Todas as atividades foram cumpridas.</p>
             ) : (
