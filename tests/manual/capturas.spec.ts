@@ -275,7 +275,16 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fiscal.goto(new URL(urlFiscal).pathname);
   await fiscal.getByLabel("Seu nome e função").fill("Marcos Lima, fiscal");
   await fotografar(fiscal, "encerrar-semana", "ciencia-fiscal");
+  await fiscal.getByRole("button", { name: "Ciente" }).first().click();
+  await expect(fiscal.getByText(/✓ Ciente — Marcos Lima, fiscal/).first()).toBeVisible({ timeout: 20_000 });
   await fiscal.close();
+
+  // ---------- Relatório da Obra (4.4) ----------
+  await pl.goto(`${obraUrl}/rdos`);
+  await fotografar(pl, "fechar-turno", "relatorio-obra");
+  const relatorio = await pl.request.get(`/api/relatorio-obra?obra=${obraId}&tipo=obra`);
+  expect(relatorio.status()).toBe(200);
+  expect((await relatorio.body()).subarray(0, 4).toString()).toBe("%PDF");
 
   // ---------- Problemas e oportunidades (planejador) ----------
   await pl.goto(`${obraUrl}/turnos/${turnoId}`);

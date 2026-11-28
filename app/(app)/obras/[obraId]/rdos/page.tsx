@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { BaixarLote } from "@/components/rdo/BaixarLote";
 import { FiltrosRdo } from "@/components/rdo/FiltrosRdo";
 import { ListaRdos } from "@/components/rdo/ListaRdos";
+import { RelatorioObra } from "@/components/rdo/RelatorioObra";
+import { hojeSaoPaulo } from "@/lib/dominio/entrada";
 import { Aviso } from "@/components/ui/Aviso";
 import { obterObra } from "@/lib/db/obras";
 import { listarVersoes } from "@/lib/db/rdo-versoes";
@@ -49,6 +51,7 @@ export default async function RdosObraPage({
         <>
           <FiltrosRdo acao={`/obras/${obra.id}/rdos`} meses={mesesDisponiveis(itens)} mes={mes} />
           <BaixarLote mes={mes} quantidade={grupos.length} obraId={obra.id} />
+          <RelatorioObra obraId={obra.id} hoje={hojeSaoPaulo()} />
           <ListaRdos grupos={grupos} mostrarObra={false} filtrado={mes !== null} />
         </>
       )}
