@@ -121,6 +121,11 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   await fotografar(pl, "programar-semana", "levar-lookahead");
   await pl.getByRole("listitem").filter({ hasText: "Montar tubulação da linha 3" }).getByRole("button", { name: /^Restrições/ }).click();
   await fotografar(pl, "programar-semana", "restricoes");
+  // Item 5.4: roteiro da semana e pauta da reunião.
+  await pl.goto(obraUrl);
+  await fotografar(pl, "metodo-lps", "ciclo");
+  await pl.goto(`${obraUrl}/reuniao`);
+  await fotografar(pl, "metodo-lps", "reuniao");
 
   // ---------- Programar a semana ----------
   await pl.goto(`${obraUrl}/programacao`);

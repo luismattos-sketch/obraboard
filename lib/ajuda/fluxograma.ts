@@ -17,6 +17,12 @@ export const FLUXOGRAMA: FaseFluxo[] = [
     linhas: [
       [
         {
+          rotulo: "Reunião semanal",
+          detalhe: "pauta: PPC, causas, restrições",
+          ator: "planejador",
+          href: "/ajuda/metodo-lps#reuniao",
+        },
+        {
           rotulo: "Olhar o Lookahead",
           detalhe: "cronograma ou itens à mão",
           ator: "planejador",

@@ -12,6 +12,7 @@ import { NOVIDADES } from "@/lib/ajuda/novidades";
 
 const SLUGS_INDICE = [
   "primeiros-passos",
+  "metodo-lps",
   "programar-semana",
   "check-in",
   "durante-o-turno",
@@ -56,13 +57,14 @@ describe("capítulos do manual", () => {
     expect(capituloPorSlug("xyz")).toBeUndefined();
   });
 
-  it("o índice tem os 8 capítulos do planejador em ordem, sem o do campo", () => {
+  it("o índice tem os 9 capítulos do planejador em ordem, sem o do campo", () => {
     expect(capitulosDoIndice().map((c) => c.slug)).toEqual(SLUGS_INDICE);
     expect(capituloPorSlug("campo")?.noIndice).toBe(true);
   });
 
   it("próximo capítulo segue a ordem e para no fim e no campo", () => {
-    expect(proximoCapitulo("primeiros-passos")?.slug).toBe("programar-semana");
+    expect(proximoCapitulo("primeiros-passos")?.slug).toBe("metodo-lps");
+    expect(proximoCapitulo("metodo-lps")?.slug).toBe("programar-semana");
     expect(proximoCapitulo("quadro-tv")?.slug).toBe("duvidas");
     expect(proximoCapitulo("duvidas")).toBeNull();
     expect(proximoCapitulo("campo")).toBeNull();
