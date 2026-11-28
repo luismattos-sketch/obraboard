@@ -47,3 +47,6 @@ next-env.d.ts
 
 # brainstorming visual
 .superpowers/
+
+# Supabase CLI (ref do projeto local)
+supabase/.temp/

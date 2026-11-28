@@ -22,6 +22,7 @@ export function FormAtividadeProgramada({
   modelo,
   continuaDe,
   trazidaDe,
+  cronogramaItem,
   sugestoesFuncao,
   aoConcluir,
 }: {
@@ -35,6 +36,8 @@ export function FormAtividadeProgramada({
   continuaDe?: AtividadeProgramada;
   /** "Trazer" da semana anterior (item 1.6): guarda a origem e o saldo de agora. */
   trazidaDe?: { id: string; saldo: number };
+  /** "Levar para esta semana" do lookahead (item 5.1): guarda de qual item do cronograma veio. */
+  cronogramaItem?: { id: string; codigo: string | null };
   /** Funções já usadas na obra + padrão (evita duas grafias da mesma função). */
   sugestoesFuncao: string[];
   /** Chamado após salvar (edição) ou ao cancelar. */
@@ -44,7 +47,7 @@ export function FormAtividadeProgramada({
   const [descricao, setDescricao] = useState(base?.descricao ?? "");
   const [local, setLocal] = useState(base?.local ?? "");
   const [unidade, setUnidade] = useState(base?.unidade ?? "");
-  const [meta, setMeta] = useState(base ? String(base.meta).replace(".", ",") : "");
+  const [meta, setMeta] = useState(base && base.meta > 0 ? String(base.meta).replace(".", ",") : "");
   const [dias, setDias] = useState<DiaSemana[]>(base?.dias ?? []);
   const [periodo, setPeriodo] = useState<Periodo>(base?.periodo ?? "diurno");
   const [responsavel, setResponsavel] = useState<string | null>(base?.responsavel_id ?? null);
@@ -67,8 +70,8 @@ export function FormAtividadeProgramada({
 
   // Edição e próximo turno da sequência: fecha o formulário ao salvar.
   useEffect(() => {
-    if (estado?.ok && (atividade || continuaDe || trazidaDe)) aoConcluir?.();
-  }, [estado, atividade, continuaDe, trazidaDe, aoConcluir]);
+    if (estado?.ok && (atividade || continuaDe || trazidaDe || cronogramaItem)) aoConcluir?.();
+  }, [estado, atividade, continuaDe, trazidaDe, cronogramaItem, aoConcluir]);
 
   const falhou = estado && !estado.ok ? estado : null;
   const campos = falhou?.campos;
@@ -89,6 +92,15 @@ export function FormAtividadeProgramada({
           <Aviso tom="info">
             Continua de “{continuaDe.descricao}” ({continuaDe.periodo === "diurno" ? "diurno" : "noturno"}). O que faltar ou sobrar
             no turno anterior passa para este. Troque o responsável e a equipe se for outra turma.
+          </Aviso>
+        </>
+      )}
+      {cronogramaItem && (
+        <>
+          <input type="hidden" name="cronograma_item_id" value={cronogramaItem.id} />
+          <Aviso tom="info">
+            Do lookahead{cronogramaItem.codigo ? ` (código ${cronogramaItem.codigo})` : ""}. Ajuste a meta, os dias, o responsável e a
+            equipe para o que cabe nesta semana. Para quebrar em partes, leve o item de novo.
           </Aviso>
         </>
       )}

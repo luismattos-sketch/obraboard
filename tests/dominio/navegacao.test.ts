@@ -45,7 +45,8 @@ describe("menuRecolhido", () => {
 describe("etapas da obra no menu", () => {
   const id = "11111111-1111-1111-1111-111111111111";
   it("segue a ordem do ciclo: programação, turnos, RDOs, análise", () => {
-    expect(ETAPAS.map((e) => e.rotulo)).toEqual(["Programação", "Turnos", "RDOs", "Análise (PPC)"]);
+    expect(ETAPAS.map((e) => e.rotulo)).toEqual(["Lookahead", "Programação", "Turnos", "RDOs", "Análise (PPC)"]);
+    expect(etapaDoCaminho(`/obras/${"x"}/lookahead`)).toBe("lookahead");
   });
   it("monta o endereço de cada etapa (Turnos é a página da obra)", () => {
     expect(caminhoEtapa(id, "programacao")).toBe(`/obras/${id}/programacao`);

@@ -4,6 +4,7 @@ import type { SlugCapitulo } from "./tipos";
 
 export type TelaAjuda =
   | "obras"
+  | "lookahead"
   | "programacao"
   | "encerrar-semana"
   | "turno-planejado"
@@ -15,6 +16,7 @@ export type TelaAjuda =
 
 const CAPITULO_DA_TELA: Record<TelaAjuda, SlugCapitulo> = {
   obras: "primeiros-passos",
+  lookahead: "programar-semana",
   programacao: "programar-semana",
   "encerrar-semana": "encerrar-semana",
   "turno-planejado": "check-in",

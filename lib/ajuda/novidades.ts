@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Lookahead: veja as próximas 3 a 6 semanas, suba o cronograma do Project ou Primavera (Excel/CSV) ou adicione itens à mão, e leve cada item para a programação da semana.",
+    href: "/ajuda/programar-semana#lookahead",
+  },
+  {
+    data: "2026-11-27",
     texto: "Relatório da Obra em PDF: na etapa \"RDOs\", escolha semana, mês ou obra inteira e baixe um documento com a linha do tempo, HH, paradas (externas × internas), serviços extras com a ciência do cliente e fotos.",
     href: "/ajuda/fechar-turno#relatorio-obra",
   },
