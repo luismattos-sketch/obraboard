@@ -38,6 +38,7 @@ const ICONE_OBRA = "M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6";
 const ICONE_SETA = "M6 9l6 6 6-6";
 const ICONE_LISTA = "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01";
 const ICONE_ETAPA: Record<Etapa, string> = {
+  lookahead: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   programacao: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 15l2 2 4-4",
   turnos: "M2 18h20M4 18v-3a8 8 0 0 1 16 0v3M10 7V5h4v2",
   rdos: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6",

@@ -21,10 +21,11 @@ export function obraIdDoCaminho(caminho: string): string | null {
   return id;
 }
 
-/** Etapas da obra no menu lateral, na ordem do ciclo: programar → executar → registrar → medir. */
-export type Etapa = "programacao" | "turnos" | "rdos" | "analise";
+/** Etapas da obra no menu lateral, na ordem do ciclo: olhar à frente → programar → executar → registrar → medir. */
+export type Etapa = "lookahead" | "programacao" | "turnos" | "rdos" | "analise";
 
 export const ETAPAS: { id: Etapa; rotulo: string; sufixo: string }[] = [
+  { id: "lookahead", rotulo: "Lookahead", sufixo: "/lookahead" },
   { id: "programacao", rotulo: "Programação", sufixo: "/programacao" },
   { id: "turnos", rotulo: "Turnos", sufixo: "" },
   { id: "rdos", rotulo: "RDOs", sufixo: "/rdos" },
