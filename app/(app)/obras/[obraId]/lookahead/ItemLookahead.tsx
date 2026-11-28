@@ -9,6 +9,8 @@ import type { ItemCronograma } from "@/lib/dominio/cronograma";
 import { formatarData, numeroBR } from "@/lib/dominio/formato";
 import { apagarItemManualAcao, levarParaSemanaAcao, type EstadoLookahead } from "./acoes";
 import { FormItemManual } from "./FormItemManual";
+import { Restricoes } from "./Restricoes";
+import { resumoRestricoes, type Restricao } from "@/lib/dominio/restricoes";
 
 const diaMes = (iso: string) => formatarData(iso).slice(0, 5);
 
@@ -19,6 +21,9 @@ export function ItemLookahead({
   semanasLevadas,
   mudou,
   podeLevar,
+  restricoes,
+  hoje,
+  sugestoes,
 }: {
   obraId: string;
   item: ItemCronograma;
@@ -26,7 +31,11 @@ export function ItemLookahead({
   semanasLevadas: string[];
   mudou: boolean;
   podeLevar: boolean;
+  restricoes: Restricao[];
+  hoje: string;
+  sugestoes: string[];
 }) {
+  const { abertas, vencidas } = resumoRestricoes(restricoes, hoje);
   const [levar, acaoLevar, levando] = useActionState<EstadoLookahead, FormData>(levarParaSemanaAcao, null);
   const [apagar, acaoApagar, apagando] = useActionState<EstadoLookahead, FormData>(apagarItemManualAcao, null);
   const erro = (levar && !levar.ok && levar.erro) || (apagar && !apagar.ok && apagar.erro);
@@ -49,6 +58,13 @@ export function ItemLookahead({
               <Selo key={s} tom="info">Na semana de {diaMes(s)}</Selo>
             ))}
             {mudou && <Selo tom="alerta">Mudou desde que foi levado</Selo>}
+            {vencidas > 0 ? (
+              <Selo tom="perigo">
+                {abertas} {abertas === 1 ? "restrição aberta" : "restrições abertas"} · {vencidas} {vencidas === 1 ? "vencida" : "vencidas"}
+              </Selo>
+            ) : abertas > 0 ? (
+              <Selo tom="alerta">{abertas} {abertas === 1 ? "restrição aberta" : "restrições abertas"}</Selo>
+            ) : null}
           </div>
         </div>
         {erro && <Aviso tom="perigo">{erro}</Aviso>}
@@ -60,6 +76,7 @@ export function ItemLookahead({
               {podeLevar ? "Levar para esta semana" : "Semana já programada"}
             </Botao>
           </form>
+          <Restricoes itemId={item.id} restricoes={restricoes} hoje={hoje} sugestoes={sugestoes} />
           {item.origem === "manual" && (
             <>
               <FormItemManual obraId={obraId} item={item} />

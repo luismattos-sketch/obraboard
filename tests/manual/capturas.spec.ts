@@ -1,7 +1,8 @@
 // Roteiro das capturas do manual: monta a obra de exemplo e fotografa cada passo de lib/ajuda/.
 // Rodar: SUPABASE_TEST=1 npm run manual:capturas   (um capítulo só: MANUAL_CAPITULO=check-in ...)
 import { devices, expect, test, type Browser, type Page } from "@playwright/test";
-import { importarCronograma, salvarItemManual } from "@/lib/db/cronograma";
+import { importarCronograma, listarItensCronograma, salvarItemManual } from "@/lib/db/cronograma";
+import { salvarRestricao } from "@/lib/db/restricoes";
 import { criarRascunho, programarSemana, salvarAtividadeProgramada, obterSemana } from "@/lib/db/programacao";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { diaDaSemana, somarDias, type DiaSemana } from "@/lib/dominio/programacao";
@@ -107,7 +108,19 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   if (!manual.ok) throw new Error(manual.erro);
   await pl.goto(`${obraUrl}/lookahead`);
   await fotografar(pl, "programar-semana", "lookahead");
+  // Item 5.2: duas restrições no item 3.1.1 (uma removida) e o painel aberto.
+  const tubo = (await listarItensCronograma(c, obraId)).find((i) => i.codigo === "3.1.1")!;
+  for (const r of [
+    { tipo: "liberacao_area", descricao: "PT da linha 3 não emitida", responsavel: "Marcos (fiscal do cliente)", prazo: somarDias(hoje, -2) },
+    { tipo: "material", descricao: "Flanges de 6\" do cliente", responsavel: "Almoxarifado do cliente", prazo: null },
+  ]) {
+    const s = await salvarRestricao(c, tubo.id, r);
+    if (!s.ok) throw new Error(s.erro);
+  }
+  await pl.goto(`${obraUrl}/lookahead`);
   await fotografar(pl, "programar-semana", "levar-lookahead");
+  await pl.getByRole("listitem").filter({ hasText: "Montar tubulação da linha 3" }).getByRole("button", { name: /^Restrições/ }).click();
+  await fotografar(pl, "programar-semana", "restricoes");
 
   // ---------- Programar a semana ----------
   await pl.goto(`${obraUrl}/programacao`);

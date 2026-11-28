@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Restrições no Lookahead: em cada item, registre o que impede a execução (tipo, responsável e prazo) e marque como \"Removida\" quando destravar. Vencidas ficam em vermelho.",
+    href: "/ajuda/programar-semana#restricoes",
+  },
+  {
+    data: "2026-11-27",
     texto: "Lookahead: veja as próximas 3 a 6 semanas, suba o cronograma do Project ou Primavera (Excel/CSV) ou adicione itens à mão, e leve cada item para a programação da semana.",
     href: "/ajuda/programar-semana#lookahead",
   },

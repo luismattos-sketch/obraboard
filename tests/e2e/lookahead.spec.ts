@@ -77,6 +77,20 @@ test("lookahead: importar CSV, reimportar, item manual e levar para a semana", a
   await expect(page.getByText("Liberar PT da área 2")).toBeVisible();
   await expect(page.getByText("Manual").first()).toBeVisible();
 
+  // Restrições (5.2): prazo vencido → selo "1 vencida"; "Removida" → selo some.
+  const tubo = page.getByRole("listitem").filter({ hasText: "Montar tubulação linha 3 (rev.)" }).first();
+  await tubo.getByRole("button", { name: /^Restrições/ }).click();
+  await tubo.getByRole("button", { name: "Adicionar restrição" }).click();
+  await tubo.getByLabel("Tipo").selectOption({ label: "Área não liberada / interferência" });
+  await tubo.getByLabel("Descrição").fill("PT da linha 3 não emitida");
+  await tubo.getByLabel("Responsável").fill("Marcos (fiscal do cliente)");
+  await tubo.getByLabel("Prazo (opcional)").fill("2026-01-05");
+  await tubo.getByRole("button", { name: "Salvar" }).click();
+  await expect(tubo.getByText("1 restrição aberta · 1 vencida")).toBeVisible();
+  await tubo.getByRole("button", { name: "Removida" }).click();
+  await expect(tubo.getByText(/vencida/)).toHaveCount(0);
+  await expect(tubo.getByText("Removidas (1)")).toBeVisible();
+
   // Levar para a semana
   const item = page.getByRole("listitem").filter({ hasText: "Montar tubulação linha 3 (rev.)" }).first();
   await item.getByRole("button", { name: "Levar para esta semana" }).click();

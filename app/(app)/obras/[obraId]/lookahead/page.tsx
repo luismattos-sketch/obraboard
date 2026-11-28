@@ -5,6 +5,8 @@ import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { levadasPorItem, listarItensCronograma, ultimaImportacao } from "@/lib/db/cronograma";
 import { obterObra } from "@/lib/db/obras";
+import { listarRestricoesDaObra } from "@/lib/db/restricoes";
+import { listarResponsaveis } from "@/lib/db/responsaveis";
 import { obterSemana } from "@/lib/db/programacao";
 import { itensDaSemana, mudouDesdeLevado, semanasDoLookahead } from "@/lib/dominio/cronograma";
 import { hojeSaoPaulo } from "@/lib/dominio/entrada";
@@ -35,12 +37,15 @@ export default async function LookaheadPage({
 
   const hoje = hojeSaoPaulo();
   const segundas = semanasDoLookahead(hoje, n);
-  const [todos, levadas, ultima, semanas] = await Promise.all([
+  const [todos, levadas, ultima, semanas, restricoes, responsaveis] = await Promise.all([
     listarItensCronograma(c, obraId, { incluirRemovidos: true }),
     levadasPorItem(c, obraId),
     ultimaImportacao(c, obraId),
     Promise.all(segundas.map((s) => obterSemana(c, obraId, s))),
+    listarRestricoesDaObra(c, obraId),
+    listarResponsaveis(c, obraId),
   ]);
+  const sugestoes = responsaveis.map((r) => r.nome);
   const ocultos = todos.filter((i) => i.removido_em && !levadas.has(i.id));
   const itens = comRemovidos ? todos : todos.filter((i) => !ocultos.includes(i));
   const existentes = todos.filter((i) => i.origem === "importado");
@@ -115,6 +120,9 @@ export default async function LookaheadPage({
                         semanasLevadas={[...new Set(lev.map((l) => l.inicio))]}
                         mudou={mudouDesdeLevado(i, lev.at(-1)?.created_at ?? null)}
                         podeLevar={podeLevar}
+                        restricoes={restricoes.get(i.id) ?? []}
+                        hoje={hoje}
+                        sugestoes={sugestoes}
                       />
                     </li>
                   );
