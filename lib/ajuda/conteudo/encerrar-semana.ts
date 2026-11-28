@@ -21,6 +21,32 @@ export const encerrarSemana: Capitulo = {
       },
     },
     {
+      id: "ciencia-extras",
+      titulo: "Peça a ciência do cliente nos serviços extras",
+      texto: [
+        "Na página da obra, o bloco \"Ciência do cliente nos serviços extras\" lista as semanas que tiveram serviço extra, com quantos já têm ciência. Clique em \"Gerar link\" na semana e depois em \"Enviar no WhatsApp\" (ou \"Copiar\") para mandar ao fiscal do cliente.",
+        "O fiscal abre o link sem login, vê cada extra com foto, quem pediu, HH e material, escreve o nome e a função e toca em \"Ciente\" em cada um ou em \"Ciente de todos\". Fica gravado o nome com a data e a hora; ciência não é aprovação de preço.",
+        "\"Gerar novo link\" desativa o anterior daquela semana. Serviço extra que já tem ciência não pode ser removido.",
+      ],
+      captura: {
+        alt: "Bloco de ciência do cliente com o link da semana e o botão Enviar no WhatsApp",
+        alvo: { papel: "heading", nome: "Ciência do cliente nos serviços extras" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "ciencia-fiscal",
+      titulo: "O que o fiscal do cliente vê",
+      texto: [
+        "Uma página só com os serviços extras daquela semana, do mais antigo para o mais novo. Depois da ciência, cada extra mostra \"✓ Ciente\" com o nome, a data e a hora.",
+      ],
+      captura: {
+        alt: "Página do fiscal com os serviços extras da semana e o botão Ciente",
+        alvo: { papel: "heading", nome: "Serviços extras da semana" },
+        dispositivo: "computador",
+      },
+    },
+    {
       id: "analise",
       titulo: "Leia a Análise (PPC)",
       texto: [

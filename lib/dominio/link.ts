@@ -9,6 +9,11 @@ export function urlQuadro(codigo: string): string {
   return `${base}/q/${codigo}`;
 }
 
+export function urlCiencia(codigo: string): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  return `${base}/c/${codigo}`;
+}
+
 export const TEXTO_LINK_ANTIGO =
   "Este link foi criado antes desta atualização e não pode ser exibido. Gere um novo para vê-lo aqui sempre.";
 

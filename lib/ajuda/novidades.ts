@@ -4,6 +4,11 @@ import type { Novidade } from "./tipos";
 export const NOVIDADES: Novidade[] = [
   {
     data: "2026-11-27",
+    texto: "Ciência do cliente nos serviços extras: gere na página da obra um link por semana e mande ao fiscal pelo WhatsApp. Ele confere os extras com foto, HH e material e registra \"Ciente\" com o nome, sem precisar de login.",
+    href: "/ajuda/encerrar-semana#ciencia-extras",
+  },
+  {
+    data: "2026-11-27",
     texto: "Serviço extra com HH e material: informe pessoas × horas e os materiais usados. O RDO mostra o \"HH em serviço extra\" separado do escopo programado.",
     href: "/ajuda/durante-o-turno#servico-extra",
   },
