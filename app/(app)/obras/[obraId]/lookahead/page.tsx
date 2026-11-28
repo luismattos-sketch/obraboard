@@ -1,3 +1,4 @@
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Cartao } from "@/components/ui/Cartao";
@@ -56,7 +57,10 @@ export default async function LookaheadPage({
         <Link href={`/obras/${obra.id}`} className="text-sm text-texto-suave hover:underline">
           ← {obra.nome}
         </Link>
-        <h1 className="text-titulo font-semibold text-primaria">Lookahead</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-titulo font-semibold text-primaria">Lookahead</h1>
+          <BotaoAjuda tela="lookahead" />
+        </div>
         <p className="text-sm text-texto-suave">
           O que vem nas próximas semanas, para destravar antes de programar.
         </p>
@@ -75,7 +79,7 @@ export default async function LookaheadPage({
           </nav>
           <p className="text-sm text-texto-suave">
             {ultima
-              ? `Última importação: ${ultima.arquivo_nome} em ${formatarData(ultima.created_at.slice(0, 10))} às ${new Date(ultima.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`
+              ? `Última importação: ${ultima.arquivo_nome} em ${new Date(ultima.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" })} às ${new Date(ultima.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`
               : "Nenhum cronograma importado — adicione itens à mão ou suba o arquivo do Project/Primavera em Excel ou CSV."}
           </p>
           <div className="flex flex-wrap gap-2">

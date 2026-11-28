@@ -3,9 +3,38 @@ import type { Capitulo } from "../tipos";
 export const programarSemana: Capitulo = {
   slug: "programar-semana",
   titulo: "Programar a semana",
-  resumo: "Monte a programação da semana com meta, dias, equipe prevista e responsável de cada atividade.",
+  resumo: "Olhe as próximas semanas no Lookahead e monte a programação da semana com meta, dias, equipe prevista e responsável de cada atividade.",
   noIndice: false,
   passos: [
+    {
+      id: "lookahead",
+      titulo: "Olhe as próximas semanas no Lookahead",
+      texto: [
+        "Na etapa \"Lookahead\" do menu, veja o que vem nas próximas 3 a 6 semanas (escolha 3, 4, 5 ou 6 no topo). Cada semana lista os itens do cronograma cujo período cai nela; um item longo aparece em todas as semanas que cobre.",
+        "Para trazer o cronograma da contratada, exporte do Project ou do Primavera em Excel (.xlsx) ou CSV e use \"Subir cronograma\". O Frentia adivinha as colunas (código/EDT, nome, início, término e, se houver, local, quantidade e unidade) e mostra uma prévia: quantos itens são novos, quantos mudaram, quantos saem do cronograma e quais linhas foram ignoradas.",
+        "Quando o cronograma for revisado, suba o arquivo de novo: cada linha é reconhecida pelo código. O que mudou é atualizado, o que sumiu fica como \"Saiu do cronograma\" e nada que já foi levado para uma semana é apagado.",
+        "Sem cronograma? Use \"Adicionar item\" e monte o lookahead à mão (descrição, início e término). Itens manuais podem ser editados e apagados; os importados seguem o arquivo.",
+      ],
+      captura: {
+        alt: "Lookahead com as próximas semanas e os itens do cronograma em cada uma",
+        alvo: { papel: "heading", nome: "Lookahead" },
+        dispositivo: "computador",
+      },
+    },
+    {
+      id: "levar-lookahead",
+      titulo: "Leve o item para a semana",
+      texto: [
+        "Em \"Levar para esta semana\", o Frentia abre a programação daquela semana (cria o rascunho se ainda não existe) com o formulário preenchido: descrição, local, unidade, dias do período e meta igual à quantidade do item. Ajuste a meta, o responsável e a equipe para o que cabe na semana.",
+        "Para quebrar um item grande em partes, leve-o de novo e mude a descrição e a meta. No Lookahead, o item passa a mostrar \"Na semana de dd/mm\"; se o cronograma mudar depois, aparece \"Mudou desde que foi levado\" (a atividade da semana não muda sozinha).",
+        "Semana já programada não recebe itens do lookahead.",
+      ],
+      captura: {
+        alt: "Item do lookahead com o botão Levar para esta semana",
+        alvo: { papel: "button", nome: "Levar para esta semana" },
+        dispositivo: "computador",
+      },
+    },
     {
       id: "abrir-programacao",
       titulo: "Abra a programação da semana",

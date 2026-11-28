@@ -1,6 +1,7 @@
 // Roteiro das capturas do manual: monta a obra de exemplo e fotografa cada passo de lib/ajuda/.
 // Rodar: SUPABASE_TEST=1 npm run manual:capturas   (um capítulo só: MANUAL_CAPITULO=check-in ...)
 import { devices, expect, test, type Browser, type Page } from "@playwright/test";
+import { importarCronograma, salvarItemManual } from "@/lib/db/cronograma";
 import { criarRascunho, programarSemana, salvarAtividadeProgramada, obterSemana } from "@/lib/db/programacao";
 import { inicioDaSemana } from "@/lib/dominio/analise";
 import { diaDaSemana, somarDias, type DiaSemana } from "@/lib/dominio/programacao";
@@ -93,6 +94,20 @@ test("capturas do manual", async ({ browser, page: pl, request }) => {
   if (!pintura.ok) throw new Error(pintura.erro);
   const prog = await programarSemana(c, anterior.dados.id);
   if (!prog.ok) throw new Error(prog.erro);
+
+  // ---------- Lookahead (item 5.1): cronograma da contratada + um item manual ----------
+  const prox = somarDias(inicio, 7);
+  const crono = await importarCronograma(c, obraId, "cronograma-montagem.xlsx", { codigo: 0, descricao: 1, inicio: 2, fim: 3 }, [
+    { codigo: "3.1.1", descricao: "Montar tubulação da linha 3 — trecho A", inicio: somarDias(prox, 1), fim: somarDias(prox, 4), local: "Pipe rack 2", unidade: "m", quantidade: 180 },
+    { codigo: "3.1.2", descricao: "Teste hidrostático da linha 3", inicio: somarDias(prox, 9), fim: somarDias(prox, 10), local: "Pipe rack 2", unidade: null, quantidade: null },
+    { codigo: "3.2.1", descricao: "Montar suportes da linha 5", inicio: somarDias(prox, 7), fim: somarDias(prox, 18), local: "Pipe rack 3", unidade: "un", quantidade: 40 },
+  ]);
+  if (!crono.ok) throw new Error(crono.erro);
+  const manual = await salvarItemManual(c, obraId, { descricao: "Liberar PT da área 2 com o cliente", inicio: prox, fim: prox, local: null, unidade: null, quantidade: null });
+  if (!manual.ok) throw new Error(manual.erro);
+  await pl.goto(`${obraUrl}/lookahead`);
+  await fotografar(pl, "programar-semana", "lookahead");
+  await fotografar(pl, "programar-semana", "levar-lookahead");
 
   // ---------- Programar a semana ----------
   await pl.goto(`${obraUrl}/programacao`);

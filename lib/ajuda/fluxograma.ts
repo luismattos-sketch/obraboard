@@ -17,6 +17,12 @@ export const FLUXOGRAMA: FaseFluxo[] = [
     linhas: [
       [
         {
+          rotulo: "Olhar o Lookahead",
+          detalhe: "cronograma ou itens à mão",
+          ator: "planejador",
+          href: "/ajuda/programar-semana#lookahead",
+        },
+        {
           rotulo: "Programar a semana",
           detalhe: "meta, dias, equipe, responsável",
           ator: "planejador",
