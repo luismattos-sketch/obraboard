@@ -117,3 +117,54 @@ $$;
 
 revoke all on function public.importar_cronograma(uuid, text, jsonb, jsonb) from public, anon;
 grant execute on function public.importar_cronograma(uuid, text, jsonb, jsonb) to authenticated;
+
+-- salvar_programacao_atividade passa a gravar cronograma_item_id (so na inclusao),
+-- desde que o item seja da mesma obra da semana.
+create or replace function public.salvar_programacao_atividade(p_semana_id uuid, p_id uuid, p_dados jsonb)
+returns uuid
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+  v_dias smallint[] := (select coalesce(array_agg(x::smallint), '{}')
+                        from jsonb_array_elements_text(coalesce(p_dados->'dias', '[]'::jsonb)) x);
+  v_resp uuid := nullif(p_dados->>'responsavel_id', '')::uuid;
+  v_item uuid := nullif(p_dados->>'cronograma_item_id', '')::uuid;
+begin
+  if p_id is null then
+    if v_item is not null and not exists (
+      select 1 from public.cronograma_itens ci join public.semanas s on s.obra_id = ci.obra_id
+       where ci.id = v_item and s.id = p_semana_id) then
+      raise exception 'item_de_outra_obra' using errcode = 'P0001';
+    end if;
+    insert into public.programacao_atividades
+      (semana_id, ordem, descricao, local, unidade, meta, dias, periodo, responsavel_id, continua_de, trazida_de, saldo_trazido, cronograma_item_id)
+    values (
+      p_semana_id,
+      coalesce((select max(pa.ordem) + 1 from public.programacao_atividades pa where pa.semana_id = p_semana_id), 0),
+      p_dados->>'descricao', nullif(p_dados->>'local', ''), nullif(p_dados->>'unidade', ''),
+      (p_dados->>'meta')::numeric, v_dias, coalesce(p_dados->>'periodo', 'diurno'), v_resp,
+      nullif(p_dados->>'continua_de', '')::uuid,
+      nullif(p_dados->>'trazida_de', '')::uuid,
+      nullif(p_dados->>'saldo_trazido', '')::numeric,
+      v_item)
+    returning id into v_id;
+  else
+    update public.programacao_atividades
+       set descricao = p_dados->>'descricao', local = nullif(p_dados->>'local', ''),
+           unidade = nullif(p_dados->>'unidade', ''), meta = (p_dados->>'meta')::numeric,
+           dias = v_dias, periodo = coalesce(p_dados->>'periodo', 'diurno'), responsavel_id = v_resp
+     where id = p_id and semana_id = p_semana_id
+    returning id into v_id;
+    if v_id is null then
+      raise exception 'nao_encontrada' using errcode = 'P0001';
+    end if;
+    delete from public.programacao_efetivo where programacao_atividade_id = v_id;
+  end if;
+  insert into public.programacao_efetivo (programacao_atividade_id, funcao, quantidade)
+  select v_id, e->>'funcao', (e->>'quantidade')::integer
+    from jsonb_array_elements(coalesce(p_dados->'equipe', '[]'::jsonb)) e;
+  return v_id;
+end;
+$$;

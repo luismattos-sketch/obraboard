@@ -44,6 +44,8 @@ export type EntradaAtividadeProgramada = {
   /** Só na inclusão (item 1.6, "Trazer" da semana anterior). */
   trazida_de?: string | null;
   saldo_trazido?: number | null;
+  /** Só na inclusão (item 5.1, "Levar para esta semana" do lookahead). */
+  cronograma_item_id?: string | null;
 };
 
 export const ERRO_DIAS_COM_EXECUCAO =
@@ -123,6 +125,7 @@ function atividadeDe(r: Record<string, unknown>, equipe: EquipePrevista[]): Ativ
     continua_de: (r.continua_de as string | null) ?? null,
     trazida_de: (r.trazida_de as string | null) ?? null,
     saldo_trazido: numOuNull(r.saldo_trazido),
+    cronograma_item_id: (r.cronograma_item_id as string | null) ?? null,
     equipe,
   };
 }
@@ -133,7 +136,7 @@ export async function obterDadosSemana(c: SupabaseClient, semana: Semana): Promi
   const [pa, tu] = await Promise.all([
     c
       .from("programacao_atividades")
-      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, trazida_de, saldo_trazido, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
+      .select("id, ordem, descricao, local, unidade, meta, dias, periodo, causa, responsavel_id, continua_de, trazida_de, saldo_trazido, cronograma_item_id, created_at, programacao_efetivo(id, funcao, quantidade, created_at)")
       .eq("semana_id", semana.id),
     c
       .from("turnos")
@@ -298,6 +301,7 @@ function validarEntrada(d: EntradaAtividadeProgramada): Resultado<EntradaAtivida
     continua_de: typeof d.continua_de === "string" && d.continua_de ? d.continua_de : null,
     trazida_de: typeof d.trazida_de === "string" && d.trazida_de ? d.trazida_de : null,
     saldo_trazido: typeof d.trazida_de === "string" && d.trazida_de && typeof d.saldo_trazido === "number" ? d.saldo_trazido : null,
+    cronograma_item_id: typeof d.cronograma_item_id === "string" && d.cronograma_item_id ? d.cronograma_item_id : null,
   });
 }
 

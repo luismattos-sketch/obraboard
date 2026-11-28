@@ -38,6 +38,8 @@ export type AtividadeProgramada = {
   /** Item 1.6: trazida da atividade `trazida_de` da semana anterior, com o saldo de então. */
   trazida_de?: string | null;
   saldo_trazido?: number | null;
+  /** Item 5.1: veio deste item do cronograma/lookahead. Ausente em fotos antigas. */
+  cronograma_item_id?: string | null;
 };
 
 export type ExecucaoLigada = {
